@@ -15,8 +15,8 @@ export class ClaudeCodeManager {
   private async initializeRepositoriesDir(): Promise<void> {
     try {
       await fs.mkdir(this.repositoriesDir, { recursive: true });
-    } catch (error) {
-      console.error('リポジトリディレクトリの作成に失敗:', error);
+    } catch {
+      // リポジトリディレクトリ作成エラーは無視
     }
   }
 
@@ -44,8 +44,7 @@ export class ClaudeCodeManager {
       }
 
       return repos;
-    } catch (error) {
-      console.error('リポジトリ一覧の取得に失敗:', error);
+    } catch {
       return [];
     }
   }
@@ -58,11 +57,10 @@ export class ClaudeCodeManager {
         stdio: 'pipe'
       });
 
-      let output = '';
       let errorOutput = '';
 
-      gitProcess.stdout?.on('data', (data) => {
-        output += data.toString();
+      gitProcess.stdout?.on('data', () => {
+        // 標準出力は無視
       });
 
       gitProcess.stderr?.on('data', (data) => {
@@ -71,10 +69,8 @@ export class ClaudeCodeManager {
 
       gitProcess.on('close', (code) => {
         if (code === 0) {
-          console.log('クローン成功:', output);
           resolve();
         } else {
-          console.error('クローン失敗:', errorOutput);
           reject(new Error(`Git clone failed: ${errorOutput}`));
         }
       });
@@ -98,8 +94,7 @@ export class ClaudeCodeManager {
         this.claudeProcess = null;
       }
       
-      console.log(`リポジトリを切り替えました: ${repoPath}`);
-    } catch (error) {
+    } catch {
       throw new Error(`リポジトリが見つかりません: ${repoPath}`);
     }
   }

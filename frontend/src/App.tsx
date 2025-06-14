@@ -24,19 +24,12 @@ function App() {
 
     socketInstance.on('connect', () => {
       setIsConnected(true);
-      console.log('サーバーに接続しました');
       // 接続時にリポジトリ一覧を取得
       socketInstance.emit('list-repos');
     });
 
-    // 全てのイベントを監視（デバッグ用）
-    socketInstance.onAny((eventName, ...args) => {
-      console.log('Received Socket.IO event:', eventName, args);
-    });
-
     socketInstance.on('disconnect', () => {
       setIsConnected(false);
-      console.log('サーバーから切断されました');
     });
 
     socketInstance.on('repos-list', (data) => {
@@ -45,12 +38,7 @@ function App() {
 
     // 生ログの受信
     socketInstance.on('claude-raw-output', (data) => {
-      console.log('Received claude-raw-output:', data);
-      setRawOutput(prev => {
-        const newOutput = prev + data.content;
-        console.log('Updated rawOutput:', newOutput);
-        return newOutput;
-      });
+      setRawOutput(prev => prev + data.content);
     });
 
     socketInstance.on('repo-cloned', (data) => {

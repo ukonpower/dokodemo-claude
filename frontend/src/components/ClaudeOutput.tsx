@@ -19,11 +19,8 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
 
   // ANSI色コードをHTMLに変換
   const convertedOutput = useMemo(() => {
-    console.log('ClaudeOutput rawOutput:', rawOutput);
     if (!rawOutput) return 'Claude CLIの出力がここに表示されます<br/>リポジトリを選択してClaude CLIを開始してください';
-    const converted = ansiConverter.toHtml(rawOutput);
-    console.log('ClaudeOutput converted:', converted);
-    return converted;
+    return ansiConverter.toHtml(rawOutput);
   }, [rawOutput, ansiConverter]);
 
   // 新しい出力が追加されたら自動スクロール
