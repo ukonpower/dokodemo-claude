@@ -110,18 +110,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   }, [rawOutput]);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Claude Code CLI 出力
-        </h2>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-        </div>
-      </div>
-      
+    <div className="bg-gray-900 rounded-lg overflow-hidden">
       <div
         ref={terminalRef}
         className="h-96"

@@ -51,9 +51,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const activeTerminal = terminals.find(t => t.id === activeTerminalId);
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden h-96">
+    <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
-      <div className="bg-gray-100 px-4 py-2 border-b flex items-center space-x-1 overflow-x-auto">
+      <div className="bg-gray-100 px-4 py-2 border-b flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
           <button
             key={terminal.id}
@@ -93,7 +93,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       </div>
 
       {/* ターミナル本体 */}
-      <div className="h-full">
+      <div className="flex-1 min-h-0">
         {terminals.length === 0 ? (
           <div className="h-full flex items-center justify-center bg-gray-50">
             <div className="text-center text-gray-500">
