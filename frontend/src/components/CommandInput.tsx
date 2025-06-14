@@ -11,8 +11,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, disabled = f
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendCommand = () => {
     if (!command.trim() || disabled) return;
 
     // コマンド履歴に追加
@@ -24,11 +23,16 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, disabled = f
     setCommand('');
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendCommand();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Ctrl+Enter または Cmd+Enter で送信
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit(e);
+      sendCommand();
       return;
     }
 

@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { spawn } from 'child_process';
+import * as pty from 'node-pty';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -66,52 +67,73 @@ async function loadExistingRepos(): Promise<void> {
   }
 }
 
-// Claude Code CLIセッションの開始
+// Claude Code CLIセッションの開始（対話モードを維持）
 function startClaudeSession(workingDir: string): ClaudeSession {
   if (claudeSession?.isActive) {
-    claudeSession.process.kill();
+    try {
+      if (claudeSession.isPty) {
+        claudeSession.process.kill();
+      } else {
+        claudeSession.process.kill('SIGTERM');
+        setTimeout(() => {
+          if (claudeSession?.process && !claudeSession.process.killed) {
+            claudeSession.process.kill('SIGKILL');
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('プロセス終了エラー:', error);
+    }
   }
 
-  const claudeProcess = spawn('claude', [], {
+  console.log(`Claude CLIをPTYで開始します: ${workingDir}`);
+  
+  // npm版Claude CLIのパス（プロジェクトルートのnode_modules）
+  const claudePath = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-code/cli.js');
+  console.log(`Claude CLIパス: ${claudePath}`);
+  
+  // PTYを使用してClaude CLIを対話モードで起動
+  const claudeProcess = pty.spawn('node', [claudePath], {
+    name: 'xterm-color',
+    cols: 120,
+    rows: 30,
     cwd: workingDir,
-    stdio: ['pipe', 'pipe', 'pipe']
+    env: {
+      ...process.env,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      FORCE_COLOR: '1'
+    }
   });
+
+  // プロセス開始の確認
+  console.log(`Claude CLIプロセス開始: PID=${claudeProcess.pid}`);
 
   claudeSession = {
     process: claudeProcess,
     isActive: true,
-    workingDirectory: workingDir
+    workingDirectory: workingDir,
+    isPty: true
   };
 
-  // Claude CLIの出力をクライアントに送信
-  claudeProcess.stdout?.on('data', (data: Buffer) => {
-    const message: ClaudeMessage = {
-      id: Date.now().toString(),
-      type: 'claude',
-      content: data.toString(),
-      timestamp: Date.now()
-    };
-    io.emit('claude-output', message);
+  // PTYからの出力をそのまま送信（ANSI色コード含む）
+  claudeProcess.onData((data: string) => {
+    console.log('Claude raw output:', data);
+    console.log('Connected clients:', io.sockets.sockets.size);
+    console.log('Sending to clients via Socket.IO with event: claude-raw-output');
+    io.emit('claude-raw-output', {
+      type: 'stdout',
+      content: data
+    });
+    console.log('Sent claude-raw-output event');
   });
 
-  claudeProcess.stderr?.on('data', (data: Buffer) => {
-    const message: ClaudeMessage = {
-      id: Date.now().toString(),
+  claudeProcess.onExit(({ exitCode, signal }) => {
+    console.log(`Claude CLIプロセス終了: code=${exitCode}, signal=${signal}`);
+    io.emit('claude-raw-output', {
       type: 'system',
-      content: `エラー: ${data.toString()}`,
-      timestamp: Date.now()
-    };
-    io.emit('claude-output', message);
-  });
-
-  claudeProcess.on('exit', (code) => {
-    const message: ClaudeMessage = {
-      id: Date.now().toString(),
-      type: 'system',
-      content: `Claude CLIが終了しました (code: ${code})`,
-      timestamp: Date.now()
-    };
-    io.emit('claude-output', message);
+      content: `\n=== Claude Code CLI 終了 (code: ${exitCode}, signal: ${signal}) ===\n`
+    });
     
     if (claudeSession) {
       claudeSession.isActive = false;
@@ -191,10 +213,18 @@ io.on('connection', (socket) => {
   // リポジトリの切り替え
   socket.on('switch-repo', (data) => {
     const { path: repoPath } = data;
+    console.log('=== switch-repo イベント受信 ===');
+    console.log('切り替え先パス:', repoPath);
     
     try {
       // Claude CLIセッションを新しいディレクトリで開始
-      startClaudeSession(repoPath);
+      console.log('Claude CLIセッションを開始します...');
+      const newSession = startClaudeSession(repoPath);
+      console.log('新しいセッション作成完了:', {
+        isActive: newSession.isActive,
+        isPty: newSession.isPty,
+        workingDirectory: newSession.workingDirectory
+      });
       
       socket.emit('repo-switched', {
         success: true,
@@ -202,16 +232,8 @@ io.on('connection', (socket) => {
         currentPath: repoPath
       });
 
-      // 初期メッセージの送信
-      const message: ClaudeMessage = {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `Claude CLIが開始されました\n作業ディレクトリ: ${repoPath}`,
-        timestamp: Date.now()
-      };
-      socket.emit('claude-output', message);
-
     } catch (error) {
+      console.error('リポジトリ切り替えエラー:', error);
       socket.emit('repo-switched', {
         success: false,
         message: `リポジトリの切り替えに失敗しました: ${error}`,
@@ -223,29 +245,42 @@ io.on('connection', (socket) => {
   // Claude CLIへのコマンド送信
   socket.on('send-command', (data) => {
     const { command } = data;
+    console.log('=== send-command イベント受信 ===');
+    console.log('コマンド:', command);
+    console.log('claudeSession exists:', !!claudeSession);
+    console.log('claudeSession.isActive:', claudeSession?.isActive);
+    console.log('claudeSession.isPty:', claudeSession?.isPty);
+    console.log('claudeSession.process exists:', !!claudeSession?.process);
 
     if (!claudeSession?.isActive) {
-      const message: ClaudeMessage = {
-        id: Date.now().toString(),
+      console.log('Claude CLIセッションが非アクティブです');
+      socket.emit('claude-raw-output', {
         type: 'system',
-        content: 'Claude CLIセッションが開始されていません。リポジトリを選択してください。',
-        timestamp: Date.now()
-      };
-      socket.emit('claude-output', message);
+        content: 'Claude CLIセッションが開始されていません。リポジトリを選択してください。\n'
+      });
       return;
     }
 
-    // ユーザーの入力をエコー
-    const userMessage: ClaudeMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: command,
-      timestamp: Date.now()
-    };
-    socket.emit('claude-output', userMessage);
-
-    // Claude CLIにコマンドを送信
-    claudeSession.process.stdin?.write(`${command}\n`);
+    console.log('Claude CLIにコマンドを送信します:', command);
+    
+    // PTYに直接コマンドを送信
+    if (claudeSession.isPty && claudeSession.process) {
+      console.log('PTYにコマンドを書き込みます');
+      
+      // コマンドを入力してエンターキーを送信
+      claudeSession.process.write(command);
+      claudeSession.process.write('\r'); // Carriage Return (Enter key)
+      
+      console.log('コマンドとエンターキーを送信しました');
+    } else {
+      console.error('PTYセッションが利用できません');
+      console.error('isPty:', claudeSession.isPty);
+      console.error('process:', !!claudeSession.process);
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: 'Claude CLIセッションエラー: PTYが利用できません\n'
+      });
+    }
   });
 
   socket.on('disconnect', () => {
@@ -265,5 +300,38 @@ async function startServer(): Promise<void> {
     console.log(`リポジトリディレクトリ: ${REPOS_DIR}`);
   });
 }
+
+// プロセス終了時のクリーンアップ
+process.on('SIGTERM', () => {
+  console.log('SIGTERM受信、サーバーを終了します...');
+  if (claudeSession?.isActive) {
+    try {
+      if (claudeSession.isPty) {
+        claudeSession.process.kill();
+      } else {
+        claudeSession.process.kill('SIGTERM');
+      }
+    } catch (error) {
+      console.error('Claude CLIプロセス終了エラー:', error);
+    }
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT受信、サーバーを終了します...');
+  if (claudeSession?.isActive) {
+    try {
+      if (claudeSession.isPty) {
+        claudeSession.process.kill();
+      } else {
+        claudeSession.process.kill('SIGTERM');
+      }
+    } catch (error) {
+      console.error('Claude CLIプロセス終了エラー:', error);
+    }
+  }
+  process.exit(0);
+});
 
 startServer().catch(console.error);

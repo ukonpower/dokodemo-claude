@@ -18,6 +18,7 @@ export interface GitRepository {
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
+  'claude-raw-output': (data: { type: 'stdout' | 'stderr' | 'system'; content: string }) => void;
   'repo-cloned': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
   'repo-switched': (data: { success: boolean; message: string; currentPath: string }) => void;
 }
@@ -31,7 +32,8 @@ export interface ClientToServerEvents {
 
 // Claude CLI 操作関連の型定義
 export interface ClaudeSession {
-  process: any;
+  process: any; // pty.IPty | ChildProcess
   isActive: boolean;
   workingDirectory: string;
+  isPty: boolean;
 }

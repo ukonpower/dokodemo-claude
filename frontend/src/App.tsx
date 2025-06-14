@@ -14,7 +14,7 @@ import CommandInput from './components/CommandInput';
 function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
-  const [messages, setMessages] = useState<ClaudeMessage[]>([]);
+  const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
   const [currentRepo, setCurrentRepo] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
 
@@ -29,6 +29,11 @@ function App() {
       socketInstance.emit('list-repos');
     });
 
+    // 全てのイベントを監視（デバッグ用）
+    socketInstance.onAny((eventName, ...args) => {
+      console.log('Received Socket.IO event:', eventName, args);
+    });
+
     socketInstance.on('disconnect', () => {
       setIsConnected(false);
       console.log('サーバーから切断されました');
@@ -38,31 +43,26 @@ function App() {
       setRepositories(data.repos);
     });
 
-    socketInstance.on('claude-output', (message) => {
-      setMessages(prev => [...prev, message]);
+    // 生ログの受信
+    socketInstance.on('claude-raw-output', (data) => {
+      console.log('Received claude-raw-output:', data);
+      setRawOutput(prev => {
+        const newOutput = prev + data.content;
+        console.log('Updated rawOutput:', newOutput);
+        return newOutput;
+      });
     });
 
     socketInstance.on('repo-cloned', (data) => {
-      const message: ClaudeMessage = {
-        id: Date.now().toString(),
-        type: 'system',
-        content: data.message,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, message]);
+      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
     });
 
     socketInstance.on('repo-switched', (data) => {
       if (data.success) {
         setCurrentRepo(data.currentPath);
+        setRawOutput(''); // リポジトリ切り替え時にログをクリア
       }
-      const message: ClaudeMessage = {
-        id: Date.now().toString(),
-        type: 'system',
-        content: data.message,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, message]);
+      // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
 
     return () => {
@@ -79,7 +79,6 @@ function App() {
   const handleSwitchRepository = (path: string) => {
     if (socket) {
       socket.emit('switch-repo', { path });
-      setMessages([]); // リポジトリ切り替え時にメッセージをクリア
     }
   };
 
@@ -123,7 +122,7 @@ function App() {
           {/* メインエリア - Claude CLI */}
           <div className="lg:col-span-3 space-y-4">
             {/* Claude出力エリア */}
-            <ClaudeOutput messages={messages} />
+            <ClaudeOutput rawOutput={rawOutput} />
 
             {/* コマンド入力エリア */}
             <CommandInput

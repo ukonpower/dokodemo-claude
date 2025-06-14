@@ -12,7 +12,13 @@
       "Bash(find:*)",
       "Bash(touch:*)",
       "Bash(npm run dev:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(pkill:*)",
+      "Bash(claude --version)",
+      "Bash(timeout:*)",
+      "Bash(node:*)",
+      "Bash(grep -n -i \"ctrl.*enter\\|keypress\\|onkey\\|textarea\\|input.*submit\" cli.js)",
+      "Bash(grep -n -E \"(readline|inquirer|blessed|keypress|Enter|submit)\" cli.js)"
     ],
     "deny": []
   }
