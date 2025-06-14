@@ -18,7 +18,11 @@
       "Bash(timeout:*)",
       "Bash(node:*)",
       "Bash(grep -n -i \"ctrl.*enter\\|keypress\\|onkey\\|textarea\\|input.*submit\" cli.js)",
-      "Bash(grep -n -E \"(readline|inquirer|blessed|keypress|Enter|submit)\" cli.js)"
+      "Bash(grep -n -E \"(readline|inquirer|blessed|keypress|Enter|submit)\" cli.js)",
+      "Bash(npm uninstall:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

@@ -28,18 +28,32 @@
 - 入力したテキストをClaude Code CLIに送信
 - 送信ボタンまたはキーボードショートカットで実行
 
+### ターミナル機能
+- 選択されたプロジェクトディレクトリで起動するインタラクティブターミナル
+- Claude Code CLIとは独立した自由なコマンド実行環境
+- リアルタイムでの標準入力・出力・エラー表示
+- プロセスの中断（Ctrl+C）、再開などの制御
+- 複数ターミナルタブでの同時操作
+- 開発サーバー起動、テスト実行、git操作など何でも実行可能
+
 ## 技術スタック
 
 - **フロントエンド**: React + TypeScript + Vite + Tailwind CSS
 - **バックエンド**: Node.js + Express + TypeScript
 - **コード品質**: ESLint + Prettier + TypeScript
 - **CLI統合**: child_process でClaude Code CLI実行
+- **ターミナル機能**: node-pty でインタラクティブターミナル（PTY）操作
 - **通信**: WebSocket（Socket.IO）
 
 ## 基本アーキテクチャ
 
 ```
 Webブラウザ ←→ Node.jsサーバー ←→ Claude Code CLI
+                      ↓
+                 ターミナル管理（PTY）
+                 ├─ ターミナル1 (選択されたプロジェクトディレクトリ)
+                 ├─ ターミナル2 (選択されたプロジェクトディレクトリ)
+                 └─ ターミナルN (選択されたプロジェクトディレクトリ)
 ```
 
 ## 画面構成
@@ -57,10 +71,17 @@ Webブラウザ ←→ Node.jsサーバー ←→ Claude Code CLI
 │ ┌─────────────────────────────────────┐ │
 │ │ claude> 待機中...                   │ │
 │ │                                     │ │
-│ │                                     │ │
 │ └─────────────────────────────────────┘ │
 ├─────────────────────────────────────────┤
-│ コマンド入力:                            │
+│ ターミナル                              │
+│ ┌─ Terminal 1 ─┬─ Terminal 2 ─┬─ + ─┐ │
+│ │ user@host:~/project$ npm run dev     │ │
+│ │ > vite dev                          │ │
+│ │ Local: http://localhost:5173/       │ │
+│ │ $ _                                 │ │
+│ └─────────────────────────────────────┘ │
+├─────────────────────────────────────────┤
+│ Claude コマンド入力:                      │
 │ ┌─────────────────────────────────────┐ │
 │ │                                     │ │
 │ └─────────────────────────────────────┘ │
@@ -91,11 +112,41 @@ Webブラウザ ←→ Node.jsサーバー ←→ Claude Code CLI
 ### 日常利用
 1. Webブラウザでアプリケーションにアクセス
 2. 作業したいリポジトリを選択（複数ある場合）
-3. Claude Code CLIの現在状態を確認
-4. テキストエリアに指示を入力
-5. [送信]ボタンクリックまたはCtrl+Enter
-6. Claude Code CLIでコマンド実行
-7. 結果を画面で確認
+3. ターミナルでの直接操作
+   - 新しいターミナルタブを開く（[+]ボタン）
+   - 選択されたプロジェクトディレクトリで自動的に起動
+   - 開発サーバー起動、テスト実行、git操作など自由に実行
+   - リアルタイムでのコマンド結果確認
+4. Claude Code CLIでのAI支援
+   - Claude用テキストエリアに指示を入力
+   - [送信]ボタンクリックまたはCtrl+Enter
+   - AIによるコード生成・修正・説明
+5. 作業終了時はターミナルを適切に終了
+
+### ターミナル管理フロー
+1. **ターミナル作成**
+   - [+]ボタンクリックで新しいターミナルタブを作成
+   - node-ptyでPTY（疑似端末）を起動
+   - 選択中のプロジェクトディレクトリで自動的にcd実行
+   - WebSocketでリアルタイム通信を確立
+
+2. **自由なコマンド実行**
+   - ターミナル内でのテキスト入力
+   - Enterキーで入力内容をPTYに送信
+   - 標準出力・エラー出力をリアルタイム表示
+   - ANSI colorコードに対応した色付き表示
+   - 開発サーバー、テスト、git、npm、任意のコマンド実行
+
+3. **プロセス制御**
+   - Ctrl+C（SIGINT）でプロセス中断
+   - Ctrl+Z（SIGTSTP）でプロセス一時停止
+   - 長時間実行プロセスの継続実行
+   - タブ切り替えで複数ターミナルの並行操作
+
+4. **ターミナル終了**
+   - タブの×ボタンでターミナル終了
+   - PTYプロセスの適切な終了処理
+   - 実行中プロセスがある場合の警告表示
 
 ## 実装要件
 
@@ -104,6 +155,7 @@ Webブラウザ ←→ Node.jsサーバー ←→ Claude Code CLI
 - Claude Code CLI（インストール済み）
 - Git（インストール済み）
 - Webブラウザ（Chrome, Firefox, Safari, Edge）
+- node-pty（ターミナル機能用、build-essential必要）
 
 ### 制約事項
 - ローカル環境でのみ動作
@@ -135,7 +187,8 @@ dokodemo-claude/
 │   ├── src/
 │   │   ├── types/       # TypeScript型定義
 │   │   ├── server.ts    # Expressサーバー
-│   │   └── claude.ts    # Claude Code CLI統合
+│   │   ├── claude.ts    # Claude Code CLI統合
+│   │   └── terminal.ts  # ターミナル（PTY）管理
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── eslint.config.js
@@ -256,6 +309,23 @@ interface GitRepository {
   status: 'cloning' | 'ready' | 'error';
 }
 
+// ターミナル関連
+interface Terminal {
+  id: string;
+  name: string;
+  cwd: string;
+  status: 'active' | 'running' | 'exited';
+  pid?: number;
+}
+
+interface TerminalMessage {
+  terminalId: string;
+  type: 'stdout' | 'stderr' | 'input';
+  data: string;
+  timestamp: number;
+}
+
+
 // Socket.IO通信関連
 interface SocketEvents {
   'clone-repo': (data: { url: string; path: string }) => void;
@@ -264,8 +334,18 @@ interface SocketEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'send-command': (data: { command: string }) => void;
   'claude-output': (data: ClaudeMessage) => void;
+  
+  // ターミナル関連イベント
+  'create-terminal': (data: { cwd: string; name?: string }) => void;
+  'terminal-created': (data: Terminal) => void;
+  'terminal-input': (data: { terminalId: string; input: string }) => void;
+  'terminal-output': (data: TerminalMessage) => void;
+  'list-terminals': () => void;
+  'terminals-list': (data: { terminals: Terminal[] }) => void;
+  'close-terminal': (data: { terminalId: string }) => void;
+  'terminal-closed': (data: { terminalId: string }) => void;
 }
 ```
 
-この設計は、Claude Code CLIの基本的なWeb化に必要な最小限の機能のみを定義しています。
-複雑な機能は一切含まず、シンプルで確実に動作するツールを目指します。
+この設計は、Claude Code CLIの基本的なWeb化と自由なターミナル操作環境の提供を目的としています。
+選択されたプロジェクトディレクトリで直接操作できるターミナルにより、開発者は慣れ親しんだコマンドライン環境をWebブラウザ上で利用できます。
