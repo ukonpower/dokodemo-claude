@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { 
-  ClaudeMessage, 
   GitRepository, 
+  Terminal,
+  TerminalMessage,
   ServerToClientEvents, 
   ClientToServerEvents 
 } from './types';
@@ -10,6 +11,7 @@ import type {
 import RepositoryManager from './components/RepositoryManager';
 import ClaudeOutput from './components/ClaudeOutput';
 import CommandInput from './components/CommandInput';
+import TerminalManager from './components/TerminalManager';
 
 function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -17,6 +19,10 @@ function App() {
   const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
   const [currentRepo, setCurrentRepo] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
+  
+  // ターミナル関連の状態
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
 
   useEffect(() => {
     const socketInstance = io('http://localhost:3001');
@@ -24,8 +30,9 @@ function App() {
 
     socketInstance.on('connect', () => {
       setIsConnected(true);
-      // 接続時にリポジトリ一覧を取得
+      // 接続時にリポジトリ一覧とターミナル一覧を取得
       socketInstance.emit('list-repos');
+      socketInstance.emit('list-terminals');
     });
 
     socketInstance.on('disconnect', () => {
@@ -53,6 +60,24 @@ function App() {
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
 
+    // ターミナル関連のイベントハンドラ
+    socketInstance.on('terminals-list', (data) => {
+      setTerminals(data.terminals);
+    });
+
+    socketInstance.on('terminal-created', (terminal) => {
+      setTerminals(prev => [...prev, terminal]);
+    });
+
+    socketInstance.on('terminal-output', (message) => {
+      setTerminalMessages(prev => [...prev, message]);
+    });
+
+    socketInstance.on('terminal-closed', (data) => {
+      setTerminals(prev => prev.filter(t => t.id !== data.terminalId));
+      setTerminalMessages(prev => prev.filter(m => m.terminalId !== data.terminalId));
+    });
+
     return () => {
       socketInstance.disconnect();
     };
@@ -73,6 +98,31 @@ function App() {
   const handleSendCommand = (command: string) => {
     if (socket) {
       socket.emit('send-command', { command });
+    }
+  };
+
+  // ターミナル関連のハンドラ
+  const handleCreateTerminal = (cwd: string, name?: string) => {
+    if (socket) {
+      socket.emit('create-terminal', { cwd, name });
+    }
+  };
+
+  const handleTerminalInput = (terminalId: string, input: string) => {
+    if (socket) {
+      socket.emit('terminal-input', { terminalId, input });
+    }
+  };
+
+  const handleTerminalSignal = (terminalId: string, signal: string) => {
+    if (socket) {
+      socket.emit('terminal-signal', { terminalId, signal });
+    }
+  };
+
+  const handleCloseTerminal = (terminalId: string) => {
+    if (socket) {
+      socket.emit('close-terminal', { terminalId });
     }
   };
 
@@ -107,16 +157,34 @@ function App() {
             />
           </div>
 
-          {/* メインエリア - Claude CLI */}
+          {/* メインエリア - Claude CLI & Terminal */}
           <div className="lg:col-span-3 space-y-4">
             {/* Claude出力エリア */}
             <ClaudeOutput rawOutput={rawOutput} />
 
-            {/* コマンド入力エリア */}
-            <CommandInput
-              onSendCommand={handleSendCommand}
-              disabled={!isConnected || !currentRepo}
-            />
+            {/* ターミナルエリア */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">ターミナル</h2>
+              <TerminalManager
+                terminals={terminals}
+                messages={terminalMessages}
+                currentRepo={currentRepo}
+                isConnected={isConnected}
+                onCreateTerminal={handleCreateTerminal}
+                onTerminalInput={handleTerminalInput}
+                onTerminalSignal={handleTerminalSignal}
+                onCloseTerminal={handleCloseTerminal}
+              />
+            </div>
+
+            {/* Claude コマンド入力エリア */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Claude コマンド</h2>
+              <CommandInput
+                onSendCommand={handleSendCommand}
+                disabled={!isConnected || !currentRepo}
+              />
+            </div>
           </div>
         </div>
       </div>
