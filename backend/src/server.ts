@@ -13,8 +13,11 @@ import type {
   GitRepository,
   ServerToClientEvents,
   ClientToServerEvents,
-  ClaudeSession
+  ClaudeSession,
+  Terminal,
+  TerminalMessage
 } from './types/index.js';
+import { TerminalManager } from './terminal.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +37,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 let repositories: GitRepository[] = [];
 let claudeSession: ClaudeSession | null = null;
 const REPOS_DIR = path.join(process.cwd(), 'repositories');
+
+// ターミナル管理インスタンス
+const terminalManager = new TerminalManager();
 
 // Expressの設定
 app.use(cors({
@@ -132,6 +138,19 @@ function startClaudeSession(workingDir: string): ClaudeSession {
 
   return claudeSession;
 }
+
+// ターミナル管理イベントの設定
+terminalManager.on('terminal-created', (terminal: Terminal) => {
+  io.emit('terminal-created', terminal);
+});
+
+terminalManager.on('terminal-output', (message: TerminalMessage) => {
+  io.emit('terminal-output', message);
+});
+
+terminalManager.on('terminal-closed', (data: { terminalId: string }) => {
+  io.emit('terminal-closed', data);
+});
 
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
@@ -242,7 +261,9 @@ io.on('connection', (socket) => {
       
       // Claude CLIでは実行確定のためもう一度エンターキーが必要
       setTimeout(() => {
-        claudeSession.process.write('\r'); // 実行確定のエンター
+        if (claudeSession?.process) {
+          claudeSession.process.write('\r'); // 実行確定のエンター
+        }
       }, 100); // 100ms後に実行確定
     } else {
       socket.emit('claude-raw-output', {
@@ -250,6 +271,64 @@ io.on('connection', (socket) => {
         content: 'Claude CLIセッションエラー: PTYが利用できません\n'
       });
     }
+  });
+
+  // ターミナル関連のイベントハンドラ
+
+  // ターミナル一覧の送信
+  socket.on('list-terminals', () => {
+    const terminals = terminalManager.getTerminals();
+    socket.emit('terminals-list', { terminals });
+  });
+
+  // 新しいターミナルの作成
+  socket.on('create-terminal', (data) => {
+    const { cwd, name } = data;
+    try {
+      const terminal = terminalManager.createTerminal(cwd, name);
+      // terminal-createdイベントは TerminalManager から自動的に発火される
+    } catch (error) {
+      socket.emit('terminal-output', {
+        terminalId: 'system',
+        type: 'stderr',
+        data: `ターミナル作成エラー: ${error}\n`,
+        timestamp: Date.now()
+      });
+    }
+  });
+
+  // ターミナルへの入力送信
+  socket.on('terminal-input', (data) => {
+    const { terminalId, input } = data;
+    const success = terminalManager.sendInput(terminalId, input);
+    if (!success) {
+      socket.emit('terminal-output', {
+        terminalId,
+        type: 'stderr',
+        data: `ターミナル入力エラー: ターミナル ${terminalId} が見つからないか、既に終了しています\n`,
+        timestamp: Date.now()
+      });
+    }
+  });
+
+  // ターミナルのリサイズ
+  socket.on('terminal-resize', (data) => {
+    const { terminalId, cols, rows } = data;
+    terminalManager.resizeTerminal(terminalId, cols, rows);
+  });
+
+  // ターミナルへのシグナル送信（Ctrl+C, Ctrl+Z等）
+  socket.on('terminal-signal', (data) => {
+    const { terminalId, signal } = data;
+    const success = terminalManager.sendSignal(terminalId, signal);
+    socket.emit('terminal-signal-sent', { terminalId, signal, success });
+  });
+
+  // ターミナルの終了
+  socket.on('close-terminal', (data) => {
+    const { terminalId } = data;
+    terminalManager.closeTerminal(terminalId);
+    // terminal-closedイベントは TerminalManager から自動的に発火される
   });
 
   socket.on('disconnect', () => {
@@ -271,6 +350,7 @@ async function startServer(): Promise<void> {
 
 // プロセス終了時のクリーンアップ
 process.on('SIGTERM', () => {
+  // Claude CLIセッションの終了
   if (claudeSession?.isActive) {
     try {
       if (claudeSession.isPty) {
@@ -282,10 +362,15 @@ process.on('SIGTERM', () => {
       // プロセス終了エラーは無視
     }
   }
+
+  // 全ターミナルの終了
+  terminalManager.closeAllTerminals();
+  
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
+  // Claude CLIセッションの終了
   if (claudeSession?.isActive) {
     try {
       if (claudeSession.isPty) {
@@ -297,6 +382,10 @@ process.on('SIGINT', () => {
       // プロセス終了エラーは無視
     }
   }
+
+  // 全ターミナルの終了
+  terminalManager.closeAllTerminals();
+  
   process.exit(0);
 });
 
