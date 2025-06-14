@@ -271,6 +271,12 @@ io.on('connection', (socket) => {
       claudeSession.process.write(command);
       claudeSession.process.write('\r'); // Carriage Return (Enter key)
       
+      // Claude CLIでは実行確定のためもう一度エンターキーが必要
+      setTimeout(() => {
+        claudeSession.process.write('\r'); // 実行確定のエンター
+        console.log('実行確定のエンターキーを送信しました');
+      }, 100); // 100ms後に実行確定
+      
       console.log('コマンドとエンターキーを送信しました');
     } else {
       console.error('PTYセッションが利用できません');
