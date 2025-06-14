@@ -2,14 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+  
+  code, pre {
+    @apply font-mono;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+@layer components {
+  .claude-output {
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+  }
+  
+  .claude-message {
+    @apply p-3 border-b border-gray-100 last:border-b-0;
+  }
+  
+  .claude-message-user {
+    @apply bg-blue-50 border-l-4 border-blue-400;
+  }
+  
+  .claude-message-claude {
+    @apply bg-white;
+  }
+  
+  .claude-message-system {
+    @apply bg-yellow-50 border-l-4 border-yellow-400;
+  }
+  
+  .repository-item {
+    @apply p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors;
+  }
+  
+  .repository-item-selected {
+    @apply bg-blue-50 border-blue-300;
+  }
+  
+  .repository-status-ready {
+    @apply text-green-600;
+  }
+  
+  .repository-status-cloning {
+    @apply text-yellow-600;
+  }
+  
+  .repository-status-error {
+    @apply text-red-600;
+  }
 }

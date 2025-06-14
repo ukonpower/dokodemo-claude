@@ -1,4 +1,4 @@
-// Claude Code CLI関連
+// Claude Code CLI関連の型定義
 export interface ClaudeMessage {
   id: string;
   type: 'user' | 'claude' | 'system';
@@ -6,19 +6,32 @@ export interface ClaudeMessage {
   timestamp: number;
 }
 
-// Git操作関連  
+// Git操作関連の型定義  
 export interface GitRepository {
   url: string;
   path: string;
+  name: string;
   status: 'cloning' | 'ready' | 'error';
 }
 
-// Socket.IO通信関連
-export interface SocketEvents {
-  'clone-repo': (data: { url: string; path: string }) => void;
+// Socket.IO通信関連の型定義
+export interface ServerToClientEvents {
+  'repos-list': (data: { repos: GitRepository[] }) => void;
+  'claude-output': (data: ClaudeMessage) => void;
+  'repo-cloned': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
+  'repo-switched': (data: { success: boolean; message: string; currentPath: string }) => void;
+}
+
+export interface ClientToServerEvents {
+  'clone-repo': (data: { url: string; name: string }) => void;
   'switch-repo': (data: { path: string }) => void;
   'list-repos': () => void;
-  'repos-list': (data: { repos: GitRepository[] }) => void;
   'send-command': (data: { command: string }) => void;
-  'claude-output': (data: ClaudeMessage) => void;
+}
+
+// Claude CLI 操作関連の型定義
+export interface ClaudeSession {
+  process: any;
+  isActive: boolean;
+  workingDirectory: string;
 }

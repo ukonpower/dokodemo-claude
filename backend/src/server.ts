@@ -2,130 +2,268 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { ClaudeCodeManager } from './claude.js';
+import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+import type {
+  ClaudeMessage,
+  GitRepository,
+  ServerToClientEvents,
+  ClientToServerEvents,
+  ClaudeSession
+} from './types/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, {
+
+// Socket.IOサーバーの設定
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"]
   }
 });
 
-const claudeManager = new ClaudeCodeManager();
+// グローバル状態
+let repositories: GitRepository[] = [];
+let claudeSession: ClaudeSession | null = null;
+const REPOS_DIR = path.join(process.cwd(), 'repositories');
 
-app.use(cors());
+// Expressの設定
+app.use(cors({
+  origin: "http://localhost:5173"
+}));
 app.use(express.json());
 
-// 基本的なヘルスチェック
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// リポジトリディレクトリの作成
+async function ensureReposDir(): Promise<void> {
+  try {
+    await fs.access(REPOS_DIR);
+  } catch {
+    await fs.mkdir(REPOS_DIR, { recursive: true });
+  }
+}
 
+// 既存リポジトリの読み込み
+async function loadExistingRepos(): Promise<void> {
+  try {
+    const entries = await fs.readdir(REPOS_DIR, { withFileTypes: true });
+    repositories = entries
+      .filter(entry => entry.isDirectory())
+      .map(entry => ({
+        name: entry.name,
+        path: path.join(REPOS_DIR, entry.name),
+        url: '',
+        status: 'ready' as const
+      }));
+  } catch {
+    repositories = [];
+  }
+}
+
+// Claude Code CLIセッションの開始
+function startClaudeSession(workingDir: string): ClaudeSession {
+  if (claudeSession?.isActive) {
+    claudeSession.process.kill();
+  }
+
+  const claudeProcess = spawn('claude', [], {
+    cwd: workingDir,
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+
+  claudeSession = {
+    process: claudeProcess,
+    isActive: true,
+    workingDirectory: workingDir
+  };
+
+  // Claude CLIの出力をクライアントに送信
+  claudeProcess.stdout?.on('data', (data: Buffer) => {
+    const message: ClaudeMessage = {
+      id: Date.now().toString(),
+      type: 'claude',
+      content: data.toString(),
+      timestamp: Date.now()
+    };
+    io.emit('claude-output', message);
+  });
+
+  claudeProcess.stderr?.on('data', (data: Buffer) => {
+    const message: ClaudeMessage = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: `エラー: ${data.toString()}`,
+      timestamp: Date.now()
+    };
+    io.emit('claude-output', message);
+  });
+
+  claudeProcess.on('exit', (code) => {
+    const message: ClaudeMessage = {
+      id: Date.now().toString(),
+      type: 'system',
+      content: `Claude CLIが終了しました (code: ${code})`,
+      timestamp: Date.now()
+    };
+    io.emit('claude-output', message);
+    
+    if (claudeSession) {
+      claudeSession.isActive = false;
+    }
+  });
+
+  return claudeSession;
+}
+
+// Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
-  console.log('クライアントが接続されました:', socket.id);
+  console.log('クライアントが接続しました');
 
-  // リポジトリ一覧取得
-  socket.on('list-repos', async () => {
+  // リポジトリ一覧の送信
+  socket.on('list-repos', () => {
+    socket.emit('repos-list', { repos: repositories });
+  });
+
+  // リポジトリのクローン
+  socket.on('clone-repo', async (data) => {
+    const { url, name } = data;
+    const repoPath = path.join(REPOS_DIR, name);
+
     try {
-      const repos = await claudeManager.listRepositories();
-      socket.emit('repos-list', { repos });
+      // 既存のリポジトリチェック
+      const existingRepo = repositories.find(r => r.name === name);
+      if (existingRepo) {
+        socket.emit('repo-cloned', {
+          success: false,
+          message: `リポジトリ「${name}」は既に存在します`
+        });
+        return;
+      }
+
+      // 新しいリポジトリをリストに追加
+      const newRepo: GitRepository = {
+        name,
+        url,
+        path: repoPath,
+        status: 'cloning'
+      };
+      repositories.push(newRepo);
+      socket.emit('repos-list', { repos: repositories });
+
+      // gitクローン実行
+      const gitProcess = spawn('git', ['clone', url, repoPath]);
+
+      gitProcess.on('exit', (code) => {
+        const repo = repositories.find(r => r.name === name);
+        if (repo) {
+          if (code === 0) {
+            repo.status = 'ready';
+            socket.emit('repo-cloned', {
+              success: true,
+              message: `リポジトリ「${name}」のクローンが完了しました`,
+              repo
+            });
+          } else {
+            repo.status = 'error';
+            socket.emit('repo-cloned', {
+              success: false,
+              message: `リポジトリ「${name}」のクローンに失敗しました`
+            });
+          }
+          socket.emit('repos-list', { repos: repositories });
+        }
+      });
+
     } catch (error) {
-      console.error('リポジトリ一覧取得エラー:', error);
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `エラー: リポジトリ一覧の取得に失敗しました`,
-        timestamp: Date.now()
+      socket.emit('repo-cloned', {
+        success: false,
+        message: `クローンエラー: ${error}`
       });
     }
   });
 
-  // リポジトリクローン
-  socket.on('clone-repo', async (data: { url: string; path: string }) => {
+  // リポジトリの切り替え
+  socket.on('switch-repo', (data) => {
+    const { path: repoPath } = data;
+    
     try {
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `リポジトリをクローン中: ${data.url}`,
-        timestamp: Date.now()
-      });
-
-      await claudeManager.cloneRepository(data.url, data.path);
+      // Claude CLIセッションを新しいディレクトリで開始
+      startClaudeSession(repoPath);
       
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `クローン完了: ${data.path}`,
-        timestamp: Date.now()
+      socket.emit('repo-switched', {
+        success: true,
+        message: `リポジトリを切り替えました: ${repoPath}`,
+        currentPath: repoPath
       });
 
-      // リポジトリ一覧を更新
-      const repos = await claudeManager.listRepositories();
-      socket.emit('repos-list', { repos });
-    } catch (error) {
-      console.error('クローンエラー:', error);
-      socket.emit('claude-output', {
+      // 初期メッセージの送信
+      const message: ClaudeMessage = {
         id: Date.now().toString(),
         type: 'system',
-        content: `クローンエラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        content: `Claude CLIが開始されました\n作業ディレクトリ: ${repoPath}`,
         timestamp: Date.now()
+      };
+      socket.emit('claude-output', message);
+
+    } catch (error) {
+      socket.emit('repo-switched', {
+        success: false,
+        message: `リポジトリの切り替えに失敗しました: ${error}`,
+        currentPath: claudeSession?.workingDirectory || ''
       });
     }
   });
 
-  // リポジトリ切り替え
-  socket.on('switch-repo', async (data: { path: string }) => {
-    try {
-      await claudeManager.switchRepository(data.path);
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `リポジトリを切り替えました: ${data.path}`,
-        timestamp: Date.now()
-      });
-    } catch (error) {
-      console.error('リポジトリ切り替えエラー:', error);
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'system',
-        content: `切り替えエラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
-        timestamp: Date.now()
-      });
-    }
-  });
+  // Claude CLIへのコマンド送信
+  socket.on('send-command', (data) => {
+    const { command } = data;
 
-  // コマンド送信
-  socket.on('send-command', async (data: { command: string }) => {
-    try {
-      const response = await claudeManager.sendCommand(data.command);
-      socket.emit('claude-output', {
-        id: Date.now().toString(),
-        type: 'claude',
-        content: response,
-        timestamp: Date.now()
-      });
-    } catch (error) {
-      console.error('コマンド実行エラー:', error);
-      socket.emit('claude-output', {
+    if (!claudeSession?.isActive) {
+      const message: ClaudeMessage = {
         id: Date.now().toString(),
         type: 'system',
-        content: `コマンド実行エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        content: 'Claude CLIセッションが開始されていません。リポジトリを選択してください。',
         timestamp: Date.now()
-      });
+      };
+      socket.emit('claude-output', message);
+      return;
     }
+
+    // ユーザーの入力をエコー
+    const userMessage: ClaudeMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: command,
+      timestamp: Date.now()
+    };
+    socket.emit('claude-output', userMessage);
+
+    // Claude CLIにコマンドを送信
+    claudeSession.process.stdin?.write(`${command}\n`);
   });
 
   socket.on('disconnect', () => {
-    console.log('クライアントが切断されました:', socket.id);
+    console.log('クライアントが切断されました');
   });
 });
 
+// サーバー起動
 const PORT = process.env.PORT || 3001;
 
-server.listen(PORT, () => {
-  console.log(`サーバーがポート ${PORT} で起動しました`);
-  console.log(`フロントエンド: http://localhost:5173`);
-  console.log(`バックエンド: http://localhost:${PORT}`);
-});
+async function startServer(): Promise<void> {
+  await ensureReposDir();
+  await loadExistingRepos();
+  
+  server.listen(PORT, () => {
+    console.log(`バックエンドサーバーがポート${PORT}で起動しました`);
+    console.log(`リポジトリディレクトリ: ${REPOS_DIR}`);
+  });
+}
+
+startServer().catch(console.error);

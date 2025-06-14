@@ -146,13 +146,16 @@ dokodemo-claude/
 ## 開発コマンド
 
 ```bash
-# フロントエンド開発サーバー起動
-cd frontend
-npm run dev    # Vite + TypeScript開発サーバー（ポート5173）
+# 推奨: ルートディレクトリから直接起動
+npm run dev           # フロントエンド（Vite）サーバー起動（ポート5173）
+cd backend && npm run dev  # バックエンド（Express）サーバー起動（ポート3001）
 
-# バックエンドサーバー起動
-cd backend
-npm run dev    # Express + TypeScript開発サーバー（ポート3001）
+# 代替方法: 各ディレクトリでの個別起動
+cd frontend && npm run dev    # フロントエンド開発サーバー
+cd backend && npm run dev     # バックエンド開発サーバー
+
+# 同時起動（将来実装予定）
+npm run dev:all        # フロントエンド・バックエンド同時起動
 
 # コード品質チェック
 npm run lint           # ESLintでコード品質チェック
@@ -163,10 +166,33 @@ npm run format:check   # Prettierフォーマットチェック
 
 # 全チェック実行
 npm run check-all      # lint + type-check + format:check を一括実行
-
-# 同時起動（推奨）
-npm run dev:all        # フロントエンド・バックエンド同時起動
 ```
+
+## 起動手順
+
+1. **バックエンドサーバー起動**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   - ポート3001で起動
+   - Claude Code CLIとの統合機能を提供
+   - Gitリポジトリ管理機能を提供
+
+2. **フロントエンドサーバー起動**
+   ```bash
+   # ルートディレクトリから
+   npm run dev
+   ```
+   - ポート5173（または5174）で起動
+   - Webブラウザでアクセス: http://localhost:5173
+   - バックエンドサーバー（ポート3001）と自動接続
+
+3. **動作確認**
+   - ブラウザで http://localhost:5173 にアクセス
+   - 接続状態（緑丸）を確認
+   - リポジトリクローン機能をテスト
+   - Claude CLIコマンド入力をテスト
 
 ## コード品質設定
 
