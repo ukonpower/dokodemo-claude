@@ -44,6 +44,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
       fontSize: 12,
       lineHeight: 1.2,
+      wordWrap: false,
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 10000,
