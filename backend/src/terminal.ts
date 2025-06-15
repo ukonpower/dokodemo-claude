@@ -1,6 +1,5 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
-import path from 'path';
 import os from 'os';
 
 export interface Terminal {
@@ -23,6 +22,7 @@ export interface TerminalMessage {
 export class TerminalManager extends EventEmitter {
   private terminals: Map<string, Terminal> = new Map();
   private terminalCounter = 0;
+  private closeTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   constructor() {
     super();
@@ -79,6 +79,19 @@ export class TerminalManager extends EventEmitter {
       };
       this.emit('terminal-output', message);
       this.emit('terminal-exit', terminal);
+      
+      // 終了タイムアウトがある場合はクリア
+      const timeout = this.closeTimeouts.get(terminalId);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.closeTimeouts.delete(terminalId);
+      }
+      
+      // ターミナルが自然に終了した場合、マップから削除
+      if (this.terminals.has(terminalId)) {
+        this.terminals.delete(terminalId);
+        this.emit('terminal-closed', { terminalId });
+      }
     });
 
     this.terminals.set(terminalId, terminal);
@@ -159,19 +172,60 @@ export class TerminalManager extends EventEmitter {
     }
 
     try {
+      // 既存のタイムアウトがあればクリア
+      const existingTimeout = this.closeTimeouts.get(terminalId);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        this.closeTimeouts.delete(terminalId);
+      }
+
       // PTYプロセスを終了
       if (terminal.status !== 'exited') {
-        terminal.process.kill('SIGTERM');
-        // 強制終了のタイムアウト
-        setTimeout(() => {
-          if (terminal.status !== 'exited') {
-            terminal.process.kill('SIGKILL');
+        // プロセスがまだ生きているか確認
+        if (terminal.pid) {
+          try {
+            process.kill(terminal.pid, 0); // プロセスの存在確認
+            // プロセスが存在する場合、終了処理を実行
+            
+            // まずSIGTERMで優雅な終了を試行
+            terminal.process.kill('SIGTERM');
+            
+            // 強制終了のタイムアウトを設定
+            const timeout = setTimeout(() => {
+              // タイムアウト時に再度ターミナルの存在とステータスを確認
+              const currentTerminal = this.terminals.get(terminalId);
+              if (currentTerminal && currentTerminal.status !== 'exited') {
+                console.log(`Force killing terminal ${terminalId} as it did not exit gracefully`);
+                try {
+                  currentTerminal.process.kill('SIGKILL');
+                } catch (killError) {
+                  console.error(`Failed to force kill terminal ${terminalId}:`, killError);
+                }
+              }
+              // タイムアウトマップから削除
+              this.closeTimeouts.delete(terminalId);
+            }, 2000);
+            
+            // タイムアウトを保存
+            this.closeTimeouts.set(terminalId, timeout);
+          } catch {
+            // プロセスが既に存在しない場合
+            console.log(`Terminal ${terminalId} process already exited`);
+            terminal.status = 'exited';
+            this.terminals.delete(terminalId);
+            this.emit('terminal-closed', { terminalId });
           }
-        }, 2000);
+        } else {
+          // PIDが取得できない場合は直接削除
+          this.terminals.delete(terminalId);
+          this.emit('terminal-closed', { terminalId });
+        }
+      } else {
+        // 既に終了している場合は直接削除
+        this.terminals.delete(terminalId);
+        this.emit('terminal-closed', { terminalId });
       }
       
-      this.terminals.delete(terminalId);
-      this.emit('terminal-closed', { terminalId });
       return true;
     } catch (error) {
       console.error(`Failed to close terminal ${terminalId}:`, error);
@@ -208,6 +262,13 @@ export class TerminalManager extends EventEmitter {
 
   // 全ターミナルの終了
   closeAllTerminals(): void {
+    // 全てのタイムアウトをクリア
+    for (const timeout of this.closeTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.closeTimeouts.clear();
+    
+    // 全てのターミナルを終了
     for (const [terminalId] of this.terminals) {
       this.closeTerminal(terminalId);
     }

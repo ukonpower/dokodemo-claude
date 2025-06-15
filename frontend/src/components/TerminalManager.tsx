@@ -53,42 +53,42 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
-      <div className="bg-gray-100 px-4 py-2 border-b flex items-center space-x-1 overflow-x-auto flex-shrink-0">
+      <div className="bg-gray-100 px-2 sm:px-4 py-2 border-b flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
-          <button
+          <div
             key={terminal.id}
-            onClick={() => setActiveTerminalId(terminal.id)}
-            className={`px-3 py-1 text-sm rounded-t-lg flex items-center space-x-2 whitespace-nowrap ${
+            className={`px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm rounded-t-lg flex items-center space-x-1 sm:space-x-2 whitespace-nowrap min-w-0 cursor-pointer ${
               activeTerminalId === terminal.id
-                ? 'bg-black text-green-400 border border-b-0'
+                ? 'bg-gray-800 text-gray-100 border border-gray-600 border-b-0'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
+            onClick={() => setActiveTerminalId(terminal.id)}
           >
-            <div className={`w-2 h-2 rounded-full ${
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
               terminal.status === 'active' ? 'bg-green-500' :
               terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
             }`}></div>
-            <span>{terminal.name}</span>
+            <span className="truncate max-w-20 sm:max-w-none">{terminal.name}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onCloseTerminal(terminal.id);
               }}
-              className="text-xs hover:text-red-500 ml-1"
+              className="text-xs hover:text-red-500 ml-1 flex-shrink-0"
             >
               ×
             </button>
-          </button>
+          </div>
         ))}
         
         {/* 新しいターミナル作成ボタン */}
         <button
           onClick={handleCreateTerminal}
           disabled={!isConnected || !currentRepo}
-          className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-1"
+          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
         >
           <span>+</span>
-          <span>新規</span>
+          <span className="hidden sm:inline">新規</span>
         </button>
       </div>
 

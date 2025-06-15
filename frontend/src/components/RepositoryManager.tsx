@@ -70,16 +70,18 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        リポジトリ管理
-      </h2>
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+          リポジトリ管理
+        </h2>
+      </div>
 
       {/* リポジトリクローンフォーム */}
-      <form onSubmit={handleClone} className="mb-6">
-        <div className="space-y-3">
+      <form onSubmit={handleClone} className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label htmlFor="repo-url" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="repo-url" className="block text-sm font-medium text-gray-700 mb-2">
               GitリポジトリURL
             </label>
             <input
@@ -88,12 +90,12 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
               value={repoUrl}
               onChange={(e) => handleUrlChange(e.target.value)}
               placeholder="https://github.com/user/repo.git"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
               disabled={!isConnected || isCloning}
             />
           </div>
           <div>
-            <label htmlFor="repo-name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="repo-name" className="block text-sm font-medium text-gray-700 mb-2">
               プロジェクト名
             </label>
             <input
@@ -102,14 +104,14 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
               value={repoName}
               onChange={(e) => setRepoName(e.target.value)}
               placeholder="プロジェクト名"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
               disabled={!isConnected || isCloning}
             />
           </div>
           <button
             type="submit"
             disabled={!isConnected || isCloning || !repoUrl.trim() || !repoName.trim()}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base"
           >
             {isCloning ? 'クローン中...' : 'クローン'}
           </button>
@@ -122,32 +124,34 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
           既存プロジェクト
         </h3>
         {repositories.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-4">
-            プロジェクトがありません
-          </p>
+          <div className="text-center py-6">
+            <p className="text-sm text-gray-500">
+              プロジェクトがありません
+            </p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 sm:space-y-3">
             {repositories.map((repo) => (
               <div
                 key={repo.path}
                 className={`repository-item ${
                   currentRepo === repo.path ? 'repository-item-selected' : ''
-                }`}
+                } p-3 sm:p-4`}
                 onClick={() => onSwitchRepository(repo.path)}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start sm:items-center justify-between space-x-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm sm:text-base font-medium text-gray-900 truncate">
                       {repo.name}
                     </p>
                     {repo.url && (
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs sm:text-sm text-gray-500 truncate mt-1">
                         {repo.url}
                       </p>
                     )}
                   </div>
-                  <div className="ml-2 flex-shrink-0">
-                    <span className={`text-xs ${getStatusColor(repo.status)}`}>
+                  <div className="flex-shrink-0">
+                    <span className={`text-xs ${getStatusColor(repo.status)} font-medium`}>
                       {getStatusText(repo.status)}
                     </span>
                   </div>
@@ -160,8 +164,8 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
 
       {/* 現在のプロジェクト表示 */}
       {currentRepo && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500">現在のプロジェクト:</p>
+        <div className="pt-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500 mb-1">現在のプロジェクト:</p>
           <p className="text-sm font-medium text-gray-900 truncate">
             {currentRepo.split('/').pop()}
           </p>

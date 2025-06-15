@@ -19,42 +19,41 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
 
     // ターミナルインスタンスを作成
     terminal.current = new Terminal({
+      cols: 200,
+      rows: 24,
       theme: {
-        background: '#1a1a1a',
-        foreground: '#00ff00',
-        cursor: '#00ff00',
-        selectionBackground: '#ffffff30',
-        black: '#000000',
-        red: '#ff0000',
-        green: '#00ff00',
-        yellow: '#ffff00',
-        blue: '#0000ff',
-        magenta: '#ff00ff',
-        cyan: '#00ffff',
-        white: '#ffffff',
-        brightBlack: '#404040',
-        brightRed: '#ff4040',
-        brightGreen: '#40ff40',
-        brightYellow: '#ffff40',
-        brightBlue: '#4040ff',
-        brightMagenta: '#ff40ff',
-        brightCyan: '#40ffff',
-        brightWhite: '#ffffff'
+        background: '#111827',
+        foreground: '#d1d5db',
+        cursor: '#9ca3af',
+        selectionBackground: '#374151',
+        black: '#1f2937',
+        red: '#f87171',
+        green: '#86efac',
+        yellow: '#fbbf24',
+        blue: '#93c5fd',
+        magenta: '#c084fc',
+        cyan: '#67e8f9',
+        white: '#e5e7eb',
+        brightBlack: '#4b5563',
+        brightRed: '#fca5a5',
+        brightGreen: '#bbf7d0',
+        brightYellow: '#fde047',
+        brightBlue: '#bfdbfe',
+        brightMagenta: '#e9d5ff',
+        brightCyan: '#a5f3fc',
+        brightWhite: '#f9fafb'
       },
       fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: 12,
+      fontSize: 8,
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 10000,
       convertEol: true,
       allowTransparency: false,
-      disableStdin: true
+      disableStdin: true,
+      wordWrap: false
     });
-
-    // フィットアドオンを作成
-    fitAddon.current = new FitAddon();
-    terminal.current.loadAddon(fitAddon.current);
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
@@ -65,20 +64,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       terminal.current.writeln('リポジトリを選択してClaude CLIを開始してください');
     }
 
-    // サイズを調整
-    fitAddon.current.fit();
-
-    // リサイズイベントを設定
-    const handleResize = () => {
-      if (fitAddon.current) {
-        fitAddon.current.fit();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
     return () => {
-      window.removeEventListener('resize', handleResize);
       if (terminal.current) {
         terminal.current.dispose();
       }
@@ -110,12 +96,13 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   }, [rawOutput]);
 
   return (
-    <div className="bg-gray-900 rounded-lg overflow-hidden">
+    <div className="bg-gray-900 rounded-lg overflow-auto">
       <div
         ref={terminalRef}
-        className="h-96"
+        className="h-64 sm:h-96"
         style={{ 
-          background: '#1a1a1a'
+          background: '#111827',
+          minWidth: 'fit-content'
         }}
       />
     </div>

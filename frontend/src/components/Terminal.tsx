@@ -62,12 +62,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     
     // 色コードの簡単な変換
     formattedData = formattedData
-      .replace(/\u001b\[31m/g, '<span class="text-red-500">') // 赤
-      .replace(/\u001b\[32m/g, '<span class="text-green-500">') // 緑
-      .replace(/\u001b\[33m/g, '<span class="text-yellow-500">') // 黄
-      .replace(/\u001b\[34m/g, '<span class="text-blue-500">') // 青
-      .replace(/\u001b\[35m/g, '<span class="text-purple-500">') // 紫
-      .replace(/\u001b\[36m/g, '<span class="text-cyan-500">') // シアン
+      .replace(/\u001b\[31m/g, '<span class="text-red-400">') // 赤
+      .replace(/\u001b\[32m/g, '<span class="text-green-400">') // 緑
+      .replace(/\u001b\[33m/g, '<span class="text-yellow-400">') // 黄
+      .replace(/\u001b\[34m/g, '<span class="text-blue-400">') // 青
+      .replace(/\u001b\[35m/g, '<span class="text-purple-400">') // 紫
+      .replace(/\u001b\[36m/g, '<span class="text-cyan-400">') // シアン
       .replace(/\u001b\[37m/g, '<span class="text-gray-300">') // 白
       .replace(/\u001b\[90m/g, '<span class="text-gray-500">') // 暗い灰色
       .replace(/\u001b\[0m/g, '</span>') // リセット
@@ -77,23 +77,23 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-black text-green-400 font-mono text-sm">
+    <div className="h-full flex flex-col bg-gray-900 text-gray-300 font-mono text-xs sm:text-sm">
       {/* ターミナルヘッダー */}
-      <div className="bg-gray-800 px-3 py-2 flex items-center justify-between border-b border-gray-700">
-        <div className="flex items-center space-x-2">
-          <div className={`w-2 h-2 rounded-full ${
+      <div className="bg-gray-800 px-2 sm:px-3 py-2 flex items-center justify-between border-b border-gray-700">
+        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
             terminal.status === 'active' ? 'bg-green-500' :
             terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
           }`}></div>
-          <span className="text-gray-300 text-xs">{terminal.name}</span>
-          <span className="text-gray-500 text-xs">({terminal.cwd})</span>
+          <span className="text-gray-300 text-xs truncate">{terminal.name}</span>
+          <span className="text-gray-500 text-xs truncate hidden sm:inline">({terminal.cwd})</span>
           {terminal.pid && (
-            <span className="text-gray-500 text-xs">PID: {terminal.pid}</span>
+            <span className="text-gray-500 text-xs hidden sm:inline">PID: {terminal.pid}</span>
           )}
         </div>
         <button
           onClick={() => onClose(terminal.id)}
-          className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded"
+          className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded flex-shrink-0"
           title="ターミナルを閉じる"
         >
           ×
@@ -103,17 +103,17 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       {/* ターミナル出力エリア */}
       <div 
         ref={outputRef}
-        className="flex-1 p-3 overflow-y-auto whitespace-pre-wrap"
-        style={{ minHeight: '300px' }}
+        className="flex-1 p-2 sm:p-3 overflow-y-auto whitespace-pre-wrap text-xs sm:text-sm"
+        style={{ minHeight: '200px' }}
       >
         {messages
           .filter(msg => msg.terminalId === terminal.id)
           .map((message, index) => (
             <div key={index} className={`${
               message.type === 'stderr' ? 'text-red-400' :
-              message.type === 'input' ? 'text-blue-400' :
-              message.type === 'exit' ? 'text-yellow-400' :
-              'text-green-400'
+              message.type === 'input' ? 'text-blue-300' :
+              message.type === 'exit' ? 'text-yellow-300' :
+              'text-gray-300'
             }`}>
               <span dangerouslySetInnerHTML={{ __html: formatMessage(message) }} />
             </div>
@@ -122,22 +122,23 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* 入力エリア */}
-      <div className="border-t border-gray-700 p-3">
+      <div className="border-t border-gray-700 p-2 sm:p-3">
         <form onSubmit={handleSubmit} className="flex space-x-2">
-          <span className="text-green-400">$</span>
+          <span className="text-gray-400 flex-shrink-0">$</span>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-green-400 outline-none"
+            className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0"
             placeholder={terminal.status === 'exited' ? 'ターミナルが終了しました' : 'コマンドを入力...'}
             disabled={terminal.status === 'exited'}
           />
         </form>
         <div className="mt-1 text-xs text-gray-500">
-          Ctrl+C: 中断 | Ctrl+Z: 一時停止 | Enter: 実行
+          <span className="hidden sm:inline">Ctrl+C: 中断 | Ctrl+Z: 一時停止 | Enter: 実行</span>
+          <span className="sm:hidden">Ctrl+C:中断 | Enter:実行</span>
         </div>
       </div>
     </div>

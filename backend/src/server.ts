@@ -96,7 +96,7 @@ function startClaudeSession(workingDir: string): ClaudeSession {
   const claudePath = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-code/cli.js');
   
   // PTYを使用してClaude CLIを対話モードで起動
-  const claudeProcess = pty.spawn('node', [claudePath], {
+  const claudeProcess = pty.spawn('node', [claudePath, '--dangerously-skip-permissions'], {
     name: 'xterm-color',
     cols: 120,
     rows: 30,
@@ -255,16 +255,24 @@ io.on('connection', (socket) => {
     
     // PTYに直接コマンドを送信
     if (claudeSession.isPty && claudeSession.process) {
-      // コマンドを入力してエンターキーを送信
-      claudeSession.process.write(command);
-      claudeSession.process.write('\r'); // Carriage Return (Enter key)
-      
-      // Claude CLIでは実行確定のためもう一度エンターキーが必要
-      setTimeout(() => {
-        if (claudeSession?.process) {
-          claudeSession.process.write('\r'); // 実行確定のエンター
-        }
-      }, 100); // 100ms後に実行確定
+      // 方向キー（ANSIエスケープシーケンス）の場合は直接送信
+      if (command.startsWith('\x1b[')) {
+        claudeSession.process.write(command);
+      } else if (command === '\r') {
+        // 単独のエンターキーの場合
+        claudeSession.process.write('\r');
+      } else {
+        // 通常のコマンドの場合はエンターキーも送信
+        claudeSession.process.write(command);
+        claudeSession.process.write('\r'); // Carriage Return (Enter key)
+        
+        // Claude CLIでは実行確定のためもう一度エンターキーが必要
+        setTimeout(() => {
+          if (claudeSession?.process) {
+            claudeSession.process.write('\r'); // 実行確定のエンター
+          }
+        }, 100); // 100ms後に実行確定
+      }
     } else {
       socket.emit('claude-raw-output', {
         type: 'system',
