@@ -261,6 +261,9 @@ io.on('connection', (socket) => {
       } else if (command === '\r') {
         // 単独のエンターキーの場合
         claudeSession.process.write('\r');
+      } else if (command === '\x1b') {
+        // ESCキーの場合は直接送信
+        claudeSession.process.write(command);
       } else {
         // 通常のコマンドの場合はエンターキーも送信
         claudeSession.process.write(command);
