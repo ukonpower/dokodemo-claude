@@ -30,5 +30,8 @@
   "devDependencies": {
     "@anthropic-ai/claude-code": "^1.0.24",
     "concurrently": "^7.6.0"
+  },
+  "volta": {
+    "node": "20.19.2"
   }
 }
