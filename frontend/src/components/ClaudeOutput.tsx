@@ -5,9 +5,10 @@ import '@xterm/xterm/css/xterm.css';
 
 interface ClaudeOutputProps {
   rawOutput: string;
+  onSendInterrupt?: () => void;
 }
 
-const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
+const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onSendInterrupt }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);

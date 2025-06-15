@@ -53,10 +53,18 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         e.preventDefault();
         onSignal(terminal.id, 'SIGTSTP');
       }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onSignal(terminal.id, 'ESC');
     }
   };
 
   const formatMessage = (message: TerminalMessage) => {
+    // 入力メッセージは表示しない（重複を避けるため）
+    if (message.type === 'input') {
+      return '';
+    }
+    
     // ANSI escape sequences を簡易的に処理
     let formattedData = message.data;
     
@@ -104,26 +112,32 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       <div 
         ref={outputRef}
         className="flex-1 p-2 sm:p-3 overflow-y-auto whitespace-pre-wrap text-xs sm:text-sm"
-        style={{ minHeight: '200px' }}
+        style={{ minHeight: '200px', maxHeight: '400px' }}
       >
         {messages
           .filter(msg => msg.terminalId === terminal.id)
-          .map((message, index) => (
-            <div key={index} className={`${
-              message.type === 'stderr' ? 'text-red-400' :
-              message.type === 'input' ? 'text-blue-300' :
-              message.type === 'exit' ? 'text-yellow-300' :
-              'text-gray-300'
-            }`}>
-              <span dangerouslySetInnerHTML={{ __html: formatMessage(message) }} />
-            </div>
-          ))
+          .slice(-1000) // 最新の1000メッセージのみ表示
+          .map((message, index) => {
+            const formattedContent = formatMessage(message);
+            // 空の内容（入力メッセージなど）はスキップ
+            if (!formattedContent.trim()) return null;
+            
+            return (
+              <div key={index} className={`${
+                message.type === 'stderr' ? 'text-red-400' :
+                message.type === 'exit' ? 'text-yellow-300' :
+                'text-gray-300'
+              }`}>
+                <span dangerouslySetInnerHTML={{ __html: formattedContent }} />
+              </div>
+            );
+          })
         }
       </div>
 
       {/* 入力エリア */}
       <div className="border-t border-gray-700 p-2 sm:p-3">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
+        <form onSubmit={handleSubmit} className="flex space-x-2 mb-2">
           <span className="text-gray-400 flex-shrink-0">$</span>
           <input
             ref={inputRef}
@@ -136,9 +150,40 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             disabled={terminal.status === 'exited'}
           />
         </form>
-        <div className="mt-1 text-xs text-gray-500">
-          <span className="hidden sm:inline">Ctrl+C: 中断 | Ctrl+Z: 一時停止 | Enter: 実行</span>
-          <span className="sm:hidden">Ctrl+C:中断 | Enter:実行</span>
+        
+        {/* コントロールボタン */}
+        <div className="flex items-center justify-between">
+          <div className="flex space-x-1">
+            <button
+              onClick={() => onSignal(terminal.id, 'SIGINT')}
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              title="プロセスを中断 (Ctrl+C)"
+              disabled={terminal.status === 'exited'}
+            >
+              Ctrl+C
+            </button>
+            <button
+              onClick={() => onSignal(terminal.id, 'SIGTSTP')}
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              title="プロセスを一時停止 (Ctrl+Z)"
+              disabled={terminal.status === 'exited'}
+            >
+              Ctrl+Z
+            </button>
+            <button
+              onClick={() => onSignal(terminal.id, 'ESC')}
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              title="エスケープキー (ESC)"
+              disabled={terminal.status === 'exited'}
+            >
+              ESC
+            </button>
+          </div>
+          
+          <div className="text-xs text-gray-500">
+            <span className="hidden sm:inline">Enter: 実行</span>
+            <span className="sm:hidden">Enter:実行</span>
+          </div>
         </div>
       </div>
     </div>

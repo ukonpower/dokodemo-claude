@@ -122,6 +122,18 @@ function App() {
     }
   };
 
+  const handleSendInterrupt = () => {
+    if (socket) {
+      socket.emit('claude-interrupt');
+    }
+  };
+
+  const handleSendEscape = () => {
+    if (socket) {
+      socket.emit('send-command', { command: '\x1b' }); // ESC (ASCII 27)
+    }
+  };
+
   // ターミナル関連のハンドラ
   const handleCreateTerminal = (cwd: string, name?: string) => {
     if (socket) {
@@ -261,6 +273,8 @@ function App() {
               <CommandInput
                 onSendCommand={handleSendCommand}
                 onSendArrowKey={handleSendArrowKey}
+                onSendInterrupt={handleSendInterrupt}
+                onSendEscape={handleSendEscape}
                 disabled={!isConnected || !currentRepo}
               />
             </div>
@@ -268,7 +282,7 @@ function App() {
         </section>
 
         {/* ターミナルエリア */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 min-h-0 flex flex-col min-h-80 sm:min-h-96">
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

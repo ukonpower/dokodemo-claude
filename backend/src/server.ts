@@ -281,6 +281,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Claude CLIへのCtrl+C中断送信
+  socket.on('claude-interrupt', () => {
+    if (!claudeSession?.isActive) {
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: 'Claude CLIセッションが開始されていません。\n'
+      });
+      return;
+    }
+    
+    if (claudeSession.isPty && claudeSession.process) {
+      // Ctrl+C (SIGINT)を送信
+      claudeSession.process.write('\x03'); // ASCII code for Ctrl+C
+    }
+  });
+
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信

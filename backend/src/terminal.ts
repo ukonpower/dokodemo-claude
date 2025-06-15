@@ -153,6 +153,9 @@ export class TerminalManager extends EventEmitter {
       } else if (signal === 'SIGTSTP') {
         // Ctrl+Z equivalent
         terminal.process.write('\x1a'); // ASCII 26 (SUB)
+      } else if (signal === 'ESC') {
+        // ESC equivalent
+        terminal.process.write('\x1b'); // ASCII 27 (ESC)
       } else {
         // その他のシグナル
         terminal.process.kill(signal);

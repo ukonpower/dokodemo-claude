@@ -50,6 +50,7 @@ export interface ClientToServerEvents {
   'switch-repo': (data: { path: string }) => void;
   'list-repos': () => void;
   'send-command': (data: { command: string }) => void;
+  'claude-interrupt': () => void;
   
   // ターミナル関連イベント
   'create-terminal': (data: { cwd: string; name?: string }) => void;

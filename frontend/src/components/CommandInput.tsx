@@ -3,10 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 interface CommandInputProps {
   onSendCommand: (command: string) => void;
   onSendArrowKey?: (direction: 'up' | 'down' | 'left' | 'right') => void;
+  onSendInterrupt?: () => void;
+  onSendEscape?: () => void;
   disabled?: boolean;
 }
 
-const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowKey, disabled = false }) => {
+const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowKey, onSendInterrupt, onSendEscape, disabled = false }) => {
   const [command, setCommand] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -40,6 +42,13 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       sendCommand();
+      return;
+    }
+
+    // ESCキーでESC送信
+    if (e.key === 'Escape' && onSendEscape) {
+      e.preventDefault();
+      onSendEscape();
       return;
     }
 
@@ -92,31 +101,6 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
             disabled={disabled}
           />
           
-          {/* ヘルプテキスト - 入力欄のすぐ下 */}
-          <div className="mt-2 text-xs text-gray-500">
-            {disabled ? (
-              "サーバーに接続してリポジトリを選択してください"
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                <div className="flex items-center space-x-1">
-                  <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
-                    Ctrl
-                  </kbd>
-                  <span>+</span>
-                  <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
-                    Enter
-                  </kbd>
-                  <span>で送信</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">
-                    ↑↓
-                  </kbd>
-                  <span>で履歴</span>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
         
         <div className="flex flex-col space-y-3">
@@ -125,7 +109,6 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
             {/* 方向キーボタン */}
             {onSendArrowKey && (
               <div className="flex flex-col items-center space-y-2">
-                <div className="text-xs text-gray-600 font-medium">方向キー</div>
                 <div className="grid grid-cols-3 gap-1">
                   <div></div>
                   <button
@@ -169,9 +152,36 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
               </div>
             )}
 
+            {/* Ctrl+CとESCボタン */}
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex space-x-1">
+                {onSendInterrupt && (
+                  <button
+                    type="button"
+                    onClick={onSendInterrupt}
+                    disabled={disabled}
+                    className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    title="プロセスを中断 (Ctrl+C)"
+                  >
+                    Ctrl+C
+                  </button>
+                )}
+                {onSendEscape && (
+                  <button
+                    type="button"
+                    onClick={onSendEscape}
+                    disabled={disabled}
+                    className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    title="エスケープキー (ESC)"
+                  >
+                    ESC
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* 送信ボタン */}
             <div className="flex flex-col items-center space-y-2">
-              <div className="text-xs text-gray-600 font-medium">実行</div>
               <button
                 type="submit"
                 disabled={disabled}
