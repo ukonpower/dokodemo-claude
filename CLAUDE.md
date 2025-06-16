@@ -201,7 +201,7 @@ dokodemo-claude/
 ```bash
 # 推奨: ルートディレクトリから直接起動
 npm run dev           # フロントエンド（Vite）サーバー起動（ポート5173）
-cd backend && npm run dev  # バックエンド（Express）サーバー起動（ポート3001）
+cd backend && npm run dev  # バックエンド（Express）サーバー起動（ポート0001）
 
 # 代替方法: 各ディレクトリでの個別起動
 cd frontend && npm run dev    # フロントエンド開発サーバー
@@ -228,7 +228,7 @@ npm run check-all      # lint + type-check + format:check を一括実行
    cd backend
    npm run dev
    ```
-   - ポート3001で起動
+   - ポート0001で起動
    - Claude Code CLIとの統合機能を提供
    - Gitリポジトリ管理機能を提供
 
@@ -239,7 +239,7 @@ npm run check-all      # lint + type-check + format:check を一括実行
    ```
    - ポート5173（または5174）で起動
    - Webブラウザでアクセス: http://localhost:5173
-   - バックエンドサーバー（ポート3001）と自動接続
+   - バックエンドサーバー（ポート0001）と自動接続
 
 3. **動作確認**
    - ブラウザで http://localhost:5173 にアクセス

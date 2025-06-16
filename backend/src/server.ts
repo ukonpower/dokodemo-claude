@@ -28,8 +28,9 @@ const server = createServer(app);
 // Socket.IOサーバーの設定
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: "*", // すべてのオリジンを許可
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -43,7 +44,8 @@ const terminalManager = new TerminalManager();
 
 // Expressの設定
 app.use(cors({
-  origin: "http://localhost:5173"
+  origin: "*", // すべてのオリジンを許可
+  credentials: true
 }));
 app.use(express.json());
 
@@ -364,14 +366,14 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8001;
 
 async function startServer(): Promise<void> {
   await ensureReposDir();
   await loadExistingRepos();
   
-  server.listen(PORT, () => {
-    console.log(`バックエンドサーバーがポート${PORT}で起動しました`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`バックエンドサーバーがポート${PORT}で起動しました (0.0.0.0:${PORT})`);
   });
 }
 

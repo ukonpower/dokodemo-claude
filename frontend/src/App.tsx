@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { 
-  GitRepository, 
+import type {
+  GitRepository,
   Terminal,
   TerminalMessage,
-  ServerToClientEvents, 
-  ClientToServerEvents 
+  ServerToClientEvents,
+  ClientToServerEvents
 } from './types';
 
 import RepositoryManager from './components/RepositoryManager';
@@ -20,13 +20,17 @@ function App() {
   const [currentRepo, setCurrentRepo] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   // リポジトリが選択されているかどうかでメイン画面とリポジトリ管理画面を切り替え
-  
+
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
 
   useEffect(() => {
-    const socketInstance = io('http://localhost:3001');
+    // 現在のホストを自動検出してSocket.IO接続
+    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:8001'
+      : `http://${window.location.hostname}:8001`;
+    const socketInstance = io(socketUrl);
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {
@@ -267,7 +271,7 @@ function App() {
           <div className="p-3 sm:p-6">
             {/* Claude出力エリア */}
             <ClaudeOutput rawOutput={rawOutput} />
-            
+
             {/* Claude コマンド入力エリア */}
             <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
               <CommandInput
