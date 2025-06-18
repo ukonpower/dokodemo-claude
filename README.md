@@ -39,7 +39,7 @@ npm run install:all
 npm run dev:all
 ```
 
-ブラウザで http://localhost:8000 にアクセス
+ブラウザで http://<ホストのIPアドレス>:8000、にアクセス
 
 ## 使い方
 
