@@ -138,6 +138,12 @@ function App() {
     }
   };
 
+  const handleClearClaude = () => {
+    if (socket) {
+      socket.emit('send-command', { command: '/clear' });
+    }
+  };
+
   // ターミナル関連のハンドラ
   const handleCreateTerminal = (cwd: string, name?: string) => {
     if (socket) {
@@ -279,6 +285,7 @@ function App() {
                 onSendArrowKey={handleSendArrowKey}
                 onSendInterrupt={handleSendInterrupt}
                 onSendEscape={handleSendEscape}
+                onClearClaude={handleClearClaude}
                 disabled={!isConnected || !currentRepo}
               />
             </div>
