@@ -30,6 +30,13 @@ export interface TerminalMessage {
   timestamp: number;
 }
 
+// Claude出力履歴関連の型定義
+export interface ClaudeOutputLine {
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+  content: string;
+}
+
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
@@ -53,6 +60,10 @@ export interface ServerToClientEvents {
     repositoryPath: string; 
     repositoryName: string;
   }) => void;
+  'claude-output-history': (data: { 
+    repositoryPath: string; 
+    history: ClaudeOutputLine[];
+  }) => void;
   
   // ターミナル関連イベント
   'terminal-created': (data: Terminal) => void;
@@ -75,6 +86,7 @@ export interface ClientToServerEvents {
     sessionId?: string;
     repositoryPath?: string;
   }) => void;
+  'get-claude-history': (data: { repositoryPath: string }) => void;
   
   // ターミナル関連イベント
   'create-terminal': (data: { cwd: string; name?: string }) => void;

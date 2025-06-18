@@ -4,6 +4,7 @@ import type {
   GitRepository,
   Terminal,
   TerminalMessage,
+  ClaudeOutputLine,
   ServerToClientEvents,
   ClientToServerEvents
 } from './types';
@@ -117,9 +118,7 @@ function App() {
       if (data.success) {
         setCurrentRepo(data.currentPath);
         setCurrentSessionId(data.sessionId || '');
-        setRawOutput(''); // リポジトリ切り替え時にログをクリア
-        // スクロールを最上部に戻す
-        window.scrollTo(0, 0);
+        // 出力履歴は履歴受信イベントで設定されるため、ここではクリアしない
         
         // 新しいリポジトリのターミナル一覧を取得
         socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
@@ -133,6 +132,17 @@ function App() {
         setCurrentSessionId(data.sessionId);
       }
       setRawOutput(prev => prev + `\n[SYSTEM] Claude CLI セッション開始: ${data.repositoryName}\n`);
+    });
+
+    // Claude出力履歴受信イベント
+    socketInstance.on('claude-output-history', (data) => {
+      if (data.repositoryPath === currentRepo) {
+        // 履歴を復元
+        const historyOutput = data.history
+          .map((line: ClaudeOutputLine) => line.content)
+          .join('');
+        setRawOutput(historyOutput);
+      }
     });
 
     // ターミナル関連のイベントハンドラ
