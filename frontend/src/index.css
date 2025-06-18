@@ -10,6 +10,17 @@
   code, pre {
     @apply font-mono;
   }
+  
+  /* Safari iOS zoom prevention */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  @media screen and (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
 }
 
 @layer components {
