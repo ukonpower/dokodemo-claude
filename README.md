@@ -1,54 +1,69 @@
-# React + TypeScript + Vite
+# dokodemo-claude
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+どこでもClaude - Claude Code CLIをWebブラウザから操作するための最小限のインターフェース
 
-Currently, two official plugins are available:
+## 概要
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+dokodemo-claude は、[Claude Code CLI](https://github.com/anthropic/claude-code) をWebブラウザから操作するためのツールです。Gitリポジトリのクローン、Claude Code CLIとの対話、そして通常のターミナル操作を統合したシンプルなWeb UIを提供します。
 
-## Expanding the ESLint configuration
+## 主な機能
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- 📁 **Gitリポジトリ管理** - URLを入力してリポジトリを簡単にクローン
+- 🤖 **Claude Code CLI統合** - ブラウザ上でClaude Code CLIの出力をリアルタイム表示
+- 💻 **インタラクティブターミナル** - 複数のターミナルタブで自由なコマンド実行
+- 🔄 **リアルタイム通信** - WebSocketによる双方向通信
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 必要な環境
+
+- Node.js v18以上
+- Claude Code CLI（インストール済み）
+- Git
+- モダンなWebブラウザ（Chrome, Firefox, Safari, Edge）
+
+## インストール
+
+1. リポジトリをクローン
+```bash
+git clone https://github.com/yourusername/dokodemo-claude.git
+cd dokodemo-claude
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. 依存関係をインストール
+```bash
+npm run install:all
 ```
+
+## 起動方法
+
+```bash
+npm run dev:all
+```
+
+ブラウザで http://localhost:5173 にアクセス
+
+## 使い方
+
+### 初回セットアップ
+
+1. Webブラウザでアプリケーションにアクセス
+2. GitリポジトリURLを入力して[Clone]ボタンをクリック
+3. クローン完了後、Claude Code CLIが自動起動
+4. 使用開始
+
+### 基本的な使い方
+
+1. **リポジトリ操作**
+   - 新しいリポジトリをクローン: URL入力後[Clone]をクリック
+   - リポジトリ切り替え: ドロップダウンから選択
+
+2. **Claude Code CLI操作**
+   - 下部のテキストエリアに指示を入力
+   - [送信]ボタンまたはCtrl+Enterで送信
+   - 出力エリアでAIの応答を確認
+
+3. **ターミナル操作**
+   - [+]ボタンで新しいターミナルタブを作成
+   - 通常のターミナルと同様にコマンドを実行
+   - Ctrl+Cでプロセス中断、タブの×ボタンで終了
+
+詳細な技術仕様とClaude Code向けの設定は[CLAUDE.md](./CLAUDE.md)を参照してください。
