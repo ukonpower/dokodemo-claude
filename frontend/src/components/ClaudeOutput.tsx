@@ -1,17 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
 interface ClaudeOutputProps {
   rawOutput: string;
-  onSendInterrupt?: () => void;
 }
 
-const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onSendInterrupt }) => {
+const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
-  const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
 
   // ターミナルを初期化
@@ -52,8 +49,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onSendInterrupt 
       scrollback: 10000,
       convertEol: true,
       allowTransparency: false,
-      disableStdin: true,
-      wordWrap: false
+      disableStdin: true
     });
 
     // ターミナルをDOMに接続

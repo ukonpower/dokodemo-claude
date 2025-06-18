@@ -26,7 +26,8 @@
       "Bash(npm run type-check:*)",
       "Bash(kill:*)",
       "Bash(npm run lint)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

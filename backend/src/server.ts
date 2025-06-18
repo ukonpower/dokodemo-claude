@@ -3,7 +3,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { spawn } from 'child_process';
-import * as pty from 'node-pty';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,11 +12,10 @@ import type {
   GitRepository,
   ServerToClientEvents,
   ClientToServerEvents,
-  ClaudeSession,
   Terminal,
   TerminalMessage
 } from './types/index.js';
-import { TerminalManager } from './terminal.js';
+import { ProcessManager } from './process-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,11 +34,11 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 
 // グローバル状態
 let repositories: GitRepository[] = [];
-let claudeSession: ClaudeSession | null = null;
 const REPOS_DIR = path.join(process.cwd(), 'repositories');
+const PROCESSES_DIR = path.join(process.cwd(), 'processes');
 
-// ターミナル管理インスタンス
-const terminalManager = new TerminalManager();
+// プロセス管理インスタンス
+const processManager = new ProcessManager(PROCESSES_DIR);
 
 // Expressの設定
 app.use(cors({
@@ -75,84 +73,57 @@ async function loadExistingRepos(): Promise<void> {
   }
 }
 
-// Claude Code CLIセッションの開始（対話モードを維持）
-function startClaudeSession(workingDir: string): ClaudeSession {
-  if (claudeSession?.isActive) {
-    try {
-      if (claudeSession.isPty) {
-        claudeSession.process.kill();
-      } else {
-        claudeSession.process.kill('SIGTERM');
-        setTimeout(() => {
-          if (claudeSession?.process && !claudeSession.process.killed) {
-            claudeSession.process.kill('SIGKILL');
-          }
-        }, 1000);
-      }
-    } catch (error) {
-      // プロセス終了エラーは無視
-    }
-  }
-
-  // npm版Claude CLIのパス（プロジェクトルートのnode_modules）
-  const claudePath = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-code/cli.js');
-  
-  // PTYを使用してClaude CLIを対話モードで起動
-  const claudeProcess = pty.spawn('node', [claudePath, '--dangerously-skip-permissions'], {
-    name: 'xterm-color',
-    cols: 120,
-    rows: 30,
-    cwd: workingDir,
-    env: {
-      ...process.env,
-      TERM: 'xterm-256color',
-      COLORTERM: 'truecolor',
-      FORCE_COLOR: '1'
-    }
+// ProcessManagerのイベントハンドラー設定
+processManager.on('claude-output', (data) => {
+  io.emit('claude-raw-output', {
+    type: data.type,
+    content: data.content,
+    sessionId: data.sessionId,
+    repositoryPath: data.repositoryPath
   });
-
-
-  claudeSession = {
-    process: claudeProcess,
-    isActive: true,
-    workingDirectory: workingDir,
-    isPty: true
-  };
-
-  // PTYからの出力をそのまま送信（ANSI色コード含む）
-  claudeProcess.onData((data: string) => {
-    io.emit('claude-raw-output', {
-      type: 'stdout',
-      content: data
-    });
-  });
-
-  claudeProcess.onExit(({ exitCode, signal }) => {
-    io.emit('claude-raw-output', {
-      type: 'system',
-      content: `\n=== Claude Code CLI 終了 (code: ${exitCode}, signal: ${signal}) ===\n`
-    });
-    
-    if (claudeSession) {
-      claudeSession.isActive = false;
-    }
-  });
-
-  return claudeSession;
-}
-
-// ターミナル管理イベントの設定
-terminalManager.on('terminal-created', (terminal: Terminal) => {
-  io.emit('terminal-created', terminal);
 });
 
-terminalManager.on('terminal-output', (message: TerminalMessage) => {
-  io.emit('terminal-output', message);
+processManager.on('claude-exit', (data) => {
+  io.emit('claude-raw-output', {
+    type: 'system',
+    content: `\n=== Claude Code CLI 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
+    sessionId: data.sessionId,
+    repositoryPath: data.repositoryPath
+  });
 });
 
-terminalManager.on('terminal-closed', (data: { terminalId: string }) => {
-  io.emit('terminal-closed', data);
+processManager.on('claude-session-created', (session) => {
+  io.emit('claude-session-created', {
+    sessionId: session.id,
+    repositoryPath: session.repositoryPath,
+    repositoryName: session.repositoryName
+  });
 });
+
+processManager.on('terminal-created', (terminal) => {
+  io.emit('terminal-created', {
+    id: terminal.id,
+    name: terminal.name,
+    cwd: terminal.repositoryPath,
+    status: terminal.status,
+    pid: terminal.pid,
+    createdAt: terminal.createdAt
+  });
+});
+
+processManager.on('terminal-output', (data) => {
+  io.emit('terminal-output', {
+    terminalId: data.terminalId,
+    type: data.type,
+    data: data.data,
+    timestamp: data.timestamp
+  });
+});
+
+processManager.on('terminal-exit', (data) => {
+  io.emit('terminal-closed', { terminalId: data.terminalId });
+});
+
 
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
@@ -221,33 +192,47 @@ io.on('connection', (socket) => {
   });
 
   // リポジトリの切り替え
-  socket.on('switch-repo', (data) => {
+  socket.on('switch-repo', async (data) => {
     const { path: repoPath } = data;
     
     try {
-      // Claude CLIセッションを新しいディレクトリで開始
-      const newSession = startClaudeSession(repoPath);
+      // リポジトリ名を取得
+      const repoName = path.basename(repoPath);
+      
+      // Claude CLIセッションを取得または作成
+      const session = await processManager.getOrCreateClaudeSession(repoPath, repoName);
       
       socket.emit('repo-switched', {
         success: true,
         message: `リポジトリを切り替えました: ${repoPath}`,
-        currentPath: repoPath
+        currentPath: repoPath,
+        sessionId: session.id
       });
 
     } catch (error) {
       socket.emit('repo-switched', {
         success: false,
         message: `リポジトリの切り替えに失敗しました: ${error}`,
-        currentPath: claudeSession?.workingDirectory || ''
+        currentPath: ''
       });
     }
   });
 
   // Claude CLIへのコマンド送信
   socket.on('send-command', (data) => {
-    const { command } = data;
+    const { command, sessionId, repositoryPath } = data;
 
-    if (!claudeSession?.isActive) {
+    let targetSessionId = sessionId;
+    
+    // sessionIdが指定されていない場合、repositoryPathから取得
+    if (!targetSessionId && repositoryPath) {
+      const session = processManager.getClaudeSessionByRepository(repositoryPath);
+      if (session) {
+        targetSessionId = session.id;
+      }
+    }
+
+    if (!targetSessionId) {
       socket.emit('claude-raw-output', {
         type: 'system',
         content: 'Claude CLIセッションが開始されていません。リポジトリを選択してください。\n'
@@ -255,40 +240,50 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // PTYに直接コマンドを送信
-    if (claudeSession.isPty && claudeSession.process) {
-      // 方向キー（ANSIエスケープシーケンス）の場合は直接送信
-      if (command.startsWith('\x1b[')) {
-        claudeSession.process.write(command);
-      } else if (command === '\r') {
-        // 単独のエンターキーの場合
-        claudeSession.process.write('\r');
-      } else if (command === '\x1b') {
-        // ESCキーの場合は直接送信
-        claudeSession.process.write(command);
-      } else {
-        // 通常のコマンドの場合はエンターキーも送信
-        claudeSession.process.write(command);
-        claudeSession.process.write('\r'); // Carriage Return (Enter key)
-        
-        // Claude CLIでは実行確定のためもう一度エンターキーが必要
-        setTimeout(() => {
-          if (claudeSession?.process) {
-            claudeSession.process.write('\r'); // 実行確定のエンター
-          }
-        }, 100); // 100ms後に実行確定
-      }
+    // ProcessManagerを通じてコマンドを送信
+    let commandToSend = command;
+    
+    // 方向キー（ANSIエスケープシーケンス）の場合は直接送信
+    if (command.startsWith('\x1b[')) {
+      // 方向キーはそのまま送信
+    } else if (command === '\r') {
+      // 単独のエンターキーの場合
+    } else if (command === '\x1b') {
+      // ESCキーの場合は直接送信
     } else {
+      // 通常のコマンドの場合はエンターキーも送信
+      commandToSend = command + '\r';
+      
+      // Claude CLIでは実行確定のためもう一度エンターキーが必要
+      setTimeout(() => {
+        processManager.sendToClaudeSession(targetSessionId, '\r');
+      }, 100); // 100ms後に実行確定
+    }
+    
+    const success = processManager.sendToClaudeSession(targetSessionId, commandToSend);
+    if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: 'Claude CLIセッションエラー: PTYが利用できません\n'
+        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`
       });
     }
   });
 
   // Claude CLIへのCtrl+C中断送信
-  socket.on('claude-interrupt', () => {
-    if (!claudeSession?.isActive) {
+  socket.on('claude-interrupt', (data) => {
+    const { sessionId, repositoryPath } = data || {};
+    
+    let targetSessionId = sessionId;
+    
+    // sessionIdが指定されていない場合、repositoryPathから取得
+    if (!targetSessionId && repositoryPath) {
+      const session = processManager.getClaudeSessionByRepository(repositoryPath);
+      if (session) {
+        targetSessionId = session.id;
+      }
+    }
+
+    if (!targetSessionId) {
       socket.emit('claude-raw-output', {
         type: 'system',
         content: 'Claude CLIセッションが開始されていません。\n'
@@ -296,26 +291,50 @@ io.on('connection', (socket) => {
       return;
     }
     
-    if (claudeSession.isPty && claudeSession.process) {
-      // Ctrl+C (SIGINT)を送信
-      claudeSession.process.write('\x03'); // ASCII code for Ctrl+C
+    // Ctrl+C (SIGINT)を送信
+    const success = processManager.sendToClaudeSession(targetSessionId, '\x03');
+    if (!success) {
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`
+      });
     }
   });
 
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信
-  socket.on('list-terminals', () => {
-    const terminals = terminalManager.getTerminals();
-    socket.emit('terminals-list', { terminals });
+  socket.on('list-terminals', (data) => {
+    const { repositoryPath } = data || {};
+    let terminals;
+    
+    if (repositoryPath) {
+      // 特定のリポジトリのターミナルのみ取得
+      terminals = processManager.getTerminalsByRepository(repositoryPath);
+    } else {
+      // 全てのターミナルを取得
+      terminals = processManager.getAllTerminals();
+    }
+    
+    socket.emit('terminals-list', { 
+      terminals: terminals.map(terminal => ({
+        id: terminal.id,
+        name: terminal.name,
+        cwd: terminal.repositoryPath,
+        status: terminal.status,
+        pid: terminal.pid,
+        createdAt: terminal.createdAt
+      }))
+    });
   });
 
   // 新しいターミナルの作成
-  socket.on('create-terminal', (data) => {
+  socket.on('create-terminal', async (data) => {
     const { cwd, name } = data;
     try {
-      const terminal = terminalManager.createTerminal(cwd, name);
-      // terminal-createdイベントは TerminalManager から自動的に発火される
+      const repoName = path.basename(cwd);
+      const terminal = await processManager.createTerminal(cwd, repoName, name);
+      // terminal-createdイベントは ProcessManager から自動的に発火される
     } catch (error) {
       socket.emit('terminal-output', {
         terminalId: 'system',
@@ -329,7 +348,7 @@ io.on('connection', (socket) => {
   // ターミナルへの入力送信
   socket.on('terminal-input', (data) => {
     const { terminalId, input } = data;
-    const success = terminalManager.sendInput(terminalId, input);
+    const success = processManager.sendToTerminal(terminalId, input);
     if (!success) {
       socket.emit('terminal-output', {
         terminalId,
@@ -343,21 +362,21 @@ io.on('connection', (socket) => {
   // ターミナルのリサイズ
   socket.on('terminal-resize', (data) => {
     const { terminalId, cols, rows } = data;
-    terminalManager.resizeTerminal(terminalId, cols, rows);
+    processManager.resizeTerminal(terminalId, cols, rows);
   });
 
   // ターミナルへのシグナル送信（Ctrl+C, Ctrl+Z等）
   socket.on('terminal-signal', (data) => {
     const { terminalId, signal } = data;
-    const success = terminalManager.sendSignal(terminalId, signal);
+    const success = processManager.sendSignalToTerminal(terminalId, signal);
     socket.emit('terminal-signal-sent', { terminalId, signal, success });
   });
 
   // ターミナルの終了
-  socket.on('close-terminal', (data) => {
+  socket.on('close-terminal', async (data) => {
     const { terminalId } = data;
-    terminalManager.closeTerminal(terminalId);
-    // terminal-closedイベントは TerminalManager から自動的に発火される
+    await processManager.closeTerminal(terminalId);
+    // terminal-closedイベントは ProcessManager から自動的に発火される
   });
 
   socket.on('disconnect', () => {
@@ -366,11 +385,14 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = process.env.PORT || 8001;
+const PORT = parseInt(process.env.PORT || '8001', 10);
 
 async function startServer(): Promise<void> {
   await ensureReposDir();
   await loadExistingRepos();
+  
+  // ProcessManagerの初期化
+  await processManager.initialize();
   
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`バックエンドサーバーがポート${PORT}で起動しました (0.0.0.0:${PORT})`);
@@ -378,43 +400,15 @@ async function startServer(): Promise<void> {
 }
 
 // プロセス終了時のクリーンアップ
-process.on('SIGTERM', () => {
-  // Claude CLIセッションの終了
-  if (claudeSession?.isActive) {
-    try {
-      if (claudeSession.isPty) {
-        claudeSession.process.kill();
-      } else {
-        claudeSession.process.kill('SIGTERM');
-      }
-    } catch (error) {
-      // プロセス終了エラーは無視
-    }
-  }
-
-  // 全ターミナルの終了
-  terminalManager.closeAllTerminals();
-  
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  await processManager.shutdown();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  // Claude CLIセッションの終了
-  if (claudeSession?.isActive) {
-    try {
-      if (claudeSession.isPty) {
-        claudeSession.process.kill();
-      } else {
-        claudeSession.process.kill('SIGTERM');
-      }
-    } catch (error) {
-      // プロセス終了エラーは無視
-    }
-  }
-
-  // 全ターミナルの終了
-  terminalManager.closeAllTerminals();
-  
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  await processManager.shutdown();
   process.exit(0);
 });
 

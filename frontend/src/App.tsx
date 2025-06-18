@@ -18,31 +18,87 @@ function App() {
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
   const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
   const [currentRepo, setCurrentRepo] = useState<string>('');
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
-  // リポジトリが選択されているかどうかでメイン画面とリポジトリ管理画面を切り替え
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
 
   useEffect(() => {
-    // 現在のホストを自動検出してSocket.IO接続
-    const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:8001'
-      : `http://${window.location.hostname}:8001`;
-    const socketInstance = io(socketUrl);
-    setSocket(socketInstance);
+    let reconnectTimeout: number;
+    const maxReconnectAttempts = 10;
+    const reconnectDelay = 2000; // 2秒
 
-    socketInstance.on('connect', () => {
-      setIsConnected(true);
-      // 接続時にリポジトリ一覧とターミナル一覧を取得
-      socketInstance.emit('list-repos');
-      socketInstance.emit('list-terminals');
-    });
+    const createConnection = () => {
+      // 現在のホストを自動検出してSocket.IO接続
+      const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8001'
+        : `http://${window.location.hostname}:8001`;
+      
+      const socketInstance = io(socketUrl, {
+        autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000
+      });
+      
+      setSocket(socketInstance);
 
-    socketInstance.on('disconnect', () => {
-      setIsConnected(false);
-    });
+      socketInstance.on('connect', () => {
+        setIsConnected(true);
+        setIsReconnecting(false);
+        setConnectionAttempts(0);
+        
+        // 接続時にリポジトリ一覧を取得
+        socketInstance.emit('list-repos');
+        
+        // 現在のリポジトリのターミナル一覧を取得
+        if (currentRepo) {
+          socketInstance.emit('list-terminals', { repositoryPath: currentRepo });
+        } else {
+          socketInstance.emit('list-terminals');
+        }
+      });
+
+      socketInstance.on('disconnect', (reason) => {
+        setIsConnected(false);
+        console.log('Socket disconnected:', reason);
+        
+        // 自動再接続の場合は手動再接続を試行
+        if (reason === 'io server disconnect') {
+          setIsReconnecting(true);
+          attemptReconnect();
+        }
+      });
+
+      socketInstance.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        setIsConnected(false);
+        setIsReconnecting(true);
+        attemptReconnect();
+      });
+
+      return socketInstance;
+    };
+
+    const attemptReconnect = () => {
+      if (connectionAttempts < maxReconnectAttempts) {
+        setConnectionAttempts(prev => prev + 1);
+        reconnectTimeout = setTimeout(() => {
+          console.log(`Reconnecting... attempt ${connectionAttempts + 1}`);
+          createConnection();
+        }, reconnectDelay * (connectionAttempts + 1)); // 指数バックオフ
+      } else {
+        setIsReconnecting(false);
+        console.error('Max reconnection attempts reached');
+      }
+    };
+
+    const socketInstance = createConnection();
 
     socketInstance.on('repos-list', (data) => {
       setRepositories(data.repos);
@@ -60,11 +116,23 @@ function App() {
     socketInstance.on('repo-switched', (data) => {
       if (data.success) {
         setCurrentRepo(data.currentPath);
+        setCurrentSessionId(data.sessionId || '');
         setRawOutput(''); // リポジトリ切り替え時にログをクリア
         // スクロールを最上部に戻す
         window.scrollTo(0, 0);
+        
+        // 新しいリポジトリのターミナル一覧を取得
+        socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
+    });
+
+    // Claude セッション作成イベント
+    socketInstance.on('claude-session-created', (data) => {
+      if (data.repositoryPath === currentRepo) {
+        setCurrentSessionId(data.sessionId);
+      }
+      setRawOutput(prev => prev + `\n[SYSTEM] Claude CLI セッション開始: ${data.repositoryName}\n`);
     });
 
     // ターミナル関連のイベントハンドラ
@@ -86,9 +154,12 @@ function App() {
     });
 
     return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       socketInstance.disconnect();
     };
-  }, []);
+  }, [currentRepo, connectionAttempts]); // currentRepoとconnectionAttemptsの変更も監視
 
   const handleCloneRepository = (url: string, name: string) => {
     if (socket) {
@@ -109,7 +180,11 @@ function App() {
 
   const handleSendCommand = (command: string) => {
     if (socket) {
-      socket.emit('send-command', { command });
+      socket.emit('send-command', { 
+        command,
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
     }
   };
 
@@ -122,25 +197,40 @@ function App() {
         right: '\x1b[C',
         left: '\x1b[D'
       };
-      socket.emit('send-command', { command: arrowKeys[direction] });
+      socket.emit('send-command', { 
+        command: arrowKeys[direction],
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
     }
   };
 
   const handleSendInterrupt = () => {
     if (socket) {
-      socket.emit('claude-interrupt');
+      socket.emit('claude-interrupt', {
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
     }
   };
 
   const handleSendEscape = () => {
     if (socket) {
-      socket.emit('send-command', { command: '\x1b' }); // ESC (ASCII 27)
+      socket.emit('send-command', { 
+        command: '\x1b', // ESC (ASCII 27)
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
     }
   };
 
   const handleClearClaude = () => {
     if (socket) {
-      socket.emit('send-command', { command: '/clear' });
+      socket.emit('send-command', { 
+        command: '/clear',
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
     }
   };
 
@@ -187,9 +277,13 @@ function App() {
                   </p>
                 </div>
                 <div className="flex items-center space-x-2 flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${
+                    isConnected ? 'bg-green-500' : 
+                    isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}></div>
                   <span className="text-xs text-gray-500 font-medium">
-                    {isConnected ? '接続中' : '未接続'}
+                    {isConnected ? '接続中' : 
+                     isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
                   </span>
                 </div>
               </div>
@@ -252,10 +346,19 @@ function App() {
             </div>
             <div className="flex items-center justify-end space-x-3">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${
+                  isConnected ? 'bg-green-500' : 
+                  isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
                 <span className="text-xs text-gray-500 font-medium">
-                  {isConnected ? '接続中' : '未接続'}
+                  {isConnected ? '接続中' : 
+                   isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
                 </span>
+                {currentSessionId && (
+                  <span className="text-xs text-blue-600 font-mono">
+                    #{currentSessionId.split('-')[1]}
+                  </span>
+                )}
               </div>
             </div>
           </div>

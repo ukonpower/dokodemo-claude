@@ -35,9 +35,26 @@ export interface TerminalMessage {
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
-  'claude-raw-output': (data: { type: 'stdout' | 'stderr' | 'system'; content: string }) => void;
+  'claude-raw-output': (data: { 
+    type: 'stdout' | 'stderr' | 'system'; 
+    content: string;
+    sessionId?: string;
+    repositoryPath?: string;
+  }) => void;
   'repo-cloned': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
-  'repo-switched': (data: { success: boolean; message: string; currentPath: string }) => void;
+  'repo-switched': (data: { 
+    success: boolean; 
+    message: string; 
+    currentPath: string;
+    sessionId?: string;
+  }) => void;
+  
+  // Claude セッション関連イベント
+  'claude-session-created': (data: { 
+    sessionId: string; 
+    repositoryPath: string; 
+    repositoryName: string;
+  }) => void;
   
   // ターミナル関連イベント
   'terminal-created': (data: Terminal) => void;
@@ -51,12 +68,20 @@ export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
   'switch-repo': (data: { path: string }) => void;
   'list-repos': () => void;
-  'send-command': (data: { command: string }) => void;
+  'send-command': (data: { 
+    command: string;
+    sessionId?: string;
+    repositoryPath?: string;
+  }) => void;
+  'claude-interrupt': (data?: { 
+    sessionId?: string;
+    repositoryPath?: string;
+  }) => void;
   
   // ターミナル関連イベント
   'create-terminal': (data: { cwd: string; name?: string }) => void;
   'terminal-input': (data: { terminalId: string; input: string }) => void;
-  'list-terminals': () => void;
+  'list-terminals': (data?: { repositoryPath?: string }) => void;
   'close-terminal': (data: { terminalId: string }) => void;
   'terminal-resize': (data: { terminalId: string; cols: number; rows: number }) => void;
   'terminal-signal': (data: { terminalId: string; signal: string }) => void;
