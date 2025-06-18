@@ -37,6 +37,12 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
 
   const extractRepoName = (url: string): string => {
     try {
+      // SSH形式 (git@github.com:user/repo.git) の場合
+      if (url.includes('@') && url.includes(':')) {
+        const match = url.match(/:([^\/]+\/)?([^\/]+?)(?:\.git)?$/);
+        return match ? match[2] : '';
+      }
+      // HTTPS形式の場合
       const match = url.match(/\/([^\/]+?)(?:\.git)?$/);
       return match ? match[1] : '';
     } catch {
@@ -86,10 +92,10 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
             </label>
             <input
               id="repo-url"
-              type="url"
+              type="text"
               value={repoUrl}
               onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder="https://github.com/user/repo.git"
+              placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
               className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
               disabled={!isConnected || isCloning}
             />
