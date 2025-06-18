@@ -91,15 +91,11 @@ export class ProcessManager extends EventEmitter {
       
       for (const session of persistedSessions) {
         if (await this.isProcessAlive(session.pid)) {
-          // プロセスが生きている場合は復帰を試行
-          try {
-            await this.restoreClaudeSession(session);
-            console.log(`Restored Claude session ${session.id} for ${session.repositoryName}`);
-          } catch (error) {
-            console.error(`Failed to restore Claude session ${session.id}:`, error);
-          }
+          console.log(`Claude session ${session.id} for ${session.repositoryName} is still running (PID: ${session.pid})`);
+          // プロセスが生きている場合、新しいPTYインスタンスは作成せず、情報のみ保持
+          // 実際の接続は必要に応じて後で行う
         } else {
-          console.log(`Claude session ${session.id} process is dead, skipping`);
+          console.log(`Claude session ${session.id} process is dead, will create new session when needed`);
         }
       }
     } catch (error) {
@@ -120,15 +116,10 @@ export class ProcessManager extends EventEmitter {
       
       for (const terminal of persistedTerminals) {
         if (await this.isProcessAlive(terminal.pid)) {
-          // プロセスが生きている場合は復帰を試行
-          try {
-            await this.restoreTerminal(terminal);
-            console.log(`Restored terminal ${terminal.id} for ${terminal.repositoryName}`);
-          } catch (error) {
-            console.error(`Failed to restore terminal ${terminal.id}:`, error);
-          }
+          console.log(`Terminal ${terminal.id} for ${terminal.repositoryName} is still running (PID: ${terminal.pid})`);
+          // プロセスが生きている場合、新しいPTYインスタンスは作成せず、情報のみ保持
         } else {
-          console.log(`Terminal ${terminal.id} process is dead, skipping`);
+          console.log(`Terminal ${terminal.id} process is dead, will create new terminal when needed`);
         }
       }
     } catch (error) {
@@ -151,37 +142,6 @@ export class ProcessManager extends EventEmitter {
     }
   }
 
-  /**
-   * Claude CLIセッションの復帰
-   */
-  private async restoreClaudeSession(persisted: PersistedClaudeSession): Promise<void> {
-    // 注意: 既存のPTYプロセスに再接続することは技術的に困難
-    // 代わりに新しいプロセスを起動する
-    const newSession = await this.createClaudeSession(persisted.repositoryPath, persisted.repositoryName);
-    
-    // 古いプロセスをクリーンアップ
-    try {
-      process.kill(persisted.pid, 'SIGTERM');
-    } catch {
-      // プロセスが既に終了している場合は無視
-    }
-  }
-
-  /**
-   * ターミナルの復帰
-   */
-  private async restoreTerminal(persisted: PersistedTerminal): Promise<void> {
-    // 注意: 既存のPTYプロセスに再接続することは技術的に困難
-    // 代わりに新しいプロセスを起動する
-    const newTerminal = await this.createTerminal(persisted.repositoryPath, persisted.repositoryName, persisted.name);
-    
-    // 古いプロセスをクリーンアップ
-    try {
-      process.kill(persisted.pid, 'SIGTERM');
-    } catch {
-      // プロセスが既に終了している場合は無視
-    }
-  }
 
   /**
    * 新しいClaude CLIセッションを作成
@@ -189,11 +149,8 @@ export class ProcessManager extends EventEmitter {
   async createClaudeSession(repositoryPath: string, repositoryName: string): Promise<ActiveClaudeSession> {
     const sessionId = `claude-${++this.sessionCounter}-${Date.now()}`;
     
-    // npm版Claude CLIのパス
-    const claudePath = path.join(path.dirname(path.dirname(__dirname)), 'node_modules/@anthropic-ai/claude-code/cli.js');
-    
     // PTYを使用してClaude CLIを対話モードで起動
-    const claudeProcess = pty.spawn('node', [claudePath, '--dangerously-skip-permissions'], {
+    const claudeProcess = pty.spawn('claude', ['--dangerously-skip-permissions'], {
       name: 'xterm-color',
       cols: 120,
       rows: 30,
@@ -317,18 +274,66 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * 既存のClaude CLIプロセスを復帰
+   */
+  private async restoreExistingClaudeSession(persisted: PersistedClaudeSession): Promise<ActiveClaudeSession> {
+    console.log(`Keeping existing Claude process for ${persisted.repositoryName} (PID: ${persisted.pid})`);
+    
+    // 既存プロセスはそのまま維持し、新しいセッション情報を作成
+    // 実際のPTYプロセスは作らず、情報のみ管理
+    const session: ActiveClaudeSession = {
+      id: persisted.id,
+      repositoryPath: persisted.repositoryPath,
+      repositoryName: persisted.repositoryName,
+      pid: persisted.pid,
+      isActive: true,
+      isPty: false, // 既存プロセスなのでPTY接続はなし
+      process: null as any, // 実際のPTYプロセスはなし
+      createdAt: persisted.createdAt,
+      lastAccessedAt: Date.now()
+    };
+
+    return session;
+  }
+
+  /**
    * リポジトリのClaude CLIセッションを取得（なければ作成）
    */
   async getOrCreateClaudeSession(repositoryPath: string, repositoryName: string): Promise<ActiveClaudeSession> {
-    // 既存のセッションを検索
+    // 既存のアクティブセッションを検索
     for (const session of this.claudeSessions.values()) {
       if (session.repositoryPath === repositoryPath && session.isActive) {
         session.lastAccessedAt = Date.now();
+        await this.persistClaudeSessions();
         return session;
       }
     }
     
+    // 永続化されたセッションで生きているものがあるかチェック
+    try {
+      const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
+      const persistedSessions: PersistedClaudeSession[] = JSON.parse(data);
+      
+      for (const persistedSession of persistedSessions) {
+        if (persistedSession.repositoryPath === repositoryPath && 
+            await this.isProcessAlive(persistedSession.pid)) {
+          
+          console.log(`Found existing Claude session for ${repositoryName} (PID: ${persistedSession.pid})`);
+          
+          // 既存プロセスに新しいPTY接続を作成
+          const restoredSession = await this.restoreExistingClaudeSession(persistedSession);
+          this.claudeSessions.set(restoredSession.id, restoredSession);
+          await this.persistClaudeSessions();
+          
+          return restoredSession;
+        }
+      }
+    } catch (error) {
+      // ファイル読み込みエラーは無視
+    }
+    
     // 新しいセッションを作成
+    console.log(`Creating new Claude session for ${repositoryName}`);
     return await this.createClaudeSession(repositoryPath, repositoryName);
   }
 
@@ -420,6 +425,25 @@ export class ProcessManager extends EventEmitter {
     const session = this.claudeSessions.get(sessionId);
     if (!session || !session.isActive) {
       return false;
+    }
+
+    // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
+    if (!session.isPty || !session.process) {
+      console.log(`Session ${sessionId} has no PTY connection, creating new session`);
+      // 非同期で新しいセッションを作成
+      this.createClaudeSession(session.repositoryPath, session.repositoryName)
+        .then(newSession => {
+          // 古いセッションを削除
+          this.claudeSessions.delete(sessionId);
+          // 新しいセッションでコマンドを送信
+          if (newSession.process) {
+            newSession.process.write(input);
+          }
+        })
+        .catch(error => {
+          console.error(`Failed to create new session for ${sessionId}:`, error);
+        });
+      return true;
     }
 
     try {
