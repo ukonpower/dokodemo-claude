@@ -102,7 +102,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   useEffect(() => {
     if (!xtermInstance.current) return;
 
-    // ターミナルが変更された場合、出力をクリアして新しい内容をロード
+    // ターミナルが変更された場合、または初回表示の場合、出力をクリアして新しい内容をロード
     if (currentTerminalId.current !== terminal.id) {
       console.log(`Switching from terminal ${currentTerminalId.current} to ${terminal.id}`);
       
@@ -131,6 +131,37 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       lastMessageCount.current = terminalMessages.length;
       currentTerminalId.current = terminal.id;
       xtermInstance.current.scrollToBottom();
+    }
+    // 初回表示で履歴が空だった場合、後から履歴が読み込まれた時の対応
+    else if (currentTerminalId.current === terminal.id && history && history.length > 0) {
+      // 既に表示されているコンテンツと履歴を比較して、履歴が新しく追加されていれば表示
+      const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
+      const totalExpectedLines = history.length + terminalMessages.filter(msg => msg.type !== 'input').length;
+      
+      // 現在の表示内容より履歴が多い場合は再描画
+      if (totalExpectedLines > lastMessageCount.current) {
+        console.log(`Refreshing terminal ${terminal.id} with new history data`);
+        
+        // 出力をクリア
+        xtermInstance.current.clear();
+        
+        // 履歴をロード
+        history.forEach(historyLine => {
+          if (historyLine.content) {
+            xtermInstance.current?.write(historyLine.content);
+          }
+        });
+        
+        // 現在のメッセージをロード
+        terminalMessages.forEach(message => {
+          if (message.type !== 'input') {
+            xtermInstance.current?.write(message.data);
+          }
+        });
+        
+        lastMessageCount.current = terminalMessages.length;
+        xtermInstance.current.scrollToBottom();
+      }
     }
   }, [terminal.id, history, messages]);
 
