@@ -59,7 +59,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       scrollSensitivity: 3,
       // 横スクロール対応の設定
       wordWrap: false, // 単語での改行を無効化
-      cols: 200, // 適度な列数を設定
+      cols: 600, // 適度な列数を設定
       allowProposedApi: true // 横スクロール機能に必要
     });
 

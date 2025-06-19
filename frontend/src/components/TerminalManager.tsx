@@ -102,20 +102,40 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       {/* ターミナル本体 */}
       <div className="flex-1 min-h-0">
         {terminals.length === 0 ? (
-          <div className="h-full flex items-center justify-center bg-gray-50">
-            <div className="text-center text-gray-500">
-              <p className="mb-2">ターミナルがありません</p>
+          <div className="h-full flex items-center justify-center bg-gray-900 overflow-y-auto">
+            <div className="text-center text-gray-300 max-w-sm mx-auto px-4 py-8">
+              <div className="mb-4">
+                <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 rounded-full flex items-center justify-center">
+                  <span className="text-xl text-gray-400">$</span>
+                </div>
+                <h3 className="text-base font-medium mb-2">ターミナルがありません</h3>
+                <p className="text-sm text-gray-400 mb-4">
+                  新しいターミナルを作成してコマンドラインを開始しましょう
+                </p>
+              </div>
+              
               <button
                 onClick={handleCreateTerminal}
                 disabled={!isConnected || !currentRepo}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
               >
                 ターミナルを作成
               </button>
+              
               {!currentRepo && (
-                <p className="text-xs text-gray-400 mt-2">
-                  プロジェクトを選択してください
-                </p>
+                <div className="mt-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
+                  <p className="text-xs text-yellow-300">
+                    先にプロジェクトを選択してください
+                  </p>
+                </div>
+              )}
+              
+              {!isConnected && (
+                <div className="mt-3 p-2 bg-red-900/20 border border-red-700/30 rounded-lg">
+                  <p className="text-xs text-red-300">
+                    サーバーに接続されていません
+                  </p>
+                </div>
               )}
             </div>
           </div>
