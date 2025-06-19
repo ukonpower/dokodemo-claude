@@ -73,7 +73,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       disableStdin: true,
       smoothScrollDuration: 0, // スムーススクロールを無効化
       scrollOnUserInput: true, // ユーザー入力時に自動スクロール
-      fastScrollModifier: 'shift' // Shift+スクロールで高速スクロール
+      fastScrollModifier: 'shift', // Shift+スクロールで高速スクロール
+      scrollSensitivity: 3 // スクロール感度を調整
     });
 
     // FitAddonを読み込み
@@ -256,14 +257,16 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-gray-900 overflow-hidden">
+      <div className="flex-1 bg-gray-900 overflow-auto">
         <div
           ref={terminalRef}
-          className="h-full"
+          className="h-full w-full"
           style={{ 
             background: '#111827',
             minHeight: '200px',
-            minWidth: 'fit-content'
+            minWidth: '100%',
+            overflowX: 'auto',
+            overflowY: 'auto'
           }}
         />
       </div>
