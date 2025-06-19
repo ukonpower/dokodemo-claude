@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 
 interface ClaudeOutputProps {
@@ -9,16 +10,18 @@ interface ClaudeOutputProps {
 const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
+  const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
 
   // ターミナルを初期化
   useEffect(() => {
     if (!terminalRef.current) return;
 
+    // FitAddonを作成
+    fitAddon.current = new FitAddon();
+
     // ターミナルインスタンスを作成（Claude CLIと同じ仮想スクロール設定）
     terminal.current = new Terminal({
-      cols: 200,
-      rows: 24,
       theme: {
         background: '#111827',
         foreground: '#d1d5db',
@@ -55,8 +58,19 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       fastScrollModifier: 'shift' // Shift+スクロールで高速スクロール
     });
 
+    // FitAddonを読み込み
+    terminal.current.loadAddon(fitAddon.current);
+
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
+
+    // サイズを自動調整
+    setTimeout(() => {
+      if (fitAddon.current && terminal.current) {
+        fitAddon.current.fit();
+        terminal.current.refresh(0, terminal.current.rows - 1);
+      }
+    }, 100);
 
     // 初期メッセージを表示
     if (!rawOutput) {
@@ -95,16 +109,40 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
     }
   }, [rawOutput]);
 
+  // ウィンドウサイズ変更時に再調整
+  useEffect(() => {
+    const handleResize = () => {
+      if (fitAddon.current && terminal.current) {
+        fitAddon.current.fit();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="bg-gray-900 rounded-lg overflow-hidden">
-      <div
-        ref={terminalRef}
-        className="h-64 sm:h-96"
-        style={{ 
-          background: '#111827',
-          minWidth: 'fit-content'
-        }}
-      />
+    <div className="flex flex-col h-full">
+      {/* ヘッダー */}
+      <div className="bg-gray-800 px-2 sm:px-3 py-2 border-b border-gray-700">
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-gray-300 text-xs">Claude CLI Output</span>
+        </div>
+      </div>
+
+      {/* XTermターミナル出力エリア */}
+      <div className="flex-1 bg-gray-900 overflow-hidden">
+        <div
+          ref={terminalRef}
+          className="h-full"
+          style={{ 
+            background: '#111827',
+            minHeight: '200px',
+            minWidth: 'fit-content'
+          }}
+        />
+      </div>
     </div>
   );
 };

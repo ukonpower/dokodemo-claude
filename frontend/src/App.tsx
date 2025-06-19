@@ -405,7 +405,7 @@ function App() {
       {/* メインコンテンツ */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
         {/* Claude CLI セクション */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,9 +414,11 @@ function App() {
               Claude CLI
             </h2>
           </div>
-          <div className="p-3 sm:p-6">
+          <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
             {/* Claude出力エリア */}
-            <ClaudeOutput rawOutput={rawOutput} />
+            <div className="flex-1 min-h-0">
+              <ClaudeOutput rawOutput={rawOutput} />
+            </div>
 
             {/* Claude コマンド入力エリア */}
             <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
