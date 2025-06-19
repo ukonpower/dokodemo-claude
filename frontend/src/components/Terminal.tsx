@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import type { Terminal, TerminalMessage } from '../types';
+import type { Terminal, TerminalMessage, TerminalOutputLine } from '../types';
 
 interface TerminalProps {
   terminal: Terminal;
   messages: TerminalMessage[];
+  history: TerminalOutputLine[];
   isActive: boolean;
   onInput: (terminalId: string, input: string) => void;
   onSignal: (terminalId: string, signal: string) => void;
@@ -16,6 +17,7 @@ interface TerminalProps {
 const TerminalComponent: React.FC<TerminalProps> = ({
   terminal,
   messages,
+  history,
   isActive,
   onInput,
   onSignal,
@@ -27,6 +29,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const xtermInstance = useRef<XTerm | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastMessageCount = useRef<number>(0);
+  const currentTerminalId = useRef<string>('');
 
   // XTermインスタンスを初期化
   useEffect(() => {
@@ -88,25 +91,66 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     };
   }, []);
 
-  // メッセージが更新されたらXTermに書き込み
+  // ターミナルが変更された時の処理
   useEffect(() => {
     if (!xtermInstance.current) return;
+
+    // ターミナルが変更された場合、出力をクリアして新しい内容をロード
+    if (currentTerminalId.current !== terminal.id) {
+      console.log(`Switching from terminal ${currentTerminalId.current} to ${terminal.id}`);
+      
+      // 出力をクリア
+      xtermInstance.current.clear();
+      
+      // 履歴をロード
+      if (history && history.length > 0) {
+        console.log(`Loading ${history.length} history lines for terminal ${terminal.id}`);
+        history.forEach(historyLine => {
+          if (historyLine.content) {
+            xtermInstance.current?.write(historyLine.content);
+          }
+        });
+      }
+      
+      // 現在のメッセージをロード
+      const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
+      console.log(`Loading ${terminalMessages.length} messages for terminal ${terminal.id}`);
+      terminalMessages.forEach(message => {
+        if (message.type !== 'input') {
+          xtermInstance.current?.write(message.data);
+        }
+      });
+      
+      lastMessageCount.current = terminalMessages.length;
+      currentTerminalId.current = terminal.id;
+      xtermInstance.current.scrollToBottom();
+    }
+  }, [terminal.id, history, messages]);
+
+  // 新しいメッセージが追加されたらXTermに書き込み
+  useEffect(() => {
+    if (!xtermInstance.current || currentTerminalId.current !== terminal.id) return;
 
     const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
     const newMessages = terminalMessages.slice(lastMessageCount.current);
 
-    newMessages.forEach(message => {
-      if (message.type === 'input') return; // 入力メッセージは表示しない
+    // 新しいメッセージがある場合のみ処理
+    if (newMessages.length > 0) {
+      console.log(`Adding ${newMessages.length} new messages to terminal ${terminal.id}`);
+      
+      newMessages.forEach(message => {
+        if (message.type === 'input') return; // 入力メッセージは表示しない
 
-      // ANSIエスケープシーケンスをそのまま出力（XTermが処理）
-      xtermInstance.current?.write(message.data);
-    });
+        // ANSIエスケープシーケンスをそのまま出力（XTermが処理）
+        xtermInstance.current?.write(message.data);
+      });
 
-    lastMessageCount.current = terminalMessages.length;
+      lastMessageCount.current = terminalMessages.length;
 
-    // 最下部にスクロール
-    xtermInstance.current.scrollToBottom();
-  }, [messages, terminal.id]);
+      // 最下部にスクロール
+      xtermInstance.current.scrollToBottom();
+    }
+  }, [messages]);
 
   // アクティブなターミナルの場合、入力フィールドにフォーカス
   useEffect(() => {

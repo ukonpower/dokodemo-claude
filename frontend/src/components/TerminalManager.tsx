@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import type { Terminal, TerminalMessage } from '../types';
+import type { Terminal, TerminalMessage, TerminalOutputLine } from '../types';
 import TerminalComponent from './Terminal';
 
 interface TerminalManagerProps {
   terminals: Terminal[];
   messages: TerminalMessage[];
+  histories: Map<string, TerminalOutputLine[]>;
   currentRepo: string;
   isConnected: boolean;
   onCreateTerminal: (cwd: string, name?: string) => void;
@@ -16,6 +17,7 @@ interface TerminalManagerProps {
 const TerminalManager: React.FC<TerminalManagerProps> = ({
   terminals,
   messages,
+  histories,
   currentRepo,
   isConnected,
   onCreateTerminal,
@@ -27,7 +29,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {
+    console.log('TerminalManager: terminals.length =', terminals.length, ', activeTerminalId =', activeTerminalId);
     if (terminals.length > 0 && !activeTerminalId) {
+      console.log('Setting first terminal as active:', terminals[0].id);
       setActiveTerminalId(terminals[0].id);
     }
   }, [terminals, activeTerminalId]);
@@ -35,7 +39,9 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   // アクティブなターミナルが削除された場合の処理
   useEffect(() => {
     if (activeTerminalId && !terminals.find(t => t.id === activeTerminalId)) {
-      setActiveTerminalId(terminals.length > 0 ? terminals[0].id : '');
+      const newActiveId = terminals.length > 0 ? terminals[0].id : '';
+      console.log('Active terminal deleted, setting new active:', newActiveId);
+      setActiveTerminalId(newActiveId);
     }
   }, [terminals, activeTerminalId]);
 
@@ -49,6 +55,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   };
 
   const activeTerminal = terminals.find(t => t.id === activeTerminalId);
+  console.log('TerminalManager render: terminals =', terminals.map(t => t.id), ', activeTerminalId =', activeTerminalId, ', activeTerminal =', activeTerminal?.id);
 
   return (
     <div className="h-full flex flex-col">
@@ -116,6 +123,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
           <TerminalComponent
             terminal={activeTerminal}
             messages={messages}
+            history={histories.get(activeTerminal.id) || []}
             isActive={true}
             onInput={onTerminalInput}
             onSignal={onTerminalSignal}

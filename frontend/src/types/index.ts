@@ -38,6 +38,14 @@ export interface ClaudeOutputLine {
   content: string;
 }
 
+// ターミナル出力履歴関連の型定義
+export interface TerminalOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+}
+
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
@@ -72,6 +80,10 @@ export interface ServerToClientEvents {
   'terminals-list': (data: { terminals: Terminal[] }) => void;
   'terminal-closed': (data: { terminalId: string }) => void;
   'terminal-signal-sent': (data: { terminalId: string; signal: string; success: boolean }) => void;
+  'terminal-output-history': (data: { 
+    terminalId: string; 
+    history: TerminalOutputLine[];
+  }) => void;
 }
 
 export interface ClientToServerEvents {

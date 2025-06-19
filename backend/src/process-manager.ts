@@ -12,6 +12,14 @@ export interface ClaudeOutputLine {
   type: 'stdout' | 'stderr' | 'system';
 }
 
+// ターミナル出力履歴の行情報
+export interface TerminalOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+}
+
 // 永続化されるClaude CLIセッション情報
 export interface PersistedClaudeSession {
   id: string;
@@ -34,6 +42,7 @@ export interface PersistedTerminal {
   status: 'active' | 'exited';
   createdAt: number;
   lastAccessedAt: number;
+  outputHistory?: TerminalOutputLine[]; // 出力履歴を追加
 }
 
 // アクティブなClaude CLIセッション
@@ -46,6 +55,7 @@ export interface ActiveClaudeSession extends PersistedClaudeSession {
 // アクティブなターミナル
 export interface ActiveTerminal extends PersistedTerminal {
   process: pty.IPty;
+  outputHistory: TerminalOutputLine[]; // アクティブターミナルでは必須
 }
 
 /**
@@ -253,12 +263,17 @@ export class ProcessManager extends EventEmitter {
       status: 'active',
       process: ptyProcess,
       createdAt: Date.now(),
-      lastAccessedAt: Date.now()
+      lastAccessedAt: Date.now(),
+      outputHistory: [] // 出力履歴を初期化
     };
 
     // プロセス監視
     ptyProcess.onData((data: string) => {
       terminal.lastAccessedAt = Date.now();
+      
+      // 出力履歴に追加
+      this.addToTerminalOutputHistory(terminal, data, 'stdout');
+      
       this.emit('terminal-output', {
         terminalId: terminal.id,
         repositoryPath: terminal.repositoryPath,
@@ -385,6 +400,37 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * ターミナル出力履歴に新しい行を追加
+   */
+  private addToTerminalOutputHistory(terminal: ActiveTerminal, content: string, type: 'stdout' | 'stderr' | 'system'): void {
+    const outputLine: TerminalOutputLine = {
+      id: `${terminal.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      content,
+      timestamp: Date.now(),
+      type
+    };
+    
+    terminal.outputHistory.push(outputLine);
+    console.log(`Added to terminal ${terminal.id} history:`, outputLine.content.substring(0, 50), `(total: ${terminal.outputHistory.length} lines)`);
+    
+    // 最大行数を超えた場合、古い行を削除
+    if (terminal.outputHistory.length > this.MAX_OUTPUT_LINES) {
+      terminal.outputHistory = terminal.outputHistory.slice(-this.MAX_OUTPUT_LINES);
+    }
+    
+    // 永続化（非同期で実行、エラーは無視）
+    this.persistTerminals().catch(console.error);
+  }
+
+  /**
+   * 指定されたターミナルの出力履歴を取得
+   */
+  getTerminalOutputHistory(terminalId: string): TerminalOutputLine[] {
+    const terminal = this.terminals.get(terminalId);
+    return terminal ? terminal.outputHistory : [];
+  }
+
+  /**
    * Claude CLIセッション情報の永続化
    */
   private async persistClaudeSessions(): Promise<void> {
@@ -420,7 +466,8 @@ export class ProcessManager extends EventEmitter {
         name: terminal.name,
         status: terminal.status,
         createdAt: terminal.createdAt,
-        lastAccessedAt: terminal.lastAccessedAt
+        lastAccessedAt: terminal.lastAccessedAt,
+        outputHistory: terminal.outputHistory // 出力履歴を永続化
       }));
     
     try {
@@ -601,6 +648,9 @@ export class ProcessManager extends EventEmitter {
     }
 
     try {
+      // ターミナル終了をシステムメッセージとして履歴に追加
+      this.addToTerminalOutputHistory(terminal, '\n[SYSTEM] ターミナル終了\n', 'system');
+      
       terminal.process.kill('SIGTERM');
       setTimeout(() => {
         if (this.terminals.has(terminalId)) {

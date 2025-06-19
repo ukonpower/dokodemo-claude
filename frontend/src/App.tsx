@@ -4,6 +4,7 @@ import type {
   GitRepository,
   Terminal,
   TerminalMessage,
+  TerminalOutputLine,
   ClaudeOutputLine,
   ServerToClientEvents,
   ClientToServerEvents
@@ -33,6 +34,7 @@ function App() {
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
+  const [terminalHistories, setTerminalHistories] = useState<Map<string, TerminalOutputLine[]>>(new Map());
 
   useEffect(() => {
     let reconnectTimeout: number;
@@ -168,6 +170,24 @@ function App() {
     socketInstance.on('terminal-closed', (data) => {
       setTerminals(prev => prev.filter(t => t.id !== data.terminalId));
       setTerminalMessages(prev => prev.filter(m => m.terminalId !== data.terminalId));
+      setTerminalHistories(prev => {
+        const newHistories = new Map(prev);
+        newHistories.delete(data.terminalId);
+        return newHistories;
+      });
+    });
+
+    // ターミナル出力履歴の受信
+    socketInstance.on('terminal-output-history', (data) => {
+      console.log('Received terminal history:', data.terminalId, data.history.length, 'lines');
+      console.log('History sample:', data.history.slice(0, 3)); // 最初の3行をログ出力
+      
+      setTerminalHistories(prev => {
+        const newHistories = new Map(prev);
+        newHistories.set(data.terminalId, data.history);
+        console.log('Updated terminal histories map:', Array.from(newHistories.keys()));
+        return newHistories;
+      });
     });
 
     return () => {
@@ -426,6 +446,7 @@ function App() {
             <TerminalManager
               terminals={terminals}
               messages={terminalMessages}
+              histories={terminalHistories}
               currentRepo={currentRepo}
               isConnected={isConnected}
               onCreateTerminal={handleCreateTerminal}
