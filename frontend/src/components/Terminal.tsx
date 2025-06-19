@@ -225,7 +225,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-gray-900 rounded-b-lg overflow-hidden">
+      <div className="flex-1 bg-gray-900 overflow-hidden">
         <div
           ref={terminalRef}
           className="h-full"
