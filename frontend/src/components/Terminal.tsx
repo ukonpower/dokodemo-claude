@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import type { Terminal, TerminalMessage } from '../types';
 
 interface TerminalProps {
@@ -19,20 +22,102 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   onClose
 }) => {
   const [input, setInput] = useState('');
-  const outputRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const xtermInstance = useRef<XTerm | null>(null);
+  const fitAddon = useRef<FitAddon | null>(null);
+  const lastMessageCount = useRef<number>(0);
 
-  // 新しいメッセージが追加されたときに自動スクロール
+  // XTermインスタンスを初期化
   useEffect(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  }, [messages]);
+    if (!terminalRef.current) return;
+
+    // FitAddonを作成
+    fitAddon.current = new FitAddon();
+
+    // XTermインスタンスを作成（Claude CLI出力と同じテーマ設定）
+    xtermInstance.current = new XTerm({
+      theme: {
+        background: '#111827',
+        foreground: '#d1d5db',
+        cursor: '#9ca3af',
+        selectionBackground: '#374151',
+        black: '#1f2937',
+        red: '#f87171',
+        green: '#86efac',
+        yellow: '#fbbf24',
+        blue: '#93c5fd',
+        magenta: '#c084fc',
+        cyan: '#67e8f9',
+        white: '#e5e7eb',
+        brightBlack: '#4b5563',
+        brightRed: '#fca5a5',
+        brightGreen: '#bbf7d0',
+        brightYellow: '#fde047',
+        brightBlue: '#bfdbfe',
+        brightMagenta: '#e9d5ff',
+        brightCyan: '#a5f3fc',
+        brightWhite: '#f9fafb'
+      },
+      fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
+      fontSize: 8,
+      lineHeight: 1.2,
+      cursorBlink: false,
+      cursorStyle: 'block',
+      scrollback: 10000,
+      convertEol: true,
+      allowTransparency: false,
+      disableStdin: true
+    });
+
+    // FitAddonを読み込み
+    xtermInstance.current.loadAddon(fitAddon.current);
+
+    // XTermをDOMに接続
+    xtermInstance.current.open(terminalRef.current);
+
+    // サイズを自動調整
+    setTimeout(() => {
+      fitAddon.current?.fit();
+    }, 100);
+
+    return () => {
+      if (xtermInstance.current) {
+        xtermInstance.current.dispose();
+      }
+    };
+  }, []);
+
+  // メッセージが更新されたらXTermに書き込み
+  useEffect(() => {
+    if (!xtermInstance.current) return;
+
+    const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
+    const newMessages = terminalMessages.slice(lastMessageCount.current);
+
+    newMessages.forEach(message => {
+      if (message.type === 'input') return; // 入力メッセージは表示しない
+
+      // ANSIエスケープシーケンスをそのまま出力（XTermが処理）
+      xtermInstance.current?.write(message.data);
+    });
+
+    lastMessageCount.current = terminalMessages.length;
+
+    // 最下部にスクロール
+    xtermInstance.current.scrollToBottom();
+  }, [messages, terminal.id]);
 
   // アクティブなターミナルの場合、入力フィールドにフォーカス
   useEffect(() => {
-    if (isActive && inputRef.current) {
-      inputRef.current.focus();
+    if (isActive) {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+      // アクティブになった時にサイズを再調整
+      setTimeout(() => {
+        fitAddon.current?.fit();
+      }, 100);
     }
   }, [isActive]);
 
@@ -59,33 +144,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   };
 
-  const formatMessage = (message: TerminalMessage) => {
-    // 入力メッセージは表示しない（重複を避けるため）
-    if (message.type === 'input') {
-      return '';
-    }
-    
-    // ANSI escape sequences を簡易的に処理
-    let formattedData = message.data;
-    
-    // 色コードの簡単な変換
-    formattedData = formattedData
-      .replace(/\u001b\[31m/g, '<span class="text-red-400">') // 赤
-      .replace(/\u001b\[32m/g, '<span class="text-green-400">') // 緑
-      .replace(/\u001b\[33m/g, '<span class="text-yellow-400">') // 黄
-      .replace(/\u001b\[34m/g, '<span class="text-blue-400">') // 青
-      .replace(/\u001b\[35m/g, '<span class="text-purple-400">') // 紫
-      .replace(/\u001b\[36m/g, '<span class="text-cyan-400">') // シアン
-      .replace(/\u001b\[37m/g, '<span class="text-gray-300">') // 白
-      .replace(/\u001b\[90m/g, '<span class="text-gray-500">') // 暗い灰色
-      .replace(/\u001b\[0m/g, '</span>') // リセット
-      .replace(/\u001b\[[0-9;]*m/g, ''); // その他のANSIコードを除去
-
-    return formattedData;
-  };
 
   return (
-    <div className="h-full flex flex-col bg-gray-900 text-gray-300 font-mono text-xs sm:text-sm">
+    <div className="h-full flex flex-col">
       {/* ターミナルヘッダー */}
       <div className="bg-gray-800 px-2 sm:px-3 py-2 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
@@ -108,44 +169,30 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         </button>
       </div>
 
-      {/* ターミナル出力エリア */}
-      <div 
-        ref={outputRef}
-        className="flex-1 p-2 sm:p-3 overflow-y-auto whitespace-pre-wrap text-xs sm:text-sm"
-        style={{ minHeight: '200px', maxHeight: '400px' }}
-      >
-        {messages
-          .filter(msg => msg.terminalId === terminal.id)
-          .slice(-1000) // 最新の1000メッセージのみ表示
-          .map((message, index) => {
-            const formattedContent = formatMessage(message);
-            // 空の内容（入力メッセージなど）はスキップ
-            if (!formattedContent.trim()) return null;
-            
-            return (
-              <div key={index} className={`${
-                message.type === 'stderr' ? 'text-red-400' :
-                message.type === 'exit' ? 'text-yellow-300' :
-                'text-gray-300'
-              }`}>
-                <span dangerouslySetInnerHTML={{ __html: formattedContent }} />
-              </div>
-            );
-          })
-        }
+      {/* XTermターミナル出力エリア */}
+      <div className="flex-1 bg-gray-900 rounded-b-lg overflow-hidden">
+        <div
+          ref={terminalRef}
+          className="h-full"
+          style={{ 
+            background: '#111827',
+            minHeight: '200px',
+            minWidth: 'fit-content'
+          }}
+        />
       </div>
 
       {/* 入力エリア */}
-      <div className="border-t border-gray-700 p-2 sm:p-3">
+      <div className="border-t border-gray-700 p-2 sm:p-3 bg-gray-800">
         <form onSubmit={handleSubmit} className="flex space-x-2 mb-2">
-          <span className="text-gray-400 flex-shrink-0">$</span>
+          <span className="text-gray-400 flex-shrink-0 font-mono">$</span>
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0"
+            className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0 font-mono"
             placeholder={terminal.status === 'exited' ? 'ターミナルが終了しました' : 'コマンドを入力...'}
             disabled={terminal.status === 'exited'}
           />
