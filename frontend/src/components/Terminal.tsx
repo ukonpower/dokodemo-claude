@@ -38,7 +38,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     // FitAddonを作成
     fitAddon.current = new FitAddon();
 
-    // XTermインスタンスを作成（Claude CLI出力と同じテーマ設定）
+    // XTermインスタンスを作成（Claude CLIと同じ仮想スクロール設定）
     xtermInstance.current = new XTerm({
       theme: {
         background: '#111827',
@@ -67,10 +67,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       lineHeight: 1.2,
       cursorBlink: false,
       cursorStyle: 'block',
-      scrollback: 10000,
+      scrollback: 10000, // 仮想スクロール用の履歴バッファ
       convertEol: true,
       allowTransparency: false,
-      disableStdin: true
+      disableStdin: true,
+      smoothScrollDuration: 0, // スムーススクロールを無効化
+      scrollOnUserInput: true, // ユーザー入力時に自動スクロール
+      fastScrollModifier: 'shift' // Shift+スクロールで高速スクロール
     });
 
     // FitAddonを読み込み
@@ -79,9 +82,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     // XTermをDOMに接続
     xtermInstance.current.open(terminalRef.current);
 
-    // サイズを自動調整
+    // サイズを自動調整（仮想スクロール対応）
     setTimeout(() => {
-      fitAddon.current?.fit();
+      if (fitAddon.current && xtermInstance.current) {
+        fitAddon.current.fit();
+        // 仮想スクロール領域の正確な調整
+        xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
+      }
     }, 100);
 
     return () => {
@@ -158,9 +165,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       if (inputRef.current) {
         inputRef.current.focus();
       }
-      // アクティブになった時にサイズを再調整
+      // アクティブになった時にサイズを再調整（仮想スクロール対応）
       setTimeout(() => {
-        fitAddon.current?.fit();
+        if (fitAddon.current && xtermInstance.current) {
+          fitAddon.current.fit();
+          // 仮想スクロール領域の再調整
+          xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
+        }
       }, 100);
     }
   }, [isActive]);

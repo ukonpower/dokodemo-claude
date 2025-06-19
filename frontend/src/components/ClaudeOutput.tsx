@@ -15,7 +15,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // ターミナルインスタンスを作成
+    // ターミナルインスタンスを作成（Claude CLIと同じ仮想スクロール設定）
     terminal.current = new Terminal({
       cols: 200,
       rows: 24,
@@ -46,10 +46,13 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
-      scrollback: 10000,
+      scrollback: 10000, // 仮想スクロール用の履歴バッファ
       convertEol: true,
       allowTransparency: false,
-      disableStdin: true
+      disableStdin: true,
+      smoothScrollDuration: 0, // スムーススクロールを無効化
+      scrollOnUserInput: false, // Claude出力ではユーザー入力時自動スクロールを無効
+      fastScrollModifier: 'shift' // Shift+スクロールで高速スクロール
     });
 
     // ターミナルをDOMに接続
@@ -93,7 +96,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
   }, [rawOutput]);
 
   return (
-    <div className="bg-gray-900 rounded-lg overflow-auto">
+    <div className="bg-gray-900 rounded-lg overflow-hidden">
       <div
         ref={terminalRef}
         className="h-64 sm:h-96"
