@@ -31,6 +31,14 @@ export interface TerminalMessage {
   timestamp: number;
 }
 
+// Claude CLI出力履歴の行情報
+export interface ClaudeOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+}
+
 // Socket.IO通信関連の型定義
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
@@ -54,6 +62,10 @@ export interface ServerToClientEvents {
     sessionId: string; 
     repositoryPath: string; 
     repositoryName: string;
+  }) => void;
+  'claude-output-history': (data: { 
+    repositoryPath: string; 
+    history: ClaudeOutputLine[];
   }) => void;
   
   // ターミナル関連イベント

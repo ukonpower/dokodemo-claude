@@ -32,6 +32,7 @@ export interface TerminalMessage {
 
 // Claude出力履歴関連の型定義
 export interface ClaudeOutputLine {
+  id: string;
   timestamp: number;
   type: 'stdout' | 'stderr' | 'system';
   content: string;

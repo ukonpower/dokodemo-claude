@@ -4,6 +4,14 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
+// Claude CLI出力履歴の行情報
+export interface ClaudeOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+}
+
 // 永続化されるClaude CLIセッション情報
 export interface PersistedClaudeSession {
   id: string;
@@ -13,6 +21,7 @@ export interface PersistedClaudeSession {
   isActive: boolean;
   createdAt: number;
   lastAccessedAt: number;
+  outputHistory?: ClaudeOutputLine[]; // 出力履歴を追加
 }
 
 // 永続化されるターミナル情報
@@ -31,6 +40,7 @@ export interface PersistedTerminal {
 export interface ActiveClaudeSession extends PersistedClaudeSession {
   process: pty.IPty;
   isPty: boolean;
+  outputHistory: ClaudeOutputLine[]; // アクティブセッションでは必須
 }
 
 // アクティブなターミナル
@@ -50,6 +60,7 @@ export class ProcessManager extends EventEmitter {
   private terminalsFile: string;
   private sessionCounter = 0;
   private terminalCounter = 0;
+  private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
 
   constructor(processesDir: string) {
     super();
@@ -172,12 +183,17 @@ export class ProcessManager extends EventEmitter {
       isPty: true,
       process: claudeProcess,
       createdAt: Date.now(),
-      lastAccessedAt: Date.now()
+      lastAccessedAt: Date.now(),
+      outputHistory: [] // 出力履歴を初期化
     };
 
     // プロセス監視
     claudeProcess.onData((data: string) => {
       session.lastAccessedAt = Date.now();
+      
+      // 出力履歴に追加
+      this.addToOutputHistory(session, data, 'stdout');
+      
       this.emit('claude-output', {
         sessionId: session.id,
         repositoryPath: session.repositoryPath,
@@ -290,7 +306,8 @@ export class ProcessManager extends EventEmitter {
       isPty: false, // 既存プロセスなのでPTY接続はなし
       process: null as any, // 実際のPTYプロセスはなし
       createdAt: persisted.createdAt,
-      lastAccessedAt: Date.now()
+      lastAccessedAt: Date.now(),
+      outputHistory: persisted.outputHistory || [] // 既存の出力履歴を復元
     };
 
     return session;
@@ -338,6 +355,36 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * 出力履歴に新しい行を追加
+   */
+  private addToOutputHistory(session: ActiveClaudeSession, content: string, type: 'stdout' | 'stderr' | 'system'): void {
+    const outputLine: ClaudeOutputLine = {
+      id: `${session.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      content,
+      timestamp: Date.now(),
+      type
+    };
+    
+    session.outputHistory.push(outputLine);
+    
+    // 最大行数を超えた場合、古い行を削除
+    if (session.outputHistory.length > this.MAX_OUTPUT_LINES) {
+      session.outputHistory = session.outputHistory.slice(-this.MAX_OUTPUT_LINES);
+    }
+    
+    // 永続化（非同期で実行、エラーは無視）
+    this.persistClaudeSessions().catch(console.error);
+  }
+
+  /**
+   * 指定されたリポジトリの出力履歴を取得
+   */
+  getOutputHistory(repositoryPath: string): ClaudeOutputLine[] {
+    const session = this.getClaudeSessionByRepository(repositoryPath);
+    return session ? session.outputHistory : [];
+  }
+
+  /**
    * Claude CLIセッション情報の永続化
    */
   private async persistClaudeSessions(): Promise<void> {
@@ -349,7 +396,8 @@ export class ProcessManager extends EventEmitter {
         pid: session.pid,
         isActive: session.isActive,
         createdAt: session.createdAt,
-        lastAccessedAt: session.lastAccessedAt
+        lastAccessedAt: session.lastAccessedAt,
+        outputHistory: session.outputHistory // 出力履歴も永続化
       }));
     
     try {

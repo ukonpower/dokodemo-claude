@@ -125,8 +125,7 @@ function App() {
       if (data.success) {
         setCurrentRepo(data.currentPath);
         setCurrentSessionId(data.sessionId || '');
-        // リポジトリ切り替え時に出力履歴をクリア
-        setRawOutput('');
+        // リポジトリ切り替え時は出力履歴をクリアしない（履歴は別途受信）
         
         // 新しいリポジトリのターミナル一覧を取得
         socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
@@ -145,7 +144,7 @@ function App() {
     // Claude出力履歴受信イベント
     socketInstance.on('claude-output-history', (data) => {
       if (data.repositoryPath === currentRepoRef.current) {
-        // 履歴を復元
+        // 履歴を復元（既存の出力を置き換え）
         const historyOutput = data.history
           .map((line: ClaudeOutputLine) => line.content)
           .join('');

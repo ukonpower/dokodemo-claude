@@ -209,6 +209,13 @@ io.on('connection', (socket) => {
         sessionId: session.id
       });
 
+      // 出力履歴を送信
+      const outputHistory = processManager.getOutputHistory(repoPath);
+      socket.emit('claude-output-history', {
+        repositoryPath: repoPath,
+        history: outputHistory
+      });
+
     } catch (error) {
       socket.emit('repo-switched', {
         success: false,

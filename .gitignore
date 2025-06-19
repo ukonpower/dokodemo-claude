@@ -118,6 +118,10 @@ Thumbs.db
 repositories/
 */repositories/
 
+# Process management files (dokodemo-claude specific)
+processes/
+*/processes/
+
 # Local development
 .local/
 
