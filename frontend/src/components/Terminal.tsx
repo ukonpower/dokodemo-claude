@@ -38,7 +38,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     // FitAddonを作成
     fitAddon.current = new FitAddon();
 
-    // XTermインスタンスを作成（Claude CLIと同じ仮想スクロール設定）
+    // XTermインスタンスを作成（横スクロール対応の設定）
     xtermInstance.current = new XTerm({
       theme: {
         background: '#111827',
@@ -67,14 +67,18 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       lineHeight: 1.2,
       cursorBlink: false,
       cursorStyle: 'block',
-      scrollback: 10000, // 仮想スクロール用の履歴バッファ
-      convertEol: true,
+      scrollback: 10000,
+      convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
       allowTransparency: false,
       disableStdin: true,
-      smoothScrollDuration: 0, // スムーススクロールを無効化
-      scrollOnUserInput: true, // ユーザー入力時に自動スクロール
-      fastScrollModifier: 'shift', // Shift+スクロールで高速スクロール
-      scrollSensitivity: 3 // スクロール感度を調整
+      smoothScrollDuration: 0,
+      scrollOnUserInput: true,
+      fastScrollModifier: 'shift',
+      scrollSensitivity: 3,
+      // 横スクロール対応の設定
+      wordWrap: false, // 単語での改行を無効化
+      cols: 200, // 適度な列数を設定
+      allowProposedApi: true // 横スクロール機能に必要
     });
 
     // FitAddonを読み込み
@@ -266,7 +270,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             minHeight: '200px',
             minWidth: '100%',
             overflowX: 'auto',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            // 横スクロールを強制して改行を防ぐ
+            whiteSpace: 'nowrap',
+            // コンテンツの最小幅を設定
+            width: 'max-content',
+            minWidth: '100%'
           }}
         />
       </div>
