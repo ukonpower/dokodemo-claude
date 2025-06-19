@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "cd frontend && npm run dev",
+    "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build": "npm run build:frontend && npm run build:backend",
     "preview": "cd frontend && npm run preview",
     "dev:frontend": "cd frontend && npm run dev",
