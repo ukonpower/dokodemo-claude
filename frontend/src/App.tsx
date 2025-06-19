@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -23,6 +23,12 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // currentRepoの最新値を保持するref
+  const currentRepoRef = useRef(currentRepo);
+  useEffect(() => {
+    currentRepoRef.current = currentRepo;
+  }, [currentRepo]);
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
@@ -58,10 +64,8 @@ function App() {
         socketInstance.emit('list-repos');
         
         // 現在のリポジトリのターミナル一覧を取得
-        if (currentRepo) {
-          socketInstance.emit('list-terminals', { repositoryPath: currentRepo });
-        } else {
-          socketInstance.emit('list-terminals');
+        if (currentRepoRef.current) {
+          socketInstance.emit('list-terminals', { repositoryPath: currentRepoRef.current });
         }
       });
 
@@ -105,9 +109,12 @@ function App() {
       setRepositories(data.repos);
     });
 
-    // 生ログの受信
+    // 生ログの受信（現在のリポジトリと一致する場合のみ表示）
     socketInstance.on('claude-raw-output', (data) => {
-      setRawOutput(prev => prev + data.content);
+      // repositoryPathが指定されていて、現在のリポジトリと一致する場合のみ表示
+      if (!data.repositoryPath || data.repositoryPath === currentRepoRef.current) {
+        setRawOutput(prev => prev + data.content);
+      }
     });
 
     socketInstance.on('repo-cloned', (data) => {
@@ -118,7 +125,8 @@ function App() {
       if (data.success) {
         setCurrentRepo(data.currentPath);
         setCurrentSessionId(data.sessionId || '');
-        // 出力履歴は履歴受信イベントで設定されるため、ここではクリアしない
+        // リポジトリ切り替え時に出力履歴をクリア
+        setRawOutput('');
         
         // 新しいリポジトリのターミナル一覧を取得
         socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
@@ -128,15 +136,15 @@ function App() {
 
     // Claude セッション作成イベント
     socketInstance.on('claude-session-created', (data) => {
-      if (data.repositoryPath === currentRepo) {
+      if (data.repositoryPath === currentRepoRef.current) {
         setCurrentSessionId(data.sessionId);
+        setRawOutput(prev => prev + `\n[SYSTEM] Claude CLI セッション開始: ${data.repositoryName}\n`);
       }
-      setRawOutput(prev => prev + `\n[SYSTEM] Claude CLI セッション開始: ${data.repositoryName}\n`);
     });
 
     // Claude出力履歴受信イベント
     socketInstance.on('claude-output-history', (data) => {
-      if (data.repositoryPath === currentRepo) {
+      if (data.repositoryPath === currentRepoRef.current) {
         // 履歴を復元
         const historyOutput = data.history
           .map((line: ClaudeOutputLine) => line.content)
@@ -169,7 +177,7 @@ function App() {
       }
       socketInstance.disconnect();
     };
-  }, [currentRepo, connectionAttempts]); // currentRepoとconnectionAttemptsの変更も監視
+  }, [connectionAttempts]); // connectionAttemptsの変更のみ監視
 
   const handleCloneRepository = (url: string, name: string) => {
     if (socket) {
