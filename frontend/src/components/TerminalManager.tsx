@@ -29,9 +29,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {
-    console.log('TerminalManager: terminals.length =', terminals.length, ', activeTerminalId =', activeTerminalId);
     if (terminals.length > 0 && !activeTerminalId) {
-      console.log('Setting first terminal as active:', terminals[0].id);
       setActiveTerminalId(terminals[0].id);
     }
   }, [terminals, activeTerminalId]);
@@ -40,14 +38,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   useEffect(() => {
     if (activeTerminalId && !terminals.find(t => t.id === activeTerminalId)) {
       const newActiveId = terminals.length > 0 ? terminals[0].id : '';
-      console.log('Active terminal deleted, setting new active:', newActiveId);
       setActiveTerminalId(newActiveId);
     }
   }, [terminals, activeTerminalId]);
 
   const handleCreateTerminal = () => {
     if (!currentRepo) {
-      alert('プロジェクトを選択してください');
+      return;
       return;
     }
     const terminalName = `Terminal ${terminals.length + 1}`;
@@ -55,7 +52,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   };
 
   const activeTerminal = terminals.find(t => t.id === activeTerminalId);
-  console.log('TerminalManager render: terminals =', terminals.map(t => t.id), ', activeTerminalId =', activeTerminalId, ', activeTerminal =', activeTerminal?.id);
 
   return (
     <div className="h-full flex flex-col">

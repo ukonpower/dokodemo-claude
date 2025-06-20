@@ -109,14 +109,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // ターミナルが変更された場合、または初回表示の場合、出力をクリアして新しい内容をロード
     if (currentTerminalId.current !== terminal.id) {
-      console.log(`Switching from terminal ${currentTerminalId.current} to ${terminal.id}`);
       
       // 出力をクリア
       xtermInstance.current.clear();
       
       // 履歴をロード
       if (history && history.length > 0) {
-        console.log(`Loading ${history.length} history lines for terminal ${terminal.id}`);
         history.forEach(historyLine => {
           if (historyLine.content) {
             xtermInstance.current?.write(historyLine.content);
@@ -126,7 +124,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       
       // 現在のメッセージをロード
       const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
-      console.log(`Loading ${terminalMessages.length} messages for terminal ${terminal.id}`);
       terminalMessages.forEach(message => {
         if (message.type !== 'input') {
           xtermInstance.current?.write(message.data);
@@ -145,7 +142,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       
       // 現在の表示内容より履歴が多い場合は再描画
       if (totalExpectedLines > lastMessageCount.current) {
-        console.log(`Refreshing terminal ${terminal.id} with new history data`);
         
         // 出力をクリア
         xtermInstance.current.clear();
@@ -179,7 +175,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // 新しいメッセージがある場合のみ処理
     if (newMessages.length > 0) {
-      console.log(`Adding ${newMessages.length} new messages to terminal ${terminal.id}`);
       
       newMessages.forEach(message => {
         if (message.type === 'input') return; // 入力メッセージは表示しない

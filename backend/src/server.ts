@@ -337,15 +337,11 @@ io.on('connection', (socket) => {
     // 各ターミナルの出力履歴を送信
     terminals.forEach(terminal => {
       const history = processManager.getTerminalOutputHistory(terminal.id);
-      console.log(`Sending history for terminal ${terminal.id}:`, history.length, 'lines');
       if (history.length > 0) {
-        console.log('Sample history data:', history.slice(0, 2));
         socket.emit('terminal-output-history', {
           terminalId: terminal.id,
           history
         });
-      } else {
-        console.log(`No history found for terminal ${terminal.id}`);
       }
     });
   });
@@ -358,7 +354,6 @@ io.on('connection', (socket) => {
       const terminal = await processManager.createTerminal(cwd, repoName, name);
       
       // 新しいターミナルの出力履歴を送信（空の履歴）
-      console.log(`Sending empty history for new terminal ${terminal.id}`);
       socket.emit('terminal-output-history', {
         terminalId: terminal.id,
         history: []

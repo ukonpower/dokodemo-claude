@@ -112,11 +112,9 @@ export class ProcessManager extends EventEmitter {
       
       for (const session of persistedSessions) {
         if (await this.isProcessAlive(session.pid)) {
-          console.log(`Claude session ${session.id} for ${session.repositoryName} is still running (PID: ${session.pid})`);
           // プロセスが生きている場合、新しいPTYインスタンスは作成せず、情報のみ保持
           // 実際の接続は必要に応じて後で行う
         } else {
-          console.log(`Claude session ${session.id} process is dead, will create new session when needed`);
         }
       }
     } catch (error) {
@@ -137,10 +135,8 @@ export class ProcessManager extends EventEmitter {
       
       for (const terminal of persistedTerminals) {
         if (await this.isProcessAlive(terminal.pid)) {
-          console.log(`Terminal ${terminal.id} for ${terminal.repositoryName} is still running (PID: ${terminal.pid})`);
           // プロセスが生きている場合、新しいPTYインスタンスは作成せず、情報のみ保持
         } else {
-          console.log(`Terminal ${terminal.id} process is dead, will create new terminal when needed`);
         }
       }
     } catch (error) {
@@ -308,7 +304,6 @@ export class ProcessManager extends EventEmitter {
    * 既存のClaude CLIプロセスを復帰
    */
   private async restoreExistingClaudeSession(persisted: PersistedClaudeSession): Promise<ActiveClaudeSession> {
-    console.log(`Keeping existing Claude process for ${persisted.repositoryName} (PID: ${persisted.pid})`);
     
     // 既存プロセスはそのまま維持し、新しいセッション情報を作成
     // 実際のPTYプロセスは作らず、情報のみ管理
@@ -350,7 +345,6 @@ export class ProcessManager extends EventEmitter {
         if (persistedSession.repositoryPath === repositoryPath && 
             await this.isProcessAlive(persistedSession.pid)) {
           
-          console.log(`Found existing Claude session for ${repositoryName} (PID: ${persistedSession.pid})`);
           
           // 既存プロセスに新しいPTY接続を作成
           const restoredSession = await this.restoreExistingClaudeSession(persistedSession);
@@ -365,7 +359,6 @@ export class ProcessManager extends EventEmitter {
     }
     
     // 新しいセッションを作成
-    console.log(`Creating new Claude session for ${repositoryName}`);
     return await this.createClaudeSession(repositoryPath, repositoryName);
   }
 
@@ -411,7 +404,6 @@ export class ProcessManager extends EventEmitter {
     };
     
     terminal.outputHistory.push(outputLine);
-    console.log(`Added to terminal ${terminal.id} history:`, outputLine.content.substring(0, 50), `(total: ${terminal.outputHistory.length} lines)`);
     
     // 最大行数を超えた場合、古い行を削除
     if (terminal.outputHistory.length > this.MAX_OUTPUT_LINES) {
@@ -493,7 +485,6 @@ export class ProcessManager extends EventEmitter {
     // Claude CLIセッションのクリーンアップ
     for (const [sessionId, session] of this.claudeSessions) {
       if (!(await this.isProcessAlive(session.pid))) {
-        console.log(`Cleaning up dead Claude session ${sessionId}`);
         this.claudeSessions.delete(sessionId);
         this.emit('claude-session-cleaned', { sessionId, repositoryPath: session.repositoryPath });
       }
@@ -502,7 +493,6 @@ export class ProcessManager extends EventEmitter {
     // ターミナルのクリーンアップ
     for (const [terminalId, terminal] of this.terminals) {
       if (!(await this.isProcessAlive(terminal.pid))) {
-        console.log(`Cleaning up dead terminal ${terminalId}`);
         this.terminals.delete(terminalId);
         this.emit('terminal-cleaned', { terminalId, repositoryPath: terminal.repositoryPath });
       }
@@ -524,7 +514,6 @@ export class ProcessManager extends EventEmitter {
 
     // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
     if (!session.isPty || !session.process) {
-      console.log(`Session ${sessionId} has no PTY connection, creating new session`);
       // 非同期で新しいセッションを作成
       this.createClaudeSession(session.repositoryPath, session.repositoryName)
         .then(newSession => {

@@ -73,7 +73,6 @@ function App() {
 
       socketInstance.on('disconnect', (reason) => {
         setIsConnected(false);
-        console.log('Socket disconnected:', reason);
         
         // 自動再接続の場合は手動再接続を試行
         if (reason === 'io server disconnect') {
@@ -83,7 +82,6 @@ function App() {
       });
 
       socketInstance.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
         setIsConnected(false);
         setIsReconnecting(true);
         attemptReconnect();
@@ -96,12 +94,10 @@ function App() {
       if (connectionAttempts < maxReconnectAttempts) {
         setConnectionAttempts(prev => prev + 1);
         reconnectTimeout = setTimeout(() => {
-          console.log(`Reconnecting... attempt ${connectionAttempts + 1}`);
           createConnection();
         }, reconnectDelay * (connectionAttempts + 1)); // 指数バックオフ
       } else {
         setIsReconnecting(false);
-        console.error('Max reconnection attempts reached');
       }
     };
 
@@ -179,13 +175,10 @@ function App() {
 
     // ターミナル出力履歴の受信
     socketInstance.on('terminal-output-history', (data) => {
-      console.log('Received terminal history:', data.terminalId, data.history.length, 'lines');
-      console.log('History sample:', data.history.slice(0, 3)); // 最初の3行をログ出力
       
       setTerminalHistories(prev => {
         const newHistories = new Map(prev);
         newHistories.set(data.terminalId, data.history);
-        console.log('Updated terminal histories map:', Array.from(newHistories.keys()));
         return newHistories;
       });
     });
