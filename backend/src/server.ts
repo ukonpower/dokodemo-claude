@@ -210,11 +210,15 @@ io.on('connection', (socket) => {
       });
 
       // 出力履歴を送信
-      const outputHistory = processManager.getOutputHistory(repoPath);
-      socket.emit('claude-output-history', {
-        repositoryPath: repoPath,
-        history: outputHistory
-      });
+      try {
+        const outputHistory = await processManager.getOutputHistory(repoPath);
+        socket.emit('claude-output-history', {
+          repositoryPath: repoPath,
+          history: outputHistory
+        });
+      } catch (error) {
+        console.error('Failed to get output history during repo switch:', error);
+      }
 
     } catch (error) {
       socket.emit('repo-switched', {
@@ -309,20 +313,31 @@ io.on('connection', (socket) => {
   });
 
   // Claude CLI履歴の取得
-  socket.on('get-claude-history', (data) => {
+  socket.on('get-claude-history', async (data) => {
     const { repositoryPath } = data;
+    console.log(`[Server] Received get-claude-history request for: ${repositoryPath}`);
     
     if (!repositoryPath) {
+      console.log(`[Server] No repositoryPath provided in get-claude-history request`);
       return;
     }
     
-    // 指定されたリポジトリの出力履歴を取得
-    const outputHistory = processManager.getOutputHistory(repositoryPath);
-    
-    socket.emit('claude-output-history', {
-      repositoryPath,
-      history: outputHistory
-    });
+    try {
+      // 指定されたリポジトリの出力履歴を取得
+      const outputHistory = await processManager.getOutputHistory(repositoryPath);
+      console.log(`[Server] Sending ${outputHistory.length} history lines for: ${repositoryPath}`);
+      
+      socket.emit('claude-output-history', {
+        repositoryPath,
+        history: outputHistory
+      });
+    } catch (error) {
+      console.error('Failed to get Claude history:', error);
+      socket.emit('claude-output-history', {
+        repositoryPath,
+        history: []
+      });
+    }
   });
 
   // ターミナル関連のイベントハンドラ
@@ -352,8 +367,8 @@ io.on('connection', (socket) => {
     });
 
     // 各ターミナルの出力履歴を送信
-    terminals.forEach(terminal => {
-      const history = processManager.getTerminalOutputHistory(terminal.id);
+    terminals.forEach(async (terminal) => {
+      const history = await processManager.getTerminalOutputHistory(terminal.id);
       if (history.length > 0) {
         socket.emit('terminal-output-history', {
           terminalId: terminal.id,

@@ -91,19 +91,31 @@ function App() {
       setSocket(socketInstance);
 
       socketInstance.on('connect', () => {
+        console.log(`[Frontend] Connected to server`);
         setIsConnected(true);
         setIsReconnecting(false);
         setConnectionAttempts(0);
         
         // 接続時にリポジトリ一覧を取得
         socketInstance.emit('list-repos');
+        console.log(`[Frontend] Emitted list-repos`);
         
-        // 現在のリポジトリのターミナル一覧を取得
-        if (currentRepoRef.current) {
-          socketInstance.emit('list-terminals', { repositoryPath: currentRepoRef.current });
-          // Claude履歴も取得
-          socketInstance.emit('get-claude-history', { repositoryPath: currentRepoRef.current });
-        }
+        // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
+        setTimeout(() => {
+          const currentPath = currentRepoRef.current;
+          console.log(`[Frontend] Delayed check - currentRepo: ${currentPath}`);
+          
+          if (currentPath) {
+            console.log(`[Frontend] Current repo detected after delay: ${currentPath}`);
+            socketInstance.emit('list-terminals', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted list-terminals for: ${currentPath}`);
+            // Claude履歴も取得
+            socketInstance.emit('get-claude-history', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted get-claude-history for: ${currentPath}`);
+          } else {
+            console.log(`[Frontend] No current repo detected after delay`);
+          }
+        }, 100); // 100ms遅延
       });
 
       socketInstance.on('disconnect', (reason) => {
@@ -186,12 +198,17 @@ function App() {
 
     // Claude出力履歴受信イベント
     socketInstance.on('claude-output-history', (data) => {
+      console.log(`[Frontend] Received Claude history for ${data.repositoryPath}, lines: ${data.history.length}`);
       if (data.repositoryPath === currentRepoRef.current) {
+        console.log(`[Frontend] Applying Claude history (${data.history.length} lines) to current repo: ${currentRepoRef.current}`);
         // 履歴を復元（既存の出力を置き換え）
         const historyOutput = data.history
           .map((line: ClaudeOutputLine) => line.content)
           .join('');
         setRawOutput(historyOutput);
+        console.log(`[Frontend] Claude history applied, output length: ${historyOutput.length}`);
+      } else {
+        console.log(`[Frontend] Ignoring Claude history for different repo: ${data.repositoryPath} (current: ${currentRepoRef.current})`);
       }
     });
 

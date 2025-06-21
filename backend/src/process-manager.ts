@@ -387,9 +387,40 @@ export class ProcessManager extends EventEmitter {
   /**
    * 指定されたリポジトリの出力履歴を取得
    */
-  getOutputHistory(repositoryPath: string): ClaudeOutputLine[] {
+  async getOutputHistory(repositoryPath: string): Promise<ClaudeOutputLine[]> {
+    console.log(`[ProcessManager] Getting output history for: ${repositoryPath}`);
+    
+    // まずアクティブなセッションから履歴を取得
     const session = this.getClaudeSessionByRepository(repositoryPath);
-    return session ? session.outputHistory : [];
+    if (session) {
+      console.log(`[ProcessManager] Found active session with ${session.outputHistory.length} history lines`);
+      return session.outputHistory;
+    }
+    
+    console.log(`[ProcessManager] No active session found, checking persisted history`);
+    
+    // アクティブなセッションがない場合、永続化された履歴を読み込み
+    try {
+      const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
+      const persistedSessions: PersistedClaudeSession[] = JSON.parse(data);
+      
+      console.log(`[ProcessManager] Found ${persistedSessions.length} persisted sessions`);
+      
+      for (const persistedSession of persistedSessions) {
+        if (persistedSession.repositoryPath === repositoryPath) {
+          const historyLength = persistedSession.outputHistory?.length || 0;
+          console.log(`[ProcessManager] Found persisted session with ${historyLength} history lines`);
+          return persistedSession.outputHistory || [];
+        }
+      }
+      
+      console.log(`[ProcessManager] No persisted session found for repository: ${repositoryPath}`);
+    } catch (error) {
+      console.log(`[ProcessManager] Error reading persisted sessions: ${error}`);
+    }
+    
+    console.log(`[ProcessManager] Returning empty history for: ${repositoryPath}`);
+    return [];
   }
 
   /**
@@ -417,9 +448,29 @@ export class ProcessManager extends EventEmitter {
   /**
    * 指定されたターミナルの出力履歴を取得
    */
-  getTerminalOutputHistory(terminalId: string): TerminalOutputLine[] {
+  async getTerminalOutputHistory(terminalId: string): Promise<TerminalOutputLine[]> {
+    // まずアクティブなターミナルから履歴を取得
     const terminal = this.terminals.get(terminalId);
-    return terminal ? terminal.outputHistory : [];
+    if (terminal) {
+      return terminal.outputHistory;
+    }
+    
+    // アクティブなターミナルがない場合、永続化された履歴を読み込み
+    try {
+      const data = await fs.readFile(this.terminalsFile, 'utf-8');
+      const persistedTerminals: PersistedTerminal[] = JSON.parse(data);
+      
+      for (const persistedTerminal of persistedTerminals) {
+        if (persistedTerminal.id === terminalId) {
+          return persistedTerminal.outputHistory || [];
+        }
+      }
+    } catch (error) {
+      // ファイル読み込みエラーは無視
+      console.log(`No persisted terminal history found for ${terminalId}`);
+    }
+    
+    return [];
   }
 
   /**
