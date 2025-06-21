@@ -19,7 +19,40 @@ function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
   const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
-  const [currentRepo, setCurrentRepo] = useState<string>('');
+  const [currentRepo, setCurrentRepo] = useState<string>(() => {
+    // URLのクエリパラメータからリポジトリパスを復元
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('repo') || '';
+  });
+
+  // ブラウザの戻る/進むボタン対応
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const repoFromUrl = urlParams.get('repo') || '';
+      
+      if (repoFromUrl !== currentRepo) {
+        setCurrentRepo(repoFromUrl);
+        if (!repoFromUrl) {
+          setRawOutput('');
+          setCurrentSessionId('');
+          // ホームに戻る際はターミナル状態もクリア
+          setTerminals([]);
+          setTerminalMessages([]);
+          setTerminalHistories(new Map());
+        } else {
+          // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
+          if (socket) {
+            socket.emit('list-terminals', { repositoryPath: repoFromUrl });
+            socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
+          }
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentRepo]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
@@ -68,6 +101,8 @@ function App() {
         // 現在のリポジトリのターミナル一覧を取得
         if (currentRepoRef.current) {
           socketInstance.emit('list-terminals', { repositoryPath: currentRepoRef.current });
+          // Claude履歴も取得
+          socketInstance.emit('get-claude-history', { repositoryPath: currentRepoRef.current });
         }
       });
 
@@ -125,6 +160,16 @@ function App() {
         setCurrentSessionId(data.sessionId || '');
         // リポジトリ切り替え時は出力履歴をクリアしない（履歴は別途受信）
         
+        // ターミナル関連状態をクリア
+        setTerminals([]);
+        setTerminalMessages([]);
+        setTerminalHistories(new Map());
+        
+        // URLにリポジトリパスを保存
+        const url = new URL(window.location.href);
+        url.searchParams.set('repo', data.currentPath);
+        window.history.replaceState({}, '', url.toString());
+        
         // 新しいリポジトリのターミナル一覧を取得
         socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
       }
@@ -153,6 +198,7 @@ function App() {
     // ターミナル関連のイベントハンドラ
     socketInstance.on('terminals-list', (data) => {
       setTerminals(data.terminals);
+      // バックエンドが自動で履歴を送信するため、手動での履歴取得は不要
     });
 
     socketInstance.on('terminal-created', (terminal) => {
@@ -175,7 +221,6 @@ function App() {
 
     // ターミナル出力履歴の受信
     socketInstance.on('terminal-output-history', (data) => {
-      
       setTerminalHistories(prev => {
         const newHistories = new Map(prev);
         newHistories.set(data.terminalId, data.history);
@@ -200,12 +245,20 @@ function App() {
   const handleSwitchRepository = (path: string) => {
     if (socket) {
       socket.emit('switch-repo', { path });
+      // URLにリポジトリパスを保存
+      const url = new URL(window.location.href);
+      url.searchParams.set('repo', path);
+      window.history.pushState({}, '', url.toString());
     }
   };
 
   const handleBackToRepoSelection = () => {
     setCurrentRepo('');
     setRawOutput(''); // CLIログをクリア
+    // URLからリポジトリパラメータを削除
+    const url = new URL(window.location.href);
+    url.searchParams.delete('repo');
+    window.history.pushState({}, '', url.toString());
   };
 
   const handleSendCommand = (command: string) => {

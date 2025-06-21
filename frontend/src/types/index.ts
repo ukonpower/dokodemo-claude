@@ -13,6 +13,11 @@ export interface GitRepository {
   status: 'cloning' | 'ready' | 'error';
 }
 
+export interface Repository {
+  name: string;
+  path: string;
+}
+
 // ターミナル関連の型定義
 export interface Terminal {
   id: string;
@@ -48,6 +53,7 @@ export interface TerminalOutputLine {
 
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
+  'clone-status': (data: { status: string; message: string }) => void;
   'claude-output': (data: ClaudeMessage) => void;
   'claude-raw-output': (data: { 
     type: 'stdout' | 'stderr' | 'system'; 
@@ -56,6 +62,9 @@ export interface ServerToClientEvents {
     repositoryPath?: string;
   }) => void;
   'repo-cloned': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
+  connect: () => void;
+  disconnect: (reason: string) => void;
+  connect_error: (error: Error) => void;
   'repo-switched': (data: { 
     success: boolean; 
     message: string; 
