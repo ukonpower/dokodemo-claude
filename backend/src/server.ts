@@ -133,6 +133,49 @@ io.on('connection', (socket) => {
     socket.emit('repos-list', { repos: repositories });
   });
 
+  // リポジトリの削除
+  socket.on('delete-repo', async (data) => {
+    const { path: repoPath, name } = data;
+    
+    try {
+      // リポジトリがリストに存在するかチェック
+      const repoIndex = repositories.findIndex(r => r.path === repoPath);
+      if (repoIndex === -1) {
+        socket.emit('repo-deleted', {
+          success: false,
+          message: `リポジトリ「${name}」が見つかりません`,
+          path: repoPath
+        });
+        return;
+      }
+      
+      // ディレクトリの削除
+      await fs.rm(repoPath, { recursive: true, force: true });
+      
+      // リストから削除
+      repositories.splice(repoIndex, 1);
+      
+      // 関連するプロセスをクリーンアップ
+      await processManager.cleanupRepositoryProcesses(repoPath);
+      
+      socket.emit('repo-deleted', {
+        success: true,
+        message: `リポジトリ「${name}」を削除しました`,
+        path: repoPath
+      });
+      
+      // 更新されたリポジトリリストを送信
+      socket.emit('repos-list', { repos: repositories });
+      
+    } catch (error) {
+      socket.emit('repo-deleted', {
+        success: false,
+        message: `リポジトリ削除エラー: ${error}`,
+        path: repoPath
+      });
+    }
+  });
+
   // リポジトリのクローン
   socket.on('clone-repo', async (data) => {
     const { url, name } = data;

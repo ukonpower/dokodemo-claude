@@ -740,6 +740,68 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * リポジトリに関連するプロセスのクリーンアップ
+   */
+  async cleanupRepositoryProcesses(repositoryPath: string): Promise<void> {
+    console.log(`Cleaning up processes for repository: ${repositoryPath}`);
+    
+    const closePromises: Promise<boolean>[] = [];
+    
+    // 該当リポジトリのClaude CLIセッションを終了
+    for (const [sessionId, session] of this.claudeSessions.entries()) {
+      if (session.repositoryPath === repositoryPath) {
+        closePromises.push(this.closeClaudeSession(sessionId));
+      }
+    }
+    
+    // 該当リポジトリのターミナルを終了
+    for (const [terminalId, terminal] of this.terminals.entries()) {
+      if (terminal.repositoryPath === repositoryPath) {
+        closePromises.push(this.closeTerminal(terminalId));
+      }
+    }
+    
+    await Promise.all(closePromises);
+    
+    // 永続化ファイルからも削除
+    await this.removeRepositoryFromPersistence(repositoryPath);
+    
+    console.log(`Cleanup completed for repository: ${repositoryPath}`);
+  }
+  
+  /**
+   * 永続化ファイルからリポジトリ関連データを削除
+   */
+  private async removeRepositoryFromPersistence(repositoryPath: string): Promise<void> {
+    try {
+      // Claude CLIセッションの永続化ファイルを更新
+      const claudeSessionsPath = path.join(this.processesDir, 'claude-sessions.json');
+      try {
+        const claudeData = await fs.readFile(claudeSessionsPath, 'utf-8');
+        const claudeSessions: PersistedClaudeSession[] = JSON.parse(claudeData);
+        const filteredClaudeSessions = claudeSessions.filter(s => s.repositoryPath !== repositoryPath);
+        await fs.writeFile(claudeSessionsPath, JSON.stringify(filteredClaudeSessions, null, 2));
+      } catch (error) {
+        // ファイルが存在しない場合は無視
+      }
+      
+      // ターミナルの永続化ファイルを更新
+      const terminalsPath = path.join(this.processesDir, 'terminals.json');
+      try {
+        const terminalData = await fs.readFile(terminalsPath, 'utf-8');
+        const terminals: PersistedTerminal[] = JSON.parse(terminalData);
+        const filteredTerminals = terminals.filter(t => t.repositoryPath !== repositoryPath);
+        await fs.writeFile(terminalsPath, JSON.stringify(filteredTerminals, null, 2));
+      } catch (error) {
+        // ファイルが存在しない場合は無視
+      }
+      
+    } catch (error) {
+      console.error('Failed to remove repository from persistence:', error);
+    }
+  }
+
+  /**
    * システム終了時のクリーンアップ
    */
   async shutdown(): Promise<void> {
