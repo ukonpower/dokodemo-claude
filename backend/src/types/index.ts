@@ -101,6 +101,7 @@ export interface ClientToServerEvents {
     sessionId?: string;
     repositoryPath?: string;
   }) => void;
+  'get-claude-history': (data: { repositoryPath: string }) => void;
   
   // ターミナル関連イベント
   'create-terminal': (data: { cwd: string; name?: string }) => void;

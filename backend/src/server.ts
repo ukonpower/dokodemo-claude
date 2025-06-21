@@ -308,6 +308,23 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Claude CLI履歴の取得
+  socket.on('get-claude-history', (data) => {
+    const { repositoryPath } = data;
+    
+    if (!repositoryPath) {
+      return;
+    }
+    
+    // 指定されたリポジトリの出力履歴を取得
+    const outputHistory = processManager.getOutputHistory(repositoryPath);
+    
+    socket.emit('claude-output-history', {
+      repositoryPath,
+      history: outputHistory
+    });
+  });
+
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信
