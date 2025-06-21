@@ -76,7 +76,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       fastScrollModifier: 'shift',
       scrollSensitivity: 3,
       // 横スクロール対応の設定
-      wordWrap: false, // 単語での改行を無効化
       cols: 600, // 適度な列数を設定
       allowProposedApi: true // 横スクロール機能に必要
     });
@@ -263,14 +262,11 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           style={{ 
             background: '#111827',
             minHeight: '200px',
-            minWidth: '100%',
+            width: '100%',
             overflowX: 'auto',
             overflowY: 'auto',
             // 横スクロールを強制して改行を防ぐ
-            whiteSpace: 'nowrap',
-            // コンテンツの最小幅を設定
-            width: 'max-content',
-            minWidth: '100%'
+            whiteSpace: 'nowrap'
           }}
         />
       </div>

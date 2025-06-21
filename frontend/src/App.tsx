@@ -128,7 +128,7 @@ function App() {
         }
       });
 
-      socketInstance.on('connect_error', (error) => {
+      socketInstance.on('connect_error', () => {
         setIsConnected(false);
         setIsReconnecting(true);
         attemptReconnect();
@@ -163,6 +163,25 @@ function App() {
     });
 
     socketInstance.on('repo-cloned', (data) => {
+      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+    });
+
+    socketInstance.on('repo-deleted', (data) => {
+      if (data.success) {
+        // 削除されたリポジトリが現在選択中のリポジトリの場合、リポジトリ選択画面に戻る
+        if (currentRepoRef.current === data.path) {
+          setCurrentRepo('');
+          setRawOutput('');
+          setCurrentSessionId('');
+          setTerminals([]);
+          setTerminalMessages([]);
+          setTerminalHistories(new Map());
+          // URLからリポジトリパラメータを削除
+          const url = new URL(window.location.href);
+          url.searchParams.delete('repo');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
       setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
     });
 
@@ -256,6 +275,12 @@ function App() {
   const handleCloneRepository = (url: string, name: string) => {
     if (socket) {
       socket.emit('clone-repo', { url, name });
+    }
+  };
+
+  const handleDeleteRepository = (path: string, name: string) => {
+    if (socket) {
+      socket.emit('delete-repo', { path, name });
     }
   };
 
@@ -408,6 +433,7 @@ function App() {
                     currentRepo={currentRepo}
                     onCloneRepository={handleCloneRepository}
                     onSwitchRepository={handleSwitchRepository}
+                    onDeleteRepository={handleDeleteRepository}
                     isConnected={isConnected}
                   />
                 </div>
