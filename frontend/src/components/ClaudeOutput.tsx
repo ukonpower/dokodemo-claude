@@ -95,19 +95,19 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
 
     // 新しい出力部分のみを取得
     const newOutput = rawOutput.slice(lastOutputLength.current);
-    
+
     if (newOutput) {
       // ターミナルをクリアして全体を再描画
       if (lastOutputLength.current === 0) {
         terminal.current.clear();
       }
-      
+
       // 新しい出力を書き込み
       terminal.current.write(newOutput);
-      
+
       // 最下部にスクロール
       terminal.current.scrollToBottom();
-      
+
       // 出力長を更新
       lastOutputLength.current = rawOutput.length;
     }
@@ -140,10 +140,10 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
         <div
           ref={terminalRef}
           className="h-full w-full"
-          style={{ 
+          style={{
             background: '#111827',
             minHeight: '200px',
-            width: '100%',
+            width: 'max-content',
             overflowX: 'auto',
             overflowY: 'auto',
             // 横スクロールを強制して改行を防ぐ

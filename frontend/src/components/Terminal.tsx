@@ -108,10 +108,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // ターミナルが変更された場合、または初回表示の場合、出力をクリアして新しい内容をロード
     if (currentTerminalId.current !== terminal.id) {
-      
+
       // 出力をクリア
       xtermInstance.current.clear();
-      
+
       // 履歴をロード
       if (history && history.length > 0) {
         history.forEach(historyLine => {
@@ -120,7 +120,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           }
         });
       }
-      
+
       // 現在のメッセージをロード
       const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
       terminalMessages.forEach(message => {
@@ -128,7 +128,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           xtermInstance.current?.write(message.data);
         }
       });
-      
+
       lastMessageCount.current = terminalMessages.length;
       currentTerminalId.current = terminal.id;
       xtermInstance.current.scrollToBottom();
@@ -138,27 +138,27 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       // 既に表示されているコンテンツと履歴を比較して、履歴が新しく追加されていれば表示
       const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
       const totalExpectedLines = history.length + terminalMessages.filter(msg => msg.type !== 'input').length;
-      
+
       // 現在の表示内容より履歴が多い場合は再描画
       if (totalExpectedLines > lastMessageCount.current) {
-        
+
         // 出力をクリア
         xtermInstance.current.clear();
-        
+
         // 履歴をロード
         history.forEach(historyLine => {
           if (historyLine.content) {
             xtermInstance.current?.write(historyLine.content);
           }
         });
-        
+
         // 現在のメッセージをロード
         terminalMessages.forEach(message => {
           if (message.type !== 'input') {
             xtermInstance.current?.write(message.data);
           }
         });
-        
+
         lastMessageCount.current = terminalMessages.length;
         xtermInstance.current.scrollToBottom();
       }
@@ -174,7 +174,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // 新しいメッセージがある場合のみ処理
     if (newMessages.length > 0) {
-      
+
       newMessages.forEach(message => {
         if (message.type === 'input') return; // 入力メッセージは表示しない
 
@@ -235,10 +235,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       {/* ターミナルヘッダー */}
       <div className="bg-gray-800 px-2 sm:px-3 py-2 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-            terminal.status === 'active' ? 'bg-green-500' :
-            terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
-          }`}></div>
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${terminal.status === 'active' ? 'bg-green-500' :
+              terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
+            }`}></div>
           <span className="text-gray-300 text-xs truncate">{terminal.name}</span>
           <span className="text-gray-500 text-xs truncate hidden sm:inline">({terminal.cwd})</span>
           {terminal.pid && (
@@ -259,13 +258,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         <div
           ref={terminalRef}
           className="h-full w-full"
-          style={{ 
+          style={{
             background: '#111827',
             minHeight: '200px',
-            width: '100%',
+            width: 'max-content',
             overflowX: 'auto',
             overflowY: 'auto',
-            // 横スクロールを強制して改行を防ぐ
             whiteSpace: 'nowrap'
           }}
         />
@@ -286,7 +284,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             disabled={terminal.status === 'exited'}
           />
         </form>
-        
+
         {/* コントロールボタン */}
         <div className="flex items-center justify-between">
           <div className="flex space-x-1">
@@ -315,7 +313,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
               ESC
             </button>
           </div>
-          
+
           <div className="text-xs text-gray-500">
             <span className="hidden sm:inline">Enter: 実行</span>
             <span className="sm:hidden">Enter:実行</span>
