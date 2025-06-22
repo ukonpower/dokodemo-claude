@@ -549,41 +549,25 @@ function App() {
         </section>
 
         {/* リポジトリ削除セクション */}
-        <section className="bg-white rounded-lg shadow-sm border border-red-200 border-l-4 border-l-red-500">
-          <div className="px-3 py-3 sm:px-6 sm:py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    リポジトリを削除
-                  </h3>
-                  <div className="mt-1">
-                    <p className="text-sm text-gray-600 mb-1">
-                      <span className="font-medium">{currentRepo.split('/').pop()}</span> を完全に削除します
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      この操作は元に戻せません。リポジトリディレクトリ、関連プロセス、ターミナル履歴がすべて削除されます。
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-shrink-0">
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={!isConnected}
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  リポジトリを削除
-                </button>
-              </div>
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-4 sm:px-6 py-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-3">
+              リポジトリを削除
+            </h3>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                このリポジトリを完全に削除します（この操作は元に戻せません）
+              </p>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={!isConnected}
+                className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                削除
+              </button>
             </div>
           </div>
         </section>
