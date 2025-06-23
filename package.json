@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "install": "cd frontend && npm install && cd ../backend && npm install",
     "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build": "npm run build:frontend && npm run build:backend",
     "preview": "cd frontend && npm run preview",
@@ -24,8 +25,7 @@
     "check-all": "npm run lint && npm run type-check && npm run format:check",
     "format:check": "npm run format:check:frontend && npm run format:check:backend",
     "format:check:frontend": "cd frontend && npm run format:check",
-    "format:check:backend": "cd backend && npm run format:check",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "format:check:backend": "cd backend && npm run format:check"
   },
   "devDependencies": {
     "@anthropic-ai/claude-code": "^1.0.24",
