@@ -97,7 +97,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                 ? "リポジトリを選択してください..."
                 : "Claude CLIへの指示を入力してください"
             }
-            className="w-full px-3 py-2.5 sm:py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base"
+            className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
             rows={3}
             disabled={disabled}
           />
@@ -116,7 +116,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={() => onSendArrowKey('up')}
                     disabled={disabled}
-                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="上キー"
                   >
                     ↑
@@ -126,7 +126,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={() => onSendArrowKey('left')}
                     disabled={disabled}
-                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="左キー"
                   >
                     ←
@@ -135,7 +135,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={() => onSendArrowKey('down')}
                     disabled={disabled}
-                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="下キー"
                   >
                     ↓
@@ -144,7 +144,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={() => onSendArrowKey('right')}
                     disabled={disabled}
-                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="右キー"
                   >
                     →
@@ -161,7 +161,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={onSendInterrupt}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="プロセスを中断 (Ctrl+C)"
                   >
                     Ctrl+C
@@ -172,7 +172,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={onSendEscape}
                     disabled={disabled}
-                    className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="エスケープキー (ESC)"
                   >
                     ESC
@@ -183,7 +183,7 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                     type="button"
                     onClick={onClearClaude}
                     disabled={disabled}
-                    className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-red-200 hover:bg-red-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-400 touch-manipulation"
+                    className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-red-700 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-red-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-red-400 touch-manipulation"
                     title="Claude CLIをクリア (/clear)"
                   >
                     Clear

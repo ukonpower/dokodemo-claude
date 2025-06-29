@@ -388,17 +388,17 @@ function App() {
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gray-900">
         <div className="min-h-screen flex flex-col">
           {/* ヘッダー */}
-          <header className="bg-white shadow-sm border-b border-gray-200">
+          <header className="bg-gray-800 shadow-sm border-b border-gray-700">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                 <div className="min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold text-gray-900">
+                  <h1 className="text-lg sm:text-2xl font-bold text-white">
                     dokodemo-claude
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-300 mt-1">
                     Claude Code CLI Web Interface
                   </p>
                 </div>
@@ -407,7 +407,7 @@ function App() {
                     isConnected ? 'bg-green-500' : 
                     isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
                   }`}></div>
-                  <span className="text-xs text-gray-500 font-medium">
+                  <span className="text-xs text-gray-300 font-medium">
                     {isConnected ? '接続中' : 
                      isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
                   </span>
@@ -419,12 +419,12 @@ function App() {
           {/* メインコンテンツ */}
           <main className="flex-1 flex items-center justify-center p-3 sm:p-4">
             <div className="w-full max-w-4xl">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+                <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-gray-700 to-gray-600 text-white">
                   <h2 className="text-lg sm:text-xl font-semibold text-center">
                     リポジトリを選択してください
                   </h2>
-                  <p className="text-blue-100 text-xs sm:text-sm text-center mt-2">
+                  <p className="text-gray-200 text-xs sm:text-sm text-center mt-2">
                     既存のリポジトリを選択するか、新しいリポジトリをクローンしてください
                   </p>
                 </div>
@@ -447,15 +447,15 @@ function App() {
 
   // リポジトリが選択されている場合はメイン画面を表示
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       {/* ヘッダー */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-gray-800 shadow-sm border-b border-gray-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
               <button
                 onClick={handleBackToRepoSelection}
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex-shrink-0"
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex-shrink-0"
               >
                 <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -463,11 +463,11 @@ function App() {
                 <span className="hidden xs:inline">リポジトリ選択</span>
                 <span className="xs:hidden">戻る</span>
               </button>
-              <div className="border-l border-gray-300 pl-2 sm:pl-4 min-w-0 flex-1">
-                <h1 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
+              <div className="border-l border-gray-600 pl-2 sm:pl-4 min-w-0 flex-1">
+                <h1 className="text-sm sm:text-lg font-semibold text-white truncate">
                   {currentRepo.split('/').pop() || 'プロジェクト'}
                 </h1>
-                <p className="text-xs text-gray-500 truncate max-w-full sm:max-w-96">{currentRepo}</p>
+                <p className="text-xs text-gray-400 truncate max-w-full sm:max-w-96">{currentRepo}</p>
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
@@ -476,12 +476,12 @@ function App() {
                   isConnected ? 'bg-green-500' : 
                   isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
                 }`}></div>
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-gray-300 font-medium">
                   {isConnected ? '接続中' : 
                    isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
                 </span>
                 {currentSessionId && (
-                  <span className="text-xs text-blue-600 font-mono">
+                  <span className="text-xs text-blue-400 font-mono">
                     #{currentSessionId.split('-')[1]}
                   </span>
                 )}
@@ -494,10 +494,10 @@ function App() {
       {/* メインコンテンツ */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
         {/* Claude CLI セクション */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-            <h2 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
+            <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Claude CLI
@@ -510,7 +510,7 @@ function App() {
             </div>
 
             {/* Claude コマンド入力エリア */}
-            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
+            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-700">
               <CommandInput
                 onSendCommand={handleSendCommand}
                 onSendArrowKey={handleSendArrowKey}
@@ -524,10 +524,10 @@ function App() {
         </section>
 
         {/* ターミナルエリア */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-            <h2 className="text-sm sm:text-base font-semibold text-gray-900 flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
+            <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               ターミナル
@@ -549,19 +549,19 @@ function App() {
         </section>
 
         {/* リポジトリ削除セクション */}
-        <section className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
           <div className="px-4 sm:px-6 py-4">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">
+            <h3 className="text-base font-semibold text-white mb-3">
               リポジトリを削除
             </h3>
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-300 mb-4">
                 このリポジトリを完全に削除します（この操作は元に戻せません）
               </p>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={!isConnected}
-                className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-700 bg-red-50 border border-red-300 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-200 bg-red-900 border border-red-700 rounded-md hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -575,22 +575,22 @@ function App() {
 
       {/* 削除確認ダイアログ */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
             <div className="flex items-center space-x-3 mb-4">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-white">
                   リポジトリを削除しますか？
                 </h3>
               </div>
             </div>
             <div className="mb-6">
-              <div className="bg-red-50 rounded-md p-4 mb-4">
+              <div className="bg-red-900 rounded-md p-4 mb-4 border border-red-700">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
@@ -598,10 +598,10 @@ function App() {
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h4 className="text-sm font-medium text-red-800">
+                    <h4 className="text-sm font-medium text-red-200">
                       注意: この操作は元に戻せません
                     </h4>
-                    <div className="mt-2 text-sm text-red-700">
+                    <div className="mt-2 text-sm text-red-300">
                       <ul className="list-disc list-inside space-y-1">
                         <li>リポジトリディレクトリ全体が削除されます</li>
                         <li>Claude CLIセッションが終了されます</li>
@@ -612,15 +612,15 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-md p-3">
-                <p className="text-sm font-medium text-gray-900">{currentRepo.split('/').pop()}</p>
-                <p className="text-xs text-gray-500 mt-1">{currentRepo}</p>
+              <div className="bg-gray-700 rounded-md p-3 border border-gray-600">
+                <p className="text-sm font-medium text-white">{currentRepo.split('/').pop()}</p>
+                <p className="text-xs text-gray-400 mt-1">{currentRepo}</p>
               </div>
             </div>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-white text-gray-700 border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                className="flex-1 bg-gray-700 text-gray-200 border border-gray-600 py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               >
                 キャンセル
               </button>

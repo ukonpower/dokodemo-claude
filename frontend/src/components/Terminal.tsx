@@ -290,7 +290,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           <div className="flex space-x-1">
             <button
               onClick={() => onSignal(terminal.id, 'SIGINT')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               title="プロセスを中断 (Ctrl+C)"
               disabled={terminal.status === 'exited'}
             >
@@ -298,7 +298,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             </button>
             <button
               onClick={() => onSignal(terminal.id, 'SIGTSTP')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               title="プロセスを一時停止 (Ctrl+Z)"
               disabled={terminal.status === 'exited'}
             >
@@ -306,7 +306,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             </button>
             <button
               onClick={() => onSignal(terminal.id, 'ESC')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed rounded border text-xs font-mono text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
               title="エスケープキー (ESC)"
               disabled={terminal.status === 'exited'}
             >
@@ -314,7 +314,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             </button>
           </div>
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-400">
             <span className="hidden sm:inline">Enter: 実行</span>
             <span className="sm:hidden">Enter:実行</span>
           </div>

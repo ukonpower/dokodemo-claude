@@ -56,14 +56,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
-      <div className="bg-gray-100 px-2 sm:px-4 py-2 border-b flex items-center space-x-1 overflow-x-auto flex-shrink-0">
+      <div className="bg-gray-700 px-2 sm:px-4 py-2 border-b border-gray-600 flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
           <div
             key={terminal.id}
             className={`px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm rounded-t-lg flex items-center space-x-1 sm:space-x-2 whitespace-nowrap min-w-0 cursor-pointer ${
               activeTerminalId === terminal.id
                 ? 'bg-gray-800 text-gray-100 border border-gray-600 border-b-0'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-600 text-gray-200 hover:bg-gray-500'
             }`}
             onClick={() => setActiveTerminalId(terminal.id)}
           >
@@ -77,7 +77,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 e.stopPropagation();
                 onCloseTerminal(terminal.id);
               }}
-              className="text-xs hover:text-red-500 ml-1 flex-shrink-0"
+              className="text-xs hover:text-red-400 ml-1 flex-shrink-0 text-gray-300"
             >
               ×
             </button>
@@ -88,7 +88,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         <button
           onClick={handleCreateTerminal}
           disabled={!isConnected || !currentRepo}
-          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
+          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
         >
           <span>+</span>
           <span className="hidden sm:inline">新規</span>
@@ -146,8 +146,8 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             onClose={onCloseTerminal}
           />
         ) : (
-          <div className="h-full flex items-center justify-center bg-gray-50">
-            <p className="text-gray-500">ターミナルを選択してください</p>
+          <div className="h-full flex items-center justify-center bg-gray-900">
+            <p className="text-gray-300">ターミナルを選択してください</p>
           </div>
         )}
       </div>
