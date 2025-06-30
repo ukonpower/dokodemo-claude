@@ -10,7 +10,7 @@ export interface GitRepository {
   url: string;
   path: string;
   name: string;
-  status: 'cloning' | 'ready' | 'error';
+  status: 'cloning' | 'creating' | 'ready' | 'error';
 }
 
 export interface Repository {
@@ -62,6 +62,7 @@ export interface ServerToClientEvents {
     repositoryPath?: string;
   }) => void;
   'repo-cloned': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
+  'repo-created': (data: { success: boolean; message: string; repo?: GitRepository }) => void;
   'repo-deleted': (data: { success: boolean; message: string; path: string }) => void;
   connect: () => void;
   disconnect: (reason: string) => void;
@@ -98,6 +99,7 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
+  'create-repo': (data: { name: string }) => void;
   'delete-repo': (data: { path: string; name: string }) => void;
   'switch-repo': (data: { path: string }) => void;
   'list-repos': () => void;

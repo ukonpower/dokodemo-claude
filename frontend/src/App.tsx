@@ -167,6 +167,10 @@ function App() {
       setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
     });
 
+    socketInstance.on('repo-created', (data) => {
+      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+    });
+
     socketInstance.on('repo-deleted', (data) => {
       if (data.success) {
         // 削除されたリポジトリが現在選択中のリポジトリの場合、リポジトリ選択画面に戻る
@@ -276,6 +280,12 @@ function App() {
   const handleCloneRepository = (url: string, name: string) => {
     if (socket) {
       socket.emit('clone-repo', { url, name });
+    }
+  };
+
+  const handleCreateRepository = (name: string) => {
+    if (socket) {
+      socket.emit('create-repo', { name });
     }
   };
 
@@ -433,6 +443,7 @@ function App() {
                     repositories={repositories}
                     currentRepo={currentRepo}
                     onCloneRepository={handleCloneRepository}
+                    onCreateRepository={handleCreateRepository}
                     onSwitchRepository={handleSwitchRepository}
                     isConnected={isConnected}
                   />
