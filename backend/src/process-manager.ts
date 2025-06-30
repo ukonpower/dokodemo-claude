@@ -354,7 +354,7 @@ export class ProcessManager extends EventEmitter {
           return restoredSession;
         }
       }
-    } catch (error) {
+    } catch {
       // ファイル読み込みエラーは無視
     }
     
@@ -465,7 +465,7 @@ export class ProcessManager extends EventEmitter {
           return persistedTerminal.outputHistory || [];
         }
       }
-    } catch (error) {
+    } catch {
       // ファイル読み込みエラーは無視
       console.log(`No persisted terminal history found for ${terminalId}`);
     }
@@ -781,7 +781,7 @@ export class ProcessManager extends EventEmitter {
         const claudeSessions: PersistedClaudeSession[] = JSON.parse(claudeData);
         const filteredClaudeSessions = claudeSessions.filter(s => s.repositoryPath !== repositoryPath);
         await fs.writeFile(claudeSessionsPath, JSON.stringify(filteredClaudeSessions, null, 2));
-      } catch (error) {
+      } catch {
         // ファイルが存在しない場合は無視
       }
       
@@ -792,7 +792,7 @@ export class ProcessManager extends EventEmitter {
         const terminals: PersistedTerminal[] = JSON.parse(terminalData);
         const filteredTerminals = terminals.filter(t => t.repositoryPath !== repositoryPath);
         await fs.writeFile(terminalsPath, JSON.stringify(filteredTerminals, null, 2));
-      } catch (error) {
+      } catch {
         // ファイルが存在しない場合は無視
       }
       

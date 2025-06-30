@@ -5,20 +5,13 @@ import cors from 'cors';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 import type {
-  ClaudeMessage,
   GitRepository,
   ServerToClientEvents,
-  ClientToServerEvents,
-  Terminal,
-  TerminalMessage
+  ClientToServerEvents
 } from './types/index.js';
 import { ProcessManager } from './process-manager.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = createServer(app);
@@ -230,6 +223,67 @@ io.on('connection', (socket) => {
       socket.emit('repo-cloned', {
         success: false,
         message: `クローンエラー: ${error}`
+      });
+    }
+  });
+
+  // 新規リポジトリの作成 (git init)
+  socket.on('create-repo', async (data) => {
+    const { name } = data;
+    const repoPath = path.join(REPOS_DIR, name);
+
+    try {
+      // 既存のリポジトリチェック
+      const existingRepo = repositories.find(r => r.name === name);
+      if (existingRepo) {
+        socket.emit('repo-created', {
+          success: false,
+          message: `リポジトリ「${name}」は既に存在します`
+        });
+        return;
+      }
+
+      // ディレクトリ作成
+      await fs.mkdir(repoPath, { recursive: true });
+
+      // 新しいリポジトリをリストに追加
+      const newRepo: GitRepository = {
+        name,
+        url: '',
+        path: repoPath,
+        status: 'creating'
+      };
+      repositories.push(newRepo);
+      socket.emit('repos-list', { repos: repositories });
+
+      // git init実行
+      const gitInitProcess = spawn('git', ['init'], { cwd: repoPath });
+
+      gitInitProcess.on('exit', (code) => {
+        const repo = repositories.find(r => r.name === name);
+        if (repo) {
+          if (code === 0) {
+            repo.status = 'ready';
+            socket.emit('repo-created', {
+              success: true,
+              message: `リポジトリ「${name}」を作成しました`,
+              repo
+            });
+          } else {
+            repo.status = 'error';
+            socket.emit('repo-created', {
+              success: false,
+              message: `リポジトリ「${name}」の作成に失敗しました`
+            });
+          }
+          socket.emit('repos-list', { repos: repositories });
+        }
+      });
+
+    } catch (error) {
+      socket.emit('repo-created', {
+        success: false,
+        message: `作成エラー: ${error}`
       });
     }
   });
