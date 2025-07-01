@@ -1,0 +1,21 @@
+{
+  "name": "dokodemo-claude",
+  "short_name": "dokodemo-claude",
+  "description": "Claude Code CLIをWebブラウザから操作するための最小限のインターフェース",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "utilities"],
+  "scope": "/",
+  "lang": "ja"
+}
