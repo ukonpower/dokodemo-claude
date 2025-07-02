@@ -8,6 +8,7 @@ import path from 'path';
 
 import type {
   GitRepository,
+  GitBranch,
   ServerToClientEvents,
   ClientToServerEvents
 } from './types/index.js';
@@ -64,6 +65,101 @@ async function loadExistingRepos(): Promise<void> {
   } catch {
     repositories = [];
   }
+}
+
+// ブランチ一覧を取得
+async function getBranches(repoPath: string): Promise<GitBranch[]> {
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', ['branch', '-a'], { cwd: repoPath });
+    let output = '';
+    
+    gitProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    gitProcess.on('exit', (code) => {
+      if (code !== 0) {
+        resolve([]);
+        return;
+      }
+      
+      const branches: GitBranch[] = [];
+      const lines = output.split('\n').filter(line => line.trim());
+      
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        const isCurrent = trimmedLine.startsWith('*');
+        const branchName = trimmedLine.replace(/^\*?\s+/, '').replace(/^remotes\//, '');
+        
+        // リモートブランチは remotes/origin/ で始まる
+        if (branchName.startsWith('origin/')) {
+          // リモートブランチ（origin/HEADは除外）
+          if (!branchName.includes('HEAD')) {
+            branches.push({
+              name: branchName.replace('origin/', ''),
+              current: false,
+              remote: 'origin'
+            });
+          }
+        } else {
+          // ローカルブランチ
+          branches.push({
+            name: branchName,
+            current: isCurrent,
+            remote: undefined
+          });
+        }
+      });
+      
+      // 重複を除去（ローカルブランチを優先）
+      const uniqueBranches: GitBranch[] = [];
+      const branchNames = new Set<string>();
+      
+      // まずローカルブランチを追加
+      branches.filter(b => !b.remote).forEach(branch => {
+        uniqueBranches.push(branch);
+        branchNames.add(branch.name);
+      });
+      
+      // リモートブランチのうち、ローカルに存在しないものを追加
+      branches.filter(b => b.remote && !branchNames.has(b.name)).forEach(branch => {
+        uniqueBranches.push(branch);
+      });
+      
+      resolve(uniqueBranches);
+    });
+  });
+}
+
+// ブランチを切り替え
+async function switchBranch(repoPath: string, branchName: string): Promise<{ success: boolean; message: string }> {
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', ['checkout', branchName], { cwd: repoPath });
+    let output = '';
+    let errorOutput = '';
+    
+    gitProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    gitProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    gitProcess.on('exit', (code) => {
+      if (code === 0) {
+        resolve({
+          success: true,
+          message: `ブランチ「${branchName}」に切り替えました`
+        });
+      } else {
+        resolve({
+          success: false,
+          message: `ブランチ切り替えエラー: ${errorOutput || output}`
+        });
+      }
+    });
+  });
 }
 
 // ProcessManagerのイベントハンドラー設定
@@ -607,6 +703,59 @@ io.on('connection', (socket) => {
         : 'コマンドショートカットの実行に失敗しました',
       shortcutId
     });
+  });
+
+  // ブランチ関連のイベントハンドラ
+  
+  // ブランチ一覧の取得
+  socket.on('list-branches', async (data) => {
+    const { repositoryPath } = data;
+    
+    try {
+      const branches = await getBranches(repositoryPath);
+      socket.emit('branches-list', { branches, repositoryPath });
+    } catch {
+      socket.emit('branches-list', { branches: [], repositoryPath });
+    }
+  });
+  
+  // ブランチの切り替え
+  socket.on('switch-branch', async (data) => {
+    const { repositoryPath, branchName } = data;
+    
+    try {
+      const result = await switchBranch(repositoryPath, branchName);
+      
+      if (result.success) {
+        // 切り替え成功時は現在のブランチ情報も送信
+        const branches = await getBranches(repositoryPath);
+        const currentBranch = branches.find(b => b.current)?.name || branchName;
+        
+        socket.emit('branch-switched', {
+          success: true,
+          message: result.message,
+          currentBranch,
+          repositoryPath
+        });
+        
+        // ブランチ一覧も更新して送信
+        socket.emit('branches-list', { branches, repositoryPath });
+      } else {
+        socket.emit('branch-switched', {
+          success: false,
+          message: result.message,
+          currentBranch: '',
+          repositoryPath
+        });
+      }
+    } catch (error) {
+      socket.emit('branch-switched', {
+        success: false,
+        message: `ブランチ切り替えエラー: ${error}`,
+        currentBranch: '',
+        repositoryPath
+      });
+    }
   });
 
   socket.on('disconnect', () => {

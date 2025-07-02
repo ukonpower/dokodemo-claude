@@ -13,6 +13,13 @@ export interface GitRepository {
   status: 'cloning' | 'creating' | 'ready' | 'error';
 }
 
+// ブランチ関連の型定義
+export interface GitBranch {
+  name: string;
+  current: boolean;
+  remote?: string;
+}
+
 export interface Repository {
   name: string;
   path: string;
@@ -110,6 +117,10 @@ export interface ServerToClientEvents {
   'shortcut-created': (data: { success: boolean; message: string; shortcut?: CommandShortcut }) => void;
   'shortcut-deleted': (data: { success: boolean; message: string; shortcutId: string }) => void;
   'shortcut-executed': (data: { success: boolean; message: string; shortcutId: string }) => void;
+  
+  // ブランチ関連イベント
+  'branches-list': (data: { branches: GitBranch[]; repositoryPath: string }) => void;
+  'branch-switched': (data: { success: boolean; message: string; currentBranch: string; repositoryPath: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -142,4 +153,8 @@ export interface ClientToServerEvents {
   'create-shortcut': (data: { name?: string; command: string; repositoryPath: string }) => void;
   'delete-shortcut': (data: { shortcutId: string }) => void;
   'execute-shortcut': (data: { shortcutId: string; terminalId: string }) => void;
+  
+  // ブランチ関連イベント
+  'list-branches': (data: { repositoryPath: string }) => void;
+  'switch-branch': (data: { repositoryPath: string; branchName: string }) => void;
 }

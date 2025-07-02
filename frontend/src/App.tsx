@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type {
   GitRepository,
+  GitBranch,
   Terminal,
   TerminalMessage,
   TerminalOutputLine,
@@ -15,6 +16,7 @@ import RepositoryManager from './components/RepositoryManager';
 import ClaudeOutput from './components/ClaudeOutput';
 import CommandInput from './components/CommandInput';
 import TerminalManager from './components/TerminalManager';
+import BranchSelector from './components/BranchSelector';
 
 function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -42,6 +44,8 @@ function App() {
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
+          setBranches([]);
+          setCurrentBranch('');
         } else {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
@@ -75,6 +79,10 @@ function App() {
 
   // コマンドショートカット関連の状態
   const [shortcuts, setShortcuts] = useState<CommandShortcut[]>([]);
+  
+  // ブランチ関連の状態
+  const [branches, setBranches] = useState<GitBranch[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<string>('');
 
   useEffect(() => {
     let reconnectTimeout: number;
@@ -122,6 +130,9 @@ function App() {
             // ショートカット一覧も取得
             socketInstance.emit('list-shortcuts', { repositoryPath: currentPath });
             console.log(`[Frontend] Emitted list-shortcuts for: ${currentPath}`);
+            // ブランチ一覧も取得
+            socketInstance.emit('list-branches', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted list-branches for: ${currentPath}`);
           } else {
             console.log(`[Frontend] No current repo detected after delay`);
           }
@@ -191,6 +202,8 @@ function App() {
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
+          setBranches([]);
+          setCurrentBranch('');
           // URLからリポジトリパラメータを削除
           const url = new URL(window.location.href);
           url.searchParams.delete('repo');
@@ -206,11 +219,13 @@ function App() {
         setCurrentSessionId(data.sessionId || '');
         // リポジトリ切り替え時は出力履歴をクリアしない（履歴は別途受信）
         
-        // ターミナル関連状態をクリア
+        // ターミナル・ブランチ関連状態をクリア
         setTerminals([]);
         setTerminalMessages([]);
         setTerminalHistories(new Map());
         setShortcuts([]);
+        setBranches([]);
+        setCurrentBranch('');
         
         // URLにリポジトリパスを保存
         const url = new URL(window.location.href);
@@ -222,6 +237,9 @@ function App() {
         
         // 新しいリポジトリのショートカット一覧を取得
         socketInstance.emit('list-shortcuts', { repositoryPath: data.currentPath });
+        
+        // 新しいリポジトリのブランチ一覧を取得
+        socketInstance.emit('list-branches', { repositoryPath: data.currentPath });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -307,6 +325,28 @@ function App() {
     socketInstance.on('shortcut-executed', (data) => {
       if (!data.success) {
         setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+      }
+    });
+    
+    // ブランチ関連のイベントハンドラ
+    socketInstance.on('branches-list', (data) => {
+      if (data.repositoryPath === currentRepoRef.current) {
+        setBranches(data.branches);
+        const current = data.branches.find((b: GitBranch) => b.current);
+        if (current) {
+          setCurrentBranch(current.name);
+        }
+      }
+    });
+    
+    socketInstance.on('branch-switched', (data) => {
+      if (data.repositoryPath === currentRepoRef.current) {
+        if (data.success) {
+          setCurrentBranch(data.currentBranch);
+          setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+        } else {
+          setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+        }
       }
     });
 
@@ -459,6 +499,13 @@ function App() {
       socket.emit('close-terminal', { terminalId });
     }
   };
+  
+  // ブランチ関連のハンドラ
+  const handleSwitchBranch = (branchName: string) => {
+    if (socket && currentRepo) {
+      socket.emit('switch-branch', { repositoryPath: currentRepo, branchName });
+    }
+  };
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
@@ -569,6 +616,19 @@ function App() {
 
       {/* メインコンテンツ */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
+        {/* ブランチセレクター */}
+        <div className="flex items-center space-x-4">
+          <BranchSelector
+            branches={branches}
+            currentBranch={currentBranch}
+            onSwitchBranch={handleSwitchBranch}
+            isConnected={isConnected}
+          />
+          <span className="text-sm text-gray-400">
+            現在のブランチ: <span className="font-mono text-blue-400">{currentBranch || '不明'}</span>
+          </span>
+        </div>
+        
         {/* Claude CLI セクション */}
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
