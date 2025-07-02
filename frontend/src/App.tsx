@@ -14,7 +14,7 @@ import type {
 
 import RepositoryManager from './components/RepositoryManager';
 import ClaudeOutput from './components/ClaudeOutput';
-import CommandInput from './components/CommandInput';
+import CommandInput, { CommandInputRef } from './components/CommandInput';
 import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
 
@@ -83,6 +83,9 @@ function App() {
   // ブランチ関連の状態
   const [branches, setBranches] = useState<GitBranch[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string>('');
+
+  // CommandInputのrefを作成
+  const commandInputRef = useRef<CommandInputRef>(null);
 
   useEffect(() => {
     let reconnectTimeout: number;
@@ -183,11 +186,11 @@ function App() {
       }
     });
 
-    socketInstance.on('repo-cloned', (data) => {
+    socketInstance.on('repo-cloned', () => {
       // リポジトリクローンメッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('repo-created', (data) => {
+    socketInstance.on('repo-created', () => {
       // リポジトリ作成メッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
@@ -306,15 +309,15 @@ function App() {
       setShortcuts(data.shortcuts);
     });
 
-    socketInstance.on('shortcut-created', (data) => {
+    socketInstance.on('shortcut-created', () => {
       // ショートカット作成メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('shortcut-deleted', (data) => {
+    socketInstance.on('shortcut-deleted', () => {
       // ショートカット削除メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('shortcut-executed', (data) => {
+    socketInstance.on('shortcut-executed', () => {
       // ショートカット実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
     
@@ -499,6 +502,13 @@ function App() {
     }
   };
 
+  // Claude出力エリアがクリックされた時にCommandInputにフォーカス
+  const handleFocusCommandInput = () => {
+    if (commandInputRef.current) {
+      commandInputRef.current.focus();
+    }
+  };
+
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
     return (
@@ -634,12 +644,16 @@ function App() {
           <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
             {/* Claude出力エリア */}
             <div className="flex-1 min-h-0">
-              <ClaudeOutput rawOutput={rawOutput} />
+              <ClaudeOutput 
+                rawOutput={rawOutput} 
+                onFocusInput={handleFocusCommandInput}
+              />
             </div>
 
             {/* Claude コマンド入力エリア */}
             <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-700">
               <CommandInput
+                ref={commandInputRef}
                 onSendCommand={handleSendCommand}
                 onSendArrowKey={handleSendArrowKey}
                 onSendInterrupt={handleSendInterrupt}

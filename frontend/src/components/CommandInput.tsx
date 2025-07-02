@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 interface CommandInputProps {
   onSendCommand: (command: string) => void;
@@ -9,7 +9,11 @@ interface CommandInputProps {
   disabled?: boolean;
 }
 
-const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowKey, onSendInterrupt, onSendEscape, onClearClaude, disabled = false }) => {
+export interface CommandInputRef {
+  focus: () => void;
+}
+
+const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(({ onSendCommand, onSendArrowKey, onSendInterrupt, onSendEscape, onClearClaude, disabled = false }, ref) => {
   const [command, setCommand] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -82,6 +86,15 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
       inputRef.current.focus();
     }
   }, [disabled]);
+
+  // refでフォーカスメソッドを公開
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }));
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -207,6 +220,8 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
       </form>
     </div>
   );
-};
+});
+
+CommandInput.displayName = 'CommandInput';
 
 export default CommandInput;

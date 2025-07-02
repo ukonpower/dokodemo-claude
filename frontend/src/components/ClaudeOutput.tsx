@@ -5,9 +5,10 @@ import '@xterm/xterm/css/xterm.css';
 
 interface ClaudeOutputProps {
   rawOutput: string;
+  onFocusInput?: () => void;
 }
 
-const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
+const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
@@ -139,7 +140,8 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput }) => {
       <div className="flex-1 bg-gray-900 overflow-auto">
         <div
           ref={terminalRef}
-          className="h-full w-full"
+          className="h-full w-full cursor-pointer"
+          onClick={() => onFocusInput?.()}
           style={{
             background: '#111827',
             minHeight: '200px',
