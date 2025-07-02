@@ -533,6 +533,81 @@ io.on('connection', (socket) => {
     // terminal-closedイベントは ProcessManager から自動的に発火される
   });
 
+  // コマンドショートカット関連のイベントハンドラ
+
+  // コマンドショートカット一覧の送信
+  socket.on('list-shortcuts', (data) => {
+    const { repositoryPath } = data;
+    const shortcuts = processManager.getShortcutsByRepository(repositoryPath);
+    socket.emit('shortcuts-list', { shortcuts });
+  });
+
+  // 新しいコマンドショートカットの作成
+  socket.on('create-shortcut', async (data) => {
+    const { name, command, repositoryPath } = data;
+    
+    try {
+      const shortcut = await processManager.createShortcut(name, command, repositoryPath);
+      socket.emit('shortcut-created', {
+        success: true,
+        message: `コマンドショートカット「${name}」を作成しました`,
+        shortcut
+      });
+      
+      // 更新されたショートカット一覧を送信
+      const shortcuts = processManager.getShortcutsByRepository(repositoryPath);
+      socket.emit('shortcuts-list', { shortcuts });
+      
+    } catch (error) {
+      socket.emit('shortcut-created', {
+        success: false,
+        message: `コマンドショートカット作成エラー: ${error}`
+      });
+    }
+  });
+
+  // コマンドショートカットの削除
+  socket.on('delete-shortcut', async (data) => {
+    const { shortcutId } = data;
+    
+    try {
+      const success = await processManager.deleteShortcut(shortcutId);
+      if (success) {
+        socket.emit('shortcut-deleted', {
+          success: true,
+          message: 'コマンドショートカットを削除しました',
+          shortcutId
+        });
+      } else {
+        socket.emit('shortcut-deleted', {
+          success: false,
+          message: 'コマンドショートカットが見つかりません',
+          shortcutId
+        });
+      }
+    } catch (error) {
+      socket.emit('shortcut-deleted', {
+        success: false,
+        message: `コマンドショートカット削除エラー: ${error}`,
+        shortcutId
+      });
+    }
+  });
+
+  // コマンドショートカットの実行
+  socket.on('execute-shortcut', (data) => {
+    const { shortcutId, terminalId } = data;
+    
+    const success = processManager.executeShortcut(shortcutId, terminalId);
+    socket.emit('shortcut-executed', {
+      success,
+      message: success 
+        ? 'コマンドショートカットを実行しました' 
+        : 'コマンドショートカットの実行に失敗しました',
+      shortcutId
+    });
+  });
+
   socket.on('disconnect', () => {
     // クライアント切断時の処理
   });

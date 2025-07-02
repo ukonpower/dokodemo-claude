@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { CommandShortcut } from './types/index.js';
 
 // Claude CLI出力履歴の行情報
 export interface ClaudeOutputLine {
@@ -65,11 +66,14 @@ export interface ActiveTerminal extends PersistedTerminal {
 export class ProcessManager extends EventEmitter {
   private claudeSessions: Map<string, ActiveClaudeSession> = new Map();
   private terminals: Map<string, ActiveTerminal> = new Map();
+  private shortcuts: Map<string, CommandShortcut> = new Map();
   private processesDir: string;
   private claudeSessionsFile: string;
   private terminalsFile: string;
+  private shortcutsFile: string;
   private sessionCounter = 0;
   private terminalCounter = 0;
+  private shortcutCounter = 0;
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
 
   constructor(processesDir: string) {
@@ -77,6 +81,7 @@ export class ProcessManager extends EventEmitter {
     this.processesDir = processesDir;
     this.claudeSessionsFile = path.join(processesDir, 'claude-sessions.json');
     this.terminalsFile = path.join(processesDir, 'terminals.json');
+    this.shortcutsFile = path.join(processesDir, 'command-shortcuts.json');
   }
 
   /**
@@ -86,6 +91,7 @@ export class ProcessManager extends EventEmitter {
     await this.ensureProcessesDir();
     await this.restoreClaudeSessions();
     await this.restoreTerminals();
+    await this.restoreShortcuts();
     
     // 定期的なプロセス監視を開始
     this.startProcessMonitoring();
@@ -763,6 +769,9 @@ export class ProcessManager extends EventEmitter {
     
     await Promise.all(closePromises);
     
+    // コマンドショートカットをクリーンアップ
+    await this.cleanupRepositoryShortcuts(repositoryPath);
+    
     // 永続化ファイルからも削除
     await this.removeRepositoryFromPersistence(repositoryPath);
     
@@ -801,6 +810,133 @@ export class ProcessManager extends EventEmitter {
     }
   }
 
+  // ===== コマンドショートカット管理メソッド =====
+
+  /**
+   * 既存のコマンドショートカットを復帰
+   */
+  private async restoreShortcuts(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.shortcutsFile, 'utf-8');
+      const shortcutsArray: CommandShortcut[] = JSON.parse(data);
+      
+      this.shortcuts.clear();
+      for (const shortcut of shortcutsArray) {
+        this.shortcuts.set(shortcut.id, shortcut);
+        // カウンターの更新
+        const idNumber = parseInt(shortcut.id.split('-').pop() || '0');
+        if (idNumber > this.shortcutCounter) {
+          this.shortcutCounter = idNumber;
+        }
+      }
+      
+      console.log(`Restored ${shortcutsArray.length} command shortcuts`);
+    } catch (error) {
+      // ファイルが存在しない場合は無視
+      if ((error as any).code !== 'ENOENT') {
+        console.error('Failed to restore command shortcuts:', error);
+      }
+    }
+  }
+
+  /**
+   * コマンドショートカットを永続化
+   */
+  private async persistShortcuts(): Promise<void> {
+    try {
+      const shortcutsArray = Array.from(this.shortcuts.values());
+      await fs.writeFile(this.shortcutsFile, JSON.stringify(shortcutsArray, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Failed to persist command shortcuts:', error);
+    }
+  }
+
+  /**
+   * 新しいコマンドショートカットを作成
+   */
+  async createShortcut(name: string, command: string, repositoryPath: string): Promise<CommandShortcut> {
+    const shortcutId = `shortcut-${++this.shortcutCounter}-${Date.now()}`;
+    
+    const shortcut: CommandShortcut = {
+      id: shortcutId,
+      name,
+      command,
+      repositoryPath,
+      createdAt: Date.now()
+    };
+
+    this.shortcuts.set(shortcutId, shortcut);
+    await this.persistShortcuts();
+    
+    return shortcut;
+  }
+
+  /**
+   * コマンドショートカットを削除
+   */
+  async deleteShortcut(shortcutId: string): Promise<boolean> {
+    const deleted = this.shortcuts.delete(shortcutId);
+    if (deleted) {
+      await this.persistShortcuts();
+    }
+    return deleted;
+  }
+
+  /**
+   * 指定リポジトリのコマンドショートカット一覧を取得
+   */
+  getShortcutsByRepository(repositoryPath: string): CommandShortcut[] {
+    return Array.from(this.shortcuts.values())
+      .filter(shortcut => shortcut.repositoryPath === repositoryPath)
+      .sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /**
+   * コマンドショートカットを実行（指定されたターミナルに送信）
+   */
+  executeShortcut(shortcutId: string, terminalId: string): boolean {
+    const shortcut = this.shortcuts.get(shortcutId);
+    if (!shortcut) {
+      return false;
+    }
+
+    const terminal = this.terminals.get(terminalId);
+    if (!terminal) {
+      return false;
+    }
+
+    try {
+      // コマンドの末尾に改行を追加して送信
+      const commandToSend = shortcut.command.endsWith('\n') ? shortcut.command : shortcut.command + '\n';
+      terminal.process.write(commandToSend);
+      terminal.lastAccessedAt = Date.now();
+      return true;
+    } catch (error) {
+      console.error('Failed to execute shortcut:', error);
+      return false;
+    }
+  }
+
+  /**
+   * リポジトリ削除時のコマンドショートカットクリーンアップ
+   */
+  async cleanupRepositoryShortcuts(repositoryPath: string): Promise<void> {
+    let hasChanges = false;
+    
+    // 指定リポジトリのショートカットを削除
+    for (const [shortcutId, shortcut] of this.shortcuts.entries()) {
+      if (shortcut.repositoryPath === repositoryPath) {
+        this.shortcuts.delete(shortcutId);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      await this.persistShortcuts();
+      console.log(`Cleaned up shortcuts for repository: ${repositoryPath}`);
+    }
+  }
+
   /**
    * システム終了時のクリーンアップ
    */
@@ -823,6 +959,7 @@ export class ProcessManager extends EventEmitter {
     // 最終的な永続化
     await this.persistClaudeSessions();
     await this.persistTerminals();
+    await this.persistShortcuts();
     
     console.log('ProcessManager shutdown completed');
   }

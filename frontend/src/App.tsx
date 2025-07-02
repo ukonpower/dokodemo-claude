@@ -6,6 +6,7 @@ import type {
   TerminalMessage,
   TerminalOutputLine,
   ClaudeOutputLine,
+  CommandShortcut,
   ServerToClientEvents,
   ClientToServerEvents
 } from './types';
@@ -40,11 +41,13 @@ function App() {
           setTerminals([]);
           setTerminalMessages([]);
           setTerminalHistories(new Map());
+          setShortcuts([]);
         } else {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
             socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
+            socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
           }
         }
       }
@@ -69,6 +72,9 @@ function App() {
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
   const [terminalHistories, setTerminalHistories] = useState<Map<string, TerminalOutputLine[]>>(new Map());
+
+  // コマンドショートカット関連の状態
+  const [shortcuts, setShortcuts] = useState<CommandShortcut[]>([]);
 
   useEffect(() => {
     let reconnectTimeout: number;
@@ -113,6 +119,9 @@ function App() {
             // Claude履歴も取得
             socketInstance.emit('get-claude-history', { repositoryPath: currentPath });
             console.log(`[Frontend] Emitted get-claude-history for: ${currentPath}`);
+            // ショートカット一覧も取得
+            socketInstance.emit('list-shortcuts', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted list-shortcuts for: ${currentPath}`);
           } else {
             console.log(`[Frontend] No current repo detected after delay`);
           }
@@ -181,6 +190,7 @@ function App() {
           setTerminals([]);
           setTerminalMessages([]);
           setTerminalHistories(new Map());
+          setShortcuts([]);
           // URLからリポジトリパラメータを削除
           const url = new URL(window.location.href);
           url.searchParams.delete('repo');
@@ -200,6 +210,7 @@ function App() {
         setTerminals([]);
         setTerminalMessages([]);
         setTerminalHistories(new Map());
+        setShortcuts([]);
         
         // URLにリポジトリパスを保存
         const url = new URL(window.location.href);
@@ -208,6 +219,9 @@ function App() {
         
         // 新しいリポジトリのターミナル一覧を取得
         socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
+        
+        // 新しいリポジトリのショートカット一覧を取得
+        socketInstance.emit('list-shortcuts', { repositoryPath: data.currentPath });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -269,6 +283,33 @@ function App() {
       });
     });
 
+    // コマンドショートカット関連のイベントハンドラ
+    socketInstance.on('shortcuts-list', (data) => {
+      setShortcuts(data.shortcuts);
+    });
+
+    socketInstance.on('shortcut-created', (data) => {
+      if (data.success) {
+        setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+      } else {
+        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+      }
+    });
+
+    socketInstance.on('shortcut-deleted', (data) => {
+      if (data.success) {
+        setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+      } else {
+        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+      }
+    });
+
+    socketInstance.on('shortcut-executed', (data) => {
+      if (!data.success) {
+        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+      }
+    });
+
     return () => {
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
@@ -312,6 +353,25 @@ function App() {
     const url = new URL(window.location.href);
     url.searchParams.delete('repo');
     window.history.pushState({}, '', url.toString());
+  };
+
+  // コマンドショートカット関連のハンドラ
+  const handleCreateShortcut = (name: string, command: string) => {
+    if (socket && currentRepo) {
+      socket.emit('create-shortcut', { name, command, repositoryPath: currentRepo });
+    }
+  };
+
+  const handleDeleteShortcut = (shortcutId: string) => {
+    if (socket) {
+      socket.emit('delete-shortcut', { shortcutId });
+    }
+  };
+
+  const handleExecuteShortcut = (shortcutId: string, terminalId: string) => {
+    if (socket) {
+      socket.emit('execute-shortcut', { shortcutId, terminalId });
+    }
   };
 
   const handleSendCommand = (command: string) => {
@@ -549,12 +609,16 @@ function App() {
               terminals={terminals}
               messages={terminalMessages}
               histories={terminalHistories}
+              shortcuts={shortcuts}
               currentRepo={currentRepo}
               isConnected={isConnected}
               onCreateTerminal={handleCreateTerminal}
               onTerminalInput={handleTerminalInput}
               onTerminalSignal={handleTerminalSignal}
               onCloseTerminal={handleCloseTerminal}
+              onCreateShortcut={handleCreateShortcut}
+              onDeleteShortcut={handleDeleteShortcut}
+              onExecuteShortcut={handleExecuteShortcut}
             />
           </div>
         </section>

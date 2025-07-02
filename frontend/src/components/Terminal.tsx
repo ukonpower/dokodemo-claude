@@ -357,7 +357,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
               </div>
             </div>
 
-            {/* Ctrl+C、ESCボタン */}
+            {/* Ctrl+C、ESC、Enterボタン */}
             <div className="flex flex-col items-center space-y-2">
               <div className="flex space-x-1">
                 <button
@@ -385,6 +385,26 @@ const TerminalComponent: React.FC<TerminalProps> = ({
                   ESC
                 </button>
               </div>
+            </div>
+
+            {/* Enterボタン */}
+            <div className="flex flex-col items-center space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (input.trim()) {
+                    onInput(terminal.id, input + '\n');
+                    setInput('');
+                  } else {
+                    onInput(terminal.id, '\n');
+                  }
+                }}
+                disabled={terminal.status === 'exited'}
+                className="bg-blue-600 text-white px-6 py-2.5 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium min-h-[2.5rem] sm:min-h-[2rem] flex items-center touch-manipulation"
+                title="コマンドを実行 (Enter)"
+              >
+                Enter
+              </button>
             </div>
           </div>
 

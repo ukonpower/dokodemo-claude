@@ -88,6 +88,12 @@ export interface ServerToClientEvents {
     terminalId: string; 
     history: TerminalOutputLine[];
   }) => void;
+  
+  // コマンドショートカット関連イベント
+  'shortcuts-list': (data: { shortcuts: CommandShortcut[] }) => void;
+  'shortcut-created': (data: { success: boolean; message: string; shortcut?: CommandShortcut }) => void;
+  'shortcut-deleted': (data: { success: boolean; message: string; shortcutId: string }) => void;
+  'shortcut-executed': (data: { success: boolean; message: string; shortcutId: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -114,6 +120,12 @@ export interface ClientToServerEvents {
   'close-terminal': (data: { terminalId: string }) => void;
   'terminal-resize': (data: { terminalId: string; cols: number; rows: number }) => void;
   'terminal-signal': (data: { terminalId: string; signal: string }) => void;
+  
+  // コマンドショートカット関連イベント
+  'list-shortcuts': (data: { repositoryPath: string }) => void;
+  'create-shortcut': (data: { name: string; command: string; repositoryPath: string }) => void;
+  'delete-shortcut': (data: { shortcutId: string }) => void;
+  'execute-shortcut': (data: { shortcutId: string; terminalId: string }) => void;
 }
 
 // Claude CLI 操作関連の型定義
@@ -122,4 +134,13 @@ export interface ClaudeSession {
   isActive: boolean;
   workingDirectory: string;
   isPty: boolean;
+}
+
+// コマンドショートカット関連の型定義
+export interface CommandShortcut {
+  id: string;
+  name: string;
+  command: string;
+  repositoryPath: string;
+  createdAt: number;
 }
