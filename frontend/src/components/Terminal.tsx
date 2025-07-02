@@ -31,6 +31,17 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const lastMessageCount = useRef<number>(0);
   const currentTerminalId = useRef<string>('');
 
+  // 矢印キーハンドラ
+  const handleArrowKey = (direction: 'up' | 'down' | 'left' | 'right') => {
+    const arrowKeys = {
+      up: '\x1b[A',
+      down: '\x1b[B',
+      right: '\x1b[C',
+      left: '\x1b[D'
+    };
+    onInput(terminal.id, arrowKeys[direction]);
+  };
+
   // XTermインスタンスを初期化
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -226,6 +237,19 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onSignal(terminal.id, 'ESC');
+    } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      
+      // 矢印キーのANSIエスケープシーケンス
+      const arrowKeys: { [key: string]: string } = {
+        'ArrowUp': '\x1b[A',
+        'ArrowDown': '\x1b[B',
+        'ArrowRight': '\x1b[C',
+        'ArrowLeft': '\x1b[D'
+      };
+      
+      // ANSIエスケープシーケンスを直接送信
+      onInput(terminal.id, arrowKeys[e.key]);
     }
   };
 
@@ -286,35 +310,85 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         </form>
 
         {/* コントロールボタン */}
-        <div className="flex items-center justify-between">
-          <div className="flex space-x-1">
-            <button
-              onClick={() => onSignal(terminal.id, 'SIGINT')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-              title="プロセスを中断 (Ctrl+C)"
-              disabled={terminal.status === 'exited'}
-            >
-              Ctrl+C
-            </button>
-            <button
-              onClick={() => onSignal(terminal.id, 'SIGTSTP')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-              title="プロセスを一時停止 (Ctrl+Z)"
-              disabled={terminal.status === 'exited'}
-            >
-              Ctrl+Z
-            </button>
-            <button
-              onClick={() => onSignal(terminal.id, 'ESC')}
-              className="flex items-center justify-center w-14 h-7 sm:w-16 sm:h-8 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-              title="エスケープキー (ESC)"
-              disabled={terminal.status === 'exited'}
-            >
-              ESC
-            </button>
+        <div className="flex flex-col space-y-3">
+          {/* 方向キーとコントロールボタンを横並びに配置 */}
+          <div className="flex items-center justify-center space-x-4">
+            {/* 方向キーボタン */}
+            <div className="flex flex-col items-center space-y-2">
+              <div className="grid grid-cols-3 gap-1">
+                <div></div>
+                <button
+                  type="button"
+                  onClick={() => handleArrowKey('up')}
+                  disabled={terminal.status === 'exited'}
+                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="上キー"
+                >
+                  ↑
+                </button>
+                <div></div>
+                <button
+                  type="button"
+                  onClick={() => handleArrowKey('left')}
+                  disabled={terminal.status === 'exited'}
+                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="左キー"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleArrowKey('down')}
+                  disabled={terminal.status === 'exited'}
+                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="下キー"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleArrowKey('right')}
+                  disabled={terminal.status === 'exited'}
+                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="右キー"
+                >
+                  →
+                </button>
+              </div>
+            </div>
+
+            {/* Ctrl+C、ESCボタン */}
+            <div className="flex flex-col items-center space-y-2">
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => onSignal(terminal.id, 'SIGINT')}
+                  className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="プロセスを中断 (Ctrl+C)"
+                  disabled={terminal.status === 'exited'}
+                >
+                  Ctrl+C
+                </button>
+                <button
+                  onClick={() => onSignal(terminal.id, 'SIGTSTP')}
+                  className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="プロセスを一時停止 (Ctrl+Z)"
+                  disabled={terminal.status === 'exited'}
+                >
+                  Ctrl+Z
+                </button>
+                <button
+                  onClick={() => onSignal(terminal.id, 'ESC')}
+                  className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="エスケープキー (ESC)"
+                  disabled={terminal.status === 'exited'}
+                >
+                  ESC
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-gray-400 text-center">
             <span className="hidden sm:inline">Enter: 実行</span>
             <span className="sm:hidden">Enter:実行</span>
           </div>
