@@ -548,9 +548,10 @@ io.on('connection', (socket) => {
     
     try {
       const shortcut = await processManager.createShortcut(name, command, repositoryPath);
+      const displayName = shortcut.name || shortcut.command;
       socket.emit('shortcut-created', {
         success: true,
-        message: `コマンドショートカット「${name}」を作成しました`,
+        message: `コマンドショートカット「${displayName}」を作成しました`,
         shortcut
       });
       

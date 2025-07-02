@@ -358,7 +358,12 @@ function App() {
   // コマンドショートカット関連のハンドラ
   const handleCreateShortcut = (name: string, command: string) => {
     if (socket && currentRepo) {
-      socket.emit('create-shortcut', { name, command, repositoryPath: currentRepo });
+      const shortcutData = {
+        command,
+        repositoryPath: currentRepo,
+        ...(name.trim() ? { name: name.trim() } : {}) // nameが入力されている場合のみ追加
+      };
+      socket.emit('create-shortcut', shortcutData);
     }
   };
 

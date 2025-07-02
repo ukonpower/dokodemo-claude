@@ -123,7 +123,7 @@ export interface ClientToServerEvents {
   
   // コマンドショートカット関連イベント
   'list-shortcuts': (data: { repositoryPath: string }) => void;
-  'create-shortcut': (data: { name: string; command: string; repositoryPath: string }) => void;
+  'create-shortcut': (data: { name?: string; command: string; repositoryPath: string }) => void;
   'delete-shortcut': (data: { shortcutId: string }) => void;
   'execute-shortcut': (data: { shortcutId: string; terminalId: string }) => void;
 }
@@ -139,7 +139,7 @@ export interface ClaudeSession {
 // コマンドショートカット関連の型定義
 export interface CommandShortcut {
   id: string;
-  name: string;
+  name?: string; // オプショナル：未入力時はcommandを表示に使用
   command: string;
   repositoryPath: string;
   createdAt: number;

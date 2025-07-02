@@ -62,10 +62,10 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   };
 
   const handleCreateShortcut = () => {
-    if (!shortcutName.trim() || !shortcutCommand.trim()) {
+    if (!shortcutCommand.trim()) {
       return;
     }
-    onCreateShortcut(shortcutName.trim(), shortcutCommand.trim());
+    onCreateShortcut(shortcutName, shortcutCommand.trim());
     setShortcutName('');
     setShortcutCommand('');
     setShowCreateShortcut(false);
@@ -209,7 +209,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   <div className="flex flex-col space-y-2">
                     <input
                       type="text"
-                      placeholder="ショートカット名"
+                      placeholder="ショートカット名（省略可）"
                       value={shortcutName}
                       onChange={(e) => setShortcutName(e.target.value)}
                       className="px-2 py-1 text-xs bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-blue-500"
@@ -224,7 +224,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     <div className="flex space-x-2">
                       <button
                         onClick={handleCreateShortcut}
-                        disabled={!shortcutName.trim() || !shortcutCommand.trim()}
+                        disabled={!shortcutCommand.trim()}
                         className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
                       >
                         作成
@@ -258,8 +258,10 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                         <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-6L10 2l-5 5v6l5 5z" />
                         </svg>
-                        <span className="font-medium">{shortcut.name}</span>
-                        <span className="text-gray-400 text-xs hidden sm:inline">({shortcut.command})</span>
+                        <span className="font-medium">{shortcut.name || shortcut.command}</span>
+                        {shortcut.name && (
+                          <span className="text-gray-400 text-xs hidden sm:inline">({shortcut.command})</span>
+                        )}
                       </button>
                       <button
                         onClick={() => onDeleteShortcut(shortcut.id)}

@@ -854,12 +854,12 @@ export class ProcessManager extends EventEmitter {
   /**
    * 新しいコマンドショートカットを作成
    */
-  async createShortcut(name: string, command: string, repositoryPath: string): Promise<CommandShortcut> {
+  async createShortcut(name: string | undefined, command: string, repositoryPath: string): Promise<CommandShortcut> {
     const shortcutId = `shortcut-${++this.shortcutCounter}-${Date.now()}`;
     
     const shortcut: CommandShortcut = {
       id: shortcutId,
-      name,
+      ...(name && name.trim() ? { name: name.trim() } : {}), // nameが入力されている場合のみ設定
       command,
       repositoryPath,
       createdAt: Date.now()
