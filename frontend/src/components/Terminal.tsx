@@ -24,6 +24,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   onClose
 }) => {
   const [input, setInput] = useState('');
+  const [selectedText, setSelectedText] = useState('');
+  const [showCopyButton, setShowCopyButton] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const xtermInstance = useRef<XTerm | null>(null);
@@ -40,6 +42,26 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       left: '\x1b[D'
     };
     onInput(terminal.id, arrowKeys[direction]);
+  };
+
+  // コピー機能
+  const handleCopy = async () => {
+    if (selectedText) {
+      try {
+        await navigator.clipboard.writeText(selectedText);
+        setShowCopyButton(false);
+        setSelectedText('');
+      } catch (err) {
+        console.error('コピーに失敗しました:', err);
+      }
+    }
+  };
+
+  // 全選択機能
+  const handleSelectAll = () => {
+    if (xtermInstance.current) {
+      xtermInstance.current.selectAll();
+    }
   };
 
   // XTermインスタンスを初期化
@@ -86,6 +108,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       scrollOnUserInput: true,
       fastScrollModifier: 'shift',
       scrollSensitivity: 3,
+      // テキスト選択機能を有効化（iOS対応）
+      rightClickSelectsWord: true,
       // 横スクロール対応の設定
       cols: 600, // 適度な列数を設定
       allowProposedApi: true // 横スクロール機能に必要
@@ -96,6 +120,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // XTermをDOMに接続
     xtermInstance.current.open(terminalRef.current);
+
+    // テキスト選択イベントの監視
+    xtermInstance.current.onSelectionChange(() => {
+      if (xtermInstance.current) {
+        const selection = xtermInstance.current.getSelection();
+        setSelectedText(selection);
+        setShowCopyButton(selection.length > 0);
+      }
+    });
 
     // サイズを自動調整（仮想スクロール対応）
     setTimeout(() => {
@@ -268,13 +301,33 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             <span className="text-gray-500 text-xs hidden sm:inline">PID: {terminal.pid}</span>
           )}
         </div>
-        <button
-          onClick={() => onClose(terminal.id)}
-          className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded flex-shrink-0"
-          title="ターミナルを閉じる"
-        >
-          ×
-        </button>
+        <div className="flex items-center space-x-1">
+          {/* 全選択ボタン */}
+          <button
+            onClick={handleSelectAll}
+            className="text-gray-400 hover:text-blue-400 text-xs px-2 py-1 rounded flex-shrink-0"
+            title="全選択"
+          >
+            全選択
+          </button>
+          {/* コピーボタン（選択時のみ表示） */}
+          {showCopyButton && (
+            <button
+              onClick={handleCopy}
+              className="text-gray-400 hover:text-green-400 text-xs px-2 py-1 rounded flex-shrink-0 bg-gray-700"
+              title="コピー"
+            >
+              コピー
+            </button>
+          )}
+          <button
+            onClick={() => onClose(terminal.id)}
+            className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded flex-shrink-0"
+            title="ターミナルを閉じる"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* XTermターミナル出力エリア */}
@@ -288,7 +341,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             width: 'max-content',
             overflowX: 'auto',
             overflowY: 'auto',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            // iOS対応: テキスト選択を有効化
+            userSelect: 'text',
+            WebkitUserSelect: 'text',
+            // iOS対応: タッチ操作とスクロールの最適化
+            touchAction: 'manipulation',
+            WebkitTouchCallout: 'default'
           }}
         />
       </div>
