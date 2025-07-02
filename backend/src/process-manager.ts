@@ -302,6 +302,15 @@ export class ProcessManager extends EventEmitter {
     this.terminals.set(terminalId, terminal);
     await this.persistTerminals();
     
+    // 最初のターミナル作成時にデフォルトショートカットを作成
+    const existingTerminals = this.getTerminalsByRepository(repositoryPath);
+    if (existingTerminals.length === 1) { // 最初のターミナルの場合
+      const existingShortcuts = this.getShortcutsByRepository(repositoryPath);
+      if (existingShortcuts.length === 0) { // ショートカットがまだない場合
+        await this.createDefaultShortcuts(repositoryPath);
+      }
+    }
+    
     this.emit('terminal-created', terminal);
     return terminal;
   }
@@ -848,6 +857,23 @@ export class ProcessManager extends EventEmitter {
       await fs.writeFile(this.shortcutsFile, JSON.stringify(shortcutsArray, null, 2), 'utf-8');
     } catch (error) {
       console.error('Failed to persist command shortcuts:', error);
+    }
+  }
+
+  /**
+   * デフォルトのコマンドショートカットを作成
+   */
+  private async createDefaultShortcuts(repositoryPath: string): Promise<void> {
+    const defaultShortcuts = [
+      { command: 'git pull' },
+      { command: 'npm run dev' },
+      { command: 'npm install' },
+      { command: 'git status' },
+      { command: 'npm test' }
+    ];
+
+    for (const shortcut of defaultShortcuts) {
+      await this.createShortcut(undefined, shortcut.command, repositoryPath);
     }
   }
 
