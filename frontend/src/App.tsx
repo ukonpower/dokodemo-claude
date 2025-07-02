@@ -184,11 +184,11 @@ function App() {
     });
 
     socketInstance.on('repo-cloned', (data) => {
-      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+      // リポジトリクローンメッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
     socketInstance.on('repo-created', (data) => {
-      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+      // リポジトリ作成メッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
     socketInstance.on('repo-deleted', (data) => {
@@ -210,7 +210,7 @@ function App() {
           window.history.replaceState({}, '', url.toString());
         }
       }
-      setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+      // リポジトリ削除メッセージもClaude出力エリアには表示しない
     });
 
     socketInstance.on('repo-switched', (data) => {
@@ -248,7 +248,7 @@ function App() {
     socketInstance.on('claude-session-created', (data) => {
       if (data.repositoryPath === currentRepoRef.current) {
         setCurrentSessionId(data.sessionId);
-        setRawOutput(prev => prev + `\n[SYSTEM] Claude CLI セッション開始: ${data.repositoryName}\n`);
+        // Claude CLIセッション開始メッセージは表示しない（自動的にプロンプトが表示されるため）
       }
     });
 
@@ -307,25 +307,15 @@ function App() {
     });
 
     socketInstance.on('shortcut-created', (data) => {
-      if (data.success) {
-        setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
-      } else {
-        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
-      }
+      // ショートカット作成メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
     socketInstance.on('shortcut-deleted', (data) => {
-      if (data.success) {
-        setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
-      } else {
-        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
-      }
+      // ショートカット削除メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
     socketInstance.on('shortcut-executed', (data) => {
-      if (!data.success) {
-        setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
-      }
+      // ショートカット実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
     
     // ブランチ関連のイベントハンドラ
@@ -343,8 +333,10 @@ function App() {
       if (data.repositoryPath === currentRepoRef.current) {
         if (data.success) {
           setCurrentBranch(data.currentBranch);
-          setRawOutput(prev => prev + `\n[SYSTEM] ${data.message}\n`);
+          // ブランチ切り替えメッセージはClaude出力エリアに表示しない
+          // （ブランチセレクター自体で状態が更新されるため）
         } else {
+          // エラーの場合のみClaude出力エリアに表示
           setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
         }
       }
