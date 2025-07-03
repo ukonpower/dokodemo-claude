@@ -88,7 +88,7 @@ function App() {
   const commandInputRef = useRef<CommandInputRef>(null);
 
   useEffect(() => {
-    let reconnectTimeout: number;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
     const maxReconnectAttempts = 10;
     const reconnectDelay = 2000; // 2秒
 
@@ -626,9 +626,6 @@ function App() {
             onSwitchBranch={handleSwitchBranch}
             isConnected={isConnected}
           />
-          <span className="text-sm text-gray-400">
-            現在のブランチ: <span className="font-mono text-blue-400">{currentBranch || '不明'}</span>
-          </span>
         </div>
         
         {/* Claude CLI セクション */}

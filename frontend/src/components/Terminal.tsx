@@ -263,26 +263,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       if (e.key === 'c') {
         e.preventDefault();
         onSignal(terminal.id, 'SIGINT');
-      } else if (e.key === 'z') {
-        e.preventDefault();
-        onSignal(terminal.id, 'SIGTSTP');
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onSignal(terminal.id, 'ESC');
-    } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      
-      // 矢印キーのANSIエスケープシーケンス
-      const arrowKeys: { [key: string]: string } = {
-        'ArrowUp': '\x1b[A',
-        'ArrowDown': '\x1b[B',
-        'ArrowRight': '\x1b[C',
-        'ArrowLeft': '\x1b[D'
-      };
-      
-      // ANSIエスケープシーケンスを直接送信
-      onInput(terminal.id, arrowKeys[e.key]);
     }
   };
 
@@ -426,14 +410,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
                   disabled={terminal.status === 'exited'}
                 >
                   Ctrl+C
-                </button>
-                <button
-                  onClick={() => onSignal(terminal.id, 'SIGTSTP')}
-                  className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="プロセスを一時停止 (Ctrl+Z)"
-                  disabled={terminal.status === 'exited'}
-                >
-                  Ctrl+Z
                 </button>
                 <button
                   onClick={() => onSignal(terminal.id, 'ESC')}
