@@ -267,19 +267,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onSignal(terminal.id, 'ESC');
-    } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      
-      // 矢印キーのANSIエスケープシーケンス
-      const arrowKeys: { [key: string]: string } = {
-        'ArrowUp': '\x1b[A',
-        'ArrowDown': '\x1b[B',
-        'ArrowRight': '\x1b[C',
-        'ArrowLeft': '\x1b[D'
-      };
-      
-      // ANSIエスケープシーケンスを直接送信
-      onInput(terminal.id, arrowKeys[e.key]);
     }
   };
 

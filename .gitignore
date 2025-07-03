@@ -113,6 +113,13 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+# TypeScript compiled output for config files
+**/vite.config.js
+**/vite.config.d.ts
+**/tailwind.config.js
+**/tailwind.config.d.ts
+**/postcss.config.js
+**/postcss.config.d.ts
 
 # Repository management (dokodemo-claude specific)
 repositories/
