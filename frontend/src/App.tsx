@@ -85,7 +85,7 @@ function App() {
   const [currentBranch, setCurrentBranch] = useState<string>('');
 
   useEffect(() => {
-    let reconnectTimeout: number;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
     const maxReconnectAttempts = 10;
     const reconnectDelay = 2000; // 2秒
 
@@ -183,11 +183,11 @@ function App() {
       }
     });
 
-    socketInstance.on('repo-cloned', (data) => {
+    socketInstance.on('repo-cloned', () => {
       // リポジトリクローンメッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('repo-created', (data) => {
+    socketInstance.on('repo-created', () => {
       // リポジトリ作成メッセージはリポジトリ管理画面で処理されるため、ここでは何もしない
     });
 
@@ -306,15 +306,15 @@ function App() {
       setShortcuts(data.shortcuts);
     });
 
-    socketInstance.on('shortcut-created', (data) => {
+    socketInstance.on('shortcut-created', () => {
       // ショートカット作成メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('shortcut-deleted', (data) => {
+    socketInstance.on('shortcut-deleted', () => {
       // ショートカット削除メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
 
-    socketInstance.on('shortcut-executed', (data) => {
+    socketInstance.on('shortcut-executed', () => {
       // ショートカット実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
     
