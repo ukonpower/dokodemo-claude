@@ -616,9 +616,6 @@ function App() {
             onSwitchBranch={handleSwitchBranch}
             isConnected={isConnected}
           />
-          <span className="text-sm text-gray-400">
-            現在のブランチ: <span className="font-mono text-blue-400">{currentBranch || '不明'}</span>
-          </span>
         </div>
         
         {/* Claude CLI セクション */}
