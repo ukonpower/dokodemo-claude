@@ -868,8 +868,7 @@ export class ProcessManager extends EventEmitter {
       { command: 'git pull' },
       { command: 'npm run dev' },
       { command: 'npm install' },
-      { command: 'git status' },
-      { command: 'npm test' }
+      { command: 'git status' }
     ];
 
     for (const shortcut of defaultShortcuts) {
