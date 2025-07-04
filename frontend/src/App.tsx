@@ -467,6 +467,16 @@ function App() {
     }
   };
 
+  const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet') => {
+    if (socket) {
+      socket.emit('send-command', { 
+        command: `/model ${model}`,
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo
+      });
+    }
+  };
+
   // ターミナル関連のハンドラ
   const handleCreateTerminal = (cwd: string, name?: string) => {
     if (socket) {
@@ -642,6 +652,7 @@ function App() {
                 onSendInterrupt={handleSendInterrupt}
                 onSendEscape={handleSendEscape}
                 onClearClaude={handleClearClaude}
+                onChangeModel={handleChangeModel}
                 disabled={!isConnected || !currentRepo}
               />
             </div>

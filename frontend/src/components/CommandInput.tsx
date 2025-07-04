@@ -6,11 +6,13 @@ interface CommandInputProps {
   onSendInterrupt?: () => void;
   onSendEscape?: () => void;
   onClearClaude?: () => void;
+  onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet') => void;
   disabled?: boolean;
 }
 
-const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowKey, onSendInterrupt, onSendEscape, onClearClaude, disabled = false }) => {
+const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowKey, onSendInterrupt, onSendEscape, onClearClaude, onChangeModel, disabled = false }) => {
   const [command, setCommand] = useState('');
+  const [showModelMenu, setShowModelMenu] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const sendCommand = () => {
@@ -161,6 +163,53 @@ const CommandInput: React.FC<CommandInputProps> = ({ onSendCommand, onSendArrowK
                   >
                     Clear
                   </button>
+                )}
+                {onChangeModel && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowModelMenu(!showModelMenu)}
+                      disabled={disabled}
+                      className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-purple-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-purple-400 touch-manipulation"
+                      title="モデルを選択"
+                    >
+                      Model
+                    </button>
+                    {showModelMenu && (
+                      <div className="absolute bottom-full left-0 mb-2 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChangeModel('default');
+                            setShowModelMenu(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600 rounded-t-md"
+                        >
+                          Default
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChangeModel('Opus');
+                            setShowModelMenu(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600"
+                        >
+                          Opus
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChangeModel('Sonnet');
+                            setShowModelMenu(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600 rounded-b-md"
+                        >
+                          Sonnet
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
