@@ -236,6 +236,15 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(({ onSendCom
                   )}
                 </div>
               )}
+              <button
+                type="button"
+                onClick={() => onSendCommand('/commit')}
+                disabled={disabled}
+                className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-green-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-green-400 touch-manipulation"
+                title="コミット (/commit)"
+              >
+                Commit
+              </button>
             </div>
           </div>
         </div>
