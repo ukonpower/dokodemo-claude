@@ -8,6 +8,8 @@ import type {
   TerminalOutputLine,
   ClaudeOutputLine,
   CommandShortcut,
+  AutoModeConfig,
+  AutoModeState,
   ServerToClientEvents,
   ClientToServerEvents
 } from './types';
@@ -18,6 +20,7 @@ import CommandInput, { CommandInputRef } from './components/CommandInput';
 import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
 import NpmScripts from './components/NpmScripts';
+import AutoModeSettings from './components/AutoModeSettings';
 
 function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -56,6 +59,8 @@ function App() {
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
             socket.emit('list-branches', { repositoryPath: repoFromUrl });
             socket.emit('get-npm-scripts', { repositoryPath: repoFromUrl });
+            socket.emit('get-automode-configs', { repositoryPath: repoFromUrl });
+            socket.emit('get-automode-status', { repositoryPath: repoFromUrl });
           }
         }
       }
@@ -90,6 +95,10 @@ function App() {
 
   // npmスクリプト関連の状態
   const [npmScripts, setNpmScripts] = useState<Record<string, string>>({});
+
+  // 自走モード関連の状態
+  const [autoModeConfigs, setAutoModeConfigs] = useState<AutoModeConfig[]>([]);
+  const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(null);
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -146,6 +155,10 @@ function App() {
             // npmスクリプト一覧も取得
             socketInstance.emit('get-npm-scripts', { repositoryPath: currentPath });
             console.log(`[Frontend] Emitted get-npm-scripts for: ${currentPath}`);
+            // 自走モード設定も取得
+            socketInstance.emit('get-automode-configs', { repositoryPath: currentPath });
+            socketInstance.emit('get-automode-status', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted automode events for: ${currentPath}`);
           } else {
             console.log(`[Frontend] No current repo detected after delay`);
           }
@@ -218,6 +231,8 @@ function App() {
           setBranches([]);
           setCurrentBranch('');
           setNpmScripts({});
+          setAutoModeConfigs([]);
+          setAutoModeState(null);
           // URLからリポジトリパラメータを削除
           const url = new URL(window.location.href);
           url.searchParams.delete('repo');
@@ -257,6 +272,10 @@ function App() {
         
         // 新しいリポジトリのnpmスクリプト一覧を取得
         socketInstance.emit('get-npm-scripts', { repositoryPath: data.currentPath });
+        
+        // 新しいリポジトリの自走モード設定を取得
+        socketInstance.emit('get-automode-configs', { repositoryPath: data.currentPath });
+        socketInstance.emit('get-automode-status', { repositoryPath: data.currentPath });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -356,6 +375,41 @@ function App() {
     socketInstance.on('npm-script-executed', () => {
       // npmスクリプト実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
+
+    // 自走モード関連のイベントハンドラ
+    socketInstance.on('automode-configs-list', (data) => {
+      setAutoModeConfigs(data.configs);
+    });
+
+    socketInstance.on('automode-config-created', (data) => {
+      if (data.success && data.config) {
+        setAutoModeConfigs(prev => [...prev, data.config!]);
+      }
+    });
+
+    socketInstance.on('automode-config-updated', (data) => {
+      if (data.success && data.config) {
+        setAutoModeConfigs(prev => 
+          prev.map(config => config.id === data.config!.id ? data.config! : config)
+        );
+      }
+    });
+
+    socketInstance.on('automode-config-deleted', (data) => {
+      if (data.success && data.configId) {
+        setAutoModeConfigs(prev => prev.filter(config => config.id !== data.configId));
+      }
+    });
+
+    socketInstance.on('automode-status-changed', (data) => {
+      if (data.repositoryPath === currentRepoRef.current) {
+        setAutoModeState({
+          repositoryPath: data.repositoryPath,
+          isRunning: data.isRunning,
+          currentConfigId: data.configId
+        });
+      }
+    });
     
     socketInstance.on('branch-switched', (data) => {
       if (data.repositoryPath === currentRepoRef.current) {
@@ -409,6 +463,8 @@ function App() {
   const handleBackToRepoSelection = () => {
     setCurrentRepo('');
     setRawOutput(''); // CLIログをクリア
+    setAutoModeConfigs([]);
+    setAutoModeState(null);
     // URLからリポジトリパラメータを削除
     const url = new URL(window.location.href);
     url.searchParams.delete('repo');
@@ -753,6 +809,25 @@ function App() {
             onExecuteScript={handleExecuteNpmScript}
             onRefreshScripts={handleRefreshNpmScripts}
           />
+        </section>
+
+        {/* 自走モード設定セクション */}
+        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+          <div className="px-4 sm:px-6 py-4">
+            <h3 className="text-base font-semibold text-white mb-3 flex items-center">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              自走モード
+            </h3>
+            <AutoModeSettings
+              socket={socket!}
+              repositoryPath={currentRepo}
+              repositoryName={currentRepo.split('/').pop() || ''}
+              configs={autoModeConfigs}
+              autoModeState={autoModeState}
+            />
+          </div>
         </section>
 
         {/* リポジトリ削除セクション */}

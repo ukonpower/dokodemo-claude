@@ -105,6 +105,13 @@ export interface ServerToClientEvents {
   // ブランチ関連イベント
   'branches-list': (data: { branches: GitBranch[]; repositoryPath: string }) => void;
   'branch-switched': (data: { success: boolean; message: string; currentBranch: string; repositoryPath: string }) => void;
+  
+  // 自走モード関連イベント
+  'automode-configs-list': (data: { configs: AutoModeConfig[] }) => void;
+  'automode-config-created': (data: { success: boolean; message: string; config?: AutoModeConfig }) => void;
+  'automode-config-updated': (data: { success: boolean; message: string; config?: AutoModeConfig }) => void;
+  'automode-config-deleted': (data: { success: boolean; message: string; configId?: string }) => void;
+  'automode-status-changed': (data: { repositoryPath: string; isRunning: boolean; configId?: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -141,6 +148,19 @@ export interface ClientToServerEvents {
   // ブランチ関連イベント
   'list-branches': (data: { repositoryPath: string }) => void;
   'switch-branch': (data: { repositoryPath: string; branchName: string }) => void;
+
+  // npmスクリプト関連イベント
+  'get-npm-scripts': (data: { repositoryPath: string }) => void;
+  'execute-npm-script': (data: { repositoryPath: string; scriptName: string; terminalId?: string }) => void;
+
+  // 自走モード関連イベント
+  'get-automode-configs': (data: { repositoryPath: string }) => void;
+  'create-automode-config': (data: { name: string; prompt: string; repositoryPath: string }) => void;
+  'update-automode-config': (data: { id: string; name?: string; prompt?: string; isEnabled?: boolean }) => void;
+  'delete-automode-config': (data: { configId: string }) => void;
+  'start-automode': (data: { repositoryPath: string; configId: string }) => void;
+  'stop-automode': (data: { repositoryPath: string }) => void;
+  'get-automode-status': (data: { repositoryPath: string }) => void;
 }
 
 // Claude CLI 操作関連の型定義
@@ -158,4 +178,24 @@ export interface CommandShortcut {
   command: string;
   repositoryPath: string;
   createdAt: number;
+}
+
+// 自走モード設定の型定義
+export interface AutoModeConfig {
+  id: string;
+  name: string;
+  prompt: string;
+  repositoryPath: string;
+  isEnabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// 自走モード状態の型定義
+export interface AutoModeState {
+  repositoryPath: string;
+  isRunning: boolean;
+  currentConfigId?: string;
+  lastExecutionTime?: number;
+  nextExecutionTime?: number;
 }

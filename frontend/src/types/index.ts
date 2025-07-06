@@ -67,6 +67,25 @@ export interface CommandShortcut {
   createdAt: number;
 }
 
+// 自走モード関連の型定義
+export interface AutoModeConfig {
+  id: string;
+  name: string;
+  prompt: string;
+  repositoryPath: string;
+  isEnabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AutoModeState {
+  repositoryPath: string;
+  isRunning: boolean;
+  currentConfigId?: string;
+  lastExecutionTime?: number;
+  nextExecutionTime?: number;
+}
+
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'clone-status': (data: { status: string; message: string }) => void;
@@ -125,6 +144,13 @@ export interface ServerToClientEvents {
   // npmスクリプト関連イベント
   'npm-scripts-list': (data: { scripts: Record<string, string>; repositoryPath: string }) => void;
   'npm-script-executed': (data: { success: boolean; message: string; scriptName: string; terminalId?: string }) => void;
+  
+  // 自走モード関連イベント
+  'automode-configs-list': (data: { configs: AutoModeConfig[] }) => void;
+  'automode-config-created': (data: { success: boolean; message: string; config?: AutoModeConfig }) => void;
+  'automode-config-updated': (data: { success: boolean; message: string; config?: AutoModeConfig }) => void;
+  'automode-config-deleted': (data: { success: boolean; message: string; configId?: string }) => void;
+  'automode-status-changed': (data: { repositoryPath: string; isRunning: boolean; configId?: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -165,4 +191,13 @@ export interface ClientToServerEvents {
   // npmスクリプト関連イベント
   'get-npm-scripts': (data: { repositoryPath: string }) => void;
   'execute-npm-script': (data: { repositoryPath: string; scriptName: string; terminalId?: string }) => void;
+  
+  // 自走モード関連イベント
+  'get-automode-configs': (data: { repositoryPath: string }) => void;
+  'create-automode-config': (data: { name: string; prompt: string; repositoryPath: string }) => void;
+  'update-automode-config': (data: { id: string; name?: string; prompt?: string; isEnabled?: boolean }) => void;
+  'delete-automode-config': (data: { configId: string }) => void;
+  'start-automode': (data: { repositoryPath: string; configId: string }) => void;
+  'stop-automode': (data: { repositoryPath: string }) => void;
+  'get-automode-status': (data: { repositoryPath: string }) => void;
 }

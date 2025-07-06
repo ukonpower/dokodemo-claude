@@ -834,6 +834,143 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 自走モード関連のイベントハンドラ
+
+  // 自走モード設定一覧の取得
+  socket.on('get-automode-configs', (data) => {
+    const { repositoryPath } = data;
+    const configs = processManager.getAutoModeConfigsByRepository(repositoryPath);
+    socket.emit('automode-configs-list', { configs });
+  });
+
+  // 新しい自走モード設定の作成
+  socket.on('create-automode-config', async (data) => {
+    const { name, prompt, repositoryPath } = data;
+    
+    try {
+      const config = await processManager.createAutoModeConfig(name, prompt, repositoryPath);
+      socket.emit('automode-config-created', {
+        success: true,
+        message: `自走モード設定「${name}」を作成しました`,
+        config
+      });
+
+      // 更新された設定一覧を送信
+      const configs = processManager.getAutoModeConfigsByRepository(repositoryPath);
+      socket.emit('automode-configs-list', { configs });
+      
+    } catch (error) {
+      socket.emit('automode-config-created', {
+        success: false,
+        message: `自走モード設定作成エラー: ${error}`
+      });
+    }
+  });
+
+  // 自走モード設定の更新
+  socket.on('update-automode-config', async (data) => {
+    const { id, name, prompt, isEnabled } = data;
+    
+    try {
+      const config = await processManager.updateAutoModeConfig(id, { name, prompt, isEnabled });
+      if (config) {
+        socket.emit('automode-config-updated', {
+          success: true,
+          message: `自走モード設定「${config.name}」を更新しました`,
+          config
+        });
+
+        // 更新された設定一覧を送信
+        const configs = processManager.getAutoModeConfigsByRepository(config.repositoryPath);
+        socket.emit('automode-configs-list', { configs });
+      } else {
+        socket.emit('automode-config-updated', {
+          success: false,
+          message: '自走モード設定が見つかりません'
+        });
+      }
+    } catch (error) {
+      socket.emit('automode-config-updated', {
+        success: false,
+        message: `自走モード設定更新エラー: ${error}`
+      });
+    }
+  });
+
+  // 自走モード設定の削除
+  socket.on('delete-automode-config', async (data) => {
+    const { configId } = data;
+    
+    try {
+      const success = await processManager.deleteAutoModeConfig(configId);
+      if (success) {
+        socket.emit('automode-config-deleted', {
+          success: true,
+          message: '自走モード設定を削除しました',
+          configId
+        });
+      } else {
+        socket.emit('automode-config-deleted', {
+          success: false,
+          message: '自走モード設定が見つかりません',
+          configId
+        });
+      }
+    } catch (error) {
+      socket.emit('automode-config-deleted', {
+        success: false,
+        message: `自走モード設定削除エラー: ${error}`,
+        configId
+      });
+    }
+  });
+
+  // 自走モードの開始
+  socket.on('start-automode', async (data) => {
+    const { repositoryPath, configId } = data;
+    
+    try {
+      const success = await processManager.startAutoMode(repositoryPath, configId);
+      if (success) {
+        socket.emit('automode-status-changed', {
+          repositoryPath,
+          isRunning: true,
+          configId
+        });
+      }
+    } catch (error) {
+      console.error('Failed to start automode:', error);
+    }
+  });
+
+  // 自走モードの停止
+  socket.on('stop-automode', async (data) => {
+    const { repositoryPath } = data;
+    
+    try {
+      const success = await processManager.stopAutoMode(repositoryPath);
+      if (success) {
+        socket.emit('automode-status-changed', {
+          repositoryPath,
+          isRunning: false
+        });
+      }
+    } catch (error) {
+      console.error('Failed to stop automode:', error);
+    }
+  });
+
+  // 自走モード状態の取得
+  socket.on('get-automode-status', (data) => {
+    const { repositoryPath } = data;
+    const state = processManager.getAutoModeState(repositoryPath);
+    socket.emit('automode-status-changed', {
+      repositoryPath,
+      isRunning: state?.isRunning || false,
+      configId: state?.currentConfigId
+    });
+  });
+
   socket.on('disconnect', () => {
     // クライアント切断時の処理
   });

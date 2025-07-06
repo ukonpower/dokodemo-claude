@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-import { CommandShortcut } from './types/index.js';
+import { CommandShortcut, AutoModeConfig, AutoModeState } from './types/index.js';
 
 // Claude CLI出力履歴の行情報
 export interface ClaudeOutputLine {
@@ -51,6 +51,7 @@ export interface ActiveClaudeSession extends PersistedClaudeSession {
   process: pty.IPty;
   isPty: boolean;
   outputHistory: ClaudeOutputLine[]; // アクティブセッションでは必須
+  idleTimer?: NodeJS.Timeout; // 処理完了検知用タイマー
 }
 
 // アクティブなターミナル
@@ -67,14 +68,20 @@ export class ProcessManager extends EventEmitter {
   private claudeSessions: Map<string, ActiveClaudeSession> = new Map();
   private terminals: Map<string, ActiveTerminal> = new Map();
   private shortcuts: Map<string, CommandShortcut> = new Map();
+  private autoModeConfigs: Map<string, AutoModeConfig> = new Map();
+  private autoModeStates: Map<string, AutoModeState> = new Map();
   private processesDir: string;
   private claudeSessionsFile: string;
   private terminalsFile: string;
   private shortcutsFile: string;
+  private autoModeConfigsFile: string;
+  private autoModeStatesFile: string;
   private sessionCounter = 0;
   private terminalCounter = 0;
   private shortcutCounter = 0;
+  private autoModeConfigCounter = 0;
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
+  private readonly IDLE_TIMEOUT = 5000; // 5秒間無出力で処理完了とみなす
 
   constructor(processesDir: string) {
     super();
@@ -82,6 +89,8 @@ export class ProcessManager extends EventEmitter {
     this.claudeSessionsFile = path.join(processesDir, 'claude-sessions.json');
     this.terminalsFile = path.join(processesDir, 'terminals.json');
     this.shortcutsFile = path.join(processesDir, 'command-shortcuts.json');
+    this.autoModeConfigsFile = path.join(processesDir, 'automode-configs.json');
+    this.autoModeStatesFile = path.join(processesDir, 'automode-states.json');
   }
 
   /**
@@ -92,6 +101,8 @@ export class ProcessManager extends EventEmitter {
     await this.restoreClaudeSessions();
     await this.restoreTerminals();
     await this.restoreShortcuts();
+    await this.restoreAutoModeConfigs();
+    await this.restoreAutoModeStates();
     
     // 定期的なプロセス監視を開始
     this.startProcessMonitoring();
@@ -205,6 +216,9 @@ export class ProcessManager extends EventEmitter {
       
       // 出力履歴に追加
       this.addToOutputHistory(session, data, 'stdout');
+      
+      // 処理完了検知タイマーをリセット
+      this.resetIdleTimer(session);
       
       this.emit('claude-output', {
         sessionId: session.id,
@@ -375,6 +389,67 @@ export class ProcessManager extends EventEmitter {
     
     // 新しいセッションを作成
     return await this.createClaudeSession(repositoryPath, repositoryName);
+  }
+
+  /**
+   * 処理完了検知タイマーをリセット
+   */
+  private resetIdleTimer(session: ActiveClaudeSession): void {
+    // 既存のタイマーをクリア
+    if (session.idleTimer) {
+      clearTimeout(session.idleTimer);
+    }
+
+    // 新しいタイマーを設定
+    session.idleTimer = setTimeout(() => {
+      // Claude処理完了を検知
+      this.onClaudeProcessingComplete(session);
+    }, this.IDLE_TIMEOUT);
+  }
+
+  /**
+   * Claude処理完了時の処理
+   */
+  private onClaudeProcessingComplete(session: ActiveClaudeSession): void {
+    // 自走モードが有効かチェック
+    const autoModeState = this.autoModeStates.get(session.repositoryPath);
+    if (!autoModeState || !autoModeState.isRunning) {
+      return;
+    }
+
+    // 設定されているプロンプトを取得
+    const config = this.autoModeConfigs.get(autoModeState.currentConfigId || '');
+    if (!config || !config.isEnabled) {
+      return;
+    }
+
+    // 自動プロンプト送信
+    setTimeout(() => {
+      this.sendAutoPrompt(session, config);
+    }, 1000); // 1秒後に送信
+  }
+
+  /**
+   * 自動プロンプト送信
+   */
+  private sendAutoPrompt(session: ActiveClaudeSession, config: AutoModeConfig): void {
+    const success = this.sendToClaudeSession(session.id, config.prompt);
+    
+    if (success) {
+      // 実行時間を更新
+      const autoModeState = this.autoModeStates.get(session.repositoryPath);
+      if (autoModeState) {
+        autoModeState.lastExecutionTime = Date.now();
+        this.persistAutoModeStates();
+      }
+
+      this.emit('automode-prompt-sent', {
+        sessionId: session.id,
+        repositoryPath: session.repositoryPath,
+        configId: config.id,
+        prompt: config.prompt
+      });
+    }
   }
 
   /**
@@ -987,5 +1062,190 @@ export class ProcessManager extends EventEmitter {
     await this.persistShortcuts();
     
     console.log('ProcessManager shutdown completed');
+  }
+
+  // ===== 自走モード管理メソッド =====
+
+  /**
+   * 自走モード設定の復帰
+   */
+  private async restoreAutoModeConfigs(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.autoModeConfigsFile, 'utf-8');
+      const configs: AutoModeConfig[] = JSON.parse(data);
+      
+      this.autoModeConfigs.clear();
+      for (const config of configs) {
+        this.autoModeConfigs.set(config.id, config);
+        // カウンターの更新
+        const idNumber = parseInt(config.id.split('-').pop() || '0');
+        if (idNumber > this.autoModeConfigCounter) {
+          this.autoModeConfigCounter = idNumber;
+        }
+      }
+      
+      console.log(`Restored ${configs.length} automode configs`);
+    } catch (error) {
+      if ((error as any).code !== 'ENOENT') {
+        console.error('Failed to restore automode configs:', error);
+      }
+    }
+  }
+
+  /**
+   * 自走モード状態の復帰
+   */
+  private async restoreAutoModeStates(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.autoModeStatesFile, 'utf-8');
+      const states: AutoModeState[] = JSON.parse(data);
+      
+      this.autoModeStates.clear();
+      for (const state of states) {
+        this.autoModeStates.set(state.repositoryPath, state);
+      }
+      
+      console.log(`Restored ${states.length} automode states`);
+    } catch (error) {
+      if ((error as any).code !== 'ENOENT') {
+        console.error('Failed to restore automode states:', error);
+      }
+    }
+  }
+
+  /**
+   * 自走モード設定の永続化
+   */
+  private async persistAutoModeConfigs(): Promise<void> {
+    try {
+      const configs = Array.from(this.autoModeConfigs.values());
+      await fs.writeFile(this.autoModeConfigsFile, JSON.stringify(configs, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Failed to persist automode configs:', error);
+    }
+  }
+
+  /**
+   * 自走モード状態の永続化
+   */
+  private async persistAutoModeStates(): Promise<void> {
+    try {
+      const states = Array.from(this.autoModeStates.values());
+      await fs.writeFile(this.autoModeStatesFile, JSON.stringify(states, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Failed to persist automode states:', error);
+    }
+  }
+
+  /**
+   * 自走モード設定を作成
+   */
+  async createAutoModeConfig(name: string, prompt: string, repositoryPath: string): Promise<AutoModeConfig> {
+    const configId = `automode-${++this.autoModeConfigCounter}-${Date.now()}`;
+    
+    const config: AutoModeConfig = {
+      id: configId,
+      name,
+      prompt,
+      repositoryPath,
+      isEnabled: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    this.autoModeConfigs.set(configId, config);
+    await this.persistAutoModeConfigs();
+    
+    return config;
+  }
+
+  /**
+   * 自走モード設定を更新
+   */
+  async updateAutoModeConfig(configId: string, updates: Partial<Pick<AutoModeConfig, 'name' | 'prompt' | 'isEnabled'>>): Promise<AutoModeConfig | null> {
+    const config = this.autoModeConfigs.get(configId);
+    if (!config) {
+      return null;
+    }
+
+    Object.assign(config, updates, { updatedAt: Date.now() });
+    this.autoModeConfigs.set(configId, config);
+    await this.persistAutoModeConfigs();
+    
+    return config;
+  }
+
+  /**
+   * 自走モード設定を削除
+   */
+  async deleteAutoModeConfig(configId: string): Promise<boolean> {
+    const deleted = this.autoModeConfigs.delete(configId);
+    if (deleted) {
+      // 該当設定を使用している自走モード状態を停止
+      for (const [repositoryPath, state] of this.autoModeStates.entries()) {
+        if (state.currentConfigId === configId) {
+          state.isRunning = false;
+          state.currentConfigId = undefined;
+        }
+      }
+      
+      await this.persistAutoModeConfigs();
+      await this.persistAutoModeStates();
+    }
+    return deleted;
+  }
+
+  /**
+   * 指定リポジトリの自走モード設定一覧を取得
+   */
+  getAutoModeConfigsByRepository(repositoryPath: string): AutoModeConfig[] {
+    return Array.from(this.autoModeConfigs.values())
+      .filter(config => config.repositoryPath === repositoryPath)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  /**
+   * 自走モードを開始
+   */
+  async startAutoMode(repositoryPath: string, configId: string): Promise<boolean> {
+    const config = this.autoModeConfigs.get(configId);
+    if (!config || config.repositoryPath !== repositoryPath || !config.isEnabled) {
+      return false;
+    }
+
+    const state: AutoModeState = {
+      repositoryPath,
+      isRunning: true,
+      currentConfigId: configId,
+      lastExecutionTime: Date.now()
+    };
+
+    this.autoModeStates.set(repositoryPath, state);
+    await this.persistAutoModeStates();
+    
+    return true;
+  }
+
+  /**
+   * 自走モードを停止
+   */
+  async stopAutoMode(repositoryPath: string): Promise<boolean> {
+    const state = this.autoModeStates.get(repositoryPath);
+    if (!state || !state.isRunning) {
+      return false;
+    }
+
+    state.isRunning = false;
+    state.currentConfigId = undefined;
+    await this.persistAutoModeStates();
+    
+    return true;
+  }
+
+  /**
+   * 自走モード状態を取得
+   */
+  getAutoModeState(repositoryPath: string): AutoModeState | null {
+    return this.autoModeStates.get(repositoryPath) || null;
   }
 }
