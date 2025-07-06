@@ -482,7 +482,8 @@ export class ProcessManager extends EventEmitter {
     if (success) {
       // プロンプト送信後500ms待機してからEnterキーを送信
       setTimeout(() => {
-        this.sendToClaudeSession(session.id, '\n');
+        // Enterキーを送信（キャリッジリターン）
+        this.sendToClaudeSession(session.id, '\r');
       }, 500);
 
       // 実行時間を更新
