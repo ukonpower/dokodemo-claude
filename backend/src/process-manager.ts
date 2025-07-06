@@ -55,7 +55,6 @@ export interface ActiveClaudeSession extends PersistedClaudeSession {
   process: pty.IPty;
   isPty: boolean;
   outputHistory: ClaudeOutputLine[]; // アクティブセッションでは必須
-  idleTimer?: NodeJS.Timeout; // 処理完了検知用タイマー
 }
 
 // アクティブなターミナル
@@ -85,7 +84,6 @@ export class ProcessManager extends EventEmitter {
   private shortcutCounter = 0;
   private autoModeConfigCounter = 0;
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
-  private readonly IDLE_TIMEOUT = 5000; // 5秒間無出力で処理完了とみなす
 
   constructor(processesDir: string) {
     super();
@@ -227,9 +225,6 @@ export class ProcessManager extends EventEmitter {
 
       // 出力履歴に追加
       this.addToOutputHistory(session, data, 'stdout');
-
-      // 処理完了検知タイマーをリセット
-      this.resetIdleTimer(session);
 
       this.emit('claude-output', {
         sessionId: session.id,
@@ -417,45 +412,6 @@ export class ProcessManager extends EventEmitter {
     return await this.createClaudeSession(repositoryPath, repositoryName);
   }
 
-  /**
-   * 処理完了検知タイマーをリセット
-   */
-  private resetIdleTimer(session: ActiveClaudeSession): void {
-    // 既存のタイマーをクリア
-    if (session.idleTimer) {
-      clearTimeout(session.idleTimer);
-    }
-
-    // 新しいタイマーを設定
-    session.idleTimer = setTimeout(() => {
-      // Claude処理完了を検知
-      this.onClaudeProcessingComplete(session);
-    }, this.IDLE_TIMEOUT);
-  }
-
-  /**
-   * Claude処理完了時の処理
-   */
-  private onClaudeProcessingComplete(session: ActiveClaudeSession): void {
-    // 自走モードが有効かチェック
-    const autoModeState = this.autoModeStates.get(session.repositoryPath);
-    if (!autoModeState || !autoModeState.isRunning) {
-      return;
-    }
-
-    // 設定されているプロンプトを取得
-    const config = this.autoModeConfigs.get(
-      autoModeState.currentConfigId || ''
-    );
-    if (!config || !config.isEnabled) {
-      return;
-    }
-
-    // 自動プロンプト送信
-    setTimeout(() => {
-      this.sendAutoPrompt(session, config);
-    }, 1000); // 1秒後に送信
-  }
 
   /**
    * Hookイベントから自走モードをトリガー
