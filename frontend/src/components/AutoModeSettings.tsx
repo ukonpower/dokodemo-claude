@@ -7,8 +7,7 @@ interface AutoModeConfig {
   prompt: string;
   repositoryPath: string;
   isEnabled: boolean;
-  triggerMode: 'hook' | 'timer';
-  interval?: number;
+  triggerMode: 'hook';
   createdAt: number;
   updatedAt: number;
 }
@@ -18,7 +17,6 @@ interface AutoModeState {
   isRunning: boolean;
   currentConfigId?: string;
   lastExecutionTime?: number;
-  nextExecutionTime?: number;
 }
 
 interface AutoModeSettingsProps {
@@ -46,8 +44,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     name: '',
     prompt: '',
     isEnabled: true,
-    triggerMode: 'hook' as 'hook' | 'timer',
-    interval: 30000,
+    triggerMode: 'hook' as const,
   });
 
   // propsからの初期値を反映
@@ -96,7 +93,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           prompt: '',
           isEnabled: true,
           triggerMode: 'hook',
-          interval: 30000,
         });
       }
     };
@@ -135,7 +131,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           isRunning: data.isRunning,
           currentConfigId: data.configId,
           lastExecutionTime: prev?.lastExecutionTime,
-          nextExecutionTime: prev?.nextExecutionTime,
         }));
       }
     };
@@ -164,8 +159,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
         repositoryPath,
         isEnabled: newConfig.isEnabled,
         triggerMode: newConfig.triggerMode,
-        interval:
-          newConfig.triggerMode === 'timer' ? newConfig.interval : undefined,
       });
     }
   };
@@ -178,10 +171,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       prompt: editingConfig.prompt,
       isEnabled: editingConfig.isEnabled,
       triggerMode: editingConfig.triggerMode,
-      interval:
-        editingConfig.triggerMode === 'timer'
-          ? editingConfig.interval
-          : undefined,
     });
   };
 
@@ -200,7 +189,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       prompt: config.prompt,
       isEnabled: !config.isEnabled,
       triggerMode: config.triggerMode,
-      interval: config.interval,
     });
   };
 
@@ -266,14 +254,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                         最終実行:{' '}
                         {new Date(
                           autoModeState.lastExecutionTime
-                        ).toLocaleString()}
-                      </p>
-                    )}
-                    {autoModeState.nextExecutionTime && (
-                      <p className="text-xs text-gray-400">
-                        次回実行予定:{' '}
-                        {new Date(
-                          autoModeState.nextExecutionTime
                         ).toLocaleString()}
                       </p>
                     )}
@@ -360,53 +340,15 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       type="radio"
                       name="triggerMode"
                       value="hook"
-                      checked={newConfig.triggerMode === 'hook'}
-                      onChange={() =>
-                        setNewConfig({ ...newConfig, triggerMode: 'hook' })
-                      }
+                      checked={true}
+                      disabled={true}
                       className="mr-2"
                     />
                     <span className="text-xs sm:text-sm text-gray-200">
                       Hookモード（Claude Code実行完了時に自動実行）
                     </span>
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="triggerMode"
-                      value="timer"
-                      checked={newConfig.triggerMode === 'timer'}
-                      onChange={() =>
-                        setNewConfig({ ...newConfig, triggerMode: 'timer' })
-                      }
-                      className="mr-2"
-                    />
-                    <span className="text-xs sm:text-sm text-gray-200">
-                      タイマーモード（定期実行）
-                    </span>
-                  </label>
                 </div>
-                {newConfig.triggerMode === 'timer' && (
-                  <div className="mt-2">
-                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                      実行間隔（秒）
-                    </label>
-                    <input
-                      type="number"
-                      value={newConfig.interval / 1000}
-                      onChange={(e) =>
-                        setNewConfig({
-                          ...newConfig,
-                          interval: parseInt(e.target.value) * 1000,
-                        })
-                      }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                      placeholder="30"
-                      min="10"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">最小: 10秒</p>
-                  </div>
-                )}
               </div>
               <div className="flex items-center">
                 <input
@@ -507,61 +449,15 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               type="radio"
                               name={`triggerMode-${config.id}`}
                               value="hook"
-                              checked={editingConfig.triggerMode === 'hook'}
-                              onChange={() =>
-                                setEditingConfig({
-                                  ...editingConfig,
-                                  triggerMode: 'hook',
-                                })
-                              }
+                              checked={true}
+                              disabled={true}
                               className="mr-2"
                             />
                             <span className="text-xs sm:text-sm text-gray-200">
                               Hookモード（Claude Code実行完了時に自動実行）
                             </span>
                           </label>
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              name={`triggerMode-${config.id}`}
-                              value="timer"
-                              checked={editingConfig.triggerMode === 'timer'}
-                              onChange={() =>
-                                setEditingConfig({
-                                  ...editingConfig,
-                                  triggerMode: 'timer',
-                                })
-                              }
-                              className="mr-2"
-                            />
-                            <span className="text-xs sm:text-sm text-gray-200">
-                              タイマーモード（定期実行）
-                            </span>
-                          </label>
                         </div>
-                        {editingConfig.triggerMode === 'timer' && (
-                          <div className="mt-2">
-                            <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                              実行間隔（秒）
-                            </label>
-                            <input
-                              type="number"
-                              value={(editingConfig.interval || 30000) / 1000}
-                              onChange={(e) =>
-                                setEditingConfig({
-                                  ...editingConfig,
-                                  interval: parseInt(e.target.value) * 1000,
-                                })
-                              }
-                              className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                              placeholder="30"
-                              min="10"
-                            />
-                            <p className="text-xs text-gray-400 mt-1">
-                              最小: 10秒
-                            </p>
-                          </div>
-                        )}
                       </div>
                       <div className="flex items-center">
                         <input
@@ -622,9 +518,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                                   : '無効'}
                             </span>
                             <span className="text-xs text-gray-400">
-                              {config.triggerMode === 'hook'
-                                ? 'Hookモード'
-                                : `タイマーモード (${(config.interval || 30000) / 1000}秒)`}
+                              Hookモード
                             </span>
                           </div>
                         </div>
