@@ -22,7 +22,6 @@ interface AutoModeState {
 interface AutoModeSettingsProps {
   socket: Socket;
   repositoryPath: string;
-  repositoryName: string;
   configs?: AutoModeConfig[];
   autoModeState?: AutoModeState | null;
 }
@@ -30,7 +29,6 @@ interface AutoModeSettingsProps {
 const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({ 
   socket, 
   repositoryPath, 
-  repositoryName,
   configs: initialConfigs = [],
   autoModeState: initialAutoModeState = null
 }) => {
@@ -54,21 +52,25 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
   }, [initialAutoModeState]);
 
   useEffect(() => {
-    if (repositoryPath) {
+    if (repositoryPath && socket) {
       loadConfigs();
       loadAutoModeStatus();
     }
-  }, [repositoryPath]);
+  }, [repositoryPath, socket]);
 
   const loadConfigs = () => {
+    if (!socket) return;
     socket.emit('get-automode-configs', { repositoryPath });
   };
 
   const loadAutoModeStatus = () => {
+    if (!socket) return;
     socket.emit('get-automode-status', { repositoryPath });
   };
 
   useEffect(() => {
+    if (!socket) return;
+
     const handleConfigsList = (data: { configs: AutoModeConfig[] }) => {
       setConfigs(data.configs);
     };
@@ -119,9 +121,10 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       socket.off('automode-config-deleted', handleConfigDeleted);
       socket.off('automode-status-changed', handleAutoModeStatusChanged);
     };
-  }, [socket]);
+  }, [socket, repositoryPath]);
 
   const handleCreateConfig = () => {
+    if (!socket) return;
     if (newConfig.name.trim() && newConfig.prompt.trim()) {
       socket.emit('create-automode-config', {
         name: newConfig.name.trim(),
@@ -132,24 +135,25 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     }
   };
 
-  const handleUpdateConfig = (config: AutoModeConfig) => {
-    if (editingConfig) {
-      socket.emit('update-automode-config', {
-        id: editingConfig.id,
-        name: editingConfig.name,
-        prompt: editingConfig.prompt,
-        isEnabled: editingConfig.isEnabled
-      });
-    }
+  const handleUpdateConfig = () => {
+    if (!socket || !editingConfig) return;
+    socket.emit('update-automode-config', {
+      id: editingConfig.id,
+      name: editingConfig.name,
+      prompt: editingConfig.prompt,
+      isEnabled: editingConfig.isEnabled
+    });
   };
 
   const handleDeleteConfig = (configId: string) => {
+    if (!socket) return;
     if (confirm('この自走モード設定を削除しますか？')) {
       socket.emit('delete-automode-config', { configId });
     }
   };
 
   const handleToggleEnabled = (config: AutoModeConfig) => {
+    if (!socket) return;
     socket.emit('update-automode-config', {
       id: config.id,
       name: config.name,
@@ -159,12 +163,23 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
   };
 
   const handleStartAutoMode = (configId: string) => {
+    if (!socket) return;
     socket.emit('start-automode', { repositoryPath, configId });
   };
 
   const handleStopAutoMode = () => {
+    if (!socket) return;
     socket.emit('stop-automode', { repositoryPath });
   };
+
+  // socketが利用できない場合は何も表示しない
+  if (!socket) {
+    return (
+      <div className="p-4 text-center text-gray-400">
+        <p>接続を確立しています...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -178,16 +193,31 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className={`w-3 h-3 rounded-full ${
-                autoModeState.isRunning ? 'bg-green-400' : 'bg-gray-400'
+                autoModeState.isRunning ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
               }`}></div>
               <div>
                 <h4 className="font-semibold text-white">
-                  自走モード: {autoModeState.isRunning ? '実行中' : '停止中'}
+                  自走モード: {autoModeState.isRunning ? '実行中（バックエンドで継続動作）' : '停止中'}
                 </h4>
                 {autoModeState.isRunning && autoModeState.currentConfigId && (
-                  <p className="text-sm text-gray-300">
-                    実行中の設定: {configs.find(c => c.id === autoModeState.currentConfigId)?.name || '不明'}
-                  </p>
+                  <>
+                    <p className="text-sm text-gray-300">
+                      実行中の設定: {configs.find(c => c.id === autoModeState.currentConfigId)?.name || '不明'}
+                    </p>
+                    <p className="text-xs text-green-300 mt-1">
+                      ℹ️ この画面を閉じても自走モードは継続実行されます
+                    </p>
+                    {autoModeState.lastExecutionTime && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        最終実行: {new Date(autoModeState.lastExecutionTime).toLocaleString()}
+                      </p>
+                    )}
+                    {autoModeState.nextExecutionTime && (
+                      <p className="text-xs text-gray-400">
+                        次回実行予定: {new Date(autoModeState.nextExecutionTime).toLocaleString()}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -218,6 +248,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {showCreateForm && (
         <div className="bg-gray-600 p-4 rounded border border-gray-500 mb-4">
           <h4 className="font-semibold mb-3 text-white">新しい自走モード設定</h4>
+          <div className="bg-blue-900 p-3 rounded-md mb-4 border border-blue-600">
+            <p className="text-sm text-blue-200">
+              🚀 <strong>自走モードについて:</strong><br/>
+              バックエンドで定期的に実行されるため、ブラウザを閉じても継続動作します。
+              Claude Code CLIに対して設定されたプロンプトを自動送信し、継続的な作業を行います。
+            </p>
+          </div>
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-200 mb-1">
@@ -324,7 +361,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleUpdateConfig(config)}
+                      onClick={handleUpdateConfig}
                       className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
                     >
                       保存

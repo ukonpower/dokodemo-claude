@@ -823,7 +823,6 @@ function App() {
             <AutoModeSettings
               socket={socket!}
               repositoryPath={currentRepo}
-              repositoryName={currentRepo.split('/').pop() || ''}
               configs={autoModeConfigs}
               autoModeState={autoModeState}
             />

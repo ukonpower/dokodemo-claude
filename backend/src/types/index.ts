@@ -106,6 +106,10 @@ export interface ServerToClientEvents {
   'branches-list': (data: { branches: GitBranch[]; repositoryPath: string }) => void;
   'branch-switched': (data: { success: boolean; message: string; currentBranch: string; repositoryPath: string }) => void;
   
+  // npmスクリプト関連イベント
+  'npm-scripts-list': (data: { scripts: Record<string, string>; repositoryPath: string }) => void;
+  'npm-script-executed': (data: { success: boolean; message: string; scriptName: string; terminalId?: string }) => void;
+  
   // 自走モード関連イベント
   'automode-configs-list': (data: { configs: AutoModeConfig[] }) => void;
   'automode-config-created': (data: { success: boolean; message: string; config?: AutoModeConfig }) => void;
