@@ -191,17 +191,17 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
             : 'bg-gray-700 border-gray-600'
         }`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
               <div className={`w-3 h-3 rounded-full ${
                 autoModeState.isRunning ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
               }`}></div>
-              <div>
-                <h4 className="font-semibold text-white">
+              <div className="min-w-0 flex-1">
+                <h4 className="font-semibold text-white text-sm sm:text-base">
                   自走モード: {autoModeState.isRunning ? '実行中（バックエンドで継続動作）' : '停止中'}
                 </h4>
                 {autoModeState.isRunning && autoModeState.currentConfigId && (
                   <>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-xs sm:text-sm text-gray-300 truncate">
                       実行中の設定: {configs.find(c => c.id === autoModeState.currentConfigId)?.name || '不明'}
                     </p>
                     <p className="text-xs text-green-300 mt-1">
@@ -224,7 +224,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
             {autoModeState.isRunning && (
               <button
                 onClick={handleStopAutoMode}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                className="bg-red-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded text-sm hover:bg-red-600 transition-colors ml-2 flex-shrink-0"
               >
                 停止
               </button>
@@ -236,7 +236,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {/* 設定管理セクション */}
       <div className="bg-gray-700 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-white">自走モード設定</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white">自走モード設定</h3>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
@@ -247,9 +247,9 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
 
       {showCreateForm && (
         <div className="bg-gray-600 p-4 rounded border border-gray-500 mb-4">
-          <h4 className="font-semibold mb-3 text-white">新しい自走モード設定</h4>
+          <h4 className="font-semibold mb-3 text-white text-sm sm:text-base">新しい自走モード設定</h4>
           <div className="bg-blue-900 p-3 rounded-md mb-4 border border-blue-600">
-            <p className="text-sm text-blue-200">
+            <p className="text-xs sm:text-sm text-blue-200">
               🚀 <strong>自走モードについて:</strong><br/>
               バックエンドで定期的に実行されるため、ブラウザを閉じても継続動作します。
               Claude Code CLIに対して設定されたプロンプトを自動送信し、継続的な作業を行います。
@@ -257,25 +257,25 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
                 設定名
               </label>
               <input
                 type="text"
                 value={newConfig.name}
                 onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                 placeholder="例: 継続的リファクタリング"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
                 実行するプロンプト
               </label>
               <textarea
                 value={newConfig.prompt}
                 onChange={(e) => setNewConfig({ ...newConfig, prompt: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                 rows={4}
                 placeholder="例: 現在のコードベースを見直して、改善点があれば教えてください。可能であれば実装も行ってください。"
               />
@@ -288,20 +288,20 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                 onChange={(e) => setNewConfig({ ...newConfig, isEnabled: e.target.checked })}
                 className="mr-2"
               />
-              <label htmlFor="enabled" className="text-sm text-gray-200">
+              <label htmlFor="enabled" className="text-xs sm:text-sm text-gray-200">
                 この設定を有効にする
               </label>
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={handleCreateConfig}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
               >
                 作成
               </button>
               <button
                 onClick={() => setShowCreateForm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
               >
                 キャンセル
               </button>
@@ -312,7 +312,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
 
       <div className="space-y-2">
         {configs.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">
+          <p className="text-gray-400 text-center py-8 text-xs sm:text-sm">
             自走モード設定がありません。「+ 新規作成」から追加してください。
           </p>
         ) : (
@@ -326,24 +326,24 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               {editingConfig?.id === config.id ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
                       設定名
                     </label>
                     <input
                       type="text"
                       value={editingConfig.name}
                       onChange={(e) => setEditingConfig({ ...editingConfig, name: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-200 mb-1">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
                       実行するプロンプト
                     </label>
                     <textarea
                       value={editingConfig.prompt}
                       onChange={(e) => setEditingConfig({ ...editingConfig, prompt: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                       rows={4}
                     />
                   </div>
@@ -355,32 +355,32 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       onChange={(e) => setEditingConfig({ ...editingConfig, isEnabled: e.target.checked })}
                       className="mr-2"
                     />
-                    <label htmlFor={`enabled-${config.id}`} className="text-sm text-gray-200">
+                    <label htmlFor={`enabled-${config.id}`} className="text-xs sm:text-sm text-gray-200">
                       この設定を有効にする
                     </label>
                   </div>
                   <div className="flex space-x-2">
                     <button
                       onClick={handleUpdateConfig}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
                     >
                       保存
                     </button>
                     <button
                       onClick={() => setEditingConfig(null)}
-                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
                     >
                       キャンセル
                     </button>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-semibold text-white">{config.name}</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold text-white text-sm sm:text-base">{config.name}</h4>
                       <span
-                        className={`px-2 py-1 rounded text-xs ${
+                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                           config.isEnabled 
                             ? 'bg-green-600 text-green-100' 
                             : 'bg-gray-500 text-gray-200'
@@ -389,48 +389,65 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                         {config.isEnabled ? '有効' : '無効'}
                       </span>
                     </div>
-                    <div className="flex space-x-2">
-                      {config.isEnabled && !autoModeState?.isRunning && (
-                        <button
-                          onClick={() => handleStartAutoMode(config.id)}
-                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors"
-                        >
-                          開始
-                        </button>
-                      )}
+                    {config.isEnabled && !autoModeState?.isRunning && (
                       <button
-                        onClick={() => handleToggleEnabled(config)}
-                        className={`px-3 py-1 rounded text-sm ${
-                          config.isEnabled
-                            ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
-                            : 'bg-green-600 text-green-100 hover:bg-green-500'
-                        } transition-colors`}
+                        onClick={() => handleStartAutoMode(config.id)}
+                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-xs sm:text-sm"
                       >
-                        {config.isEnabled ? '無効化' : '有効化'}
+                        開始
                       </button>
-                      <button
-                        onClick={() => setEditingConfig(config)}
-                        className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-sm hover:bg-gray-400 transition-colors"
-                      >
-                        編集
-                      </button>
-                      <button
-                        onClick={() => handleDeleteConfig(config.id)}
-                        className="bg-red-600 text-red-100 px-3 py-1 rounded text-sm hover:bg-red-500 transition-colors"
-                      >
-                        削除
-                      </button>
-                    </div>
+                    )}
                   </div>
-                  <div className="bg-gray-700 p-3 rounded text-sm">
-                    <p className="text-gray-200 whitespace-pre-wrap">{config.prompt}</p>
+                  
+                  <div className="bg-gray-700 p-3 rounded">
+                    <p className="text-gray-200 text-xs sm:text-sm whitespace-pre-wrap">
+                      {config.prompt}
+                    </p>
                   </div>
-                  <div className="mt-2 text-xs text-gray-400">
-                    作成日: {new Date(config.createdAt).toLocaleString()}
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleToggleEnabled(config)}
+                      className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
+                        config.isEnabled
+                          ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
+                          : 'bg-green-600 text-green-100 hover:bg-green-500'
+                      }`}
+                    >
+                      {config.isEnabled ? '無効化' : '有効化'}
+                    </button>
+                    <button
+                      onClick={() => setEditingConfig(config)}
+                      className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={() => handleDeleteConfig(config.id)}
+                      className="bg-red-600 text-red-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-500 transition-colors"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  
+                  <div className="text-xs text-gray-400 pt-2 border-t border-gray-600">
+                    <p>作成: {new Date(config.createdAt).toLocaleString('ja-JP', {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}</p>
                     {config.updatedAt !== config.createdAt && (
-                      <span className="ml-2">
-                        更新日: {new Date(config.updatedAt).toLocaleString()}
-                      </span>
+                      <p className="mt-1">
+                        更新: {new Date(config.updatedAt).toLocaleString('ja-JP', {
+                          year: 'numeric',
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     )}
                   </div>
                 </div>
