@@ -216,20 +216,18 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {/* 自走モード状態表示 */}
       {autoModeState && (
         <div
-          className={`p-4 rounded-lg border-2 ${
-            autoModeState.isRunning
+          className={`p-4 rounded-lg border-2 ${autoModeState.isRunning
               ? 'bg-green-900 border-green-600'
               : 'bg-gray-700 border-gray-600'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 min-w-0 flex-1">
               <div
-                className={`w-3 h-3 rounded-full ${
-                  autoModeState.isRunning
+                className={`w-3 h-3 rounded-full ${autoModeState.isRunning
                     ? 'bg-green-400 animate-pulse'
                     : 'bg-gray-400'
-                }`}
+                  }`}
               ></div>
               <div className="min-w-0 flex-1">
                 <h4 className="font-semibold text-white text-sm sm:text-base">
@@ -246,9 +244,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                         (c) => c.id === autoModeState.currentConfigId
                       )?.name || '不明'}
                     </p>
-                    <p className="text-xs text-green-300 mt-1">
-                      ℹ️ この画面を閉じても自走モードは継続実行されます
-                    </p>
                     {autoModeState.lastExecutionTime && (
                       <p className="text-xs text-gray-400 mt-1">
                         最終実行:{' '}
@@ -261,14 +256,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                 )}
               </div>
             </div>
-            {autoModeState.isRunning && (
-              <button
-                onClick={handleStopAutoMode}
-                className="bg-red-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded text-sm hover:bg-red-600 transition-colors ml-2 flex-shrink-0"
-              >
-                停止
-              </button>
-            )}
           </div>
         </div>
       )}
@@ -399,11 +386,10 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               return (
                 <div
                   key={config.id}
-                  className={`p-4 rounded border border-gray-500 ${
-                    autoModeState?.isRunning && !isCurrentlyRunning
+                  className={`p-4 rounded border border-gray-500 ${autoModeState?.isRunning && !isCurrentlyRunning
                       ? 'bg-gray-700 opacity-50'
                       : 'bg-gray-600'
-                  }`}
+                    }`}
                 >
                   {editingConfig?.id === config.id ? (
                     <div className="space-y-3">
@@ -503,13 +489,12 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           </h4>
                           <div className="flex items-center space-x-2 mt-1">
                             <span
-                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                isCurrentlyRunning
+                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${isCurrentlyRunning
                                   ? 'bg-green-600 text-green-100'
                                   : config.isEnabled
                                     ? 'bg-green-600 text-green-100'
                                     : 'bg-gray-500 text-gray-200'
-                              }`}
+                                }`}
                             >
                               {isCurrentlyRunning
                                 ? '実行中'
@@ -549,16 +534,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       <div className="flex space-x-2">
                         {!isCurrentlyRunning && (
                           <>
-                            <button
-                              onClick={() => handleToggleEnabled(config)}
-                              className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
-                                config.isEnabled
-                                  ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
-                                  : 'bg-green-600 text-green-100 hover:bg-green-500'
-                              }`}
-                            >
-                              {config.isEnabled ? '無効化' : '有効化'}
-                            </button>
                             <button
                               onClick={() => setEditingConfig(config)}
                               className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
