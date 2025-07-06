@@ -56,21 +56,9 @@ npm run dev
       {
         "pattern": ".*",
         "hooks": {
-          "PostToolUse": [
-            {
-              "command": "curl -X POST http://localhost:8001/hook/claude-event -H 'Content-Type: application/json' -d '{\"event\":\"PostToolUse\",\"matchers\":{},\"metadata\":{\"cwd\":\"'$PWD'\"}}'",
-              "shell": "sh"
-            }
-          ],
           "Stop": [
             {
               "command": "curl -X POST http://localhost:8001/hook/claude-event -H 'Content-Type: application/json' -d '{\"event\":\"Stop\",\"matchers\":{},\"metadata\":{\"cwd\":\"'$PWD'\"}}'",
-              "shell": "sh"
-            }
-          ],
-          "SubagentStop": [
-            {
-              "command": "curl -X POST http://localhost:8001/hook/claude-event -H 'Content-Type: application/json' -d '{\"event\":\"SubagentStop\",\"matchers\":{},\"metadata\":{\"cwd\":\"'$PWD'\"}}'",
               "shell": "sh"
             }
           ]
