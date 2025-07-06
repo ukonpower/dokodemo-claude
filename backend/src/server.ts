@@ -929,15 +929,14 @@ io.on('connection', (socket) => {
 
   // 新しい自走モード設定の作成
   socket.on('create-automode-config', async (data) => {
-    const { name, prompt, repositoryPath, triggerMode, interval } = data;
+    const { name, prompt, repositoryPath, triggerMode } = data;
 
     try {
       const config = await processManager.createAutoModeConfig(
         name,
         prompt,
         repositoryPath,
-        triggerMode,
-        interval
+        triggerMode
       );
       socket.emit('automode-config-created', {
         success: true,
@@ -959,7 +958,7 @@ io.on('connection', (socket) => {
 
   // 自走モード設定の更新
   socket.on('update-automode-config', async (data) => {
-    const { id, name, prompt, isEnabled, triggerMode, interval } = data;
+    const { id, name, prompt, isEnabled, triggerMode } = data;
 
     try {
       const config = await processManager.updateAutoModeConfig(id, {
@@ -967,7 +966,6 @@ io.on('connection', (socket) => {
         prompt,
         isEnabled,
         triggerMode,
-        interval,
       });
       if (config) {
         socket.emit('automode-config-updated', {

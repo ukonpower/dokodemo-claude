@@ -241,16 +241,14 @@ export interface ClientToServerEvents {
     name: string;
     prompt: string;
     repositoryPath: string;
-    triggerMode?: 'hook' | 'timer';
-    interval?: number;
+    triggerMode?: 'hook';
   }) => void;
   'update-automode-config': (data: {
     id: string;
     name?: string;
     prompt?: string;
     isEnabled?: boolean;
-    triggerMode?: 'hook' | 'timer';
-    interval?: number;
+    triggerMode?: 'hook';
   }) => void;
   'delete-automode-config': (data: { configId: string }) => void;
   'start-automode': (data: {
@@ -285,8 +283,7 @@ export interface AutoModeConfig {
   prompt: string;
   repositoryPath: string;
   isEnabled: boolean;
-  triggerMode: 'hook' | 'timer'; // hookモードまたはタイマーモード
-  interval?: number; // タイマーモードの場合の実行間隔（ミリ秒）
+  triggerMode: 'hook'; // hookモードのみ
   createdAt: number;
   updatedAt: number;
 }
@@ -297,5 +294,4 @@ export interface AutoModeState {
   isRunning: boolean;
   currentConfigId?: string;
   lastExecutionTime?: number;
-  nextExecutionTime?: number;
 }

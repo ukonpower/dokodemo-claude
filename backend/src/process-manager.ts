@@ -86,8 +86,6 @@ export class ProcessManager extends EventEmitter {
   private autoModeConfigCounter = 0;
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
   private readonly IDLE_TIMEOUT = 5000; // 5秒間無出力で処理完了とみなす
-  private readonly DEFAULT_AUTO_INTERVAL = 30000; // デフォルト自動実行間隔（30秒）
-  private autoModeTimers: Map<string, NodeJS.Timeout> = new Map(); // 自走モード定期実行タイマー
 
   constructor(processesDir: string) {
     super();
@@ -110,8 +108,6 @@ export class ProcessManager extends EventEmitter {
     await this.restoreAutoModeConfigs();
     await this.restoreAutoModeStates();
 
-    // 自走モードタイマーを復帰
-    await this.restoreAutoModeTimers();
 
     // 定期的なプロセス監視を開始
     this.startProcessMonitoring();
@@ -989,8 +985,6 @@ export class ProcessManager extends EventEmitter {
   async cleanupRepositoryProcesses(repositoryPath: string): Promise<void> {
     console.log(`Cleaning up processes for repository: ${repositoryPath}`);
 
-    // 自走モードタイマーを停止
-    this.stopAutoModeTimer(repositoryPath);
 
     const closePromises: Promise<boolean>[] = [];
 
@@ -1254,10 +1248,6 @@ export class ProcessManager extends EventEmitter {
   async shutdown(): Promise<void> {
     console.log('Shutting down ProcessManager...');
 
-    // 全ての自走モードタイマーを停止
-    for (const repositoryPath of this.autoModeTimers.keys()) {
-      this.stopAutoModeTimer(repositoryPath);
-    }
 
     // 全てのプロセスを終了
     const closePromises: Promise<boolean>[] = [];
@@ -1370,8 +1360,7 @@ export class ProcessManager extends EventEmitter {
     name: string,
     prompt: string,
     repositoryPath: string,
-    triggerMode: 'hook' | 'timer' = 'hook',
-    interval?: number
+    triggerMode: 'hook' = 'hook'
   ): Promise<AutoModeConfig> {
     const configId = `automode-${++this.autoModeConfigCounter}-${Date.now()}`;
 
@@ -1382,10 +1371,6 @@ export class ProcessManager extends EventEmitter {
       repositoryPath,
       isEnabled: true,
       triggerMode,
-      interval:
-        triggerMode === 'timer'
-          ? interval || this.DEFAULT_AUTO_INTERVAL
-          : undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1404,7 +1389,7 @@ export class ProcessManager extends EventEmitter {
     updates: Partial<
       Pick<
         AutoModeConfig,
-        'name' | 'prompt' | 'isEnabled' | 'triggerMode' | 'interval'
+        'name' | 'prompt' | 'isEnabled' | 'triggerMode'
       >
     >
   ): Promise<AutoModeConfig | null> {
@@ -1465,27 +1450,15 @@ export class ProcessManager extends EventEmitter {
       return false;
     }
 
-    // 既存のタイマーがあれば停止
-    this.stopAutoModeTimer(repositoryPath);
-
     const state: AutoModeState = {
       repositoryPath,
       isRunning: true,
       currentConfigId: configId,
       lastExecutionTime: Date.now(),
-      nextExecutionTime:
-        config.triggerMode === 'timer'
-          ? Date.now() + (config.interval || this.DEFAULT_AUTO_INTERVAL)
-          : undefined,
     };
 
     this.autoModeStates.set(repositoryPath, state);
     await this.persistAutoModeStates();
-
-    // タイマーモードの場合のみ定期実行タイマーを開始
-    if (config.triggerMode === 'timer') {
-      this.startAutoModeTimer(repositoryPath, configId);
-    }
 
     console.log(
       `自走モード開始: ${repositoryPath} (設定: ${config.name}, モード: ${config.triggerMode})`
@@ -1503,12 +1476,8 @@ export class ProcessManager extends EventEmitter {
       return false;
     }
 
-    // 定期実行タイマーを停止
-    this.stopAutoModeTimer(repositoryPath);
-
     state.isRunning = false;
     state.currentConfigId = undefined;
-    state.nextExecutionTime = undefined;
     await this.persistAutoModeStates();
 
     console.log(`自走モード停止: ${repositoryPath}`);
@@ -1523,119 +1492,4 @@ export class ProcessManager extends EventEmitter {
     return this.autoModeStates.get(repositoryPath) || null;
   }
 
-  /**
-   * 自走モード定期実行タイマーを開始
-   */
-  private startAutoModeTimer(repositoryPath: string, configId: string): void {
-    const config = this.autoModeConfigs.get(configId);
-    if (!config || config.triggerMode !== 'timer') {
-      return;
-    }
-
-    const interval = config.interval || this.DEFAULT_AUTO_INTERVAL;
-    const timer = setInterval(async () => {
-      await this.executeAutoModeTask(repositoryPath, configId);
-    }, interval);
-
-    this.autoModeTimers.set(repositoryPath, timer);
-    console.log(
-      `自走モード定期実行タイマー開始: ${repositoryPath} (間隔: ${interval}ms)`
-    );
-  }
-
-  /**
-   * 自走モード定期実行タイマーを停止
-   */
-  private stopAutoModeTimer(repositoryPath: string): void {
-    const timer = this.autoModeTimers.get(repositoryPath);
-    if (timer) {
-      clearInterval(timer);
-      this.autoModeTimers.delete(repositoryPath);
-      console.log(`自走モード定期実行タイマー停止: ${repositoryPath}`);
-    }
-  }
-
-  /**
-   * 自走モードタスクを実行
-   */
-  private async executeAutoModeTask(
-    repositoryPath: string,
-    configId: string
-  ): Promise<void> {
-    try {
-      const autoModeState = this.autoModeStates.get(repositoryPath);
-      if (
-        !autoModeState ||
-        !autoModeState.isRunning ||
-        autoModeState.currentConfigId !== configId
-      ) {
-        // 自走モードが停止されているか設定が変更された場合、タイマーを停止
-        this.stopAutoModeTimer(repositoryPath);
-        return;
-      }
-
-      const config = this.autoModeConfigs.get(configId);
-      if (!config || !config.isEnabled) {
-        console.log(`自走モード設定が無効または削除されました: ${configId}`);
-        await this.stopAutoMode(repositoryPath);
-        return;
-      }
-
-      // Claudeセッションを取得
-      const session = this.getClaudeSessionByRepository(repositoryPath);
-      if (!session) {
-        console.log(
-          `自走モード: Claudeセッションが見つかりません: ${repositoryPath}`
-        );
-        // セッションを作成を試みる
-        const repoName = repositoryPath.split('/').pop() || 'unknown';
-        const newSession = await this.getOrCreateClaudeSession(
-          repositoryPath,
-          repoName
-        );
-        if (newSession) {
-          console.log(
-            `自走モード: 新しいClaudeセッションを作成しました: ${repositoryPath}`
-          );
-          // 少し待ってからプロンプトを送信
-          setTimeout(() => {
-            this.sendAutoPrompt(newSession, config);
-          }, 2000);
-        }
-        return;
-      }
-
-      // プロンプトを送信
-      this.sendAutoPrompt(session, config);
-
-      // 実行時間を更新
-      autoModeState.lastExecutionTime = Date.now();
-      autoModeState.nextExecutionTime = Date.now() + this.DEFAULT_AUTO_INTERVAL;
-      await this.persistAutoModeStates();
-
-      console.log(`自走モード実行: ${repositoryPath} - "${config.name}"`);
-    } catch (error) {
-      console.error(`自走モードタスク実行エラー: ${repositoryPath}`, error);
-    }
-  }
-
-  /**
-   * システム起動時に自走モード状態を復帰
-   */
-  private async restoreAutoModeTimers(): Promise<void> {
-    for (const [repositoryPath, state] of this.autoModeStates.entries()) {
-      if (state.isRunning && state.currentConfigId) {
-        const config = this.autoModeConfigs.get(state.currentConfigId);
-        if (config && config.isEnabled) {
-          console.log(`自走モード復帰: ${repositoryPath} - "${config.name}"`);
-          this.startAutoModeTimer(repositoryPath, state.currentConfigId);
-        } else {
-          // 設定が無効または削除されている場合は停止
-          state.isRunning = false;
-          state.currentConfigId = undefined;
-          await this.persistAutoModeStates();
-        }
-      }
-    }
-  }
 }
