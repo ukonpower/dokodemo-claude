@@ -316,11 +316,16 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
             自走モード設定がありません。「+ 新規作成」から追加してください。
           </p>
         ) : (
-          configs.map((config) => (
+          configs.map((config) => {
+            const isCurrentlyRunning = autoModeState?.isRunning && autoModeState.currentConfigId === config.id;
+            
+            return (
             <div
               key={config.id}
-              className={`bg-gray-600 p-4 rounded border ${
-                config.isEnabled ? 'border-green-500 bg-gray-600' : 'border-gray-500'
+              className={`p-4 rounded border border-gray-500 ${
+                autoModeState?.isRunning && !isCurrentlyRunning
+                  ? 'bg-gray-700 opacity-50'
+                  : 'bg-gray-600'
               }`}
             >
               {editingConfig?.id === config.id ? (
@@ -381,14 +386,24 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       <h4 className="font-semibold text-white text-sm sm:text-base">{config.name}</h4>
                       <span
                         className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          config.isEnabled 
-                            ? 'bg-green-600 text-green-100' 
-                            : 'bg-gray-500 text-gray-200'
+                          isCurrentlyRunning
+                            ? 'bg-green-600 text-green-100'
+                            : config.isEnabled 
+                              ? 'bg-green-600 text-green-100' 
+                              : 'bg-gray-500 text-gray-200'
                         }`}
                       >
-                        {config.isEnabled ? '有効' : '無効'}
+                        {isCurrentlyRunning ? '実行中' : config.isEnabled ? '有効' : '無効'}
                       </span>
                     </div>
+                    {isCurrentlyRunning && (
+                      <button
+                        onClick={handleStopAutoMode}
+                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-xs sm:text-sm"
+                      >
+                        停止
+                      </button>
+                    )}
                     {config.isEnabled && !autoModeState?.isRunning && (
                       <button
                         onClick={() => handleStartAutoMode(config.id)}
@@ -406,28 +421,32 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   </div>
                   
                   <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleToggleEnabled(config)}
-                      className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
-                        config.isEnabled
-                          ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
-                          : 'bg-green-600 text-green-100 hover:bg-green-500'
-                      }`}
-                    >
-                      {config.isEnabled ? '無効化' : '有効化'}
-                    </button>
-                    <button
-                      onClick={() => setEditingConfig(config)}
-                      className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={() => handleDeleteConfig(config.id)}
-                      className="bg-red-600 text-red-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-500 transition-colors"
-                    >
-                      削除
-                    </button>
+                    {!isCurrentlyRunning && (
+                      <>
+                        <button
+                          onClick={() => handleToggleEnabled(config)}
+                          className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
+                            config.isEnabled
+                              ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
+                              : 'bg-green-600 text-green-100 hover:bg-green-500'
+                          }`}
+                        >
+                          {config.isEnabled ? '無効化' : '有効化'}
+                        </button>
+                        <button
+                          onClick={() => setEditingConfig(config)}
+                          className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => handleDeleteConfig(config.id)}
+                          className="bg-red-600 text-red-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-500 transition-colors"
+                        >
+                          削除
+                        </button>
+                      </>
+                    )}
                   </div>
                   
                   <div className="text-xs text-gray-400 pt-2 border-t border-gray-600">
@@ -453,7 +472,8 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                 </div>
               )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
       </div>
