@@ -1407,9 +1407,24 @@ export class ProcessManager extends EventEmitter {
     this.autoModeStates.set(repositoryPath, state);
     await this.persistAutoModeStates();
 
-    console.log(
-      `自走モード開始: ${repositoryPath} (設定: ${config.name}, モード: ${config.triggerMode})`
-    );
+    // 自走モード開始時に初回プロンプトを送信
+    try {
+      // Claudeセッションを取得または作成
+      const repoName = repositoryPath.split('/').pop() || 'unknown';
+      const session = await this.getOrCreateClaudeSession(
+        repositoryPath,
+        repoName
+      );
+      
+      if (session) {
+        // 初回プロンプトを送信
+        setTimeout(() => {
+          this.sendAutoPrompt(session, config);
+        }, 1000); // 1秒待ってからプロンプトを送信
+      }
+    } catch {
+      // プロンプト送信エラーは無視（自走モード自体は開始）
+    }
 
     return true;
   }
