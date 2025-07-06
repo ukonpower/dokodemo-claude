@@ -17,6 +17,7 @@ import ClaudeOutput from './components/ClaudeOutput';
 import CommandInput, { CommandInputRef } from './components/CommandInput';
 import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
+import NpmScripts from './components/NpmScripts';
 
 function App() {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -46,12 +47,15 @@ function App() {
           setShortcuts([]);
           setBranches([]);
           setCurrentBranch('');
+          setNpmScripts({});
         } else {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
             socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
+            socket.emit('list-branches', { repositoryPath: repoFromUrl });
+            socket.emit('get-npm-scripts', { repositoryPath: repoFromUrl });
           }
         }
       }
@@ -83,6 +87,9 @@ function App() {
   // ブランチ関連の状態
   const [branches, setBranches] = useState<GitBranch[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string>('');
+
+  // npmスクリプト関連の状態
+  const [npmScripts, setNpmScripts] = useState<Record<string, string>>({});
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -136,6 +143,9 @@ function App() {
             // ブランチ一覧も取得
             socketInstance.emit('list-branches', { repositoryPath: currentPath });
             console.log(`[Frontend] Emitted list-branches for: ${currentPath}`);
+            // npmスクリプト一覧も取得
+            socketInstance.emit('get-npm-scripts', { repositoryPath: currentPath });
+            console.log(`[Frontend] Emitted get-npm-scripts for: ${currentPath}`);
           } else {
             console.log(`[Frontend] No current repo detected after delay`);
           }
@@ -207,6 +217,7 @@ function App() {
           setShortcuts([]);
           setBranches([]);
           setCurrentBranch('');
+          setNpmScripts({});
           // URLからリポジトリパラメータを削除
           const url = new URL(window.location.href);
           url.searchParams.delete('repo');
@@ -243,6 +254,9 @@ function App() {
         
         // 新しいリポジトリのブランチ一覧を取得
         socketInstance.emit('list-branches', { repositoryPath: data.currentPath });
+        
+        // 新しいリポジトリのnpmスクリプト一覧を取得
+        socketInstance.emit('get-npm-scripts', { repositoryPath: data.currentPath });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -330,6 +344,17 @@ function App() {
           setCurrentBranch(current.name);
         }
       }
+    });
+
+    // npmスクリプト関連のイベントハンドラ
+    socketInstance.on('npm-scripts-list', (data) => {
+      if (data.repositoryPath === currentRepoRef.current) {
+        setNpmScripts(data.scripts);
+      }
+    });
+    
+    socketInstance.on('npm-script-executed', () => {
+      // npmスクリプト実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
     
     socketInstance.on('branch-switched', (data) => {
@@ -509,6 +534,23 @@ function App() {
   const handleSwitchBranch = (branchName: string) => {
     if (socket && currentRepo) {
       socket.emit('switch-branch', { repositoryPath: currentRepo, branchName });
+    }
+  };
+
+  // npmスクリプト関連のハンドラ
+  const handleRefreshNpmScripts = () => {
+    if (socket && currentRepo) {
+      socket.emit('get-npm-scripts', { repositoryPath: currentRepo });
+    }
+  };
+
+  const handleExecuteNpmScript = (scriptName: string) => {
+    if (socket && currentRepo) {
+      socket.emit('execute-npm-script', { 
+        repositoryPath: currentRepo, 
+        scriptName,
+        terminalId: 'active'
+      });
     }
   };
 
@@ -700,6 +742,17 @@ function App() {
               onExecuteShortcut={handleExecuteShortcut}
             />
           </div>
+        </section>
+
+        {/* npmスクリプトセクション */}
+        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+          <NpmScripts
+            repositoryPath={currentRepo}
+            scripts={npmScripts}
+            isConnected={isConnected}
+            onExecuteScript={handleExecuteNpmScript}
+            onRefreshScripts={handleRefreshNpmScripts}
+          />
         </section>
 
         {/* リポジトリ削除セクション */}

@@ -32,6 +32,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const fitAddon = useRef<FitAddon | null>(null);
   const lastMessageCount = useRef<number>(0);
   const currentTerminalId = useRef<string>('');
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
 
   // 矢印キーハンドラ
   const handleArrowKey = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -103,7 +104,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       scrollback: 10000,
       convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
       allowTransparency: false,
-      disableStdin: true,
+      disableStdin: false,
       smoothScrollDuration: 0,
       scrollOnUserInput: true,
       fastScrollModifier: 'shift',
@@ -120,6 +121,21 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // XTermをDOMに接続
     xtermInstance.current.open(terminalRef.current);
+
+    // キーボード入力を直接PTYに送信
+    xtermInstance.current.onData((data) => {
+      onInput(terminal.id, data);
+    });
+
+    // キーボードイベントを処理（特殊キー対応）
+    xtermInstance.current.attachCustomKeyEventHandler((event) => {
+      // Ctrl+C, Ctrl+V, Ctrl+Xなどのショートカットは通常通り処理
+      if (event.ctrlKey || event.metaKey) {
+        return true;
+      }
+      // その他のキーイベントもxtermで処理
+      return true;
+    });
 
     // テキスト選択イベントの監視
     xtermInstance.current.onSelectionChange(() => {
@@ -233,11 +249,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   }, [messages]);
 
-  // アクティブなターミナルの場合、入力フィールドにフォーカス
+  // アクティブなターミナルの場合、XTermにフォーカス
   useEffect(() => {
     if (isActive) {
-      if (inputRef.current) {
-        inputRef.current.focus();
+      // XTermインスタンスにフォーカス
+      if (xtermInstance.current) {
+        xtermInstance.current.focus();
       }
       // アクティブになった時にサイズを再調整（仮想スクロール対応）
       setTimeout(() => {
@@ -259,6 +276,11 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // XTermがフォーカスされている場合は、入力フィールドのキーイベントは処理しない
+    if (document.activeElement === terminalRef.current?.querySelector('.xterm')) {
+      return;
+    }
+    
     if (e.ctrlKey) {
       if (e.key === 'c') {
         e.preventDefault();
@@ -315,7 +337,16 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-gray-900 overflow-auto">
+      <div 
+        ref={terminalContainerRef}
+        className="flex-1 bg-gray-900 overflow-auto"
+        onClick={() => {
+          // ターミナルクリック時にXTermにフォーカス
+          if (xtermInstance.current) {
+            xtermInstance.current.focus();
+          }
+        }}
+      >
         <div
           ref={terminalRef}
           className="h-full w-full"
@@ -347,7 +378,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0 font-mono"
-            placeholder={terminal.status === 'exited' ? 'ターミナルが終了しました' : 'コマンドを入力...'}
+            placeholder={terminal.status === 'exited' ? 'ターミナルが終了しました' : 'ターミナルをクリックして直接入力できます'}
             disabled={terminal.status === 'exited'}
           />
         </form>

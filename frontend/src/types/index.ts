@@ -121,6 +121,10 @@ export interface ServerToClientEvents {
   // ブランチ関連イベント
   'branches-list': (data: { branches: GitBranch[]; repositoryPath: string }) => void;
   'branch-switched': (data: { success: boolean; message: string; currentBranch: string; repositoryPath: string }) => void;
+  
+  // npmスクリプト関連イベント
+  'npm-scripts-list': (data: { scripts: Record<string, string>; repositoryPath: string }) => void;
+  'npm-script-executed': (data: { success: boolean; message: string; scriptName: string; terminalId?: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -157,4 +161,8 @@ export interface ClientToServerEvents {
   // ブランチ関連イベント
   'list-branches': (data: { repositoryPath: string }) => void;
   'switch-branch': (data: { repositoryPath: string; branchName: string }) => void;
+  
+  // npmスクリプト関連イベント
+  'get-npm-scripts': (data: { repositoryPath: string }) => void;
+  'execute-npm-script': (data: { repositoryPath: string; scriptName: string; terminalId?: string }) => void;
 }

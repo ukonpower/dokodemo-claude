@@ -67,6 +67,19 @@ async function loadExistingRepos(): Promise<void> {
   }
 }
 
+// package.jsonからnpmスクリプトを取得
+async function getNpmScripts(repoPath: string): Promise<Record<string, string>> {
+  try {
+    const packageJsonPath = path.join(repoPath, 'package.json');
+    const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
+    const packageJson = JSON.parse(packageJsonContent);
+    return packageJson.scripts || {};
+  } catch (error) {
+    // package.jsonが存在しない、または読み取れない場合は空のオブジェクトを返す
+    return {};
+  }
+}
+
 // ブランチ一覧を取得
 async function getBranches(repoPath: string): Promise<GitBranch[]> {
   return new Promise((resolve) => {
@@ -754,6 +767,69 @@ io.on('connection', (socket) => {
         message: `ブランチ切り替えエラー: ${error}`,
         currentBranch: '',
         repositoryPath
+      });
+    }
+  });
+
+  // npmスクリプト関連のイベントハンドラ
+  
+  // npmスクリプト一覧の取得
+  socket.on('get-npm-scripts', async (data) => {
+    const { repositoryPath } = data;
+    
+    try {
+      const scripts = await getNpmScripts(repositoryPath);
+      socket.emit('npm-scripts-list', { scripts, repositoryPath });
+    } catch (error) {
+      socket.emit('npm-scripts-list', { scripts: {}, repositoryPath });
+    }
+  });
+  
+  // npmスクリプトの実行
+  socket.on('execute-npm-script', async (data) => {
+    const { repositoryPath, scriptName, terminalId } = data;
+    
+    try {
+      // terminalIdが指定されている場合は既存のターミナルで実行
+      if (terminalId) {
+        const command = `npm run ${scriptName}\r`;
+        const success = processManager.sendToTerminal(terminalId, command);
+        
+        socket.emit('npm-script-executed', {
+          success,
+          message: success 
+            ? `npmスクリプト「${scriptName}」を実行しました` 
+            : 'ターミナルが見つかりませんでした',
+          scriptName,
+          terminalId
+        });
+      } else {
+        // 新しいターミナルを作成して実行
+        const repoName = path.basename(repositoryPath);
+        const terminal = await processManager.createTerminal(
+          repositoryPath, 
+          repoName, 
+          `npm run ${scriptName}`
+        );
+        
+        // スクリプトを実行
+        setTimeout(() => {
+          processManager.sendToTerminal(terminal.id, `npm run ${scriptName}\r`);
+        }, 500); // ターミナル起動を待つ
+        
+        socket.emit('npm-script-executed', {
+          success: true,
+          message: `npmスクリプト「${scriptName}」を新しいターミナルで実行しました`,
+          scriptName,
+          terminalId: terminal.id
+        });
+      }
+    } catch (error) {
+      socket.emit('npm-script-executed', {
+        success: false,
+        message: `npmスクリプト実行エラー: ${error}`,
+        scriptName,
+        terminalId
       });
     }
   });
