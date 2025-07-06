@@ -8,7 +8,10 @@ interface ClaudeOutputProps {
   onFocusInput?: () => void;
 }
 
-const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) => {
+const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
+  rawOutput,
+  onFocusInput,
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
@@ -43,9 +46,10 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) 
         brightBlue: '#bfdbfe',
         brightMagenta: '#e9d5ff',
         brightCyan: '#a5f3fc',
-        brightWhite: '#f9fafb'
+        brightWhite: '#f9fafb',
       },
-      fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
+      fontFamily:
+        '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
       fontSize: 8,
       lineHeight: 1.2,
       cursorBlink: true,
@@ -60,7 +64,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) 
       scrollSensitivity: 3,
       // 横スクロール対応の設定
       cols: 600, // 適度な列数を設定
-      allowProposedApi: true // 横スクロール機能に必要
+      allowProposedApi: true, // 横スクロール機能に必要
     });
 
     // FitAddonを読み込み
@@ -80,7 +84,9 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) 
     // 初期メッセージを表示
     if (!rawOutput) {
       terminal.current.writeln('Claude CLIの出力がここに表示されます');
-      terminal.current.writeln('リポジトリを選択してClaude CLIを開始してください');
+      terminal.current.writeln(
+        'リポジトリを選択してClaude CLIを開始してください'
+      );
     }
 
     return () => {
@@ -149,7 +155,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({ rawOutput, onFocusInput }) 
             overflowX: 'auto',
             overflowY: 'auto',
             // 横スクロールを強制して改行を防ぐ
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
           }}
         />
       </div>

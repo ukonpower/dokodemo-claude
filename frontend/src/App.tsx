@@ -11,7 +11,7 @@ import type {
   AutoModeConfig,
   AutoModeState,
   ServerToClientEvents,
-  ClientToServerEvents
+  ClientToServerEvents,
 } from './types';
 
 import RepositoryManager from './components/RepositoryManager';
@@ -23,7 +23,10 @@ import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
 
 function App() {
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const [socket, setSocket] = useState<Socket<
+    ServerToClientEvents,
+    ClientToServerEvents
+  > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
   const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
@@ -37,7 +40,7 @@ function App() {
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const repoFromUrl = urlParams.get('repo') || '';
-      
+
       if (repoFromUrl !== currentRepo) {
         setCurrentRepo(repoFromUrl);
         if (!repoFromUrl) {
@@ -59,7 +62,9 @@ function App() {
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
             socket.emit('list-branches', { repositoryPath: repoFromUrl });
             socket.emit('get-npm-scripts', { repositoryPath: repoFromUrl });
-            socket.emit('get-automode-configs', { repositoryPath: repoFromUrl });
+            socket.emit('get-automode-configs', {
+              repositoryPath: repoFromUrl,
+            });
             socket.emit('get-automode-status', { repositoryPath: repoFromUrl });
           }
         }
@@ -74,7 +79,7 @@ function App() {
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+
   // currentRepoの最新値を保持するref
   const currentRepoRef = useRef(currentRepo);
   useEffect(() => {
@@ -83,12 +88,16 @@ function App() {
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
-  const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>([]);
-  const [terminalHistories, setTerminalHistories] = useState<Map<string, TerminalOutputLine[]>>(new Map());
+  const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>(
+    []
+  );
+  const [terminalHistories, setTerminalHistories] = useState<
+    Map<string, TerminalOutputLine[]>
+  >(new Map());
 
   // コマンドショートカット関連の状態
   const [shortcuts, setShortcuts] = useState<CommandShortcut[]>([]);
-  
+
   // ブランチ関連の状態
   const [branches, setBranches] = useState<GitBranch[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string>('');
@@ -98,7 +107,9 @@ function App() {
 
   // 自走モード関連の状態
   const [autoModeConfigs, setAutoModeConfigs] = useState<AutoModeConfig[]>([]);
-  const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(null);
+  const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(
+    null
+  );
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -110,18 +121,20 @@ function App() {
 
     const createConnection = () => {
       // 現在のホストを自動検出してSocket.IO接続
-      const socketUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:8001'
-        : `http://${window.location.hostname}:8001`;
-      
+      const socketUrl =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:8001'
+          : `http://${window.location.hostname}:8001`;
+
       const socketInstance = io(socketUrl, {
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
-        timeout: 10000
+        timeout: 10000,
       });
-      
+
       setSocket(socketInstance);
 
       socketInstance.on('connect', () => {
@@ -129,36 +142,62 @@ function App() {
         setIsConnected(true);
         setIsReconnecting(false);
         setConnectionAttempts(0);
-        
+
         // 接続時にリポジトリ一覧を取得
         socketInstance.emit('list-repos');
         console.log(`[Frontend] Emitted list-repos`);
-        
+
         // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
         setTimeout(() => {
           const currentPath = currentRepoRef.current;
           console.log(`[Frontend] Delayed check - currentRepo: ${currentPath}`);
-          
+
           if (currentPath) {
-            console.log(`[Frontend] Current repo detected after delay: ${currentPath}`);
-            socketInstance.emit('list-terminals', { repositoryPath: currentPath });
-            console.log(`[Frontend] Emitted list-terminals for: ${currentPath}`);
+            console.log(
+              `[Frontend] Current repo detected after delay: ${currentPath}`
+            );
+            socketInstance.emit('list-terminals', {
+              repositoryPath: currentPath,
+            });
+            console.log(
+              `[Frontend] Emitted list-terminals for: ${currentPath}`
+            );
             // Claude履歴も取得
-            socketInstance.emit('get-claude-history', { repositoryPath: currentPath });
-            console.log(`[Frontend] Emitted get-claude-history for: ${currentPath}`);
+            socketInstance.emit('get-claude-history', {
+              repositoryPath: currentPath,
+            });
+            console.log(
+              `[Frontend] Emitted get-claude-history for: ${currentPath}`
+            );
             // ショートカット一覧も取得
-            socketInstance.emit('list-shortcuts', { repositoryPath: currentPath });
-            console.log(`[Frontend] Emitted list-shortcuts for: ${currentPath}`);
+            socketInstance.emit('list-shortcuts', {
+              repositoryPath: currentPath,
+            });
+            console.log(
+              `[Frontend] Emitted list-shortcuts for: ${currentPath}`
+            );
             // ブランチ一覧も取得
-            socketInstance.emit('list-branches', { repositoryPath: currentPath });
+            socketInstance.emit('list-branches', {
+              repositoryPath: currentPath,
+            });
             console.log(`[Frontend] Emitted list-branches for: ${currentPath}`);
             // npmスクリプト一覧も取得
-            socketInstance.emit('get-npm-scripts', { repositoryPath: currentPath });
-            console.log(`[Frontend] Emitted get-npm-scripts for: ${currentPath}`);
+            socketInstance.emit('get-npm-scripts', {
+              repositoryPath: currentPath,
+            });
+            console.log(
+              `[Frontend] Emitted get-npm-scripts for: ${currentPath}`
+            );
             // 自走モード設定も取得
-            socketInstance.emit('get-automode-configs', { repositoryPath: currentPath });
-            socketInstance.emit('get-automode-status', { repositoryPath: currentPath });
-            console.log(`[Frontend] Emitted automode events for: ${currentPath}`);
+            socketInstance.emit('get-automode-configs', {
+              repositoryPath: currentPath,
+            });
+            socketInstance.emit('get-automode-status', {
+              repositoryPath: currentPath,
+            });
+            console.log(
+              `[Frontend] Emitted automode events for: ${currentPath}`
+            );
           } else {
             console.log(`[Frontend] No current repo detected after delay`);
           }
@@ -167,7 +206,7 @@ function App() {
 
       socketInstance.on('disconnect', (reason) => {
         setIsConnected(false);
-        
+
         // 自動再接続の場合は手動再接続を試行
         if (reason === 'io server disconnect') {
           setIsReconnecting(true);
@@ -186,10 +225,13 @@ function App() {
 
     const attemptReconnect = () => {
       if (connectionAttempts < maxReconnectAttempts) {
-        setConnectionAttempts(prev => prev + 1);
-        reconnectTimeout = setTimeout(() => {
-          createConnection();
-        }, reconnectDelay * (connectionAttempts + 1)); // 指数バックオフ
+        setConnectionAttempts((prev) => prev + 1);
+        reconnectTimeout = setTimeout(
+          () => {
+            createConnection();
+          },
+          reconnectDelay * (connectionAttempts + 1)
+        ); // 指数バックオフ
       } else {
         setIsReconnecting(false);
       }
@@ -204,8 +246,11 @@ function App() {
     // 生ログの受信（現在のリポジトリと一致する場合のみ表示）
     socketInstance.on('claude-raw-output', (data) => {
       // repositoryPathが指定されていて、現在のリポジトリと一致する場合のみ表示
-      if (!data.repositoryPath || data.repositoryPath === currentRepoRef.current) {
-        setRawOutput(prev => prev + data.content);
+      if (
+        !data.repositoryPath ||
+        data.repositoryPath === currentRepoRef.current
+      ) {
+        setRawOutput((prev) => prev + data.content);
       }
     });
 
@@ -247,7 +292,7 @@ function App() {
         setCurrentRepo(data.currentPath);
         setCurrentSessionId(data.sessionId || '');
         // リポジトリ切り替え時は出力履歴をクリアしない（履歴は別途受信）
-        
+
         // ターミナル・ブランチ関連状態をクリア
         setTerminals([]);
         setTerminalMessages([]);
@@ -255,27 +300,39 @@ function App() {
         setShortcuts([]);
         setBranches([]);
         setCurrentBranch('');
-        
+
         // URLにリポジトリパスを保存
         const url = new URL(window.location.href);
         url.searchParams.set('repo', data.currentPath);
         window.history.replaceState({}, '', url.toString());
-        
+
         // 新しいリポジトリのターミナル一覧を取得
-        socketInstance.emit('list-terminals', { repositoryPath: data.currentPath });
-        
+        socketInstance.emit('list-terminals', {
+          repositoryPath: data.currentPath,
+        });
+
         // 新しいリポジトリのショートカット一覧を取得
-        socketInstance.emit('list-shortcuts', { repositoryPath: data.currentPath });
-        
+        socketInstance.emit('list-shortcuts', {
+          repositoryPath: data.currentPath,
+        });
+
         // 新しいリポジトリのブランチ一覧を取得
-        socketInstance.emit('list-branches', { repositoryPath: data.currentPath });
-        
+        socketInstance.emit('list-branches', {
+          repositoryPath: data.currentPath,
+        });
+
         // 新しいリポジトリのnpmスクリプト一覧を取得
-        socketInstance.emit('get-npm-scripts', { repositoryPath: data.currentPath });
-        
+        socketInstance.emit('get-npm-scripts', {
+          repositoryPath: data.currentPath,
+        });
+
         // 新しいリポジトリの自走モード設定を取得
-        socketInstance.emit('get-automode-configs', { repositoryPath: data.currentPath });
-        socketInstance.emit('get-automode-status', { repositoryPath: data.currentPath });
+        socketInstance.emit('get-automode-configs', {
+          repositoryPath: data.currentPath,
+        });
+        socketInstance.emit('get-automode-status', {
+          repositoryPath: data.currentPath,
+        });
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -290,17 +347,25 @@ function App() {
 
     // Claude出力履歴受信イベント
     socketInstance.on('claude-output-history', (data) => {
-      console.log(`[Frontend] Received Claude history for ${data.repositoryPath}, lines: ${data.history.length}`);
+      console.log(
+        `[Frontend] Received Claude history for ${data.repositoryPath}, lines: ${data.history.length}`
+      );
       if (data.repositoryPath === currentRepoRef.current) {
-        console.log(`[Frontend] Applying Claude history (${data.history.length} lines) to current repo: ${currentRepoRef.current}`);
+        console.log(
+          `[Frontend] Applying Claude history (${data.history.length} lines) to current repo: ${currentRepoRef.current}`
+        );
         // 履歴を復元（既存の出力を置き換え）
         const historyOutput = data.history
           .map((line: ClaudeOutputLine) => line.content)
           .join('');
         setRawOutput(historyOutput);
-        console.log(`[Frontend] Claude history applied, output length: ${historyOutput.length}`);
+        console.log(
+          `[Frontend] Claude history applied, output length: ${historyOutput.length}`
+        );
       } else {
-        console.log(`[Frontend] Ignoring Claude history for different repo: ${data.repositoryPath} (current: ${currentRepoRef.current})`);
+        console.log(
+          `[Frontend] Ignoring Claude history for different repo: ${data.repositoryPath} (current: ${currentRepoRef.current})`
+        );
       }
     });
 
@@ -311,17 +376,19 @@ function App() {
     });
 
     socketInstance.on('terminal-created', (terminal) => {
-      setTerminals(prev => [...prev, terminal]);
+      setTerminals((prev) => [...prev, terminal]);
     });
 
     socketInstance.on('terminal-output', (message) => {
-      setTerminalMessages(prev => [...prev, message]);
+      setTerminalMessages((prev) => [...prev, message]);
     });
 
     socketInstance.on('terminal-closed', (data) => {
-      setTerminals(prev => prev.filter(t => t.id !== data.terminalId));
-      setTerminalMessages(prev => prev.filter(m => m.terminalId !== data.terminalId));
-      setTerminalHistories(prev => {
+      setTerminals((prev) => prev.filter((t) => t.id !== data.terminalId));
+      setTerminalMessages((prev) =>
+        prev.filter((m) => m.terminalId !== data.terminalId)
+      );
+      setTerminalHistories((prev) => {
         const newHistories = new Map(prev);
         newHistories.delete(data.terminalId);
         return newHistories;
@@ -330,7 +397,7 @@ function App() {
 
     // ターミナル出力履歴の受信
     socketInstance.on('terminal-output-history', (data) => {
-      setTerminalHistories(prev => {
+      setTerminalHistories((prev) => {
         const newHistories = new Map(prev);
         newHistories.set(data.terminalId, data.history);
         return newHistories;
@@ -353,7 +420,7 @@ function App() {
     socketInstance.on('shortcut-executed', () => {
       // ショートカット実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
-    
+
     // ブランチ関連のイベントハンドラ
     socketInstance.on('branches-list', (data) => {
       if (data.repositoryPath === currentRepoRef.current) {
@@ -371,7 +438,7 @@ function App() {
         setNpmScripts(data.scripts);
       }
     });
-    
+
     socketInstance.on('npm-script-executed', () => {
       // npmスクリプト実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
     });
@@ -383,21 +450,25 @@ function App() {
 
     socketInstance.on('automode-config-created', (data) => {
       if (data.success && data.config) {
-        setAutoModeConfigs(prev => [...prev, data.config!]);
+        setAutoModeConfigs((prev) => [...prev, data.config!]);
       }
     });
 
     socketInstance.on('automode-config-updated', (data) => {
       if (data.success && data.config) {
-        setAutoModeConfigs(prev => 
-          prev.map(config => config.id === data.config!.id ? data.config! : config)
+        setAutoModeConfigs((prev) =>
+          prev.map((config) =>
+            config.id === data.config!.id ? data.config! : config
+          )
         );
       }
     });
 
     socketInstance.on('automode-config-deleted', (data) => {
       if (data.success && data.configId) {
-        setAutoModeConfigs(prev => prev.filter(config => config.id !== data.configId));
+        setAutoModeConfigs((prev) =>
+          prev.filter((config) => config.id !== data.configId)
+        );
       }
     });
 
@@ -406,11 +477,11 @@ function App() {
         setAutoModeState({
           repositoryPath: data.repositoryPath,
           isRunning: data.isRunning,
-          currentConfigId: data.configId
+          currentConfigId: data.configId,
         });
       }
     });
-    
+
     socketInstance.on('branch-switched', (data) => {
       if (data.repositoryPath === currentRepoRef.current) {
         if (data.success) {
@@ -419,7 +490,7 @@ function App() {
           // （ブランチセレクター自体で状態が更新されるため）
         } else {
           // エラーの場合のみClaude出力エリアに表示
-          setRawOutput(prev => prev + `\n[ERROR] ${data.message}\n`);
+          setRawOutput((prev) => prev + `\n[ERROR] ${data.message}\n`);
         }
       }
     });
@@ -477,7 +548,7 @@ function App() {
       const shortcutData = {
         command,
         repositoryPath: currentRepo,
-        ...(name.trim() ? { name: name.trim() } : {}) // nameが入力されている場合のみ追加
+        ...(name.trim() ? { name: name.trim() } : {}), // nameが入力されている場合のみ追加
       };
       socket.emit('create-shortcut', shortcutData);
     }
@@ -497,10 +568,10 @@ function App() {
 
   const handleSendCommand = (command: string) => {
     if (socket) {
-      socket.emit('send-command', { 
+      socket.emit('send-command', {
         command,
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
@@ -512,12 +583,12 @@ function App() {
         up: '\x1b[A',
         down: '\x1b[B',
         right: '\x1b[C',
-        left: '\x1b[D'
+        left: '\x1b[D',
       };
-      socket.emit('send-command', { 
+      socket.emit('send-command', {
         command: arrowKeys[direction],
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
@@ -526,37 +597,37 @@ function App() {
     if (socket) {
       socket.emit('claude-interrupt', {
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
 
   const handleSendEscape = () => {
     if (socket) {
-      socket.emit('send-command', { 
+      socket.emit('send-command', {
         command: '\x1b', // ESC (ASCII 27)
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
 
   const handleClearClaude = () => {
     if (socket) {
-      socket.emit('send-command', { 
+      socket.emit('send-command', {
         command: '/clear',
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
 
   const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet') => {
     if (socket) {
-      socket.emit('send-command', { 
+      socket.emit('send-command', {
         command: `/model ${model}`,
         sessionId: currentSessionId,
-        repositoryPath: currentRepo
+        repositoryPath: currentRepo,
       });
     }
   };
@@ -585,7 +656,7 @@ function App() {
       socket.emit('close-terminal', { terminalId });
     }
   };
-  
+
   // ブランチ関連のハンドラ
   const handleSwitchBranch = (branchName: string) => {
     if (socket && currentRepo) {
@@ -602,10 +673,10 @@ function App() {
 
   const handleExecuteNpmScript = (scriptName: string) => {
     if (socket && currentRepo) {
-      socket.emit('execute-npm-script', { 
-        repositoryPath: currentRepo, 
+      socket.emit('execute-npm-script', {
+        repositoryPath: currentRepo,
         scriptName,
-        terminalId: 'active'
+        terminalId: 'active',
       });
     }
   };
@@ -635,13 +706,21 @@ function App() {
                   </p>
                 </div>
                 <div className="flex items-center space-x-2 flex-shrink-0">
-                  <div className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-green-500' : 
-                    isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}></div>
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      isConnected
+                        ? 'bg-green-500'
+                        : isReconnecting
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                    }`}
+                  ></div>
                   <span className="text-xs text-gray-300 font-medium">
-                    {isConnected ? '接続中' : 
-                     isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
+                    {isConnected
+                      ? '接続中'
+                      : isReconnecting
+                        ? `再接続中 (${connectionAttempts})`
+                        : '未接続'}
                   </span>
                 </div>
               </div>
@@ -690,8 +769,18 @@ function App() {
                 onClick={handleBackToRepoSelection}
                 className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex-shrink-0"
               >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
                 </svg>
                 <span className="hidden xs:inline">リポジトリ選択</span>
                 <span className="xs:hidden">戻る</span>
@@ -700,18 +789,28 @@ function App() {
                 <h1 className="text-sm sm:text-lg font-semibold text-white truncate">
                   {currentRepo.split('/').pop() || 'プロジェクト'}
                 </h1>
-                <p className="text-xs text-gray-400 truncate max-w-full sm:max-w-96">{currentRepo}</p>
+                <p className="text-xs text-gray-400 truncate max-w-full sm:max-w-96">
+                  {currentRepo}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-green-500' : 
-                  isReconnecting ? 'bg-yellow-500' : 'bg-red-500'
-                }`}></div>
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    isConnected
+                      ? 'bg-green-500'
+                      : isReconnecting
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                  }`}
+                ></div>
                 <span className="text-xs text-gray-300 font-medium">
-                  {isConnected ? '接続中' : 
-                   isReconnecting ? `再接続中 (${connectionAttempts})` : '未接続'}
+                  {isConnected
+                    ? '接続中'
+                    : isReconnecting
+                      ? `再接続中 (${connectionAttempts})`
+                      : '未接続'}
                 </span>
                 {currentSessionId && (
                   <span className="text-xs text-blue-400 font-mono">
@@ -735,13 +834,23 @@ function App() {
             isConnected={isConnected}
           />
         </div>
-        
+
         {/* Claude CLI セクション */}
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               Claude CLI
             </h2>
@@ -749,8 +858,8 @@ function App() {
           <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
             {/* Claude出力エリア */}
             <div className="flex-1 min-h-0">
-              <ClaudeOutput 
-                rawOutput={rawOutput} 
+              <ClaudeOutput
+                rawOutput={rawOutput}
                 onFocusInput={handleFocusCommandInput}
               />
             </div>
@@ -775,8 +884,18 @@ function App() {
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               ターミナル
             </h2>
@@ -815,8 +934,18 @@ function App() {
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
           <div className="px-4 sm:px-6 py-4">
             <h3 className="text-base font-semibold text-white mb-3 flex items-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
               自走モード
             </h3>
@@ -844,8 +973,18 @@ function App() {
                 disabled={!isConnected}
                 className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-200 bg-red-900 border border-red-700 rounded-md hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
                 削除
               </button>
@@ -860,8 +999,18 @@ function App() {
           <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
             <div className="flex items-center space-x-3 mb-4">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                <svg
+                  className="h-6 w-6 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
                 </svg>
               </div>
               <div>
@@ -874,8 +1023,16 @@ function App() {
               <div className="bg-red-900 rounded-md p-4 mb-4 border border-red-700">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
@@ -894,7 +1051,9 @@ function App() {
                 </div>
               </div>
               <div className="bg-gray-700 rounded-md p-3 border border-gray-600">
-                <p className="text-sm font-medium text-white">{currentRepo.split('/').pop()}</p>
+                <p className="text-sm font-medium text-white">
+                  {currentRepo.split('/').pop()}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">{currentRepo}</p>
               </div>
             </div>

@@ -21,7 +21,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   isActive,
   onInput,
   onSignal,
-  onClose
+  onClose,
 }) => {
   const [input, setInput] = useState('');
   const [selectedText, setSelectedText] = useState('');
@@ -40,7 +40,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       up: '\x1b[A',
       down: '\x1b[B',
       right: '\x1b[C',
-      left: '\x1b[D'
+      left: '\x1b[D',
     };
     onInput(terminal.id, arrowKeys[direction]);
   };
@@ -94,9 +94,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         brightBlue: '#bfdbfe',
         brightMagenta: '#e9d5ff',
         brightCyan: '#a5f3fc',
-        brightWhite: '#f9fafb'
+        brightWhite: '#f9fafb',
       },
-      fontFamily: '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
+      fontFamily:
+        '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
       fontSize: 8,
       lineHeight: 1.2,
       cursorBlink: false,
@@ -113,7 +114,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       rightClickSelectsWord: true,
       // 横スクロール対応の設定
       cols: 600, // 適度な列数を設定
-      allowProposedApi: true // 横スクロール機能に必要
+      allowProposedApi: true, // 横スクロール機能に必要
     });
 
     // FitAddonを読み込み
@@ -168,13 +169,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
     // ターミナルが変更された場合、または初回表示の場合、出力をクリアして新しい内容をロード
     if (currentTerminalId.current !== terminal.id) {
-
       // 出力をクリア
       xtermInstance.current.clear();
 
       // 履歴をロード
       if (history && history.length > 0) {
-        history.forEach(historyLine => {
+        history.forEach((historyLine) => {
           if (historyLine.content) {
             xtermInstance.current?.write(historyLine.content);
           }
@@ -182,8 +182,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       }
 
       // 現在のメッセージをロード
-      const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
-      terminalMessages.forEach(message => {
+      const terminalMessages = messages.filter(
+        (msg) => msg.terminalId === terminal.id
+      );
+      terminalMessages.forEach((message) => {
         if (message.type !== 'input') {
           xtermInstance.current?.write(message.data);
         }
@@ -194,26 +196,33 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       xtermInstance.current.scrollToBottom();
     }
     // 初回表示で履歴が空だった場合、後から履歴が読み込まれた時の対応
-    else if (currentTerminalId.current === terminal.id && history && history.length > 0) {
+    else if (
+      currentTerminalId.current === terminal.id &&
+      history &&
+      history.length > 0
+    ) {
       // 既に表示されているコンテンツと履歴を比較して、履歴が新しく追加されていれば表示
-      const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
-      const totalExpectedLines = history.length + terminalMessages.filter(msg => msg.type !== 'input').length;
+      const terminalMessages = messages.filter(
+        (msg) => msg.terminalId === terminal.id
+      );
+      const totalExpectedLines =
+        history.length +
+        terminalMessages.filter((msg) => msg.type !== 'input').length;
 
       // 現在の表示内容より履歴が多い場合は再描画
       if (totalExpectedLines > lastMessageCount.current) {
-
         // 出力をクリア
         xtermInstance.current.clear();
 
         // 履歴をロード
-        history.forEach(historyLine => {
+        history.forEach((historyLine) => {
           if (historyLine.content) {
             xtermInstance.current?.write(historyLine.content);
           }
         });
 
         // 現在のメッセージをロード
-        terminalMessages.forEach(message => {
+        terminalMessages.forEach((message) => {
           if (message.type !== 'input') {
             xtermInstance.current?.write(message.data);
           }
@@ -227,15 +236,17 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
   // 新しいメッセージが追加されたらXTermに書き込み
   useEffect(() => {
-    if (!xtermInstance.current || currentTerminalId.current !== terminal.id) return;
+    if (!xtermInstance.current || currentTerminalId.current !== terminal.id)
+      return;
 
-    const terminalMessages = messages.filter(msg => msg.terminalId === terminal.id);
+    const terminalMessages = messages.filter(
+      (msg) => msg.terminalId === terminal.id
+    );
     const newMessages = terminalMessages.slice(lastMessageCount.current);
 
     // 新しいメッセージがある場合のみ処理
     if (newMessages.length > 0) {
-
-      newMessages.forEach(message => {
+      newMessages.forEach((message) => {
         if (message.type === 'input') return; // 入力メッセージは表示しない
 
         // ANSIエスケープシーケンスをそのまま出力（XTermが処理）
@@ -277,10 +288,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // XTermがフォーカスされている場合は、入力フィールドのキーイベントは処理しない
-    if (document.activeElement === terminalRef.current?.querySelector('.xterm')) {
+    if (
+      document.activeElement === terminalRef.current?.querySelector('.xterm')
+    ) {
       return;
     }
-    
+
     if (e.ctrlKey) {
       if (e.key === 'c') {
         e.preventDefault();
@@ -292,19 +305,30 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   };
 
-
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルヘッダー */}
       <div className="bg-gray-800 px-2 sm:px-3 py-2 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${terminal.status === 'active' ? 'bg-green-500' :
-              terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
-            }`}></div>
-          <span className="text-gray-300 text-xs truncate">{terminal.name}</span>
-          <span className="text-gray-500 text-xs truncate hidden sm:inline">({terminal.cwd})</span>
+          <div
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${
+              terminal.status === 'active'
+                ? 'bg-green-500'
+                : terminal.status === 'exited'
+                  ? 'bg-red-500'
+                  : 'bg-yellow-500'
+            }`}
+          ></div>
+          <span className="text-gray-300 text-xs truncate">
+            {terminal.name}
+          </span>
+          <span className="text-gray-500 text-xs truncate hidden sm:inline">
+            ({terminal.cwd})
+          </span>
           {terminal.pid && (
-            <span className="text-gray-500 text-xs hidden sm:inline">PID: {terminal.pid}</span>
+            <span className="text-gray-500 text-xs hidden sm:inline">
+              PID: {terminal.pid}
+            </span>
           )}
         </div>
         <div className="flex items-center space-x-1">
@@ -337,7 +361,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div 
+      <div
         ref={terminalContainerRef}
         className="flex-1 bg-gray-900 overflow-auto"
         onClick={() => {
@@ -362,7 +386,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             WebkitUserSelect: 'text',
             // iOS対応: タッチ操作とスクロールの最適化
             touchAction: 'manipulation',
-            WebkitTouchCallout: 'default'
+            WebkitTouchCallout: 'default',
           }}
         />
       </div>
@@ -378,7 +402,11 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0 font-mono"
-            placeholder={terminal.status === 'exited' ? 'ターミナルが終了しました' : 'ターミナルをクリックして直接入力できます'}
+            placeholder={
+              terminal.status === 'exited'
+                ? 'ターミナルが終了しました'
+                : 'ターミナルをクリックして直接入力できます'
+            }
             disabled={terminal.status === 'exited'}
           />
         </form>

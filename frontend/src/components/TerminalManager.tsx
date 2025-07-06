@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import type { Terminal, TerminalMessage, TerminalOutputLine, CommandShortcut } from '../types';
+import type {
+  Terminal,
+  TerminalMessage,
+  TerminalOutputLine,
+  CommandShortcut,
+} from '../types';
 import TerminalComponent from './Terminal';
 
 interface TerminalManagerProps {
@@ -31,7 +36,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   onCloseTerminal,
   onCreateShortcut,
   onDeleteShortcut,
-  onExecuteShortcut
+  onExecuteShortcut,
 }) => {
   const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [showCreateShortcut, setShowCreateShortcut] = useState(false);
@@ -47,7 +52,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
   // アクティブなターミナルが削除された場合の処理
   useEffect(() => {
-    if (activeTerminalId && !terminals.find(t => t.id === activeTerminalId)) {
+    if (activeTerminalId && !terminals.find((t) => t.id === activeTerminalId)) {
       const newActiveId = terminals.length > 0 ? terminals[0].id : '';
       setActiveTerminalId(newActiveId);
     }
@@ -78,7 +83,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     onExecuteShortcut(shortcutId, activeTerminalId);
   };
 
-  const activeTerminal = terminals.find(t => t.id === activeTerminalId);
+  const activeTerminal = terminals.find((t) => t.id === activeTerminalId);
 
   return (
     <div className="h-full flex flex-col">
@@ -94,11 +99,18 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             }`}
             onClick={() => setActiveTerminalId(terminal.id)}
           >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              terminal.status === 'active' ? 'bg-green-500' :
-              terminal.status === 'exited' ? 'bg-red-500' : 'bg-yellow-500'
-            }`}></div>
-            <span className="truncate max-w-20 sm:max-w-none">{terminal.name}</span>
+            <div
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                terminal.status === 'active'
+                  ? 'bg-green-500'
+                  : terminal.status === 'exited'
+                    ? 'bg-red-500'
+                    : 'bg-yellow-500'
+              }`}
+            ></div>
+            <span className="truncate max-w-20 sm:max-w-none">
+              {terminal.name}
+            </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -110,7 +122,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             </button>
           </div>
         ))}
-        
+
         {/* 新しいターミナル作成ボタン */}
         <button
           onClick={handleCreateTerminal}
@@ -132,12 +144,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   <div className="w-12 h-12 mx-auto mb-3 bg-gray-700 rounded-full flex items-center justify-center">
                     <span className="text-xl text-gray-400">$</span>
                   </div>
-                  <h3 className="text-base font-medium mb-2">ターミナルがありません</h3>
+                  <h3 className="text-base font-medium mb-2">
+                    ターミナルがありません
+                  </h3>
                   <p className="text-sm text-gray-400 mb-4">
                     新しいターミナルを作成してコマンドラインを開始しましょう
                   </p>
                 </div>
-                
+
                 <button
                   onClick={handleCreateTerminal}
                   disabled={!isConnected || !currentRepo}
@@ -145,7 +159,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 >
                   ターミナルを作成
                 </button>
-                
+
                 {!currentRepo && (
                   <div className="mt-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
                     <p className="text-xs text-yellow-300">
@@ -153,7 +167,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                     </p>
                   </div>
                 )}
-                
+
                 {!isConnected && (
                   <div className="mt-3 p-2 bg-red-900/20 border border-red-700/30 rounded-lg">
                     <p className="text-xs text-red-300">
@@ -186,8 +200,18 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             <div className="px-3 py-2 border-b border-gray-600">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-gray-200 flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <svg
+                    className="w-4 h-4 mr-2 text-yellow-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
                   </svg>
                   コマンドショートカット
                 </h3>
@@ -201,7 +225,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 </button>
               </div>
             </div>
-            
+
             <div className="px-3 py-2 max-h-32 overflow-y-auto">
               {/* ショートカット作成フォーム */}
               {showCreateShortcut && (
@@ -248,19 +272,36 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
               {shortcuts.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {shortcuts.map((shortcut) => (
-                    <div key={shortcut.id} className="flex items-center space-x-1 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden">
+                    <div
+                      key={shortcut.id}
+                      className="flex items-center space-x-1 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden"
+                    >
                       <button
                         onClick={() => handleExecuteShortcut(shortcut.id)}
                         disabled={!activeTerminalId}
                         className="px-3 py-2 text-xs text-white hover:bg-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed flex items-center space-x-2"
                         title={`実行: ${shortcut.command}`}
                       >
-                        <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-6L10 2l-5 5v6l5 5z" />
+                        <svg
+                          className="w-3 h-3 text-green-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-6L10 2l-5 5v6l5 5z"
+                          />
                         </svg>
-                        <span className="font-medium">{shortcut.name || shortcut.command}</span>
+                        <span className="font-medium">
+                          {shortcut.name || shortcut.command}
+                        </span>
                         {shortcut.name && (
-                          <span className="text-gray-400 text-xs hidden sm:inline">({shortcut.command})</span>
+                          <span className="text-gray-400 text-xs hidden sm:inline">
+                            ({shortcut.command})
+                          </span>
                         )}
                       </button>
                       <button

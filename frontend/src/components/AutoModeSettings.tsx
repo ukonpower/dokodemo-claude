@@ -7,6 +7,8 @@ interface AutoModeConfig {
   prompt: string;
   repositoryPath: string;
   isEnabled: boolean;
+  triggerMode: 'hook' | 'timer';
+  interval?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -26,20 +28,26 @@ interface AutoModeSettingsProps {
   autoModeState?: AutoModeState | null;
 }
 
-const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({ 
-  socket, 
-  repositoryPath, 
+const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
+  socket,
+  repositoryPath,
   configs: initialConfigs = [],
-  autoModeState: initialAutoModeState = null
+  autoModeState: initialAutoModeState = null,
 }) => {
   const [configs, setConfigs] = useState<AutoModeConfig[]>(initialConfigs);
-  const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(initialAutoModeState);
+  const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(
+    initialAutoModeState
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingConfig, setEditingConfig] = useState<AutoModeConfig | null>(null);
+  const [editingConfig, setEditingConfig] = useState<AutoModeConfig | null>(
+    null
+  );
   const [newConfig, setNewConfig] = useState({
     name: '',
     prompt: '',
-    isEnabled: true
+    isEnabled: true,
+    triggerMode: 'hook' as 'hook' | 'timer',
+    interval: 30000,
   });
 
   // propsからの初期値を反映
@@ -75,35 +83,59 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       setConfigs(data.configs);
     };
 
-    const handleConfigCreated = (data: { success: boolean; message: string; config?: AutoModeConfig }) => {
+    const handleConfigCreated = (data: {
+      success: boolean;
+      message: string;
+      config?: AutoModeConfig;
+    }) => {
       if (data.success && data.config) {
-        setConfigs(prev => [...prev, data.config!]);
+        setConfigs((prev) => [...prev, data.config!]);
         setShowCreateForm(false);
-        setNewConfig({ name: '', prompt: '', isEnabled: true });
+        setNewConfig({
+          name: '',
+          prompt: '',
+          isEnabled: true,
+          triggerMode: 'hook',
+          interval: 30000,
+        });
       }
     };
 
-    const handleConfigUpdated = (data: { success: boolean; message: string; config?: AutoModeConfig }) => {
+    const handleConfigUpdated = (data: {
+      success: boolean;
+      message: string;
+      config?: AutoModeConfig;
+    }) => {
       if (data.success && data.config) {
-        setConfigs(prev => prev.map(c => c.id === data.config!.id ? data.config! : c));
+        setConfigs((prev) =>
+          prev.map((c) => (c.id === data.config!.id ? data.config! : c))
+        );
         setEditingConfig(null);
       }
     };
 
-    const handleConfigDeleted = (data: { success: boolean; message: string; configId?: string }) => {
+    const handleConfigDeleted = (data: {
+      success: boolean;
+      message: string;
+      configId?: string;
+    }) => {
       if (data.success && data.configId) {
-        setConfigs(prev => prev.filter(c => c.id !== data.configId));
+        setConfigs((prev) => prev.filter((c) => c.id !== data.configId));
       }
     };
 
-    const handleAutoModeStatusChanged = (data: { repositoryPath: string; isRunning: boolean; configId?: string }) => {
+    const handleAutoModeStatusChanged = (data: {
+      repositoryPath: string;
+      isRunning: boolean;
+      configId?: string;
+    }) => {
       if (data.repositoryPath === repositoryPath) {
-        setAutoModeState(prev => ({
+        setAutoModeState((prev) => ({
           repositoryPath: data.repositoryPath,
           isRunning: data.isRunning,
           currentConfigId: data.configId,
           lastExecutionTime: prev?.lastExecutionTime,
-          nextExecutionTime: prev?.nextExecutionTime
+          nextExecutionTime: prev?.nextExecutionTime,
         }));
       }
     };
@@ -130,7 +162,10 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
         name: newConfig.name.trim(),
         prompt: newConfig.prompt.trim(),
         repositoryPath,
-        isEnabled: newConfig.isEnabled
+        isEnabled: newConfig.isEnabled,
+        triggerMode: newConfig.triggerMode,
+        interval:
+          newConfig.triggerMode === 'timer' ? newConfig.interval : undefined,
       });
     }
   };
@@ -141,7 +176,12 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       id: editingConfig.id,
       name: editingConfig.name,
       prompt: editingConfig.prompt,
-      isEnabled: editingConfig.isEnabled
+      isEnabled: editingConfig.isEnabled,
+      triggerMode: editingConfig.triggerMode,
+      interval:
+        editingConfig.triggerMode === 'timer'
+          ? editingConfig.interval
+          : undefined,
     });
   };
 
@@ -158,7 +198,9 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       id: config.id,
       name: config.name,
       prompt: config.prompt,
-      isEnabled: !config.isEnabled
+      isEnabled: !config.isEnabled,
+      triggerMode: config.triggerMode,
+      interval: config.interval,
     });
   };
 
@@ -185,36 +227,54 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     <div className="space-y-4">
       {/* 自走モード状態表示 */}
       {autoModeState && (
-        <div className={`p-4 rounded-lg border-2 ${
-          autoModeState.isRunning 
-            ? 'bg-green-900 border-green-600' 
-            : 'bg-gray-700 border-gray-600'
-        }`}>
+        <div
+          className={`p-4 rounded-lg border-2 ${
+            autoModeState.isRunning
+              ? 'bg-green-900 border-green-600'
+              : 'bg-gray-700 border-gray-600'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <div className={`w-3 h-3 rounded-full ${
-                autoModeState.isRunning ? 'bg-green-400 animate-pulse' : 'bg-gray-400'
-              }`}></div>
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  autoModeState.isRunning
+                    ? 'bg-green-400 animate-pulse'
+                    : 'bg-gray-400'
+                }`}
+              ></div>
               <div className="min-w-0 flex-1">
                 <h4 className="font-semibold text-white text-sm sm:text-base">
-                  自走モード: {autoModeState.isRunning ? '実行中（バックエンドで継続動作）' : '停止中'}
+                  自走モード:{' '}
+                  {autoModeState.isRunning
+                    ? '実行中（バックエンドで継続動作）'
+                    : '停止中'}
                 </h4>
                 {autoModeState.isRunning && autoModeState.currentConfigId && (
                   <>
                     <p className="text-xs sm:text-sm text-gray-300 truncate">
-                      実行中の設定: {configs.find(c => c.id === autoModeState.currentConfigId)?.name || '不明'}
+                      実行中の設定:{' '}
+                      {configs.find(
+                        (c) => c.id === autoModeState.currentConfigId
+                      )?.name || '不明'}
                     </p>
                     <p className="text-xs text-green-300 mt-1">
                       ℹ️ この画面を閉じても自走モードは継続実行されます
                     </p>
                     {autoModeState.lastExecutionTime && (
                       <p className="text-xs text-gray-400 mt-1">
-                        最終実行: {new Date(autoModeState.lastExecutionTime).toLocaleString()}
+                        最終実行:{' '}
+                        {new Date(
+                          autoModeState.lastExecutionTime
+                        ).toLocaleString()}
                       </p>
                     )}
                     {autoModeState.nextExecutionTime && (
                       <p className="text-xs text-gray-400">
-                        次回実行予定: {new Date(autoModeState.nextExecutionTime).toLocaleString()}
+                        次回実行予定:{' '}
+                        {new Date(
+                          autoModeState.nextExecutionTime
+                        ).toLocaleString()}
                       </p>
                     )}
                   </>
@@ -236,7 +296,9 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {/* 設定管理セクション */}
       <div className="bg-gray-700 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-base sm:text-lg font-semibold text-white">自走モード設定</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white">
+            自走モード設定
+          </h3>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
             className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
@@ -245,237 +307,414 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           </button>
         </div>
 
-      {showCreateForm && (
-        <div className="bg-gray-600 p-4 rounded border border-gray-500 mb-4">
-          <h4 className="font-semibold mb-3 text-white text-sm sm:text-base">新しい自走モード設定</h4>
-          <div className="bg-blue-900 p-3 rounded-md mb-4 border border-blue-600">
-            <p className="text-xs sm:text-sm text-blue-200">
-              🚀 <strong>自走モードについて:</strong><br/>
-              バックエンドで定期的に実行されるため、ブラウザを閉じても継続動作します。
-              Claude Code CLIに対して設定されたプロンプトを自動送信し、継続的な作業を行います。
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                設定名
-              </label>
-              <input
-                type="text"
-                value={newConfig.name}
-                onChange={(e) => setNewConfig({ ...newConfig, name: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                placeholder="例: 継続的リファクタリング"
-              />
+        {showCreateForm && (
+          <div className="bg-gray-600 p-4 rounded border border-gray-500 mb-4">
+            <h4 className="font-semibold mb-3 text-white text-sm sm:text-base">
+              新しい自走モード設定
+            </h4>
+            <div className="bg-blue-900 p-3 rounded-md mb-4 border border-blue-600">
+              <p className="text-xs sm:text-sm text-blue-200">
+                🚀 <strong>自走モードについて:</strong>
+                <br />
+                バックエンドで定期的に実行されるため、ブラウザを閉じても継続動作します。
+                Claude Code
+                CLIに対して設定されたプロンプトを自動送信し、継続的な作業を行います。
+              </p>
             </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                実行するプロンプト
-              </label>
-              <textarea
-                value={newConfig.prompt}
-                onChange={(e) => setNewConfig({ ...newConfig, prompt: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                rows={4}
-                placeholder="例: 現在のコードベースを見直して、改善点があれば教えてください。可能であれば実装も行ってください。"
-              />
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="enabled"
-                checked={newConfig.isEnabled}
-                onChange={(e) => setNewConfig({ ...newConfig, isEnabled: e.target.checked })}
-                className="mr-2"
-              />
-              <label htmlFor="enabled" className="text-xs sm:text-sm text-gray-200">
-                この設定を有効にする
-              </label>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCreateConfig}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
-              >
-                作成
-              </button>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {configs.length === 0 ? (
-          <p className="text-gray-400 text-center py-8 text-xs sm:text-sm">
-            自走モード設定がありません。「+ 新規作成」から追加してください。
-          </p>
-        ) : (
-          configs.map((config) => {
-            const isCurrentlyRunning = autoModeState?.isRunning && autoModeState.currentConfigId === config.id;
-            
-            return (
-            <div
-              key={config.id}
-              className={`p-4 rounded border border-gray-500 ${
-                autoModeState?.isRunning && !isCurrentlyRunning
-                  ? 'bg-gray-700 opacity-50'
-                  : 'bg-gray-600'
-              }`}
-            >
-              {editingConfig?.id === config.id ? (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                      設定名
-                    </label>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                  設定名
+                </label>
+                <input
+                  type="text"
+                  value={newConfig.name}
+                  onChange={(e) =>
+                    setNewConfig({ ...newConfig, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                  placeholder="例: 継続的リファクタリング"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                  実行するプロンプト
+                </label>
+                <textarea
+                  value={newConfig.prompt}
+                  onChange={(e) =>
+                    setNewConfig({ ...newConfig, prompt: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                  rows={4}
+                  placeholder="例: 現在のコードベースを見直して、改善点があれば教えてください。可能であれば実装も行ってください。"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                  トリガーモード
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
                     <input
-                      type="text"
-                      value={editingConfig.name}
-                      onChange={(e) => setEditingConfig({ ...editingConfig, name: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
-                      実行するプロンプト
-                    </label>
-                    <textarea
-                      value={editingConfig.prompt}
-                      onChange={(e) => setEditingConfig({ ...editingConfig, prompt: e.target.value })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                      rows={4}
-                    />
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`enabled-${config.id}`}
-                      checked={editingConfig.isEnabled}
-                      onChange={(e) => setEditingConfig({ ...editingConfig, isEnabled: e.target.checked })}
+                      type="radio"
+                      name="triggerMode"
+                      value="hook"
+                      checked={newConfig.triggerMode === 'hook'}
+                      onChange={() =>
+                        setNewConfig({ ...newConfig, triggerMode: 'hook' })
+                      }
                       className="mr-2"
                     />
-                    <label htmlFor={`enabled-${config.id}`} className="text-xs sm:text-sm text-gray-200">
-                      この設定を有効にする
+                    <span className="text-xs sm:text-sm text-gray-200">
+                      Hookモード（Claude Code実行完了時に自動実行）
+                    </span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="triggerMode"
+                      value="timer"
+                      checked={newConfig.triggerMode === 'timer'}
+                      onChange={() =>
+                        setNewConfig({ ...newConfig, triggerMode: 'timer' })
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-xs sm:text-sm text-gray-200">
+                      タイマーモード（定期実行）
+                    </span>
+                  </label>
+                </div>
+                {newConfig.triggerMode === 'timer' && (
+                  <div className="mt-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                      実行間隔（秒）
                     </label>
+                    <input
+                      type="number"
+                      value={newConfig.interval / 1000}
+                      onChange={(e) =>
+                        setNewConfig({
+                          ...newConfig,
+                          interval: parseInt(e.target.value) * 1000,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                      placeholder="30"
+                      min="10"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">最小: 10秒</p>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleUpdateConfig}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
-                    >
-                      保存
-                    </button>
-                    <button
-                      onClick={() => setEditingConfig(null)}
-                      className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold text-white text-sm sm:text-base">{config.name}</h4>
-                      <span
-                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          isCurrentlyRunning
-                            ? 'bg-green-600 text-green-100'
-                            : config.isEnabled 
-                              ? 'bg-green-600 text-green-100' 
-                              : 'bg-gray-500 text-gray-200'
-                        }`}
-                      >
-                        {isCurrentlyRunning ? '実行中' : config.isEnabled ? '有効' : '無効'}
-                      </span>
-                    </div>
-                    {isCurrentlyRunning && (
-                      <button
-                        onClick={handleStopAutoMode}
-                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-xs sm:text-sm"
-                      >
-                        停止
-                      </button>
-                    )}
-                    {config.isEnabled && !autoModeState?.isRunning && (
-                      <button
-                        onClick={() => handleStartAutoMode(config.id)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-xs sm:text-sm"
-                      >
-                        開始
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="bg-gray-700 p-3 rounded">
-                    <p className="text-gray-200 text-xs sm:text-sm whitespace-pre-wrap">
-                      {config.prompt}
-                    </p>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    {!isCurrentlyRunning && (
-                      <>
-                        <button
-                          onClick={() => handleToggleEnabled(config)}
-                          className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
-                            config.isEnabled
-                              ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
-                              : 'bg-green-600 text-green-100 hover:bg-green-500'
-                          }`}
-                        >
-                          {config.isEnabled ? '無効化' : '有効化'}
-                        </button>
-                        <button
-                          onClick={() => setEditingConfig(config)}
-                          className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
-                        >
-                          編集
-                        </button>
-                        <button
-                          onClick={() => handleDeleteConfig(config.id)}
-                          className="bg-red-600 text-red-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-500 transition-colors"
-                        >
-                          削除
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="text-xs text-gray-400 pt-2 border-t border-gray-600">
-                    <p>作成: {new Date(config.createdAt).toLocaleString('ja-JP', {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</p>
-                    {config.updatedAt !== config.createdAt && (
-                      <p className="mt-1">
-                        更新: {new Date(config.updatedAt).toLocaleString('ja-JP', {
-                          year: 'numeric',
-                          month: 'numeric',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="enabled"
+                  checked={newConfig.isEnabled}
+                  onChange={(e) =>
+                    setNewConfig({ ...newConfig, isEnabled: e.target.checked })
+                  }
+                  className="mr-2"
+                />
+                <label
+                  htmlFor="enabled"
+                  className="text-xs sm:text-sm text-gray-200"
+                >
+                  この設定を有効にする
+                </label>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreateConfig}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
+                >
+                  作成
+                </button>
+                <button
+                  onClick={() => setShowCreateForm(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
+                >
+                  キャンセル
+                </button>
+              </div>
             </div>
-            );
-          })
+          </div>
         )}
-      </div>
+
+        <div className="space-y-2">
+          {configs.length === 0 ? (
+            <p className="text-gray-400 text-center py-8 text-xs sm:text-sm">
+              自走モード設定がありません。「+ 新規作成」から追加してください。
+            </p>
+          ) : (
+            configs.map((config) => {
+              const isCurrentlyRunning =
+                autoModeState?.isRunning &&
+                autoModeState.currentConfigId === config.id;
+
+              return (
+                <div
+                  key={config.id}
+                  className={`p-4 rounded border border-gray-500 ${
+                    autoModeState?.isRunning && !isCurrentlyRunning
+                      ? 'bg-gray-700 opacity-50'
+                      : 'bg-gray-600'
+                  }`}
+                >
+                  {editingConfig?.id === config.id ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                          設定名
+                        </label>
+                        <input
+                          type="text"
+                          value={editingConfig.name}
+                          onChange={(e) =>
+                            setEditingConfig({
+                              ...editingConfig,
+                              name: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                          実行するプロンプト
+                        </label>
+                        <textarea
+                          value={editingConfig.prompt}
+                          onChange={(e) =>
+                            setEditingConfig({
+                              ...editingConfig,
+                              prompt: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                          rows={4}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                          トリガーモード
+                        </label>
+                        <div className="space-y-2">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`triggerMode-${config.id}`}
+                              value="hook"
+                              checked={editingConfig.triggerMode === 'hook'}
+                              onChange={() =>
+                                setEditingConfig({
+                                  ...editingConfig,
+                                  triggerMode: 'hook',
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span className="text-xs sm:text-sm text-gray-200">
+                              Hookモード（Claude Code実行完了時に自動実行）
+                            </span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`triggerMode-${config.id}`}
+                              value="timer"
+                              checked={editingConfig.triggerMode === 'timer'}
+                              onChange={() =>
+                                setEditingConfig({
+                                  ...editingConfig,
+                                  triggerMode: 'timer',
+                                })
+                              }
+                              className="mr-2"
+                            />
+                            <span className="text-xs sm:text-sm text-gray-200">
+                              タイマーモード（定期実行）
+                            </span>
+                          </label>
+                        </div>
+                        {editingConfig.triggerMode === 'timer' && (
+                          <div className="mt-2">
+                            <label className="block text-xs sm:text-sm font-medium text-gray-200 mb-1">
+                              実行間隔（秒）
+                            </label>
+                            <input
+                              type="number"
+                              value={(editingConfig.interval || 30000) / 1000}
+                              onChange={(e) =>
+                                setEditingConfig({
+                                  ...editingConfig,
+                                  interval: parseInt(e.target.value) * 1000,
+                                })
+                              }
+                              className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                              placeholder="30"
+                              min="10"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">
+                              最小: 10秒
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`enabled-${config.id}`}
+                          checked={editingConfig.isEnabled}
+                          onChange={(e) =>
+                            setEditingConfig({
+                              ...editingConfig,
+                              isEnabled: e.target.checked,
+                            })
+                          }
+                          className="mr-2"
+                        />
+                        <label
+                          htmlFor={`enabled-${config.id}`}
+                          className="text-xs sm:text-sm text-gray-200"
+                        >
+                          この設定を有効にする
+                        </label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleUpdateConfig}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => setEditingConfig(null)}
+                          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-white text-sm sm:text-base">
+                            {config.name}
+                          </h4>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span
+                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                isCurrentlyRunning
+                                  ? 'bg-green-600 text-green-100'
+                                  : config.isEnabled
+                                    ? 'bg-green-600 text-green-100'
+                                    : 'bg-gray-500 text-gray-200'
+                              }`}
+                            >
+                              {isCurrentlyRunning
+                                ? '実行中'
+                                : config.isEnabled
+                                  ? '有効'
+                                  : '無効'}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {config.triggerMode === 'hook'
+                                ? 'Hookモード'
+                                : `タイマーモード (${(config.interval || 30000) / 1000}秒)`}
+                            </span>
+                          </div>
+                        </div>
+                        {isCurrentlyRunning && (
+                          <button
+                            onClick={handleStopAutoMode}
+                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors text-xs sm:text-sm"
+                          >
+                            停止
+                          </button>
+                        )}
+                        {config.isEnabled && !autoModeState?.isRunning && (
+                          <button
+                            onClick={() => handleStartAutoMode(config.id)}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors text-xs sm:text-sm"
+                          >
+                            開始
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-gray-700 p-3 rounded">
+                        <p className="text-gray-200 text-xs sm:text-sm whitespace-pre-wrap">
+                          {config.prompt}
+                        </p>
+                      </div>
+
+                      <div className="flex space-x-2">
+                        {!isCurrentlyRunning && (
+                          <>
+                            <button
+                              onClick={() => handleToggleEnabled(config)}
+                              className={`px-3 py-1 rounded text-xs sm:text-sm transition-colors ${
+                                config.isEnabled
+                                  ? 'bg-yellow-600 text-yellow-100 hover:bg-yellow-500'
+                                  : 'bg-green-600 text-green-100 hover:bg-green-500'
+                              }`}
+                            >
+                              {config.isEnabled ? '無効化' : '有効化'}
+                            </button>
+                            <button
+                              onClick={() => setEditingConfig(config)}
+                              className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
+                            >
+                              編集
+                            </button>
+                            <button
+                              onClick={() => handleDeleteConfig(config.id)}
+                              className="bg-red-600 text-red-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-500 transition-colors"
+                            >
+                              削除
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-gray-400 pt-2 border-t border-gray-600">
+                        <p>
+                          作成:{' '}
+                          {new Date(config.createdAt).toLocaleString('ja-JP', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                        {config.updatedAt !== config.createdAt && (
+                          <p className="mt-1">
+                            更新:{' '}
+                            {new Date(config.updatedAt).toLocaleString(
+                              'ja-JP',
+                              {
+                                year: 'numeric',
+                                month: 'numeric',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

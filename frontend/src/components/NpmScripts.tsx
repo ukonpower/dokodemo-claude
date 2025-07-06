@@ -13,7 +13,7 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
   scripts,
   isConnected,
   onExecuteScript,
-  onRefreshScripts
+  onRefreshScripts,
 }) => {
   useEffect(() => {
     // リポジトリが変更されたときにスクリプトを取得
@@ -30,8 +30,18 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white flex items-center">
-            <svg className="w-4 h-4 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m-4 4l4 4-4 4" />
+            <svg
+              className="w-4 h-4 mr-2 text-orange-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 20l4-16m-4 4l4 4-4 4"
+              />
             </svg>
             npm scripts
           </h3>
@@ -40,8 +50,18 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
             disabled={!isConnected}
             className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className="w-3 h-3 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             更新
           </button>
@@ -57,8 +77,18 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-white flex items-center">
-          <svg className="w-4 h-4 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m-4 4l4 4-4 4" />
+          <svg
+            className="w-4 h-4 mr-2 text-orange-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 20l4-16m-4 4l4 4-4 4"
+            />
           </svg>
           npm scripts
           <span className="ml-2 text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded">
@@ -70,8 +100,18 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
           disabled={!isConnected}
           className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <svg
+            className="w-3 h-3 mr-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
           </svg>
           更新
         </button>
@@ -96,8 +136,18 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
               </div>
               {/* 実行アイコン */}
               <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <svg className="w-3 h-3 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-5-14S5 5 5 8s5 7 5 7 5-4 5-7-5-8-5-8z" />
+                <svg
+                  className="w-3 h-3 text-orange-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-5-14S5 5 5 8s5 7 5 7 5-4 5-7-5-8-5-8z"
+                  />
                 </svg>
               </div>
             </button>
@@ -107,7 +157,8 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
 
       {/* 説明文 */}
       <p className="text-xs text-gray-500 mt-3">
-        現在選択されているターミナルでnpm runコマンドを実行します。ボタンにマウスを重ねると詳細が表示されます。
+        現在選択されているターミナルでnpm
+        runコマンドを実行します。ボタンにマウスを重ねると詳細が表示されます。
       </p>
     </div>
   );

@@ -6,18 +6,23 @@
   body {
     @apply bg-gray-50 text-gray-900 font-sans;
   }
-  
-  code, pre {
+
+  code,
+  pre {
     @apply font-mono;
   }
-  
+
   /* Safari iOS zoom prevention */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     font-size: 16px !important;
   }
-  
+
   @media screen and (max-width: 768px) {
-    input, textarea, select {
+    input,
+    textarea,
+    select {
       font-size: 16px !important;
     }
   }
@@ -27,39 +32,39 @@
   .claude-output {
     @apply bg-white border border-gray-200 rounded-lg shadow-sm;
   }
-  
+
   .claude-message {
     @apply p-3 border-b border-gray-100 last:border-b-0;
   }
-  
+
   .claude-message-user {
     @apply bg-blue-50 border-l-4 border-blue-400;
   }
-  
+
   .claude-message-claude {
     @apply bg-white;
   }
-  
+
   .claude-message-system {
     @apply bg-yellow-50 border-l-4 border-yellow-400;
   }
-  
+
   .repository-item {
     @apply p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors;
   }
-  
+
   .repository-item-selected {
     @apply bg-blue-50 border-blue-300;
   }
-  
+
   .repository-status-ready {
     @apply text-green-600;
   }
-  
+
   .repository-status-cloning {
     @apply text-yellow-600;
   }
-  
+
   .repository-status-error {
     @apply text-red-600;
   }
@@ -75,20 +80,20 @@
     scrollbar-width: none !important; /* Firefox */
     -ms-overflow-style: none !important; /* IE/Edge */
   }
-  
+
   /* Webkit ブラウザ（Chrome, Safari）用スクロールバー非表示 */
   .xterm .xterm-viewport::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
   }
-  
+
   /* 仮想スクロール領域の適切な配置 */
   .xterm .xterm-scroll-area {
     visibility: hidden !important;
     pointer-events: none !important;
   }
-  
+
   /* xterm-rows の適切な配置（DOM-based 描画での仮想スクロール） */
   .xterm .xterm-rows {
     position: absolute !important;
@@ -96,7 +101,7 @@
     top: 0 !important;
     z-index: 1 !important;
   }
-  
+
   /* スクリーンエリアの設定 */
   .xterm .xterm-screen {
     position: relative !important;

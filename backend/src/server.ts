@@ -10,7 +10,7 @@ import type {
   GitRepository,
   GitBranch,
   ServerToClientEvents,
-  ClientToServerEvents
+  ClientToServerEvents,
 } from './types/index.js';
 import { ProcessManager } from './process-manager.js';
 
@@ -20,10 +20,10 @@ const server = createServer(app);
 // Socket.IOサーバーの設定
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
-    origin: "*", // すべてのオリジンを許可
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    origin: '*', // すべてのオリジンを許可
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
 
 // グローバル状態
@@ -35,11 +35,65 @@ const PROCESSES_DIR = path.join(process.cwd(), 'processes');
 const processManager = new ProcessManager(PROCESSES_DIR);
 
 // Expressの設定
-app.use(cors({
-  origin: "*", // すべてのオリジンを許可
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: '*', // すべてのオリジンを許可
+    credentials: true,
+  })
+);
 app.use(express.json());
+
+// Claude Code Hook API エンドポイント
+app.post('/hook/claude-event', async (req, res) => {
+  console.log('[Hook] Received Claude Code hook event:', req.body);
+
+  try {
+    const { event, metadata } = req.body;
+
+    // 自走モードでサポートするイベントかチェック
+    if (!['PostToolUse', 'Stop', 'SubagentStop'].includes(event)) {
+      res.json({
+        status: 'ignored',
+        message: 'Event not supported for auto-mode',
+      });
+      return;
+    }
+
+    // metadataからリポジトリパスを特定
+    const cwd = metadata?.cwd;
+    if (!cwd || !cwd.startsWith(REPOS_DIR)) {
+      res.json({
+        status: 'ignored',
+        message: 'Event not in managed repository',
+      });
+      return;
+    }
+
+    // 自走モードが有効かチェック
+    const autoModeState = processManager.getAutoModeState(cwd);
+    if (!autoModeState || !autoModeState.isRunning) {
+      res.json({
+        status: 'ignored',
+        message: 'Auto-mode not running for this repository',
+      });
+      return;
+    }
+
+    // 自走モードの次のアクションをトリガー
+    processManager.triggerAutoModeFromHook(cwd, event);
+
+    res.json({
+      status: 'success',
+      message: 'Auto-mode triggered',
+    });
+  } catch (error) {
+    console.error('[Hook] Error processing hook event:', error);
+    res.status(500).json({
+      status: 'error',
+      message: String(error),
+    });
+  }
+});
 
 // リポジトリディレクトリの作成
 async function ensureReposDir(): Promise<void> {
@@ -55,12 +109,12 @@ async function loadExistingRepos(): Promise<void> {
   try {
     const entries = await fs.readdir(REPOS_DIR, { withFileTypes: true });
     repositories = entries
-      .filter(entry => entry.isDirectory())
-      .map(entry => ({
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({
         name: entry.name,
         path: path.join(REPOS_DIR, entry.name),
         url: '',
-        status: 'ready' as const
+        status: 'ready' as const,
       }));
   } catch {
     repositories = [];
@@ -68,13 +122,15 @@ async function loadExistingRepos(): Promise<void> {
 }
 
 // package.jsonからnpmスクリプトを取得
-async function getNpmScripts(repoPath: string): Promise<Record<string, string>> {
+async function getNpmScripts(
+  repoPath: string
+): Promise<Record<string, string>> {
   try {
     const packageJsonPath = path.join(repoPath, 'package.json');
     const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
     const packageJson = JSON.parse(packageJsonContent);
     return packageJson.scripts || {};
-  } catch (error) {
+  } catch {
     // package.jsonが存在しない、または読み取れない場合は空のオブジェクトを返す
     return {};
   }
@@ -85,25 +141,27 @@ async function getBranches(repoPath: string): Promise<GitBranch[]> {
   return new Promise((resolve) => {
     const gitProcess = spawn('git', ['branch', '-a'], { cwd: repoPath });
     let output = '';
-    
+
     gitProcess.stdout.on('data', (data) => {
       output += data.toString();
     });
-    
+
     gitProcess.on('exit', (code) => {
       if (code !== 0) {
         resolve([]);
         return;
       }
-      
+
       const branches: GitBranch[] = [];
-      const lines = output.split('\n').filter(line => line.trim());
-      
-      lines.forEach(line => {
+      const lines = output.split('\n').filter((line) => line.trim());
+
+      lines.forEach((line) => {
         const trimmedLine = line.trim();
         const isCurrent = trimmedLine.startsWith('*');
-        const branchName = trimmedLine.replace(/^\*?\s+/, '').replace(/^remotes\//, '');
-        
+        const branchName = trimmedLine
+          .replace(/^\*?\s+/, '')
+          .replace(/^remotes\//, '');
+
         // リモートブランチは remotes/origin/ で始まる
         if (branchName.startsWith('origin/')) {
           // リモートブランチ（origin/HEADは除外）
@@ -111,7 +169,7 @@ async function getBranches(repoPath: string): Promise<GitBranch[]> {
             branches.push({
               name: branchName.replace('origin/', ''),
               current: false,
-              remote: 'origin'
+              remote: 'origin',
             });
           }
         } else {
@@ -119,56 +177,65 @@ async function getBranches(repoPath: string): Promise<GitBranch[]> {
           branches.push({
             name: branchName,
             current: isCurrent,
-            remote: undefined
+            remote: undefined,
           });
         }
       });
-      
+
       // 重複を除去（ローカルブランチを優先）
       const uniqueBranches: GitBranch[] = [];
       const branchNames = new Set<string>();
-      
+
       // まずローカルブランチを追加
-      branches.filter(b => !b.remote).forEach(branch => {
-        uniqueBranches.push(branch);
-        branchNames.add(branch.name);
-      });
-      
+      branches
+        .filter((b) => !b.remote)
+        .forEach((branch) => {
+          uniqueBranches.push(branch);
+          branchNames.add(branch.name);
+        });
+
       // リモートブランチのうち、ローカルに存在しないものを追加
-      branches.filter(b => b.remote && !branchNames.has(b.name)).forEach(branch => {
-        uniqueBranches.push(branch);
-      });
-      
+      branches
+        .filter((b) => b.remote && !branchNames.has(b.name))
+        .forEach((branch) => {
+          uniqueBranches.push(branch);
+        });
+
       resolve(uniqueBranches);
     });
   });
 }
 
 // ブランチを切り替え
-async function switchBranch(repoPath: string, branchName: string): Promise<{ success: boolean; message: string }> {
+async function switchBranch(
+  repoPath: string,
+  branchName: string
+): Promise<{ success: boolean; message: string }> {
   return new Promise((resolve) => {
-    const gitProcess = spawn('git', ['checkout', branchName], { cwd: repoPath });
+    const gitProcess = spawn('git', ['checkout', branchName], {
+      cwd: repoPath,
+    });
     let output = '';
     let errorOutput = '';
-    
+
     gitProcess.stdout.on('data', (data) => {
       output += data.toString();
     });
-    
+
     gitProcess.stderr.on('data', (data) => {
       errorOutput += data.toString();
     });
-    
+
     gitProcess.on('exit', (code) => {
       if (code === 0) {
         resolve({
           success: true,
-          message: `ブランチ「${branchName}」に切り替えました`
+          message: `ブランチ「${branchName}」に切り替えました`,
         });
       } else {
         resolve({
           success: false,
-          message: `ブランチ切り替えエラー: ${errorOutput || output}`
+          message: `ブランチ切り替えエラー: ${errorOutput || output}`,
         });
       }
     });
@@ -181,7 +248,7 @@ processManager.on('claude-output', (data) => {
     type: data.type,
     content: data.content,
     sessionId: data.sessionId,
-    repositoryPath: data.repositoryPath
+    repositoryPath: data.repositoryPath,
   });
 });
 
@@ -190,7 +257,7 @@ processManager.on('claude-exit', (data) => {
     type: 'system',
     content: `\n=== Claude Code CLI 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
     sessionId: data.sessionId,
-    repositoryPath: data.repositoryPath
+    repositoryPath: data.repositoryPath,
   });
 });
 
@@ -198,7 +265,7 @@ processManager.on('claude-session-created', (session) => {
   io.emit('claude-session-created', {
     sessionId: session.id,
     repositoryPath: session.repositoryPath,
-    repositoryName: session.repositoryName
+    repositoryName: session.repositoryName,
   });
 });
 
@@ -209,7 +276,7 @@ processManager.on('terminal-created', (terminal) => {
     cwd: terminal.repositoryPath,
     status: terminal.status,
     pid: terminal.pid,
-    createdAt: terminal.createdAt
+    createdAt: terminal.createdAt,
   });
 });
 
@@ -218,7 +285,7 @@ processManager.on('terminal-output', (data) => {
     terminalId: data.terminalId,
     type: data.type,
     data: data.data,
-    timestamp: data.timestamp
+    timestamp: data.timestamp,
   });
 });
 
@@ -226,10 +293,8 @@ processManager.on('terminal-exit', (data) => {
   io.emit('terminal-closed', { terminalId: data.terminalId });
 });
 
-
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
-
   // リポジトリ一覧の送信
   socket.on('list-repos', () => {
     socket.emit('repos-list', { repos: repositories });
@@ -238,42 +303,41 @@ io.on('connection', (socket) => {
   // リポジトリの削除
   socket.on('delete-repo', async (data) => {
     const { path: repoPath, name } = data;
-    
+
     try {
       // リポジトリがリストに存在するかチェック
-      const repoIndex = repositories.findIndex(r => r.path === repoPath);
+      const repoIndex = repositories.findIndex((r) => r.path === repoPath);
       if (repoIndex === -1) {
         socket.emit('repo-deleted', {
           success: false,
           message: `リポジトリ「${name}」が見つかりません`,
-          path: repoPath
+          path: repoPath,
         });
         return;
       }
-      
+
       // ディレクトリの削除
       await fs.rm(repoPath, { recursive: true, force: true });
-      
+
       // リストから削除
       repositories.splice(repoIndex, 1);
-      
+
       // 関連するプロセスをクリーンアップ
       await processManager.cleanupRepositoryProcesses(repoPath);
-      
+
       socket.emit('repo-deleted', {
         success: true,
         message: `リポジトリ「${name}」を削除しました`,
-        path: repoPath
+        path: repoPath,
       });
-      
+
       // 更新されたリポジトリリストを送信
       socket.emit('repos-list', { repos: repositories });
-      
-    } catch (error) {
+    } catch {
       socket.emit('repo-deleted', {
         success: false,
-        message: `リポジトリ削除エラー: ${error}`,
-        path: repoPath
+        message: `リポジトリ削除エラー`,
+        path: repoPath,
       });
     }
   });
@@ -285,11 +349,11 @@ io.on('connection', (socket) => {
 
     try {
       // 既存のリポジトリチェック
-      const existingRepo = repositories.find(r => r.name === name);
+      const existingRepo = repositories.find((r) => r.name === name);
       if (existingRepo) {
         socket.emit('repo-cloned', {
           success: false,
-          message: `リポジトリ「${name}」は既に存在します`
+          message: `リポジトリ「${name}」は既に存在します`,
         });
         return;
       }
@@ -299,7 +363,7 @@ io.on('connection', (socket) => {
         name,
         url,
         path: repoPath,
-        status: 'cloning'
+        status: 'cloning',
       };
       repositories.push(newRepo);
       socket.emit('repos-list', { repos: repositories });
@@ -308,30 +372,29 @@ io.on('connection', (socket) => {
       const gitProcess = spawn('git', ['clone', url, repoPath]);
 
       gitProcess.on('exit', (code) => {
-        const repo = repositories.find(r => r.name === name);
+        const repo = repositories.find((r) => r.name === name);
         if (repo) {
           if (code === 0) {
             repo.status = 'ready';
             socket.emit('repo-cloned', {
               success: true,
               message: `リポジトリ「${name}」のクローンが完了しました`,
-              repo
+              repo,
             });
           } else {
             repo.status = 'error';
             socket.emit('repo-cloned', {
               success: false,
-              message: `リポジトリ「${name}」のクローンに失敗しました`
+              message: `リポジトリ「${name}」のクローンに失敗しました`,
             });
           }
           socket.emit('repos-list', { repos: repositories });
         }
       });
-
-    } catch (error) {
+    } catch {
       socket.emit('repo-cloned', {
         success: false,
-        message: `クローンエラー: ${error}`
+        message: `クローンエラー`,
       });
     }
   });
@@ -343,11 +406,11 @@ io.on('connection', (socket) => {
 
     try {
       // 既存のリポジトリチェック
-      const existingRepo = repositories.find(r => r.name === name);
+      const existingRepo = repositories.find((r) => r.name === name);
       if (existingRepo) {
         socket.emit('repo-created', {
           success: false,
-          message: `リポジトリ「${name}」は既に存在します`
+          message: `リポジトリ「${name}」は既に存在します`,
         });
         return;
       }
@@ -360,7 +423,7 @@ io.on('connection', (socket) => {
         name,
         url: '',
         path: repoPath,
-        status: 'creating'
+        status: 'creating',
       };
       repositories.push(newRepo);
       socket.emit('repos-list', { repos: repositories });
@@ -369,30 +432,29 @@ io.on('connection', (socket) => {
       const gitInitProcess = spawn('git', ['init'], { cwd: repoPath });
 
       gitInitProcess.on('exit', (code) => {
-        const repo = repositories.find(r => r.name === name);
+        const repo = repositories.find((r) => r.name === name);
         if (repo) {
           if (code === 0) {
             repo.status = 'ready';
             socket.emit('repo-created', {
               success: true,
               message: `リポジトリ「${name}」を作成しました`,
-              repo
+              repo,
             });
           } else {
             repo.status = 'error';
             socket.emit('repo-created', {
               success: false,
-              message: `リポジトリ「${name}」の作成に失敗しました`
+              message: `リポジトリ「${name}」の作成に失敗しました`,
             });
           }
           socket.emit('repos-list', { repos: repositories });
         }
       });
-
-    } catch (error) {
+    } catch {
       socket.emit('repo-created', {
         success: false,
-        message: `作成エラー: ${error}`
+        message: `作成エラー`,
       });
     }
   });
@@ -400,19 +462,22 @@ io.on('connection', (socket) => {
   // リポジトリの切り替え
   socket.on('switch-repo', async (data) => {
     const { path: repoPath } = data;
-    
+
     try {
       // リポジトリ名を取得
       const repoName = path.basename(repoPath);
-      
+
       // Claude CLIセッションを取得または作成
-      const session = await processManager.getOrCreateClaudeSession(repoPath, repoName);
-      
+      const session = await processManager.getOrCreateClaudeSession(
+        repoPath,
+        repoName
+      );
+
       socket.emit('repo-switched', {
         success: true,
         message: `リポジトリを切り替えました: ${repoPath}`,
         currentPath: repoPath,
-        sessionId: session.id
+        sessionId: session.id,
       });
 
       // 出力履歴を送信
@@ -420,17 +485,16 @@ io.on('connection', (socket) => {
         const outputHistory = await processManager.getOutputHistory(repoPath);
         socket.emit('claude-output-history', {
           repositoryPath: repoPath,
-          history: outputHistory
+          history: outputHistory,
         });
-      } catch (error) {
-        console.error('Failed to get output history during repo switch:', error);
+      } catch {
+        console.error('Failed to get output history during repo switch');
       }
-
-    } catch (error) {
+    } catch {
       socket.emit('repo-switched', {
         success: false,
-        message: `リポジトリの切り替えに失敗しました: ${error}`,
-        currentPath: ''
+        message: `リポジトリの切り替えに失敗しました`,
+        currentPath: '',
       });
     }
   });
@@ -440,10 +504,11 @@ io.on('connection', (socket) => {
     const { command, sessionId, repositoryPath } = data;
 
     let targetSessionId = sessionId;
-    
+
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session = processManager.getClaudeSessionByRepository(repositoryPath);
+      const session =
+        processManager.getClaudeSessionByRepository(repositoryPath);
       if (session) {
         targetSessionId = session.id;
       }
@@ -452,14 +517,15 @@ io.on('connection', (socket) => {
     if (!targetSessionId) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: 'Claude CLIセッションが開始されていません。リポジトリを選択してください。\n'
+        content:
+          'Claude CLIセッションが開始されていません。リポジトリを選択してください。\n',
       });
       return;
     }
-    
+
     // ProcessManagerを通じてコマンドを送信
     let commandToSend = command;
-    
+
     // 方向キー（ANSIエスケープシーケンス）の場合は直接送信
     if (command.startsWith('\x1b[')) {
       // 方向キーはそのまま送信
@@ -470,18 +536,21 @@ io.on('connection', (socket) => {
     } else {
       // 通常のコマンドの場合はエンターキーも送信
       commandToSend = command + '\r';
-      
+
       // Claude CLIでは実行確定のためもう一度エンターキーが必要
       setTimeout(() => {
         processManager.sendToClaudeSession(targetSessionId, '\r');
       }, 100); // 100ms後に実行確定
     }
-    
-    const success = processManager.sendToClaudeSession(targetSessionId, commandToSend);
+
+    const success = processManager.sendToClaudeSession(
+      targetSessionId,
+      commandToSend
+    );
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`
+        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`,
       });
     }
   });
@@ -489,12 +558,13 @@ io.on('connection', (socket) => {
   // Claude CLIへのCtrl+C中断送信
   socket.on('claude-interrupt', (data) => {
     const { sessionId, repositoryPath } = data || {};
-    
+
     let targetSessionId = sessionId;
-    
+
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session = processManager.getClaudeSessionByRepository(repositoryPath);
+      const session =
+        processManager.getClaudeSessionByRepository(repositoryPath);
       if (session) {
         targetSessionId = session.id;
       }
@@ -503,17 +573,17 @@ io.on('connection', (socket) => {
     if (!targetSessionId) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: 'Claude CLIセッションが開始されていません。\n'
+        content: 'Claude CLIセッションが開始されていません。\n',
       });
       return;
     }
-    
+
     // Ctrl+C (SIGINT)を送信
     const success = processManager.sendToClaudeSession(targetSessionId, '\x03');
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`
+        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`,
       });
     }
   });
@@ -521,27 +591,34 @@ io.on('connection', (socket) => {
   // Claude CLI履歴の取得
   socket.on('get-claude-history', async (data) => {
     const { repositoryPath } = data;
-    console.log(`[Server] Received get-claude-history request for: ${repositoryPath}`);
-    
+    console.log(
+      `[Server] Received get-claude-history request for: ${repositoryPath}`
+    );
+
     if (!repositoryPath) {
-      console.log(`[Server] No repositoryPath provided in get-claude-history request`);
+      console.log(
+        `[Server] No repositoryPath provided in get-claude-history request`
+      );
       return;
     }
-    
+
     try {
       // 指定されたリポジトリの出力履歴を取得
-      const outputHistory = await processManager.getOutputHistory(repositoryPath);
-      console.log(`[Server] Sending ${outputHistory.length} history lines for: ${repositoryPath}`);
-      
+      const outputHistory =
+        await processManager.getOutputHistory(repositoryPath);
+      console.log(
+        `[Server] Sending ${outputHistory.length} history lines for: ${repositoryPath}`
+      );
+
       socket.emit('claude-output-history', {
         repositoryPath,
-        history: outputHistory
+        history: outputHistory,
       });
-    } catch (error) {
-      console.error('Failed to get Claude history:', error);
+    } catch {
+      console.error('Failed to get Claude history');
       socket.emit('claude-output-history', {
         repositoryPath,
-        history: []
+        history: [],
       });
     }
   });
@@ -552,7 +629,7 @@ io.on('connection', (socket) => {
   socket.on('list-terminals', (data) => {
     const { repositoryPath } = data || {};
     let terminals;
-    
+
     if (repositoryPath) {
       // 特定のリポジトリのターミナルのみ取得
       terminals = processManager.getTerminalsByRepository(repositoryPath);
@@ -560,25 +637,27 @@ io.on('connection', (socket) => {
       // 全てのターミナルを取得
       terminals = processManager.getAllTerminals();
     }
-    
-    socket.emit('terminals-list', { 
-      terminals: terminals.map(terminal => ({
+
+    socket.emit('terminals-list', {
+      terminals: terminals.map((terminal) => ({
         id: terminal.id,
         name: terminal.name,
         cwd: terminal.repositoryPath,
         status: terminal.status,
         pid: terminal.pid,
-        createdAt: terminal.createdAt
-      }))
+        createdAt: terminal.createdAt,
+      })),
     });
 
     // 各ターミナルの出力履歴を送信
     terminals.forEach(async (terminal) => {
-      const history = await processManager.getTerminalOutputHistory(terminal.id);
+      const history = await processManager.getTerminalOutputHistory(
+        terminal.id
+      );
       if (history.length > 0) {
         socket.emit('terminal-output-history', {
           terminalId: terminal.id,
-          history
+          history,
         });
       }
     });
@@ -590,20 +669,20 @@ io.on('connection', (socket) => {
     try {
       const repoName = path.basename(cwd);
       const terminal = await processManager.createTerminal(cwd, repoName, name);
-      
+
       // 新しいターミナルの出力履歴を送信（空の履歴）
       socket.emit('terminal-output-history', {
         terminalId: terminal.id,
-        history: []
+        history: [],
       });
-      
+
       // terminal-createdイベントは ProcessManager から自動的に発火される
-    } catch (error) {
+    } catch {
       socket.emit('terminal-output', {
         terminalId: 'system',
         type: 'stderr',
-        data: `ターミナル作成エラー: ${error}\n`,
-        timestamp: Date.now()
+        data: `ターミナル作成エラー\n`,
+        timestamp: Date.now(),
       });
     }
   });
@@ -617,7 +696,7 @@ io.on('connection', (socket) => {
         terminalId,
         type: 'stderr',
         data: `ターミナル入力エラー: ターミナル ${terminalId} が見つからないか、既に終了しています\n`,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   });
@@ -654,24 +733,27 @@ io.on('connection', (socket) => {
   // 新しいコマンドショートカットの作成
   socket.on('create-shortcut', async (data) => {
     const { name, command, repositoryPath } = data;
-    
+
     try {
-      const shortcut = await processManager.createShortcut(name, command, repositoryPath);
+      const shortcut = await processManager.createShortcut(
+        name,
+        command,
+        repositoryPath
+      );
       const displayName = shortcut.name || shortcut.command;
       socket.emit('shortcut-created', {
         success: true,
         message: `コマンドショートカット「${displayName}」を作成しました`,
-        shortcut
+        shortcut,
       });
-      
+
       // 更新されたショートカット一覧を送信
       const shortcuts = processManager.getShortcutsByRepository(repositoryPath);
       socket.emit('shortcuts-list', { shortcuts });
-      
-    } catch (error) {
+    } catch {
       socket.emit('shortcut-created', {
         success: false,
-        message: `コマンドショートカット作成エラー: ${error}`
+        message: `コマンドショートカット作成エラー`,
       });
     }
   });
@@ -679,27 +761,27 @@ io.on('connection', (socket) => {
   // コマンドショートカットの削除
   socket.on('delete-shortcut', async (data) => {
     const { shortcutId } = data;
-    
+
     try {
       const success = await processManager.deleteShortcut(shortcutId);
       if (success) {
         socket.emit('shortcut-deleted', {
           success: true,
           message: 'コマンドショートカットを削除しました',
-          shortcutId
+          shortcutId,
         });
       } else {
         socket.emit('shortcut-deleted', {
           success: false,
           message: 'コマンドショートカットが見つかりません',
-          shortcutId
+          shortcutId,
         });
       }
-    } catch (error) {
+    } catch {
       socket.emit('shortcut-deleted', {
         success: false,
-        message: `コマンドショートカット削除エラー: ${error}`,
-        shortcutId
+        message: `コマンドショートカット削除エラー`,
+        shortcutId,
       });
     }
   });
@@ -707,23 +789,23 @@ io.on('connection', (socket) => {
   // コマンドショートカットの実行
   socket.on('execute-shortcut', (data) => {
     const { shortcutId, terminalId } = data;
-    
+
     const success = processManager.executeShortcut(shortcutId, terminalId);
     socket.emit('shortcut-executed', {
       success,
-      message: success 
-        ? 'コマンドショートカットを実行しました' 
+      message: success
+        ? 'コマンドショートカットを実行しました'
         : 'コマンドショートカットの実行に失敗しました',
-      shortcutId
+      shortcutId,
     });
   });
 
   // ブランチ関連のイベントハンドラ
-  
+
   // ブランチ一覧の取得
   socket.on('list-branches', async (data) => {
     const { repositoryPath } = data;
-    
+
     try {
       const branches = await getBranches(repositoryPath);
       socket.emit('branches-list', { branches, repositoryPath });
@@ -731,26 +813,27 @@ io.on('connection', (socket) => {
       socket.emit('branches-list', { branches: [], repositoryPath });
     }
   });
-  
+
   // ブランチの切り替え
   socket.on('switch-branch', async (data) => {
     const { repositoryPath, branchName } = data;
-    
+
     try {
       const result = await switchBranch(repositoryPath, branchName);
-      
+
       if (result.success) {
         // 切り替え成功時は現在のブランチ情報も送信
         const branches = await getBranches(repositoryPath);
-        const currentBranch = branches.find(b => b.current)?.name || branchName;
-        
+        const currentBranch =
+          branches.find((b) => b.current)?.name || branchName;
+
         socket.emit('branch-switched', {
           success: true,
           message: result.message,
           currentBranch,
-          repositoryPath
+          repositoryPath,
         });
-        
+
         // ブランチ一覧も更新して送信
         socket.emit('branches-list', { branches, repositoryPath });
       } else {
@@ -758,78 +841,78 @@ io.on('connection', (socket) => {
           success: false,
           message: result.message,
           currentBranch: '',
-          repositoryPath
+          repositoryPath,
         });
       }
-    } catch (error) {
+    } catch {
       socket.emit('branch-switched', {
         success: false,
-        message: `ブランチ切り替えエラー: ${error}`,
+        message: `ブランチ切り替えエラー`,
         currentBranch: '',
-        repositoryPath
+        repositoryPath,
       });
     }
   });
 
   // npmスクリプト関連のイベントハンドラ
-  
+
   // npmスクリプト一覧の取得
   socket.on('get-npm-scripts', async (data) => {
     const { repositoryPath } = data;
-    
+
     try {
       const scripts = await getNpmScripts(repositoryPath);
       socket.emit('npm-scripts-list', { scripts, repositoryPath });
-    } catch (error) {
+    } catch {
       socket.emit('npm-scripts-list', { scripts: {}, repositoryPath });
     }
   });
-  
+
   // npmスクリプトの実行
   socket.on('execute-npm-script', async (data) => {
     const { repositoryPath, scriptName, terminalId } = data;
-    
+
     try {
       // terminalIdが指定されている場合は既存のターミナルで実行
       if (terminalId) {
         const command = `npm run ${scriptName}\r`;
         const success = processManager.sendToTerminal(terminalId, command);
-        
+
         socket.emit('npm-script-executed', {
           success,
-          message: success 
-            ? `npmスクリプト「${scriptName}」を実行しました` 
+          message: success
+            ? `npmスクリプト「${scriptName}」を実行しました`
             : 'ターミナルが見つかりませんでした',
           scriptName,
-          terminalId
+          terminalId,
         });
       } else {
         // 新しいターミナルを作成して実行
         const repoName = path.basename(repositoryPath);
         const terminal = await processManager.createTerminal(
-          repositoryPath, 
-          repoName, 
+          repositoryPath,
+          repoName,
           `npm run ${scriptName}`
         );
-        
+
         // スクリプトを実行
         setTimeout(() => {
           processManager.sendToTerminal(terminal.id, `npm run ${scriptName}\r`);
         }, 500); // ターミナル起動を待つ
-        
+
         socket.emit('npm-script-executed', {
           success: true,
           message: `npmスクリプト「${scriptName}」を新しいターミナルで実行しました`,
           scriptName,
-          terminalId: terminal.id
+          terminalId: terminal.id,
         });
       }
-    } catch (error) {
+    } catch {
       socket.emit('npm-script-executed', {
         success: false,
-        message: `npmスクリプト実行エラー: ${error}`,
+        message: `npmスクリプト実行エラー`,
         scriptName,
-        terminalId
+        terminalId,
       });
     }
   });
@@ -839,60 +922,75 @@ io.on('connection', (socket) => {
   // 自走モード設定一覧の取得
   socket.on('get-automode-configs', (data) => {
     const { repositoryPath } = data;
-    const configs = processManager.getAutoModeConfigsByRepository(repositoryPath);
+    const configs =
+      processManager.getAutoModeConfigsByRepository(repositoryPath);
     socket.emit('automode-configs-list', { configs });
   });
 
   // 新しい自走モード設定の作成
   socket.on('create-automode-config', async (data) => {
-    const { name, prompt, repositoryPath } = data;
-    
+    const { name, prompt, repositoryPath, triggerMode, interval } = data;
+
     try {
-      const config = await processManager.createAutoModeConfig(name, prompt, repositoryPath);
+      const config = await processManager.createAutoModeConfig(
+        name,
+        prompt,
+        repositoryPath,
+        triggerMode,
+        interval
+      );
       socket.emit('automode-config-created', {
         success: true,
         message: `自走モード設定「${name}」を作成しました`,
-        config
+        config,
       });
 
       // 更新された設定一覧を送信
-      const configs = processManager.getAutoModeConfigsByRepository(repositoryPath);
+      const configs =
+        processManager.getAutoModeConfigsByRepository(repositoryPath);
       socket.emit('automode-configs-list', { configs });
-      
-    } catch (error) {
+    } catch {
       socket.emit('automode-config-created', {
         success: false,
-        message: `自走モード設定作成エラー: ${error}`
+        message: `自走モード設定作成エラー`,
       });
     }
   });
 
   // 自走モード設定の更新
   socket.on('update-automode-config', async (data) => {
-    const { id, name, prompt, isEnabled } = data;
-    
+    const { id, name, prompt, isEnabled, triggerMode, interval } = data;
+
     try {
-      const config = await processManager.updateAutoModeConfig(id, { name, prompt, isEnabled });
+      const config = await processManager.updateAutoModeConfig(id, {
+        name,
+        prompt,
+        isEnabled,
+        triggerMode,
+        interval,
+      });
       if (config) {
         socket.emit('automode-config-updated', {
           success: true,
           message: `自走モード設定「${config.name}」を更新しました`,
-          config
+          config,
         });
 
         // 更新された設定一覧を送信
-        const configs = processManager.getAutoModeConfigsByRepository(config.repositoryPath);
+        const configs = processManager.getAutoModeConfigsByRepository(
+          config.repositoryPath
+        );
         socket.emit('automode-configs-list', { configs });
       } else {
         socket.emit('automode-config-updated', {
           success: false,
-          message: '自走モード設定が見つかりません'
+          message: '自走モード設定が見つかりません',
         });
       }
-    } catch (error) {
+    } catch {
       socket.emit('automode-config-updated', {
         success: false,
-        message: `自走モード設定更新エラー: ${error}`
+        message: `自走モード設定更新エラー`,
       });
     }
   });
@@ -900,27 +998,27 @@ io.on('connection', (socket) => {
   // 自走モード設定の削除
   socket.on('delete-automode-config', async (data) => {
     const { configId } = data;
-    
+
     try {
       const success = await processManager.deleteAutoModeConfig(configId);
       if (success) {
         socket.emit('automode-config-deleted', {
           success: true,
           message: '自走モード設定を削除しました',
-          configId
+          configId,
         });
       } else {
         socket.emit('automode-config-deleted', {
           success: false,
           message: '自走モード設定が見つかりません',
-          configId
+          configId,
         });
       }
-    } catch (error) {
+    } catch {
       socket.emit('automode-config-deleted', {
         success: false,
-        message: `自走モード設定削除エラー: ${error}`,
-        configId
+        message: `自走モード設定削除エラー`,
+        configId,
       });
     }
   });
@@ -928,35 +1026,38 @@ io.on('connection', (socket) => {
   // 自走モードの開始
   socket.on('start-automode', async (data) => {
     const { repositoryPath, configId } = data;
-    
+
     try {
-      const success = await processManager.startAutoMode(repositoryPath, configId);
+      const success = await processManager.startAutoMode(
+        repositoryPath,
+        configId
+      );
       if (success) {
         socket.emit('automode-status-changed', {
           repositoryPath,
           isRunning: true,
-          configId
+          configId,
         });
       }
-    } catch (error) {
-      console.error('Failed to start automode:', error);
+    } catch {
+      console.error('Failed to start automode');
     }
   });
 
   // 自走モードの停止
   socket.on('stop-automode', async (data) => {
     const { repositoryPath } = data;
-    
+
     try {
       const success = await processManager.stopAutoMode(repositoryPath);
       if (success) {
         socket.emit('automode-status-changed', {
           repositoryPath,
-          isRunning: false
+          isRunning: false,
         });
       }
-    } catch (error) {
-      console.error('Failed to stop automode:', error);
+    } catch {
+      console.error('Failed to stop automode');
     }
   });
 
@@ -967,7 +1068,7 @@ io.on('connection', (socket) => {
     socket.emit('automode-status-changed', {
       repositoryPath,
       isRunning: state?.isRunning || false,
-      configId: state?.currentConfigId
+      configId: state?.currentConfigId,
     });
   });
 
@@ -982,12 +1083,14 @@ const PORT = parseInt(process.env.PORT || '8001', 10);
 async function startServer(): Promise<void> {
   await ensureReposDir();
   await loadExistingRepos();
-  
+
   // ProcessManagerの初期化
   await processManager.initialize();
-  
+
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`バックエンドサーバーがポート${PORT}で起動しました (0.0.0.0:${PORT})`);
+    console.log(
+      `バックエンドサーバーがポート${PORT}で起動しました (0.0.0.0:${PORT})`
+    );
   });
 }
 
