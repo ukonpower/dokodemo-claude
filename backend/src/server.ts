@@ -51,7 +51,7 @@ app.post('/hook/claude-event', async (req, res) => {
     const { event, metadata } = req.body;
 
     // 自走モードでサポートするイベントかチェック
-    if (!['PostToolUse', 'Stop', 'SubagentStop'].includes(event)) {
+    if (!['Stop'].includes(event)) {
       res.json({
         status: 'ignored',
         message: 'Event not supported for auto-mode',

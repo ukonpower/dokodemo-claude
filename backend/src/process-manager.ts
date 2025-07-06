@@ -480,6 +480,11 @@ export class ProcessManager extends EventEmitter {
     const success = this.sendToClaudeSession(session.id, config.prompt);
 
     if (success) {
+      // プロンプト送信後500ms待機してからEnterキーを送信
+      setTimeout(() => {
+        this.sendToClaudeSession(session.id, '\n');
+      }, 500);
+
       // 実行時間を更新
       const autoModeState = this.autoModeStates.get(session.repositoryPath);
       if (autoModeState) {
