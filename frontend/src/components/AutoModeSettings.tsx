@@ -181,16 +181,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     }
   };
 
-  const handleToggleEnabled = (config: AutoModeConfig) => {
-    if (!socket) return;
-    socket.emit('update-automode-config', {
-      id: config.id,
-      name: config.name,
-      prompt: config.prompt,
-      isEnabled: !config.isEnabled,
-      triggerMode: config.triggerMode,
-    });
-  };
 
   const handleStartAutoMode = (configId: string) => {
     if (!socket) return;

@@ -84,6 +84,7 @@ export class ProcessManager extends EventEmitter {
   private shortcutCounter = 0;
   private autoModeConfigCounter = 0;
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
+  private processMonitoringInterval: NodeJS.Timeout | null = null; // プロセス監視タイマー
 
   constructor(processesDir: string) {
     super();
@@ -137,11 +138,9 @@ export class ProcessManager extends EventEmitter {
         } else {
         }
       }
-    } catch (error) {
+    } catch {
       // ファイルが存在しない場合は無視
-      if ((error as any).code !== 'ENOENT') {
-        console.error('Failed to restore Claude sessions:', error);
-      }
+      // Failed to restore Claude sessions
     }
   }
 
@@ -159,11 +158,9 @@ export class ProcessManager extends EventEmitter {
         } else {
         }
       }
-    } catch (error) {
+    } catch {
       // ファイルが存在しない場合は無視
-      if ((error as any).code !== 'ENOENT') {
-        console.error('Failed to restore terminals:', error);
-      }
+      // Failed to restore terminals
     }
   }
 
@@ -360,7 +357,7 @@ export class ProcessManager extends EventEmitter {
       pid: persisted.pid,
       isActive: true,
       isPty: false, // 既存プロセスなのでPTY接続はなし
-      process: null as any, // 実際のPTYプロセスはなし
+      process: null as unknown as pty.IPty, // 実際のPTYプロセスはなし
       createdAt: persisted.createdAt,
       lastAccessedAt: Date.now(),
       outputHistory: persisted.outputHistory || [], // 既存の出力履歴を復元
@@ -417,17 +414,14 @@ export class ProcessManager extends EventEmitter {
    * Hookイベントから自走モードをトリガー
    */
   async triggerAutoModeFromHook(
-    repositoryPath: string,
-    eventType: string
+    repositoryPath: string
   ): Promise<void> {
-    console.log(
-      `[Hook] Triggering automode from hook event: ${eventType} for ${repositoryPath}`
-    );
+    // Triggering automode from hook event
 
     // 自走モードが有効かチェック
     const autoModeState = this.autoModeStates.get(repositoryPath);
     if (!autoModeState || !autoModeState.isRunning) {
-      console.log(`[Hook] Automode not running for ${repositoryPath}`);
+      // Automode not running
       return;
     }
 
@@ -436,14 +430,14 @@ export class ProcessManager extends EventEmitter {
       autoModeState.currentConfigId || ''
     );
     if (!config || !config.isEnabled) {
-      console.log(`[Hook] Automode config not found or disabled`);
+      // Automode config not found or disabled
       return;
     }
 
     // Claudeセッションを取得
     const session = this.getClaudeSessionByRepository(repositoryPath);
     if (!session) {
-      console.log(`[Hook] Claude session not found for ${repositoryPath}`);
+      // Claude session not found
       // セッションを作成
       const repoName = repositoryPath.split('/').pop() || 'unknown';
       const newSession = await this.getOrCreateClaudeSession(
@@ -451,7 +445,7 @@ export class ProcessManager extends EventEmitter {
         repoName
       );
       if (newSession) {
-        console.log(`[Hook] Created new Claude session for ${repositoryPath}`);
+        // Created new Claude session
         // 少し待ってからプロンプトを送信
         setTimeout(() => {
           this.sendAutoPrompt(newSession, config);
@@ -467,7 +461,7 @@ export class ProcessManager extends EventEmitter {
     autoModeState.lastExecutionTime = Date.now();
     await this.persistAutoModeStates();
 
-    console.log(`[Hook] Automode triggered successfully for ${repositoryPath}`);
+    // Automode triggered successfully
   }
 
   /**
@@ -527,61 +521,47 @@ export class ProcessManager extends EventEmitter {
     }
 
     // 永続化（非同期で実行、エラーは無視）
-    this.persistClaudeSessions().catch(console.error);
+    this.persistClaudeSessions().catch(() => {
+      // Persist error ignored
+    });
   }
 
   /**
    * 指定されたリポジトリの出力履歴を取得
    */
   async getOutputHistory(repositoryPath: string): Promise<ClaudeOutputLine[]> {
-    console.log(
-      `[ProcessManager] Getting output history for: ${repositoryPath}`
-    );
+    // Getting output history
 
     // まずアクティブなセッションから履歴を取得
     const session = this.getClaudeSessionByRepository(repositoryPath);
     if (session) {
-      console.log(
-        `[ProcessManager] Found active session with ${session.outputHistory.length} history lines`
-      );
+      // Found active session with history
       return session.outputHistory;
     }
 
-    console.log(
-      `[ProcessManager] No active session found, checking persisted history`
-    );
+    // No active session found, checking persisted history
 
     // アクティブなセッションがない場合、永続化された履歴を読み込み
     try {
       const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
       const persistedSessions: PersistedClaudeSession[] = JSON.parse(data);
 
-      console.log(
-        `[ProcessManager] Found ${persistedSessions.length} persisted sessions`
-      );
+      // Found persisted sessions
 
       for (const persistedSession of persistedSessions) {
         if (persistedSession.repositoryPath === repositoryPath) {
-          const historyLength = persistedSession.outputHistory?.length || 0;
-          console.log(
-            `[ProcessManager] Found persisted session with ${historyLength} history lines`
-          );
+          // const historyLength = persistedSession.outputHistory?.length || 0;
+          // Found persisted session with history
           return persistedSession.outputHistory || [];
         }
       }
 
-      console.log(
-        `[ProcessManager] No persisted session found for repository: ${repositoryPath}`
-      );
-    } catch (error) {
-      console.log(
-        `[ProcessManager] Error reading persisted sessions: ${error}`
-      );
+      // No persisted session found
+    } catch {
+      // Error reading persisted sessions
     }
 
-    console.log(
-      `[ProcessManager] Returning empty history for: ${repositoryPath}`
-    );
+    // Returning empty history
     return [];
   }
 
@@ -610,7 +590,9 @@ export class ProcessManager extends EventEmitter {
     }
 
     // 永続化（非同期で実行、エラーは無視）
-    this.persistTerminals().catch(console.error);
+    this.persistTerminals().catch(() => {
+      // Persist error ignored
+    });
   }
 
   /**
@@ -637,7 +619,7 @@ export class ProcessManager extends EventEmitter {
       }
     } catch {
       // ファイル読み込みエラーは無視
-      console.log(`No persisted terminal history found for ${terminalId}`);
+      // No persisted terminal history found
     }
 
     return [];
@@ -665,8 +647,8 @@ export class ProcessManager extends EventEmitter {
         this.claudeSessionsFile,
         JSON.stringify(persistedSessions, null, 2)
       );
-    } catch (error) {
-      console.error('Failed to persist Claude sessions:', error);
+    } catch {
+      // Failed to persist Claude sessions
     }
   }
 
@@ -693,8 +675,8 @@ export class ProcessManager extends EventEmitter {
         this.terminalsFile,
         JSON.stringify(persistedTerminals, null, 2)
       );
-    } catch (error) {
-      console.error('Failed to persist terminals:', error);
+    } catch {
+      // Failed to persist terminals
     }
   }
 
@@ -702,7 +684,7 @@ export class ProcessManager extends EventEmitter {
    * 定期的なプロセス監視を開始
    */
   private startProcessMonitoring(): void {
-    setInterval(async () => {
+    this.processMonitoringInterval = setInterval(async () => {
       await this.cleanupDeadProcesses();
     }, 30000); // 30秒ごと
   }
@@ -759,11 +741,8 @@ export class ProcessManager extends EventEmitter {
             newSession.process.write(input);
           }
         })
-        .catch((error) => {
-          console.error(
-            `Failed to create new session for ${sessionId}:`,
-            error
-          );
+        .catch(() => {
+          // Failed to create new session
         });
       return true;
     }
@@ -772,11 +751,8 @@ export class ProcessManager extends EventEmitter {
       session.process.write(input);
       session.lastAccessedAt = Date.now();
       return true;
-    } catch (error) {
-      console.error(
-        `Failed to send input to Claude session ${sessionId}:`,
-        error
-      );
+    } catch {
+      // Failed to send input to Claude session
       return false;
     }
   }
@@ -794,8 +770,8 @@ export class ProcessManager extends EventEmitter {
       terminal.process.write(input);
       terminal.lastAccessedAt = Date.now();
       return true;
-    } catch (error) {
-      console.error(`Failed to send input to terminal ${terminalId}:`, error);
+    } catch {
+      // Failed to send input to terminal
       return false;
     }
   }
@@ -812,8 +788,8 @@ export class ProcessManager extends EventEmitter {
     try {
       terminal.process.resize(cols, rows);
       return true;
-    } catch (error) {
-      console.error(`Failed to resize terminal ${terminalId}:`, error);
+    } catch {
+      // Failed to resize terminal
       return false;
     }
   }
@@ -838,11 +814,8 @@ export class ProcessManager extends EventEmitter {
         terminal.process.kill(signal);
       }
       return true;
-    } catch (error) {
-      console.error(
-        `Failed to send signal ${signal} to terminal ${terminalId}:`,
-        error
-      );
+    } catch {
+      // Failed to send signal to terminal
       return false;
     }
   }
@@ -858,15 +831,20 @@ export class ProcessManager extends EventEmitter {
 
     try {
       session.process.kill('SIGTERM');
-      setTimeout(() => {
+      const killTimeout = setTimeout(() => {
         if (this.claudeSessions.has(sessionId)) {
           session.process.kill('SIGKILL');
         }
       }, 2000);
+      
+      // セッションが終了したらタイムアウトをクリア
+      session.process.onExit(() => {
+        clearTimeout(killTimeout);
+      });
 
       return true;
-    } catch (error) {
-      console.error(`Failed to close Claude session ${sessionId}:`, error);
+    } catch {
+      // Failed to close Claude session
       return false;
     }
   }
@@ -889,15 +867,20 @@ export class ProcessManager extends EventEmitter {
       );
 
       terminal.process.kill('SIGTERM');
-      setTimeout(() => {
+      const killTimeout = setTimeout(() => {
         if (this.terminals.has(terminalId)) {
           terminal.process.kill('SIGKILL');
         }
       }, 2000);
+      
+      // ターミナルが終了したらタイムアウトをクリア
+      terminal.process.onExit(() => {
+        clearTimeout(killTimeout);
+      });
 
       return true;
-    } catch (error) {
-      console.error(`Failed to close terminal ${terminalId}:`, error);
+    } catch {
+      // Failed to close terminal
       return false;
     }
   }
@@ -945,7 +928,7 @@ export class ProcessManager extends EventEmitter {
    * リポジトリに関連するプロセスのクリーンアップ
    */
   async cleanupRepositoryProcesses(repositoryPath: string): Promise<void> {
-    console.log(`Cleaning up processes for repository: ${repositoryPath}`);
+    // Cleaning up processes for repository
 
 
     const closePromises: Promise<boolean>[] = [];
@@ -975,7 +958,7 @@ export class ProcessManager extends EventEmitter {
     // 永続化ファイルからも削除
     await this.removeRepositoryFromPersistence(repositoryPath);
 
-    console.log(`Cleanup completed for repository: ${repositoryPath}`);
+    // Cleanup completed
   }
 
   /**
@@ -1019,8 +1002,8 @@ export class ProcessManager extends EventEmitter {
       } catch {
         // ファイルが存在しない場合は無視
       }
-    } catch (error) {
-      console.error('Failed to remove repository from persistence:', error);
+    } catch {
+      // Failed to remove repository from persistence
     }
   }
 
@@ -1044,12 +1027,10 @@ export class ProcessManager extends EventEmitter {
         }
       }
 
-      console.log(`Restored ${shortcutsArray.length} command shortcuts`);
-    } catch (error) {
+      // Restored command shortcuts
+    } catch {
       // ファイルが存在しない場合は無視
-      if ((error as any).code !== 'ENOENT') {
-        console.error('Failed to restore command shortcuts:', error);
-      }
+      // Failed to restore command shortcuts
     }
   }
 
@@ -1064,8 +1045,8 @@ export class ProcessManager extends EventEmitter {
         JSON.stringify(shortcutsArray, null, 2),
         'utf-8'
       );
-    } catch (error) {
-      console.error('Failed to persist command shortcuts:', error);
+    } catch {
+      // Failed to persist command shortcuts
     }
   }
 
@@ -1151,8 +1132,8 @@ export class ProcessManager extends EventEmitter {
       terminal.process.write(commandToSend);
       terminal.lastAccessedAt = Date.now();
       return true;
-    } catch (error) {
-      console.error('Failed to execute shortcut:', error);
+    } catch {
+      // Failed to execute shortcut
       return false;
     }
   }
@@ -1173,7 +1154,7 @@ export class ProcessManager extends EventEmitter {
 
     if (hasChanges) {
       await this.persistShortcuts();
-      console.log(`Cleaned up shortcuts for repository: ${repositoryPath}`);
+      // Cleaned up shortcuts
     }
   }
 
@@ -1200,7 +1181,7 @@ export class ProcessManager extends EventEmitter {
     if (hasChanges) {
       await this.persistAutoModeConfigs();
       await this.persistAutoModeStates();
-      console.log(`Cleaned up automode data for repository: ${repositoryPath}`);
+      // Cleaned up automode data
     }
   }
 
@@ -1208,7 +1189,13 @@ export class ProcessManager extends EventEmitter {
    * システム終了時のクリーンアップ
    */
   async shutdown(): Promise<void> {
-    console.log('Shutting down ProcessManager...');
+    // Shutting down ProcessManager
+    
+    // プロセス監視を停止
+    if (this.processMonitoringInterval) {
+      clearInterval(this.processMonitoringInterval);
+      this.processMonitoringInterval = null;
+    }
 
 
     // 全てのプロセスを終了
@@ -1231,7 +1218,7 @@ export class ProcessManager extends EventEmitter {
     await this.persistAutoModeConfigs();
     await this.persistAutoModeStates();
 
-    console.log('ProcessManager shutdown completed');
+    // ProcessManager shutdown completed
   }
 
   // ===== 自走モード管理メソッド =====
@@ -1254,11 +1241,10 @@ export class ProcessManager extends EventEmitter {
         }
       }
 
-      console.log(`Restored ${configs.length} automode configs`);
-    } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
-        console.error('Failed to restore automode configs:', error);
-      }
+      // Restored automode configs
+    } catch {
+      // エラーの場合は無視
+      // Failed to restore automode configs
     }
   }
 
@@ -1275,11 +1261,10 @@ export class ProcessManager extends EventEmitter {
         this.autoModeStates.set(state.repositoryPath, state);
       }
 
-      console.log(`Restored ${states.length} automode states`);
-    } catch (error) {
-      if ((error as any).code !== 'ENOENT') {
-        console.error('Failed to restore automode states:', error);
-      }
+      // Restored automode states
+    } catch {
+      // エラーの場合は無視
+      // Failed to restore automode states
     }
   }
 
@@ -1294,8 +1279,8 @@ export class ProcessManager extends EventEmitter {
         JSON.stringify(configs, null, 2),
         'utf-8'
       );
-    } catch (error) {
-      console.error('Failed to persist automode configs:', error);
+    } catch {
+      // Failed to persist automode configs
     }
   }
 
@@ -1310,8 +1295,8 @@ export class ProcessManager extends EventEmitter {
         JSON.stringify(states, null, 2),
         'utf-8'
       );
-    } catch (error) {
-      console.error('Failed to persist automode states:', error);
+    } catch {
+      // Failed to persist automode states
     }
   }
 
@@ -1442,7 +1427,7 @@ export class ProcessManager extends EventEmitter {
     state.currentConfigId = undefined;
     await this.persistAutoModeStates();
 
-    console.log(`自走モード停止: ${repositoryPath}`);
+    // 自走モード停止
 
     return true;
   }

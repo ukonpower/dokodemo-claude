@@ -45,7 +45,7 @@ app.use(express.json());
 
 // Claude Code Hook API エンドポイント
 app.post('/hook/claude-event', async (req, res) => {
-  console.log('[Hook] Received Claude Code hook event:', req.body);
+  // Hook event received
 
   try {
     const { event, metadata } = req.body;
@@ -80,14 +80,14 @@ app.post('/hook/claude-event', async (req, res) => {
     }
 
     // 自走モードの次のアクションをトリガー
-    processManager.triggerAutoModeFromHook(cwd, event);
+    processManager.triggerAutoModeFromHook(cwd);
 
     res.json({
       status: 'success',
       message: 'Auto-mode triggered',
     });
   } catch (error) {
-    console.error('[Hook] Error processing hook event:', error);
+    // Hook processing error
     res.status(500).json({
       status: 'error',
       message: String(error),
@@ -370,8 +370,23 @@ io.on('connection', (socket) => {
 
       // gitクローン実行
       const gitProcess = spawn('git', ['clone', url, repoPath]);
+      
+      // タイムアウト設定（10分）
+      const cloneTimeout = setTimeout(() => {
+        gitProcess.kill('SIGTERM');
+        const repo = repositories.find((r) => r.name === name);
+        if (repo) {
+          repo.status = 'error';
+          socket.emit('repo-cloned', {
+            success: false,
+            message: `リポジトリ「${name}」のクローンがタイムアウトしました`,
+          });
+          socket.emit('repos-list', { repos: repositories });
+        }
+      }, 600000); // 10分
 
       gitProcess.on('exit', (code) => {
+        clearTimeout(cloneTimeout);
         const repo = repositories.find((r) => r.name === name);
         if (repo) {
           if (code === 0) {
@@ -430,8 +445,23 @@ io.on('connection', (socket) => {
 
       // git init実行
       const gitInitProcess = spawn('git', ['init'], { cwd: repoPath });
+      
+      // タイムアウト設定（30秒）
+      const initTimeout = setTimeout(() => {
+        gitInitProcess.kill('SIGTERM');
+        const repo = repositories.find((r) => r.name === name);
+        if (repo) {
+          repo.status = 'error';
+          socket.emit('repo-created', {
+            success: false,
+            message: `リポジトリ「${name}」の作成がタイムアウトしました`,
+          });
+          socket.emit('repos-list', { repos: repositories });
+        }
+      }, 30000); // 30秒
 
       gitInitProcess.on('exit', (code) => {
+        clearTimeout(initTimeout);
         const repo = repositories.find((r) => r.name === name);
         if (repo) {
           if (code === 0) {
@@ -488,7 +518,7 @@ io.on('connection', (socket) => {
           history: outputHistory,
         });
       } catch {
-        console.error('Failed to get output history during repo switch');
+        // Failed to get output history
       }
     } catch {
       socket.emit('repo-switched', {
@@ -591,14 +621,8 @@ io.on('connection', (socket) => {
   // Claude CLI履歴の取得
   socket.on('get-claude-history', async (data) => {
     const { repositoryPath } = data;
-    console.log(
-      `[Server] Received get-claude-history request for: ${repositoryPath}`
-    );
 
     if (!repositoryPath) {
-      console.log(
-        `[Server] No repositoryPath provided in get-claude-history request`
-      );
       return;
     }
 
@@ -606,16 +630,12 @@ io.on('connection', (socket) => {
       // 指定されたリポジトリの出力履歴を取得
       const outputHistory =
         await processManager.getOutputHistory(repositoryPath);
-      console.log(
-        `[Server] Sending ${outputHistory.length} history lines for: ${repositoryPath}`
-      );
 
       socket.emit('claude-output-history', {
         repositoryPath,
         history: outputHistory,
       });
     } catch {
-      console.error('Failed to get Claude history');
       socket.emit('claude-output-history', {
         repositoryPath,
         history: [],
@@ -1038,7 +1058,7 @@ io.on('connection', (socket) => {
         });
       }
     } catch {
-      console.error('Failed to start automode');
+      // Failed to start automode
     }
   });
 
@@ -1055,7 +1075,7 @@ io.on('connection', (socket) => {
         });
       }
     } catch {
-      console.error('Failed to stop automode');
+      // Failed to stop automode
     }
   });
 
@@ -1086,23 +1106,21 @@ async function startServer(): Promise<void> {
   await processManager.initialize();
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(
-      `バックエンドサーバーがポート${PORT}で起動しました (0.0.0.0:${PORT})`
-    );
+    // Server started on port ${PORT}
   });
 }
 
 // プロセス終了時のクリーンアップ
 process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
   await processManager.shutdown();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('Received SIGINT, shutting down gracefully...');
   await processManager.shutdown();
   process.exit(0);
 });
 
-startServer().catch(console.error);
+startServer().catch(() => {
+  // Startup error
+});

@@ -52,8 +52,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         await navigator.clipboard.writeText(selectedText);
         setShowCopyButton(false);
         setSelectedText('');
-      } catch (err) {
-        console.error('コピーに失敗しました:', err);
+      } catch {
+        // コピーに失敗しました
       }
     }
   };

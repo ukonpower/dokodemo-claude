@@ -22,6 +22,10 @@ import BranchSelector from './components/BranchSelector';
 import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
 
+// メモリリーク対策のための最大値設定
+const MAX_RAW_OUTPUT_LENGTH = 100000; // 100KB
+const MAX_TERMINAL_MESSAGES = 1000; // ターミナルメッセージの最大保持数
+
 function App() {
   const [socket, setSocket] = useState<Socket<
     ServerToClientEvents,
@@ -138,56 +142,46 @@ function App() {
       setSocket(socketInstance);
 
       socketInstance.on('connect', () => {
-        console.log(`[Frontend] Connected to server`);
+        // Connected to server
         setIsConnected(true);
         setIsReconnecting(false);
         setConnectionAttempts(0);
 
         // 接続時にリポジトリ一覧を取得
         socketInstance.emit('list-repos');
-        console.log(`[Frontend] Emitted list-repos`);
+        // Emitted list-repos
 
         // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
         setTimeout(() => {
           const currentPath = currentRepoRef.current;
-          console.log(`[Frontend] Delayed check - currentRepo: ${currentPath}`);
+          // Delayed check for currentRepo
 
           if (currentPath) {
-            console.log(
-              `[Frontend] Current repo detected after delay: ${currentPath}`
-            );
+            // Current repo detected after delay
             socketInstance.emit('list-terminals', {
               repositoryPath: currentPath,
             });
-            console.log(
-              `[Frontend] Emitted list-terminals for: ${currentPath}`
-            );
+            // Emitted list-terminals
             // Claude履歴も取得
             socketInstance.emit('get-claude-history', {
               repositoryPath: currentPath,
             });
-            console.log(
-              `[Frontend] Emitted get-claude-history for: ${currentPath}`
-            );
+            // Emitted get-claude-history
             // ショートカット一覧も取得
             socketInstance.emit('list-shortcuts', {
               repositoryPath: currentPath,
             });
-            console.log(
-              `[Frontend] Emitted list-shortcuts for: ${currentPath}`
-            );
+            // Emitted list-shortcuts
             // ブランチ一覧も取得
             socketInstance.emit('list-branches', {
               repositoryPath: currentPath,
             });
-            console.log(`[Frontend] Emitted list-branches for: ${currentPath}`);
+            // Emitted list-branches
             // npmスクリプト一覧も取得
             socketInstance.emit('get-npm-scripts', {
               repositoryPath: currentPath,
             });
-            console.log(
-              `[Frontend] Emitted get-npm-scripts for: ${currentPath}`
-            );
+            // Emitted get-npm-scripts
             // 自走モード設定も取得
             socketInstance.emit('get-automode-configs', {
               repositoryPath: currentPath,
@@ -195,11 +189,9 @@ function App() {
             socketInstance.emit('get-automode-status', {
               repositoryPath: currentPath,
             });
-            console.log(
-              `[Frontend] Emitted automode events for: ${currentPath}`
-            );
+            // Emitted automode events
           } else {
-            console.log(`[Frontend] No current repo detected after delay`);
+            // No current repo detected after delay
           }
         }, 100); // 100ms遅延
       });
@@ -250,7 +242,14 @@ function App() {
         !data.repositoryPath ||
         data.repositoryPath === currentRepoRef.current
       ) {
-        setRawOutput((prev) => prev + data.content);
+        setRawOutput((prev) => {
+          const newOutput = prev + data.content;
+          // 最大文字数を超えた場合、古いデータを削除
+          if (newOutput.length > MAX_RAW_OUTPUT_LENGTH) {
+            return newOutput.slice(-MAX_RAW_OUTPUT_LENGTH);
+          }
+          return newOutput;
+        });
       }
     });
 
@@ -347,25 +346,17 @@ function App() {
 
     // Claude出力履歴受信イベント
     socketInstance.on('claude-output-history', (data) => {
-      console.log(
-        `[Frontend] Received Claude history for ${data.repositoryPath}, lines: ${data.history.length}`
-      );
+      // Received Claude history
       if (data.repositoryPath === currentRepoRef.current) {
-        console.log(
-          `[Frontend] Applying Claude history (${data.history.length} lines) to current repo: ${currentRepoRef.current}`
-        );
+        // Applying Claude history to current repo
         // 履歴を復元（既存の出力を置き換え）
         const historyOutput = data.history
           .map((line: ClaudeOutputLine) => line.content)
           .join('');
         setRawOutput(historyOutput);
-        console.log(
-          `[Frontend] Claude history applied, output length: ${historyOutput.length}`
-        );
+        // Claude history applied
       } else {
-        console.log(
-          `[Frontend] Ignoring Claude history for different repo: ${data.repositoryPath} (current: ${currentRepoRef.current})`
-        );
+        // Ignoring Claude history for different repo
       }
     });
 
@@ -380,7 +371,14 @@ function App() {
     });
 
     socketInstance.on('terminal-output', (message) => {
-      setTerminalMessages((prev) => [...prev, message]);
+      setTerminalMessages((prev) => {
+        const newMessages = [...prev, message];
+        // 最大メッセージ数を超えた場合、古いメッセージを削除
+        if (newMessages.length > MAX_TERMINAL_MESSAGES) {
+          return newMessages.slice(-MAX_TERMINAL_MESSAGES);
+        }
+        return newMessages;
+      });
     });
 
     socketInstance.on('terminal-closed', (data) => {
