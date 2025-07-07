@@ -211,6 +211,18 @@ export interface ServerToClientEvents {
     repositoryPath: string;
     isRunning: boolean;
     configId?: string;
+    isWaiting?: boolean;
+    remainingTime?: number;
+  }) => void;
+  'automode-waiting': (data: {
+    repositoryPath: string;
+    remainingTime: number;
+    nextExecutionTime: number;
+  }) => void;
+  'automode-force-executed': (data: {
+    repositoryPath: string;
+    success: boolean;
+    message: string;
   }) => void;
 }
 
@@ -295,4 +307,5 @@ export interface ClientToServerEvents {
   }) => void;
   'stop-automode': (data: { repositoryPath: string }) => void;
   'get-automode-status': (data: { repositoryPath: string }) => void;
+  'force-execute-automode': (data: { repositoryPath: string }) => void;
 }

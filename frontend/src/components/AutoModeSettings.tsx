@@ -18,6 +18,8 @@ interface AutoModeState {
   isRunning: boolean;
   currentConfigId?: string;
   lastExecutionTime?: number;
+  isWaiting?: boolean;
+  remainingTime?: number;
 }
 
 interface AutoModeSettingsProps {
@@ -63,7 +65,35 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       loadConfigs();
       loadAutoModeStatus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repositoryPath, socket]);
+
+  // カウントダウンタイマー
+  useEffect(() => {
+    if (autoModeState?.isWaiting && autoModeState.remainingTime) {
+      const interval = setInterval(() => {
+        setAutoModeState((prev) => {
+          if (!prev || !prev.isWaiting || !prev.remainingTime) {
+            return prev;
+          }
+          const newRemainingTime = prev.remainingTime - 1;
+          if (newRemainingTime <= 0) {
+            return {
+              ...prev,
+              isWaiting: false,
+              remainingTime: undefined,
+            };
+          }
+          return {
+            ...prev,
+            remainingTime: newRemainingTime,
+          };
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [autoModeState?.isWaiting, autoModeState?.remainingTime]);
 
   const loadConfigs = () => {
     if (!socket) return;
@@ -127,6 +157,8 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       repositoryPath: string;
       isRunning: boolean;
       configId?: string;
+      isWaiting?: boolean;
+      remainingTime?: number;
     }) => {
       if (data.repositoryPath === repositoryPath) {
         setAutoModeState((prev) => ({
@@ -134,7 +166,26 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           isRunning: data.isRunning,
           currentConfigId: data.configId,
           lastExecutionTime: prev?.lastExecutionTime,
+          isWaiting: data.isWaiting,
+          remainingTime: data.remainingTime,
         }));
+      }
+    };
+
+    const handleAutoModeWaiting = (data: {
+      repositoryPath: string;
+      remainingTime: number;
+      nextExecutionTime: number;
+    }) => {
+      if (data.repositoryPath === repositoryPath) {
+        setAutoModeState((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            isWaiting: true,
+            remainingTime: data.remainingTime,
+          };
+        });
       }
     };
 
@@ -143,6 +194,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     socket.on('automode-config-updated', handleConfigUpdated);
     socket.on('automode-config-deleted', handleConfigDeleted);
     socket.on('automode-status-changed', handleAutoModeStatusChanged);
+    socket.on('automode-waiting', handleAutoModeWaiting);
 
     return () => {
       socket.off('automode-configs-list', handleConfigsList);
@@ -150,6 +202,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       socket.off('automode-config-updated', handleConfigUpdated);
       socket.off('automode-config-deleted', handleConfigDeleted);
       socket.off('automode-status-changed', handleAutoModeStatusChanged);
+      socket.off('automode-waiting', handleAutoModeWaiting);
     };
   }, [socket, repositoryPath]);
 
@@ -195,6 +248,11 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
   const handleStopAutoMode = () => {
     if (!socket) return;
     socket.emit('stop-automode', { repositoryPath });
+  };
+
+  const handleForceExecute = () => {
+    if (!socket) return;
+    socket.emit('force-execute-automode', { repositoryPath });
   };
 
   // socketが利用できない場合は何も表示しない
@@ -246,6 +304,20 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           autoModeState.lastExecutionTime
                         ).toLocaleString()}
                       </p>
+                    )}
+                    {autoModeState.isWaiting && autoModeState.remainingTime && (
+                      <div className="mt-2 flex items-center space-x-2">
+                        <p className="text-sm text-yellow-400">
+                          次回実行まで: {Math.floor(autoModeState.remainingTime / 60)}分{' '}
+                          {autoModeState.remainingTime % 60}秒
+                        </p>
+                        <button
+                          onClick={handleForceExecute}
+                          className="px-3 py-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
+                        >
+                          今すぐ実行
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
