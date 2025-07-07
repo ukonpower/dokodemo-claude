@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -77,7 +77,7 @@ function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [currentRepo]);
+  }, [currentRepo, socket]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
@@ -216,17 +216,20 @@ function App() {
     };
 
     const attemptReconnect = () => {
-      if (connectionAttempts < maxReconnectAttempts) {
-        setConnectionAttempts((prev) => prev + 1);
-        reconnectTimeout = setTimeout(
-          () => {
-            createConnection();
-          },
-          reconnectDelay * (connectionAttempts + 1)
-        ); // 指数バックオフ
-      } else {
-        setIsReconnecting(false);
-      }
+      setConnectionAttempts((prevAttempts) => {
+        if (prevAttempts < maxReconnectAttempts) {
+          reconnectTimeout = setTimeout(
+            () => {
+              createConnection();
+            },
+            reconnectDelay * (prevAttempts + 1)
+          ); // 指数バックオフ
+          return prevAttempts + 1;
+        } else {
+          setIsReconnecting(false);
+          return prevAttempts;
+        }
+      });
     };
 
     const socketInstance = createConnection();
@@ -499,7 +502,7 @@ function App() {
       }
       socketInstance.disconnect();
     };
-  }, [connectionAttempts]); // connectionAttemptsの変更のみ監視
+  }, []); // 初期化時のみ実行
 
   const handleCloneRepository = (url: string, name: string) => {
     if (socket) {
@@ -663,11 +666,11 @@ function App() {
   };
 
   // npmスクリプト関連のハンドラ
-  const handleRefreshNpmScripts = () => {
+  const handleRefreshNpmScripts = useCallback(() => {
     if (socket && currentRepo) {
       socket.emit('get-npm-scripts', { repositoryPath: currentRepo });
     }
-  };
+  }, [socket, currentRepo]);
 
   const handleExecuteNpmScript = (scriptName: string) => {
     if (socket && currentRepo) {
