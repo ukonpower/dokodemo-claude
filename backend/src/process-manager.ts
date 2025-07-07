@@ -480,10 +480,10 @@ export class ProcessManager extends EventEmitter {
         // /clearコマンド送信後500ms待機してからEnterキーを送信
         setTimeout(() => {
           this.sendToClaudeSession(session.id, '\r');
-          // さらに500ms待機してからプロンプトを送信
+          // /clearコマンド処理完了まで1500ms待機してからプロンプトを送信
           setTimeout(() => {
             this.sendMainPrompt(session, config);
-          }, 500);
+          }, 1500);
         }, 500);
       }
     } else {
