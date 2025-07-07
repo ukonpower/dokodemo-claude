@@ -434,6 +434,27 @@ export class ProcessManager extends EventEmitter {
       return;
     }
 
+    // 最後の実行から5分が経過しているかチェック
+    const now = Date.now();
+    const fiveMinutesInMs = 5 * 60 * 1000; // 5分をミリ秒に変換
+    
+    if (autoModeState.lastExecutionTime) {
+      const timeSinceLastExecution = now - autoModeState.lastExecutionTime;
+      const remainingTime = fiveMinutesInMs - timeSinceLastExecution;
+      
+      if (remainingTime > 0) {
+        // 5分経過していない場合は、残り時間後に再度実行
+        console.log(`Automode: Waiting ${Math.ceil(remainingTime / 1000)} seconds until next execution for ${repositoryPath}`);
+        
+        setTimeout(() => {
+          // 5分経過後に再度このメソッドを呼び出す
+          this.triggerAutoModeFromHook(repositoryPath);
+        }, remainingTime);
+        
+        return;
+      }
+    }
+
     // Claudeセッションを取得
     const session = this.getClaudeSessionByRepository(repositoryPath);
     if (!session) {
