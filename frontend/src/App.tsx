@@ -23,7 +23,7 @@ import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
 
 // メモリリーク対策のための最大値設定
-const MAX_RAW_OUTPUT_LENGTH = 100000; // 100KB
+const MAX_RAW_OUTPUT_LENGTH = Infinity; // 100KB
 const MAX_TERMINAL_MESSAGES = 1000; // ターミナルメッセージの最大保持数
 
 function App() {
