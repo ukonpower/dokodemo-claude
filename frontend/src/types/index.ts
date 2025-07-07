@@ -75,6 +75,7 @@ export interface AutoModeConfig {
   repositoryPath: string;
   isEnabled: boolean;
   triggerMode: 'hook'; // hookモードのみ
+  sendClearCommand: boolean; // プロンプト送信前に/clearコマンドを送信するか
   createdAt: number;
   updatedAt: number;
 }
@@ -277,6 +278,7 @@ export interface ClientToServerEvents {
     prompt: string;
     repositoryPath: string;
     triggerMode?: 'hook';
+    sendClearCommand?: boolean;
   }) => void;
   'update-automode-config': (data: {
     id: string;
@@ -284,6 +286,7 @@ export interface ClientToServerEvents {
     prompt?: string;
     isEnabled?: boolean;
     triggerMode?: 'hook';
+    sendClearCommand?: boolean;
   }) => void;
   'delete-automode-config': (data: { configId: string }) => void;
   'start-automode': (data: {

@@ -471,6 +471,31 @@ export class ProcessManager extends EventEmitter {
     session: ActiveClaudeSession,
     config: AutoModeConfig
   ): void {
+    let success = false;
+
+    // 設定で/clearコマンドの送信が有効な場合、プロンプト送信前に/clearを送信
+    if (config.sendClearCommand) {
+      success = this.sendToClaudeSession(session.id, '/clear');
+      if (success) {
+        // /clearコマンド送信後500ms待機してからEnterキーを送信
+        setTimeout(() => {
+          this.sendToClaudeSession(session.id, '\r');
+          // さらに500ms待機してからプロンプトを送信
+          setTimeout(() => {
+            this.sendMainPrompt(session, config);
+          }, 500);
+        }, 500);
+      }
+    } else {
+      // /clearコマンドを送信しない場合、直接プロンプトを送信
+      this.sendMainPrompt(session, config);
+    }
+  }
+
+  private sendMainPrompt(
+    session: ActiveClaudeSession,
+    config: AutoModeConfig
+  ): void {
     const success = this.sendToClaudeSession(session.id, config.prompt);
 
     if (success) {
@@ -1307,7 +1332,8 @@ export class ProcessManager extends EventEmitter {
     name: string,
     prompt: string,
     repositoryPath: string,
-    triggerMode: 'hook' = 'hook'
+    triggerMode: 'hook' = 'hook',
+    sendClearCommand: boolean = true
   ): Promise<AutoModeConfig> {
     const configId = `automode-${++this.autoModeConfigCounter}-${Date.now()}`;
 
@@ -1318,6 +1344,7 @@ export class ProcessManager extends EventEmitter {
       repositoryPath,
       isEnabled: true,
       triggerMode,
+      sendClearCommand,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1336,7 +1363,7 @@ export class ProcessManager extends EventEmitter {
     updates: Partial<
       Pick<
         AutoModeConfig,
-        'name' | 'prompt' | 'isEnabled' | 'triggerMode'
+        'name' | 'prompt' | 'isEnabled' | 'triggerMode' | 'sendClearCommand'
       >
     >
   ): Promise<AutoModeConfig | null> {

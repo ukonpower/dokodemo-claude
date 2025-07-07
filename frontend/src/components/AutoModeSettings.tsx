@@ -8,6 +8,7 @@ interface AutoModeConfig {
   repositoryPath: string;
   isEnabled: boolean;
   triggerMode: 'hook';
+  sendClearCommand: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -45,6 +46,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     prompt: '',
     isEnabled: true,
     triggerMode: 'hook' as const,
+    sendClearCommand: true,
   });
 
   // propsからの初期値を反映
@@ -93,6 +95,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           prompt: '',
           isEnabled: true,
           triggerMode: 'hook',
+          sendClearCommand: true,
         });
       }
     };
@@ -159,6 +162,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
         repositoryPath,
         isEnabled: newConfig.isEnabled,
         triggerMode: newConfig.triggerMode,
+        sendClearCommand: newConfig.sendClearCommand,
       });
     }
   };
@@ -171,6 +175,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       prompt: editingConfig.prompt,
       isEnabled: editingConfig.isEnabled,
       triggerMode: editingConfig.triggerMode,
+      sendClearCommand: editingConfig.sendClearCommand,
     });
   };
 
@@ -344,6 +349,23 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   この設定を有効にする
                 </label>
               </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="sendClearCommand"
+                  checked={newConfig.sendClearCommand}
+                  onChange={(e) =>
+                    setNewConfig({ ...newConfig, sendClearCommand: e.target.checked })
+                  }
+                  className="mr-2"
+                />
+                <label
+                  htmlFor="sendClearCommand"
+                  className="text-xs sm:text-sm text-gray-200"
+                >
+                  プロンプト送信前に/clearコマンドを送信する
+                </label>
+              </div>
               <div className="flex space-x-2">
                 <button
                   onClick={handleCreateConfig}
@@ -455,6 +477,26 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           この設定を有効にする
                         </label>
                       </div>
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`sendClearCommand-${config.id}`}
+                          checked={editingConfig.sendClearCommand}
+                          onChange={(e) =>
+                            setEditingConfig({
+                              ...editingConfig,
+                              sendClearCommand: e.target.checked,
+                            })
+                          }
+                          className="mr-2"
+                        />
+                        <label
+                          htmlFor={`sendClearCommand-${config.id}`}
+                          className="text-xs sm:text-sm text-gray-200"
+                        >
+                          プロンプト送信前に/clearコマンドを送信する
+                        </label>
+                      </div>
                       <div className="flex space-x-2">
                         <button
                           onClick={handleUpdateConfig}
@@ -494,6 +536,9 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                             </span>
                             <span className="text-xs text-gray-400">
                               Hookモード
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {config.sendClearCommand ? 'Clear有効' : 'Clear無効'}
                             </span>
                           </div>
                         </div>
