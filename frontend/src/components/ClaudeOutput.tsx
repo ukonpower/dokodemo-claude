@@ -94,16 +94,27 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
         terminal.current.dispose();
       }
     };
-  }, []);
+  }, [rawOutput]);
 
   // 出力が更新されたらターミナルに書き込み
   useEffect(() => {
-    if (!terminal.current || !rawOutput) return;
+    if (!terminal.current || rawOutput === undefined || rawOutput === null) return;
+
+    // rawOutputが短くなった場合（履歴復元やクリアなど）、ターミナルをクリアして全体を再描画
+    if (rawOutput.length < lastOutputLength.current) {
+      terminal.current.clear();
+      if (rawOutput.length > 0) {
+        terminal.current.write(rawOutput);
+      }
+      lastOutputLength.current = rawOutput.length;
+      terminal.current.scrollToBottom();
+      return;
+    }
 
     // 新しい出力部分のみを取得
     const newOutput = rawOutput.slice(lastOutputLength.current);
 
-    if (newOutput) {
+    if (newOutput.length > 0) {
       // ターミナルをクリアして全体を再描画
       if (lastOutputLength.current === 0) {
         terminal.current.clear();
