@@ -261,6 +261,10 @@ processManager.on('claude-exit', (data) => {
   });
 });
 
+processManager.on('automode-waiting', (data) => {
+  io.emit('automode-waiting', data);
+});
+
 processManager.on('claude-session-created', (session) => {
   io.emit('claude-session-created', {
     sessionId: session.id,
@@ -1085,11 +1089,42 @@ io.on('connection', (socket) => {
   socket.on('get-automode-status', (data) => {
     const { repositoryPath } = data;
     const state = processManager.getAutoModeState(repositoryPath);
+    const waitingStatus = processManager.getAutoModeWaitingStatus(repositoryPath);
     socket.emit('automode-status-changed', {
       repositoryPath,
       isRunning: state?.isRunning || false,
       configId: state?.currentConfigId,
+      isWaiting: waitingStatus.isWaiting,
+      remainingTime: waitingStatus.remainingTime,
     });
+  });
+
+  // 自走モードの強制実行
+  socket.on('force-execute-automode', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const success = await processManager.forceExecuteAutoMode(repositoryPath);
+      if (success) {
+        socket.emit('automode-force-executed', {
+          repositoryPath,
+          success: true,
+          message: '自走モードを強制実行しました',
+        });
+      } else {
+        socket.emit('automode-force-executed', {
+          repositoryPath,
+          success: false,
+          message: '自走モードが実行中でないか、設定が無効です',
+        });
+      }
+    } catch {
+      socket.emit('automode-force-executed', {
+        repositoryPath,
+        success: false,
+        message: '強制実行中にエラーが発生しました',
+      });
+    }
   });
 
   socket.on('disconnect', () => {

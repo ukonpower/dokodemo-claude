@@ -73,6 +73,7 @@ export class ProcessManager extends EventEmitter {
   private shortcuts: Map<string, CommandShortcut> = new Map();
   private autoModeConfigs: Map<string, AutoModeConfig> = new Map();
   private autoModeStates: Map<string, AutoModeState> = new Map();
+  private autoModeTimers: Map<string, NodeJS.Timeout> = new Map(); // 待機中のタイマーを管理
   private processesDir: string;
   private claudeSessionsFile: string;
   private terminalsFile: string;
@@ -446,10 +447,29 @@ export class ProcessManager extends EventEmitter {
         // 5分経過していない場合は、残り時間後に再度実行
         console.log(`Automode: Waiting ${Math.ceil(remainingTime / 1000)} seconds until next execution for ${repositoryPath}`);
         
-        setTimeout(() => {
+        // 既存のタイマーをクリア
+        const existingTimer = this.autoModeTimers.get(repositoryPath);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+        
+        // 新しいタイマーを設定
+        const timer = setTimeout(() => {
+          // タイマーをMapから削除
+          this.autoModeTimers.delete(repositoryPath);
           // 5分経過後に再度このメソッドを呼び出す
           this.triggerAutoModeFromHook(repositoryPath);
         }, remainingTime);
+        
+        // タイマーを保存
+        this.autoModeTimers.set(repositoryPath, timer);
+        
+        // 待機状態を通知
+        this.emit('automode-waiting', {
+          repositoryPath,
+          remainingTime: Math.ceil(remainingTime / 1000),
+          nextExecutionTime: now + remainingTime,
+        });
         
         return;
       }
@@ -1488,9 +1508,69 @@ export class ProcessManager extends EventEmitter {
 
     state.isRunning = false;
     state.currentConfigId = undefined;
+    
+    // 待機中のタイマーをクリア
+    const timer = this.autoModeTimers.get(repositoryPath);
+    if (timer) {
+      clearTimeout(timer);
+      this.autoModeTimers.delete(repositoryPath);
+    }
+    
     await this.persistAutoModeStates();
 
     // 自走モード停止
+
+    return true;
+  }
+
+  /**
+   * 自走モードを強制的に実行（待機をスキップ）
+   */
+  async forceExecuteAutoMode(repositoryPath: string): Promise<boolean> {
+    // 自走モードが有効かチェック
+    const autoModeState = this.autoModeStates.get(repositoryPath);
+    if (!autoModeState || !autoModeState.isRunning) {
+      return false;
+    }
+
+    // 設定されているプロンプトを取得
+    const config = this.autoModeConfigs.get(
+      autoModeState.currentConfigId || ''
+    );
+    if (!config || !config.isEnabled) {
+      return false;
+    }
+
+    // 待機中のタイマーをクリア
+    const timer = this.autoModeTimers.get(repositoryPath);
+    if (timer) {
+      clearTimeout(timer);
+      this.autoModeTimers.delete(repositoryPath);
+    }
+
+    // Claudeセッションを取得または作成
+    const session = this.getClaudeSessionByRepository(repositoryPath);
+    if (!session) {
+      const repoName = repositoryPath.split('/').pop() || 'unknown';
+      const newSession = await this.getOrCreateClaudeSession(
+        repositoryPath,
+        repoName
+      );
+      if (newSession) {
+        // 少し待ってからプロンプトを送信
+        setTimeout(() => {
+          this.sendAutoPrompt(newSession, config);
+        }, 2000);
+      }
+      return true;
+    }
+
+    // プロンプトを即座に送信
+    this.sendAutoPrompt(session, config);
+
+    // 実行時間を更新
+    autoModeState.lastExecutionTime = Date.now();
+    await this.persistAutoModeStates();
 
     return true;
   }
@@ -1500,6 +1580,32 @@ export class ProcessManager extends EventEmitter {
    */
   getAutoModeState(repositoryPath: string): AutoModeState | null {
     return this.autoModeStates.get(repositoryPath) || null;
+  }
+
+  /**
+   * 自走モードの待機状態を取得
+   */
+  getAutoModeWaitingStatus(repositoryPath: string): { isWaiting: boolean; remainingTime?: number } {
+    const timer = this.autoModeTimers.get(repositoryPath);
+    const state = this.autoModeStates.get(repositoryPath);
+    
+    if (!timer || !state || !state.lastExecutionTime) {
+      return { isWaiting: false };
+    }
+    
+    const now = Date.now();
+    const fiveMinutesInMs = 5 * 60 * 1000;
+    const timeSinceLastExecution = now - state.lastExecutionTime;
+    const remainingTime = fiveMinutesInMs - timeSinceLastExecution;
+    
+    if (remainingTime > 0) {
+      return {
+        isWaiting: true,
+        remainingTime: Math.ceil(remainingTime / 1000)
+      };
+    }
+    
+    return { isWaiting: false };
   }
 
 }
