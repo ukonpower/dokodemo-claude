@@ -108,7 +108,6 @@ export class ProcessManager extends EventEmitter {
     await this.restoreAutoModeConfigs();
     await this.restoreAutoModeStates();
 
-
     // 定期的なプロセス監視を開始
     this.startProcessMonitoring();
   }
@@ -410,13 +409,10 @@ export class ProcessManager extends EventEmitter {
     return await this.createClaudeSession(repositoryPath, repositoryName);
   }
 
-
   /**
    * Hookイベントから自走モードをトリガー
    */
-  async triggerAutoModeFromHook(
-    repositoryPath: string
-  ): Promise<void> {
+  async triggerAutoModeFromHook(repositoryPath: string): Promise<void> {
     // Triggering automode from hook event
 
     // 自走モードが有効かチェック
@@ -438,21 +434,23 @@ export class ProcessManager extends EventEmitter {
     // 最後の実行から5分が経過しているかチェック
     const now = Date.now();
     const fiveMinutesInMs = 5 * 60 * 1000; // 5分をミリ秒に変換
-    
+
     if (autoModeState.lastExecutionTime) {
       const timeSinceLastExecution = now - autoModeState.lastExecutionTime;
       const remainingTime = fiveMinutesInMs - timeSinceLastExecution;
-      
+
       if (remainingTime > 0) {
         // 5分経過していない場合は、残り時間後に再度実行
-        console.log(`Automode: Waiting ${Math.ceil(remainingTime / 1000)} seconds until next execution for ${repositoryPath}`);
-        
+        console.log(
+          `Automode: Waiting ${Math.ceil(remainingTime / 1000)} seconds until next execution for ${repositoryPath}`
+        );
+
         // 既存のタイマーをクリア
         const existingTimer = this.autoModeTimers.get(repositoryPath);
         if (existingTimer) {
           clearTimeout(existingTimer);
         }
-        
+
         // 新しいタイマーを設定
         const timer = setTimeout(() => {
           // タイマーをMapから削除
@@ -460,17 +458,17 @@ export class ProcessManager extends EventEmitter {
           // 5分経過後に再度このメソッドを呼び出す
           this.triggerAutoModeFromHook(repositoryPath);
         }, remainingTime);
-        
+
         // タイマーを保存
         this.autoModeTimers.set(repositoryPath, timer);
-        
+
         // 待機状態を通知
         this.emit('automode-waiting', {
           repositoryPath,
           remainingTime: Math.ceil(remainingTime / 1000),
           nextExecutionTime: now + remainingTime,
         });
-        
+
         return;
       }
     }
@@ -902,7 +900,7 @@ export class ProcessManager extends EventEmitter {
           session.process.kill('SIGKILL');
         }
       }, 2000);
-      
+
       // セッションが終了したらタイムアウトをクリア
       session.process.onExit(() => {
         clearTimeout(killTimeout);
@@ -938,7 +936,7 @@ export class ProcessManager extends EventEmitter {
           terminal.process.kill('SIGKILL');
         }
       }, 2000);
-      
+
       // ターミナルが終了したらタイムアウトをクリア
       terminal.process.onExit(() => {
         clearTimeout(killTimeout);
@@ -995,7 +993,6 @@ export class ProcessManager extends EventEmitter {
    */
   async cleanupRepositoryProcesses(repositoryPath: string): Promise<void> {
     // Cleaning up processes for repository
-
 
     const closePromises: Promise<boolean>[] = [];
 
@@ -1256,13 +1253,12 @@ export class ProcessManager extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     // Shutting down ProcessManager
-    
+
     // プロセス監視を停止
     if (this.processMonitoringInterval) {
       clearInterval(this.processMonitoringInterval);
       this.processMonitoringInterval = null;
     }
-
 
     // 全てのプロセスを終了
     const closePromises: Promise<boolean>[] = [];
@@ -1475,24 +1471,60 @@ export class ProcessManager extends EventEmitter {
     this.autoModeStates.set(repositoryPath, state);
     await this.persistAutoModeStates();
 
-    // 自走モード開始時に初回プロンプトを送信
+    // 自走モード開始時はプロンプト送信を行わない（手動送信に変更）
+    // Claudeセッションを取得または作成（待機状態）
     try {
-      // Claudeセッションを取得または作成
       const repoName = repositoryPath.split('/').pop() || 'unknown';
-      const session = await this.getOrCreateClaudeSession(
+      await this.getOrCreateClaudeSession(repositoryPath, repoName);
+    } catch {
+      // セッション作成エラーは無視
+    }
+
+    return true;
+  }
+
+  /**
+   * 自走モードで手動プロンプト送信
+   */
+  async sendManualPrompt(repositoryPath: string): Promise<boolean> {
+    // 自走モードが有効かチェック
+    const autoModeState = this.autoModeStates.get(repositoryPath);
+    if (!autoModeState || !autoModeState.isRunning) {
+      return false;
+    }
+
+    // 設定されているプロンプトを取得
+    const config = this.autoModeConfigs.get(
+      autoModeState.currentConfigId || ''
+    );
+    if (!config || !config.isEnabled) {
+      return false;
+    }
+
+    // Claudeセッションを取得
+    const session = this.getClaudeSessionByRepository(repositoryPath);
+    if (!session) {
+      // セッションが見つからない場合は作成
+      const repoName = repositoryPath.split('/').pop() || 'unknown';
+      const newSession = await this.getOrCreateClaudeSession(
         repositoryPath,
         repoName
       );
-      
-      if (session) {
-        // 初回プロンプトを送信
+      if (newSession) {
+        // 少し待ってからプロンプトを送信
         setTimeout(() => {
-          this.sendAutoPrompt(session, config);
-        }, 1000); // 1秒待ってからプロンプトを送信
+          this.sendAutoPrompt(newSession, config);
+        }, 1000);
       }
-    } catch {
-      // プロンプト送信エラーは無視（自走モード自体は開始）
+      return true;
     }
+
+    // プロンプトを送信
+    this.sendAutoPrompt(session, config);
+
+    // 実行時間を更新
+    autoModeState.lastExecutionTime = Date.now();
+    await this.persistAutoModeStates();
 
     return true;
   }
@@ -1508,14 +1540,14 @@ export class ProcessManager extends EventEmitter {
 
     state.isRunning = false;
     state.currentConfigId = undefined;
-    
+
     // 待機中のタイマーをクリア
     const timer = this.autoModeTimers.get(repositoryPath);
     if (timer) {
       clearTimeout(timer);
       this.autoModeTimers.delete(repositoryPath);
     }
-    
+
     await this.persistAutoModeStates();
 
     // 自走モード停止
@@ -1585,27 +1617,29 @@ export class ProcessManager extends EventEmitter {
   /**
    * 自走モードの待機状態を取得
    */
-  getAutoModeWaitingStatus(repositoryPath: string): { isWaiting: boolean; remainingTime?: number } {
+  getAutoModeWaitingStatus(repositoryPath: string): {
+    isWaiting: boolean;
+    remainingTime?: number;
+  } {
     const timer = this.autoModeTimers.get(repositoryPath);
     const state = this.autoModeStates.get(repositoryPath);
-    
+
     if (!timer || !state || !state.lastExecutionTime) {
       return { isWaiting: false };
     }
-    
+
     const now = Date.now();
     const fiveMinutesInMs = 5 * 60 * 1000;
     const timeSinceLastExecution = now - state.lastExecutionTime;
     const remainingTime = fiveMinutesInMs - timeSinceLastExecution;
-    
+
     if (remainingTime > 0) {
       return {
         isWaiting: true,
-        remainingTime: Math.ceil(remainingTime / 1000)
+        remainingTime: Math.ceil(remainingTime / 1000),
       };
     }
-    
+
     return { isWaiting: false };
   }
-
 }

@@ -188,6 +188,11 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
   }) => void;
+  'manual-prompt-sent': (data: {
+    repositoryPath: string;
+    success: boolean;
+    message: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -272,6 +277,7 @@ export interface ClientToServerEvents {
   'stop-automode': (data: { repositoryPath: string }) => void;
   'get-automode-status': (data: { repositoryPath: string }) => void;
   'force-execute-automode': (data: { repositoryPath: string }) => void;
+  'send-manual-prompt': (data: { repositoryPath: string }) => void;
 }
 
 // Claude CLI 操作関連の型定義

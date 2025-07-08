@@ -189,12 +189,30 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       }
     };
 
+    const handleManualPromptSent = (data: {
+      repositoryPath: string;
+      success: boolean;
+      message: string;
+    }) => {
+      if (data.repositoryPath === repositoryPath) {
+        // 手動プロンプト送信結果の処理（必要に応じて通知やUIの更新）
+        if (data.success) {
+          // 成功時の処理
+          console.log('Manual prompt sent successfully:', data.message);
+        } else {
+          // 失敗時の処理
+          console.error('Manual prompt failed:', data.message);
+        }
+      }
+    };
+
     socket.on('automode-configs-list', handleConfigsList);
     socket.on('automode-config-created', handleConfigCreated);
     socket.on('automode-config-updated', handleConfigUpdated);
     socket.on('automode-config-deleted', handleConfigDeleted);
     socket.on('automode-status-changed', handleAutoModeStatusChanged);
     socket.on('automode-waiting', handleAutoModeWaiting);
+    socket.on('manual-prompt-sent', handleManualPromptSent);
 
     return () => {
       socket.off('automode-configs-list', handleConfigsList);
@@ -203,6 +221,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       socket.off('automode-config-deleted', handleConfigDeleted);
       socket.off('automode-status-changed', handleAutoModeStatusChanged);
       socket.off('automode-waiting', handleAutoModeWaiting);
+      socket.off('manual-prompt-sent', handleManualPromptSent);
     };
   }, [socket, repositoryPath]);
 
@@ -239,7 +258,6 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
     }
   };
 
-
   const handleStartAutoMode = (configId: string) => {
     if (!socket) return;
     socket.emit('start-automode', { repositoryPath, configId });
@@ -253,6 +271,11 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
   const handleForceExecute = () => {
     if (!socket) return;
     socket.emit('force-execute-automode', { repositoryPath });
+  };
+
+  const handleManualPrompt = () => {
+    if (!socket) return;
+    socket.emit('send-manual-prompt', { repositoryPath });
   };
 
   // socketが利用できない場合は何も表示しない
@@ -269,18 +292,20 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {/* 自走モード状態表示 */}
       {autoModeState && (
         <div
-          className={`p-4 rounded-lg border-2 ${autoModeState.isRunning
+          className={`p-4 rounded-lg border-2 ${
+            autoModeState.isRunning
               ? 'bg-green-900 border-green-600'
               : 'bg-gray-700 border-gray-600'
-            }`}
+          }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 min-w-0 flex-1">
               <div
-                className={`w-3 h-3 rounded-full ${autoModeState.isRunning
+                className={`w-3 h-3 rounded-full ${
+                  autoModeState.isRunning
                     ? 'bg-green-400 animate-pulse'
                     : 'bg-gray-400'
-                  }`}
+                }`}
               ></div>
               <div className="min-w-0 flex-1">
                 <h4 className="font-semibold text-white text-sm sm:text-base">
@@ -305,20 +330,30 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                         ).toLocaleString()}
                       </p>
                     )}
-                    {autoModeState.isWaiting && autoModeState.remainingTime && (
-                      <div className="mt-2 flex items-center space-x-2">
-                        <p className="text-sm text-yellow-400">
-                          次回実行まで: {Math.floor(autoModeState.remainingTime / 60)}分{' '}
-                          {autoModeState.remainingTime % 60}秒
-                        </p>
-                        <button
-                          onClick={handleForceExecute}
-                          className="px-3 py-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
-                        >
-                          今すぐ実行
-                        </button>
-                      </div>
-                    )}
+                    <div className="mt-2 flex items-center space-x-2">
+                      <button
+                        onClick={handleManualPrompt}
+                        className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                      >
+                        プロンプト送信
+                      </button>
+                      {autoModeState.isWaiting &&
+                        autoModeState.remainingTime && (
+                          <>
+                            <p className="text-sm text-yellow-400">
+                              次回実行まで:{' '}
+                              {Math.floor(autoModeState.remainingTime / 60)}分{' '}
+                              {autoModeState.remainingTime % 60}秒
+                            </p>
+                            <button
+                              onClick={handleForceExecute}
+                              className="px-3 py-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
+                            >
+                              今すぐ実行
+                            </button>
+                          </>
+                        )}
+                    </div>
                   </>
                 )}
               </div>
@@ -427,7 +462,10 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   id="sendClearCommand"
                   checked={newConfig.sendClearCommand}
                   onChange={(e) =>
-                    setNewConfig({ ...newConfig, sendClearCommand: e.target.checked })
+                    setNewConfig({
+                      ...newConfig,
+                      sendClearCommand: e.target.checked,
+                    })
                   }
                   className="mr-2"
                 />
@@ -470,10 +508,11 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               return (
                 <div
                   key={config.id}
-                  className={`p-4 rounded border border-gray-500 ${autoModeState?.isRunning && !isCurrentlyRunning
+                  className={`p-4 rounded border border-gray-500 ${
+                    autoModeState?.isRunning && !isCurrentlyRunning
                       ? 'bg-gray-700 opacity-50'
                       : 'bg-gray-600'
-                    }`}
+                  }`}
                 >
                   {editingConfig?.id === config.id ? (
                     <div className="space-y-3">
@@ -593,12 +632,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           </h4>
                           <div className="flex items-center space-x-2 mt-1">
                             <span
-                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${isCurrentlyRunning
+                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                isCurrentlyRunning
                                   ? 'bg-green-600 text-green-100'
                                   : config.isEnabled
                                     ? 'bg-green-600 text-green-100'
                                     : 'bg-gray-500 text-gray-200'
-                                }`}
+                              }`}
                             >
                               {isCurrentlyRunning
                                 ? '実行中'
@@ -610,7 +650,9 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               Hookモード
                             </span>
                             <span className="text-xs text-gray-400">
-                              {config.sendClearCommand ? 'Clear有効' : 'Clear無効'}
+                              {config.sendClearCommand
+                                ? 'Clear有効'
+                                : 'Clear無効'}
                             </span>
                           </div>
                         </div>

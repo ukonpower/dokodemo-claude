@@ -374,7 +374,7 @@ io.on('connection', (socket) => {
 
       // gitクローン実行
       const gitProcess = spawn('git', ['clone', url, repoPath]);
-      
+
       // タイムアウト設定（10分）
       const cloneTimeout = setTimeout(() => {
         gitProcess.kill('SIGTERM');
@@ -449,7 +449,7 @@ io.on('connection', (socket) => {
 
       // git init実行
       const gitInitProcess = spawn('git', ['init'], { cwd: repoPath });
-      
+
       // タイムアウト設定（30秒）
       const initTimeout = setTimeout(() => {
         gitInitProcess.kill('SIGTERM');
@@ -953,7 +953,8 @@ io.on('connection', (socket) => {
 
   // 新しい自走モード設定の作成
   socket.on('create-automode-config', async (data) => {
-    const { name, prompt, repositoryPath, triggerMode, sendClearCommand } = data;
+    const { name, prompt, repositoryPath, triggerMode, sendClearCommand } =
+      data;
 
     try {
       const config = await processManager.createAutoModeConfig(
@@ -1089,7 +1090,8 @@ io.on('connection', (socket) => {
   socket.on('get-automode-status', (data) => {
     const { repositoryPath } = data;
     const state = processManager.getAutoModeState(repositoryPath);
-    const waitingStatus = processManager.getAutoModeWaitingStatus(repositoryPath);
+    const waitingStatus =
+      processManager.getAutoModeWaitingStatus(repositoryPath);
     socket.emit('automode-status-changed', {
       repositoryPath,
       isRunning: state?.isRunning || false,
@@ -1123,6 +1125,34 @@ io.on('connection', (socket) => {
         repositoryPath,
         success: false,
         message: '強制実行中にエラーが発生しました',
+      });
+    }
+  });
+
+  // 自走モードの手動プロンプト送信
+  socket.on('send-manual-prompt', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const success = await processManager.sendManualPrompt(repositoryPath);
+      if (success) {
+        socket.emit('manual-prompt-sent', {
+          repositoryPath,
+          success: true,
+          message: 'プロンプトを送信しました',
+        });
+      } else {
+        socket.emit('manual-prompt-sent', {
+          repositoryPath,
+          success: false,
+          message: '自走モードが実行中でないか、設定が無効です',
+        });
+      }
+    } catch {
+      socket.emit('manual-prompt-sent', {
+        repositoryPath,
+        success: false,
+        message: 'プロンプト送信中にエラーが発生しました',
       });
     }
   });
