@@ -14,6 +14,8 @@ interface TerminalManagerProps {
   shortcuts: CommandShortcut[];
   currentRepo: string;
   isConnected: boolean;
+  activeTerminalId: string;
+  onActiveTerminalChange: (terminalId: string) => void;
   onCreateTerminal: (cwd: string, name?: string) => void;
   onTerminalInput: (terminalId: string, input: string) => void;
   onTerminalSignal: (terminalId: string, signal: string) => void;
@@ -30,6 +32,8 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   shortcuts,
   currentRepo,
   isConnected,
+  activeTerminalId,
+  onActiveTerminalChange,
   onCreateTerminal,
   onTerminalInput,
   onTerminalSignal,
@@ -38,7 +42,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   onDeleteShortcut,
   onExecuteShortcut,
 }) => {
-  const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [showCreateShortcut, setShowCreateShortcut] = useState(false);
   const [shortcutName, setShortcutName] = useState('');
   const [shortcutCommand, setShortcutCommand] = useState('');
@@ -46,17 +49,17 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {
     if (terminals.length > 0 && !activeTerminalId) {
-      setActiveTerminalId(terminals[0].id);
+      onActiveTerminalChange(terminals[0].id);
     }
-  }, [terminals, activeTerminalId]);
+  }, [terminals, activeTerminalId, onActiveTerminalChange]);
 
   // アクティブなターミナルが削除された場合の処理
   useEffect(() => {
     if (activeTerminalId && !terminals.find((t) => t.id === activeTerminalId)) {
       const newActiveId = terminals.length > 0 ? terminals[0].id : '';
-      setActiveTerminalId(newActiveId);
+      onActiveTerminalChange(newActiveId);
     }
-  }, [terminals, activeTerminalId]);
+  }, [terminals, activeTerminalId, onActiveTerminalChange]);
 
   const handleCreateTerminal = () => {
     if (!currentRepo) {
@@ -97,7 +100,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 ? 'bg-gray-800 text-gray-100 border border-gray-600 border-b-0'
                 : 'bg-gray-600 text-gray-200 hover:bg-gray-500'
             }`}
-            onClick={() => setActiveTerminalId(terminal.id)}
+            onClick={() => onActiveTerminalChange(terminal.id)}
           >
             <div
               className={`w-2 h-2 rounded-full flex-shrink-0 ${

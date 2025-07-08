@@ -52,6 +52,7 @@ function App() {
           setCurrentSessionId('');
           // ホームに戻る際はターミナル状態もクリア
           setTerminals([]);
+          setActiveTerminalId('');
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
@@ -92,6 +93,7 @@ function App() {
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>(
     []
   );
@@ -272,6 +274,7 @@ function App() {
           setRawOutput('');
           setCurrentSessionId('');
           setTerminals([]);
+          setActiveTerminalId('');
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
@@ -297,6 +300,7 @@ function App() {
 
         // ターミナル・ブランチ関連状態をクリア
         setTerminals([]);
+        setActiveTerminalId('');
         setTerminalMessages([]);
         setTerminalHistories(new Map());
         setShortcuts([]);
@@ -677,7 +681,7 @@ function App() {
       socket.emit('execute-npm-script', {
         repositoryPath: currentRepo,
         scriptName,
-        terminalId: 'active',
+        terminalId: activeTerminalId || undefined,
       });
     }
   };
@@ -909,6 +913,8 @@ function App() {
               shortcuts={shortcuts}
               currentRepo={currentRepo}
               isConnected={isConnected}
+              activeTerminalId={activeTerminalId}
+              onActiveTerminalChange={setActiveTerminalId}
               onCreateTerminal={handleCreateTerminal}
               onTerminalInput={handleTerminalInput}
               onTerminalSignal={handleTerminalSignal}
