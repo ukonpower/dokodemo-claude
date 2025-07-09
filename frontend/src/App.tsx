@@ -686,10 +686,15 @@ function App() {
     }
   };
 
-  // Claude出力エリアがクリックされた時にCommandInputにフォーカス
-  const handleFocusCommandInput = () => {
-    if (commandInputRef.current) {
-      commandInputRef.current.focus();
+
+  // Claude出力エリアからのキー入力を処理
+  const handleKeyInputFromClaudeOutput = (key: string) => {
+    if (socket) {
+      socket.emit('send-command', {
+        command: key,
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo,
+      });
     }
   };
 
@@ -865,7 +870,7 @@ function App() {
             <div className="flex-1 min-h-0">
               <ClaudeOutput
                 rawOutput={rawOutput}
-                onFocusInput={handleFocusCommandInput}
+                onKeyInput={handleKeyInputFromClaudeOutput}
               />
             </div>
 
