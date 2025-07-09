@@ -600,7 +600,9 @@ export class ProcessManager extends EventEmitter {
     const session = this.getClaudeSessionByRepository(repositoryPath);
     if (session) {
       // Found active session with history
-      return session.outputHistory;
+      // 最新の500行に制限
+      const history = session.outputHistory;
+      return history.slice(-500);
     }
 
     // No active session found, checking persisted history
@@ -616,7 +618,9 @@ export class ProcessManager extends EventEmitter {
         if (persistedSession.repositoryPath === repositoryPath) {
           // const historyLength = persistedSession.outputHistory?.length || 0;
           // Found persisted session with history
-          return persistedSession.outputHistory || [];
+          // 最新の500行に制限
+          const history = persistedSession.outputHistory || [];
+          return history.slice(-500);
         }
       }
 
