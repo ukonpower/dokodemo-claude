@@ -945,22 +945,59 @@ function App() {
         {/* 自走モード設定セクション */}
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
           <div className="px-4 sm:px-6 py-4">
-            <h3 className="text-base font-semibold text-white mb-3 flex items-center">
-              <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              自走モード
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-white flex items-center">
+                <svg
+                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                自走モード
+              </h3>
+              
+              {/* 自走モード停止ボタン */}
+              {autoModeState?.isRunning && (
+                <button
+                  onClick={() => {
+                    if (socket && currentRepo) {
+                      socket.emit('stop-automode', { repositoryPath: currentRepo });
+                    }
+                  }}
+                  disabled={!isConnected}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="自走モードを停止"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 10h6v4H9z"
+                    />
+                  </svg>
+                  停止
+                </button>
+              )}
+            </div>
             <AutoModeSettings
               socket={socket!}
               repositoryPath={currentRepo}
