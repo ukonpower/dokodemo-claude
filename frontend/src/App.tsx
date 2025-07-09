@@ -687,16 +687,6 @@ function App() {
   };
 
 
-  // Claude出力エリアからのキー入力を処理
-  const handleKeyInputFromClaudeOutput = (key: string) => {
-    if (socket) {
-      socket.emit('send-command', {
-        command: key,
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-      });
-    }
-  };
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
@@ -870,7 +860,12 @@ function App() {
             <div className="flex-1 min-h-0">
               <ClaudeOutput
                 rawOutput={rawOutput}
-                onKeyInput={handleKeyInputFromClaudeOutput}
+                onClickFocus={() => {
+                  // Claude CLI出力エリアをクリックしたら指示入力エリアにフォーカス
+                  if (commandInputRef.current) {
+                    commandInputRef.current.focus();
+                  }
+                }}
               />
             </div>
 

@@ -5,18 +5,17 @@ import '@xterm/xterm/css/xterm.css';
 
 interface ClaudeOutputProps {
   rawOutput: string;
-  onKeyInput?: (key: string) => void;
+  onClickFocus?: () => void;
 }
 
 const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   rawOutput,
-  onKeyInput,
+  onClickFocus,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
-  const [isFocused, setIsFocused] = React.useState(false);
 
   // ターミナルを初期化
   useEffect(() => {
@@ -58,7 +57,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
       scrollback: 10000,
       convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
       allowTransparency: false,
-      disableStdin: true,
+      disableStdin: true, // 標準入力を無効化（直接入力は使わない）
       smoothScrollDuration: 0,
       scrollOnUserInput: false,
       fastScrollModifier: 'shift',
@@ -73,6 +72,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
+
 
     // サイズを自動調整
     setTimeout(() => {
@@ -133,78 +133,14 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // キーボードイベントハンドラーを追加
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isFocused || !onKeyInput) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      let key = '';
-
-      // 特殊キーの処理
-      if (e.key === 'Enter') {
-        key = '\r';
-      } else if (e.key === 'Backspace') {
-        key = '\x7f';
-      } else if (e.key === 'Delete') {
-        key = '\x1b[3~';
-      } else if (e.key === 'Tab') {
-        key = '\t';
-      } else if (e.key === 'Escape') {
-        key = '\x1b';
-      } else if (e.key === 'ArrowUp') {
-        key = '\x1b[A';
-      } else if (e.key === 'ArrowDown') {
-        key = '\x1b[B';
-      } else if (e.key === 'ArrowRight') {
-        key = '\x1b[C';
-      } else if (e.key === 'ArrowLeft') {
-        key = '\x1b[D';
-      } else if (e.key === 'Home') {
-        key = '\x1b[H';
-      } else if (e.key === 'End') {
-        key = '\x1b[F';
-      } else if (e.key === 'PageUp') {
-        key = '\x1b[5~';
-      } else if (e.key === 'PageDown') {
-        key = '\x1b[6~';
-      } else if (e.ctrlKey && e.key === 'c') {
-        key = '\x03';
-      } else if (e.ctrlKey && e.key === 'z') {
-        key = '\x1a';
-      } else if (e.ctrlKey && e.key === 'd') {
-        key = '\x04';
-      } else if (e.ctrlKey && e.key === 'l') {
-        key = '\x0c';
-      } else if (e.key.length === 1) {
-        // 通常の文字キー
-        key = e.key;
-      }
-
-      if (key) {
-        onKeyInput(key);
-      }
-    };
-
-    if (isFocused) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isFocused, onKeyInput]);
 
   return (
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
-      <div className={`px-2 sm:px-3 py-2 border-b ${isFocused ? 'bg-blue-800 border-blue-600' : 'bg-gray-800 border-gray-700'}`}>
+      <div className="px-2 sm:px-3 py-2 border-b bg-gray-800 border-gray-700">
         <div className="flex items-center space-x-1 sm:space-x-2">
-          <div className={`w-2 h-2 rounded-full ${isFocused ? 'bg-blue-400' : 'bg-green-500'}`}></div>
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <span className="text-gray-300 text-xs">Claude CLI Output</span>
-          {isFocused && <span className="text-blue-300 text-xs font-bold">FOCUSED</span>}
         </div>
       </div>
 
@@ -212,12 +148,13 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
       <div className="flex-1 bg-gray-900 overflow-auto">
         <div
           ref={terminalRef}
-          className={`h-full w-full cursor-pointer ${isFocused ? 'ring-2 ring-blue-500' : ''}`}
+          className="h-full w-full cursor-pointer"
           onClick={() => {
-            setIsFocused(true);
+            // Claude CLI出力エリアをクリックしたら指示入力エリアにフォーカス
+            if (onClickFocus) {
+              onClickFocus();
+            }
           }}
-          onBlur={() => setIsFocused(false)}
-          tabIndex={0}
           style={{
             background: '#111827',
             minHeight: '200px',
