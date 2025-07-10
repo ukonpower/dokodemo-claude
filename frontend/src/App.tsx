@@ -62,6 +62,9 @@ function App() {
         } else {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
+            // サーバーにアクティブリポジトリを通知
+            socket.emit('switch-repo', { path: repoFromUrl });
+            
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
             socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
@@ -502,6 +505,9 @@ function App() {
 
           if (currentPath) {
             // Current repo detected after delay
+            // サーバーにアクティブリポジトリを通知
+            socketInstance.emit('switch-repo', { path: currentPath });
+            
             socketInstance.emit('list-terminals', {
               repositoryPath: currentPath,
             });
@@ -780,6 +786,11 @@ function App() {
   };
 
   const handleBackToRepoSelection = () => {
+    // サーバーにアクティブリポジトリのクリアを通知
+    if (socket) {
+      socket.emit('switch-repo', { path: '' });
+    }
+    
     setCurrentRepo('');
     setRawOutput(''); // CLIログをクリア
     setAutoModeConfigs([]);

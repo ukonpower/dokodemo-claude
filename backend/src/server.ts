@@ -26,6 +26,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   },
 });
 
+// クライアントのアクティブリポジトリを追跡
+const clientActiveRepositories = new Map<string, string>(); // socketId -> repositoryPath
+
 // グローバル状態
 let repositories: GitRepository[] = [];
 const REPOS_DIR = path.join(process.cwd(), 'repositories');
@@ -244,21 +247,37 @@ async function switchBranch(
 
 // ProcessManagerのイベントハンドラー設定
 processManager.on('claude-output', (data) => {
-  io.emit('claude-raw-output', {
-    type: data.type,
-    content: data.content,
-    sessionId: data.sessionId,
-    repositoryPath: data.repositoryPath,
-  });
+  // アクティブリポジトリが一致するクライアントのみに送信
+  for (const [socketId, activeRepo] of clientActiveRepositories.entries()) {
+    if (activeRepo === data.repositoryPath) {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        targetSocket.emit('claude-raw-output', {
+          type: data.type,
+          content: data.content,
+          sessionId: data.sessionId,
+          repositoryPath: data.repositoryPath,
+        });
+      }
+    }
+  }
 });
 
 processManager.on('claude-exit', (data) => {
-  io.emit('claude-raw-output', {
-    type: 'system',
-    content: `\n=== Claude Code CLI 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
-    sessionId: data.sessionId,
-    repositoryPath: data.repositoryPath,
-  });
+  // アクティブリポジトリが一致するクライアントのみに送信
+  for (const [socketId, activeRepo] of clientActiveRepositories.entries()) {
+    if (activeRepo === data.repositoryPath) {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        targetSocket.emit('claude-raw-output', {
+          type: 'system',
+          content: `\n=== Claude Code CLI 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
+          sessionId: data.sessionId,
+          repositoryPath: data.repositoryPath,
+        });
+      }
+    }
+  }
 });
 
 processManager.on('automode-waiting', (data) => {
@@ -299,6 +318,8 @@ processManager.on('terminal-exit', (data) => {
 
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
+  // クライアントの初期化（アクティブリポジトリなし）
+  clientActiveRepositories.set(socket.id, '');
   // リポジトリ一覧の送信
   socket.on('list-repos', () => {
     socket.emit('repos-list', { repos: repositories });
@@ -496,6 +517,14 @@ io.on('connection', (socket) => {
   // リポジトリの切り替え
   socket.on('switch-repo', async (data) => {
     const { path: repoPath } = data;
+
+    // クライアントのアクティブリポジトリを更新
+    clientActiveRepositories.set(socket.id, repoPath || '');
+    
+    // 空のpathの場合はリポジトリ選択モード（処理終了）
+    if (!repoPath) {
+      return;
+    }
 
     try {
       // リポジトリ名を取得
@@ -1158,7 +1187,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    // クライアント切断時の処理
+    // クライアント切断時のクリーンアップ
+    clientActiveRepositories.delete(socket.id);
   });
 });
 
