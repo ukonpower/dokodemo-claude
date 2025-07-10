@@ -84,6 +84,7 @@ function App() {
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isSwitchingRepo, setIsSwitchingRepo] = useState(false);
 
   // currentRepoの最新値を保持するref
   const currentRepoRef = useRef(currentRepo);
@@ -339,6 +340,12 @@ function App() {
         socketInstance.emit('get-automode-status', {
           repositoryPath: data.currentPath,
         });
+        
+        // ローディング状態を解除
+        setIsSwitchingRepo(false);
+      } else {
+        // 切り替えに失敗した場合もローディング状態を解除
+        setIsSwitchingRepo(false);
       }
       // システムメッセージは表示しない（Claude CLIの出力のみを表示）
     });
@@ -528,6 +535,8 @@ function App() {
 
   const handleSwitchRepository = (path: string) => {
     if (socket) {
+      // ローディング状態を開始
+      setIsSwitchingRepo(true);
       socket.emit('switch-repo', { path });
       // URLにリポジトリパスを保存
       const url = new URL(window.location.href);
@@ -747,6 +756,7 @@ function App() {
                     onCreateRepository={handleCreateRepository}
                     onSwitchRepository={handleSwitchRepository}
                     isConnected={isConnected}
+                    isSwitchingRepo={isSwitchingRepo}
                   />
                 </div>
               </div>
