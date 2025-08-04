@@ -469,25 +469,6 @@ function App() {
         }
       });
 
-      socketInstance.on('disconnect', (reason) => {
-        setIsConnected(false);
-
-        // 自動再接続の場合は手動再接続を試行
-        if (reason === 'io server disconnect') {
-          setIsReconnecting(true);
-          attemptReconnect();
-        }
-      });
-
-      socketInstance.on('connect_error', () => {
-        setIsConnected(false);
-        setIsReconnecting(true);
-        attemptReconnect();
-      });
-
-      // イベントハンドラー設定後に接続
-      socketInstance.connect();
-
       socketInstance.on('connect', () => {
         // Connected to server
         setIsConnected(true);
@@ -556,171 +537,14 @@ function App() {
         }
       });
 
-      // Claude セッション作成イベント
-      socketInstance.on('claude-session-created', (data) => {
-        if (data.repositoryPath === currentRepoRef.current) {
-          setCurrentSessionId(data.sessionId);
-          // Claude CLIセッション開始メッセージは表示しない（自動的にプロンプトが表示されるため）
-        }
-      });
-
-      // Claude出力履歴受信イベント
-      socketInstance.on('claude-output-history', (data) => {
-        // Received Claude history
-        if (data.repositoryPath === currentRepoRef.current) {
-          // Applying Claude history to current repo
-          // 履歴を復元（既存の出力を置き換え）
-          const historyOutput = data.history
-            .map((line: ClaudeOutputLine) => line.content)
-            .join('');
-          setRawOutput(historyOutput);
-          // Claude history applied
-          
-          // Claude履歴が受信されたらローディング終了
-          endLoadingOnClaudeOutput();
-        } else {
-          // Ignoring Claude history for different repo
-        }
-      });
-
-      // ターミナル関連のイベントハンドラ
-      socketInstance.on('terminals-list', (data) => {
-        setTerminals(data.terminals);
-        // バックエンドが自動で履歴を送信するため、手動での履歴取得は不要
-      });
-
-      socketInstance.on('terminal-created', (terminal) => {
-        setTerminals((prev) => [...prev, terminal]);
-      });
-
-      socketInstance.on('terminal-output', (message) => {
-        setTerminalMessages((prev) => {
-          const newMessages = [...prev, message];
-          // 最大メッセージ数を超えた場合、古いメッセージを削除
-          if (newMessages.length > MAX_TERMINAL_MESSAGES) {
-            return newMessages.slice(-MAX_TERMINAL_MESSAGES);
-          }
-          return newMessages;
-        });
-      });
-
-      socketInstance.on('terminal-closed', (data) => {
-        setTerminals((prev) => prev.filter((t) => t.id !== data.terminalId));
-        setTerminalMessages((prev) =>
-          prev.filter((m) => m.terminalId !== data.terminalId)
-        );
-        setTerminalHistories((prev) => {
-          const newHistories = new Map(prev);
-          newHistories.delete(data.terminalId);
-          return newHistories;
-        });
-      });
-
-      // ターミナル出力履歴の受信
-      socketInstance.on('terminal-output-history', (data) => {
-        setTerminalHistories((prev) => {
-          const newHistories = new Map(prev);
-          newHistories.set(data.terminalId, data.history);
-          return newHistories;
-        });
-      });
-
-      // コマンドショートカット関連のイベントハンドラ
-      socketInstance.on('shortcuts-list', (data) => {
-        setShortcuts(data.shortcuts);
-      });
-
-      socketInstance.on('shortcut-created', () => {
-        // ショートカット作成メッセージはターミナルエリアで処理されるため、ここでは何もしない
-      });
-
-      socketInstance.on('shortcut-deleted', () => {
-        // ショートカット削除メッセージはターミナルエリアで処理されるため、ここでは何もしない
-      });
-
-      socketInstance.on('shortcut-executed', () => {
-        // ショートカット実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
-      });
-
-      // ブランチ関連のイベントハンドラ
-      socketInstance.on('branches-list', (data) => {
-        if (data.repositoryPath === currentRepoRef.current) {
-          setBranches(data.branches);
-          const current = data.branches.find((b: GitBranch) => b.current);
-          if (current) {
-            setCurrentBranch(current.name);
-          }
-        }
-      });
-
-      // npmスクリプト関連のイベントハンドラ
-      socketInstance.on('npm-scripts-list', (data) => {
-        if (data.repositoryPath === currentRepoRef.current) {
-          setNpmScripts(data.scripts);
-        }
-      });
-
-      socketInstance.on('npm-script-executed', () => {
-        // npmスクリプト実行メッセージはターミナルエリアで処理されるため、ここでは何もしない
-      });
-
-      // 自走モード関連のイベントハンドラ
-      socketInstance.on('automode-configs-list', (data) => {
-        setAutoModeConfigs(data.configs);
-      });
-
-      socketInstance.on('automode-config-created', (data) => {
-        if (data.success && data.config) {
-          setAutoModeConfigs((prev) => [...prev, data.config!]);
-        }
-      });
-
-      socketInstance.on('automode-config-updated', (data) => {
-        if (data.success && data.config) {
-          setAutoModeConfigs((prev) =>
-            prev.map((config) =>
-              config.id === data.config!.id ? data.config! : config
-            )
-          );
-        }
-      });
-
-      socketInstance.on('automode-config-deleted', (data) => {
-        if (data.success && data.configId) {
-          setAutoModeConfigs((prev) =>
-            prev.filter((config) => config.id !== data.configId)
-          );
-        }
-      });
-
-      socketInstance.on('automode-status-changed', (data) => {
-        if (data.repositoryPath === currentRepoRef.current) {
-          setAutoModeState({
-            repositoryPath: data.repositoryPath,
-            isRunning: data.isRunning,
-            currentConfigId: data.configId,
-          });
-        }
-      });
-
-      socketInstance.on('branch-switched', (data) => {
-        if (data.repositoryPath === currentRepoRef.current) {
-          if (data.success) {
-            setCurrentBranch(data.currentBranch);
-            // ブランチ切り替えメッセージはClaude出力エリアに表示しない
-            // （ブランチセレクター自体で状態が更新されるため）
-          } else {
-            // エラーの場合のみClaude出力エリアに表示
-            setRawOutput((prev) => prev + `\n[ERROR] ${data.message}\n`);
-          }
-        }
-      });
-
       socketInstance.on('connect_error', () => {
         setIsConnected(false);
         setIsReconnecting(true);
         attemptReconnect();
       });
+
+      // イベントハンドラー設定後に接続
+      socketInstance.connect();
 
       return socketInstance;
     };
@@ -743,9 +567,6 @@ function App() {
     };
 
     const socketInstance = createConnection();
-    
-    // イベントハンドラー登録完了後に手動で接続
-    socketInstance.connect();
 
     return () => {
       if (reconnectTimeout) {
