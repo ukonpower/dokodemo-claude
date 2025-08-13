@@ -701,6 +701,9 @@ function App() {
       });
     }
   };
+  const handleClearClaudeOutput = () => {
+    setRawOutput('');
+  };
 
   const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet') => {
     if (socket) {
@@ -980,6 +983,7 @@ function App() {
                     commandInputRef.current.focus();
                   }
                 }}
+                onClearOutput={handleClearClaudeOutput}
               />
             </div>
 

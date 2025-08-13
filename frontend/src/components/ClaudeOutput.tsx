@@ -7,17 +7,30 @@ interface ClaudeOutputProps {
   rawOutput: string;
   onClickFocus?: () => void;
   isLoading?: boolean;
+  onClearOutput?: () => void;
 }
 
 const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   rawOutput,
   onClickFocus,
   isLoading = false,
+  onClearOutput,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
+
+  // ターミナルの履歴をクリアする関数
+  const clearTerminal = () => {
+    if (terminal.current) {
+      terminal.current.clear();
+      lastOutputLength.current = 0;
+    }
+    if (onClearOutput) {
+      onClearOutput();
+    }
+  };
 
   // ターミナルを初期化
   useEffect(() => {
@@ -140,9 +153,20 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-gray-800 border-gray-700">
-        <div className="flex items-center space-x-1 sm:space-x-2">
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span className="text-gray-300 text-xs">Claude CLI Output</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <span className="text-gray-300 text-xs">Claude CLI Output</span>
+          </div>
+          {onClearOutput && (
+            <button
+              onClick={clearTerminal}
+              className="flex items-center justify-center w-6 h-6 bg-gray-600 hover:bg-gray-500 rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              title="出力履歴をクリア"
+            >
+              🗑️
+            </button>
+          )}
         </div>
       </div>
 

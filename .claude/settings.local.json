@@ -30,7 +30,10 @@
       "Bash(grep:*)",
       "Bash(git rm:*)",
       "Bash(git checkout:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "mcp__serena__find_symbol",
+      "mcp__serena__search_for_pattern",
+      "mcp__serena__think_about_collected_information"
     ],
     "deny": []
   }
