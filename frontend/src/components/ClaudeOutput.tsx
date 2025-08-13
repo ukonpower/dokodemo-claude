@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -8,6 +8,8 @@ interface ClaudeOutputProps {
   onClickFocus?: () => void;
   isLoading?: boolean;
   onClearOutput?: () => void;
+  onKeyInput?: (key: string) => void;
+  isFocused?: boolean;
 }
 
 const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
@@ -15,11 +17,81 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   onClickFocus,
   isLoading = false,
   onClearOutput,
+  onKeyInput,
+  isFocused = false,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
+  const [isComposing, setIsComposing] = useState(false);
+
+  // キーマッピング: キーイベントから送信する文字列への変換
+  const getKeyMapping = useCallback((e: KeyboardEvent): string | null => {
+    // IME入力中は無視
+    if (isComposing) return null;
+
+    // 特殊キーのマッピング
+    const keyMap: { [key: string]: string } = {
+      'Enter': '\r',
+      'Backspace': '\x7f',
+      'Delete': '\x7f',
+      'Tab': '\t',
+      'Escape': '\x1b',
+      'ArrowUp': '\x1b[A',
+      'ArrowDown': '\x1b[B',
+      'ArrowRight': '\x1b[C',
+      'ArrowLeft': '\x1b[D',
+    };
+
+    // Ctrl組み合わせ
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+      const ctrlMap: { [key: string]: string } = {
+        'a': '\x01', 'b': '\x02', 'c': '\x03', 'd': '\x04',
+        'e': '\x05', 'f': '\x06', 'g': '\x07', 'h': '\x08',
+        'i': '\x09', 'j': '\x0a', 'k': '\x0b', 'l': '\x0c',
+        'm': '\x0d', 'n': '\x0e', 'o': '\x0f', 'p': '\x10',
+        'q': '\x11', 'r': '\x12', 's': '\x13', 't': '\x14',
+        'u': '\x15', 'v': '\x16', 'w': '\x17', 'x': '\x18',
+        'y': '\x19', 'z': '\x1a',
+      };
+      if (ctrlMap[e.key.toLowerCase()]) {
+        return ctrlMap[e.key.toLowerCase()];
+      }
+    }
+
+    // 特殊キーの場合
+    if (keyMap[e.key]) {
+      return keyMap[e.key];
+    }
+
+    // 通常の文字キー（1文字のみ）
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      return e.key;
+    }
+
+    return null;
+  }, [isComposing]);
+
+  // フォーカス時のキーハンドラ
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isFocused || !onKeyInput) return;
+
+    // ESCキーでフォーカス解除
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (onClickFocus) {
+        onClickFocus(); // フォーカス状態を切り替える
+      }
+      return;
+    }
+
+    const keyInput = getKeyMapping(e);
+    if (keyInput !== null) {
+      e.preventDefault();
+      onKeyInput(keyInput);
+    }
+  }, [isFocused, onKeyInput, getKeyMapping, onClickFocus]);
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -148,6 +220,21 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // フォーカス時のキーボードイベントリスナー
+  useEffect(() => {
+    if (isFocused) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('compositionstart', () => setIsComposing(true));
+      document.addEventListener('compositionend', () => setIsComposing(false));
+
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('compositionstart', () => setIsComposing(true));
+        document.removeEventListener('compositionend', () => setIsComposing(false));
+      };
+    }
+  }, [isFocused, handleKeyDown]);
+
 
   return (
     <div className="flex flex-col h-full">
@@ -155,8 +242,10 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
       <div className="px-2 sm:px-3 py-2 border-b bg-gray-800 border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span className="text-gray-300 text-xs">Claude CLI Output</span>
+            <div className={`w-2 h-2 rounded-full ${isFocused ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`}></div>
+            <span className="text-gray-300 text-xs">
+              Claude CLI Output {isFocused && <span className="text-blue-400">（キー入力モード - ESCで解除）</span>}
+            </span>
           </div>
           {onClearOutput && (
             <button
@@ -171,12 +260,14 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-gray-900 overflow-auto relative">
+      <div className={`flex-1 bg-gray-900 overflow-auto relative ${
+        isFocused ? 'ring-2 ring-blue-500 ring-inset' : ''
+      }`}>
         <div
           ref={terminalRef}
           className="h-full w-full cursor-pointer"
           onClick={() => {
-            // Claude CLI出力エリアをクリックしたら指示入力エリアにフォーカス
+            // Claude CLI出力エリアをクリックしたらキー入力モードを切り替え
             if (onClickFocus) {
               onClickFocus();
             }

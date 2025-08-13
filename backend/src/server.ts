@@ -589,18 +589,21 @@ io.on('connection', (socket) => {
     // ProcessManagerを通じてコマンドを送信
     let commandToSend = command;
 
-    // 方向キー（ANSIエスケープシーケンス）の場合は直接送信
-    if (command.startsWith('\x1b[')) {
-      // 方向キーはそのまま送信
-    } else if (command === '\r') {
-      // 単独のエンターキーの場合
-    } else if (command === '\x1b') {
-      // ESCキーの場合は直接送信
+    // 特殊キーや単一文字の場合はそのまま送信（改行を追加しない）
+    if (command.startsWith('\x1b[') ||    // 方向キー（ANSIエスケープシーケンス）
+        command === '\x1b' ||             // ESCキー
+        command === '\r' ||               // Enterキー
+        command === '\x03' ||             // Ctrl+C
+        command === '\x7f' ||             // Backspace
+        command === '\t' ||               // Tab
+        (command.length === 1 && !command.match(/[\r\n]/))) { // 単一文字（改行以外）
+      // そのまま送信（改行を追加しない）
+      commandToSend = command;
     } else {
-      // 通常のコマンドの場合はエンターキーも送信
+      // 複数文字のコマンドの場合のみエンターキーを追加
       commandToSend = command + '\r';
 
-      // Claude CLIでは実行確定のためもう一度エンターキーが必要
+      // Claude CLIでは実行確定のためもう一度エンターキーが必要（複数文字コマンドの場合のみ）
       setTimeout(() => {
         processManager.sendToClaudeSession(targetSessionId, '\r');
       }, 100); // 100ms後に実行確定

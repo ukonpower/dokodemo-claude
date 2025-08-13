@@ -91,22 +91,22 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
     return (
       <div className="space-y-3 sm:space-y-4">
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          <div>
-            <textarea
-              ref={inputRef}
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                disabled
-                  ? 'リポジトリを選択してください...'
-                  : 'Claude CLIへの指示を入力してください'
-              }
-              className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
-              rows={3}
-              disabled={disabled}
-            />
-          </div>
+            <div>
+              <textarea
+                ref={inputRef}
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  disabled
+                    ? 'リポジトリを選択してください...'
+                    : 'Claude CLIへの指示を入力してください'
+                }
+                className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
+                rows={3}
+                disabled={disabled}
+              />
+            </div>
 
           <div className="flex flex-col space-y-4">
             {/* 上段: 方向キーとEnterボタン */}

@@ -38,6 +38,7 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('repo') || '';
   });
+  const [claudeOutputFocused, setClaudeOutputFocused] = useState<boolean>(false);
 
   // ブラウザの戻る/進むボタン対応
   useEffect(() => {
@@ -705,6 +706,28 @@ function App() {
     setRawOutput('');
   };
 
+  // ClaudeOutputからのキー入力ハンドラー
+  const handleClaudeKeyInput = (key: string) => {
+    if (socket) {
+      socket.emit('send-command', {
+        command: key,
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo,
+      });
+    }
+  };
+
+  // ClaudeOutputのフォーカス切り替えハンドラー
+  const handleClaudeOutputFocus = () => {
+    setClaudeOutputFocused(!claudeOutputFocused);
+    // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
+    if (claudeOutputFocused && commandInputRef.current) {
+      setTimeout(() => {
+        commandInputRef.current?.focus();
+      }, 100);
+    }
+  };
+
   const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet') => {
     if (socket) {
       socket.emit('send-command', {
@@ -977,13 +1000,10 @@ function App() {
               <ClaudeOutput
                 rawOutput={rawOutput}
                 isLoading={isLoadingRepoData}
-                onClickFocus={() => {
-                  // Claude CLI出力エリアをクリックしたら指示入力エリアにフォーカス
-                  if (commandInputRef.current) {
-                    commandInputRef.current.focus();
-                  }
-                }}
+                onClickFocus={handleClaudeOutputFocus}
                 onClearOutput={handleClearClaudeOutput}
+                onKeyInput={handleClaudeKeyInput}
+                isFocused={claudeOutputFocused}
               />
             </div>
 
