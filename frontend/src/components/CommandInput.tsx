@@ -188,7 +188,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onSendEscape}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-red-700 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-red-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-red-400 touch-manipulation"
                     title="エスケープキー (ESC)"
                   >
                     ESC
@@ -199,7 +199,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onClearClaude}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-red-700 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-red-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-red-400 touch-manipulation"
+                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
                     title="Claude CLIをクリア (/clear)"
                   >
                     Clear
