@@ -181,8 +181,8 @@ function App() {
       const socketUrl =
         window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1'
-          ? 'http://localhost:8001'
-          : `http://${window.location.hostname}:8001`;
+          ? 'http://localhost:3001'
+          : `http://${window.location.hostname}:3001`;
 
       const socketInstance = io(socketUrl, {
         autoConnect: false, // 手動接続に変更
@@ -703,7 +703,13 @@ function App() {
     }
   };
   const handleClearClaudeOutput = () => {
+    // フロントエンド側の表示をクリア
     setRawOutput('');
+    
+    // バックエンド側の履歴もクリア
+    if (socket && currentRepo) {
+      socket.emit('clear-claude-output', { repositoryPath: currentRepo });
+    }
   };
 
   // ClaudeOutputからのキー入力ハンドラー

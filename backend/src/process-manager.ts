@@ -634,6 +634,51 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * 指定されたリポジトリのClaude出力履歴をクリア
+   */
+  async clearClaudeOutputHistory(repositoryPath: string): Promise<boolean> {
+    try {
+      // アクティブなセッションから履歴をクリア
+      const session = this.getClaudeSessionByRepository(repositoryPath);
+      if (session) {
+        session.outputHistory = [];
+        // 永続化
+        await this.persistClaudeSessions();
+        return true;
+      }
+
+      // アクティブなセッションがない場合、永続化ファイルからもクリア
+      try {
+        const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
+        const persistedSessions: PersistedClaudeSession[] = JSON.parse(data);
+        
+        let found = false;
+        for (const persistedSession of persistedSessions) {
+          if (persistedSession.repositoryPath === repositoryPath) {
+            persistedSession.outputHistory = [];
+            found = true;
+            break;
+          }
+        }
+
+        if (found) {
+          await fs.writeFile(
+            this.claudeSessionsFile,
+            JSON.stringify(persistedSessions, null, 2)
+          );
+          return true;
+        }
+      } catch {
+        // 永続化ファイル操作エラーは無視
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * ターミナル出力履歴に新しい行を追加
    */
   private addToTerminalOutputHistory(

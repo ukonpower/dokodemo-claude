@@ -227,7 +227,6 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
         terminal.current.clear();
       }
 
-      // 新しい出力を書き込み
       terminal.current.write(newOutput);
 
       // 最下部にスクロール

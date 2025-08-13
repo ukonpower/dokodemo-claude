@@ -679,6 +679,28 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Claude CLI出力履歴のクリア
+  socket.on('clear-claude-output', async (data) => {
+    const { repositoryPath } = data;
+
+    if (!repositoryPath) {
+      return;
+    }
+
+    try {
+      const success = await processManager.clearClaudeOutputHistory(repositoryPath);
+      if (success) {
+        // クリア完了を通知（オプション）
+        socket.emit('claude-output-cleared', {
+          repositoryPath,
+          success: true,
+        });
+      }
+    } catch {
+      // エラーは無視（フロントエンド側ではすでに表示がクリアされている）
+    }
+  });
+
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信
@@ -1196,7 +1218,7 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = parseInt(process.env.PORT || '8001', 10);
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 async function startServer(): Promise<void> {
   await ensureReposDir();

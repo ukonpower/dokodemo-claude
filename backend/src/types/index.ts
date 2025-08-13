@@ -96,6 +96,10 @@ export interface ServerToClientEvents {
     repositoryPath: string;
     history: ClaudeOutputLine[];
   }) => void;
+  'claude-output-cleared': (data: {
+    repositoryPath: string;
+    success: boolean;
+  }) => void;
 
   // ターミナル関連イベント
   'terminal-created': (data: Terminal) => void;
@@ -211,6 +215,7 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
   }) => void;
   'get-claude-history': (data: { repositoryPath: string }) => void;
+  'clear-claude-output': (data: { repositoryPath: string }) => void;
 
   // ターミナル関連イベント
   'create-terminal': (data: { cwd: string; name?: string }) => void;
