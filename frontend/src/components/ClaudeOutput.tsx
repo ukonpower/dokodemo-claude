@@ -26,6 +26,15 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   const lastOutputLength = useRef<number>(0);
   const [isComposing, setIsComposing] = useState(false);
 
+  // コンポジションイベントハンドラー（定数として定義してメモリリーク防止）
+  const handleCompositionStart = useCallback(() => {
+    setIsComposing(true);
+  }, []);
+
+  const handleCompositionEnd = useCallback(() => {
+    setIsComposing(false);
+  }, []);
+
   // キーマッピング: キーイベントから送信する文字列への変換
   const getKeyMapping = useCallback((e: KeyboardEvent): string | null => {
     // IME入力中は無視
@@ -75,6 +84,8 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
   // フォーカス時のキーハンドラ
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    console.log('🔥 Key pressed:', e.key, 'Focused:', isFocused, 'onKeyInput:', !!onKeyInput, 'composing:', isComposing);
+    
     if (!isFocused || !onKeyInput) return;
 
     // ESCキーでフォーカス解除
@@ -88,8 +99,11 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
     const keyInput = getKeyMapping(e);
     if (keyInput !== null) {
+      console.log('✅ Sending key:', JSON.stringify(keyInput), 'raw:', keyInput);
       e.preventDefault();
       onKeyInput(keyInput);
+    } else {
+      console.log('❌ Key not mapped:', e.key);
     }
   }, [isFocused, onKeyInput, getKeyMapping, onClickFocus]);
 
@@ -224,16 +238,16 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   useEffect(() => {
     if (isFocused) {
       document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('compositionstart', () => setIsComposing(true));
-      document.addEventListener('compositionend', () => setIsComposing(false));
+      document.addEventListener('compositionstart', handleCompositionStart);
+      document.addEventListener('compositionend', handleCompositionEnd);
 
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('compositionstart', () => setIsComposing(true));
-        document.removeEventListener('compositionend', () => setIsComposing(false));
+        document.removeEventListener('compositionstart', handleCompositionStart);
+        document.removeEventListener('compositionend', handleCompositionEnd);
       };
     }
-  }, [isFocused, handleKeyDown]);
+  }, [isFocused, handleKeyDown, handleCompositionStart, handleCompositionEnd]);
 
 
   return (
