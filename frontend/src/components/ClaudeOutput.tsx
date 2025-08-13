@@ -24,6 +24,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
   const [isComposing, setIsComposing] = useState(false);
 
   // コンポジションイベントハンドラー（定数として定義してメモリリーク防止）
@@ -82,10 +83,8 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     return null;
   }, [isComposing]);
 
-  // フォーカス時のキーハンドラ
+  // フォーカス時のキーハンドラ（ネイティブKeyboardEvent用）
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    console.log('🔥 Key pressed:', e.key, 'Focused:', isFocused, 'onKeyInput:', !!onKeyInput, 'composing:', isComposing);
-    
     if (!isFocused || !onKeyInput) return;
 
     // ESCキーでフォーカス解除
@@ -99,13 +98,30 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
     const keyInput = getKeyMapping(e);
     if (keyInput !== null) {
-      console.log('✅ Sending key:', JSON.stringify(keyInput), 'raw:', keyInput);
       e.preventDefault();
       onKeyInput(keyInput);
-    } else {
-      console.log('❌ Key not mapped:', e.key);
     }
-  }, [isFocused, onKeyInput, getKeyMapping, onClickFocus]);
+  }, [isFocused, onKeyInput, getKeyMapping, onClickFocus, isComposing]);
+
+  // Reactイベント用のキーハンドラ
+  const handleReactKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isFocused || !onKeyInput) return;
+
+    // ESCキーでフォーカス解除
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (onClickFocus) {
+        onClickFocus(); // フォーカス状態を切り替える
+      }
+      return;
+    }
+
+    const keyInput = getKeyMapping(e.nativeEvent);
+    if (keyInput !== null) {
+      e.preventDefault();
+      onKeyInput(keyInput);
+    }
+  }, [isFocused, onKeyInput, getKeyMapping, onClickFocus, isComposing]);
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -234,24 +250,40 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // フォーカス時のキーボードイベントリスナー
+  // フォーカス管理
   useEffect(() => {
     if (isFocused) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('compositionstart', handleCompositionStart);
-      document.addEventListener('compositionend', handleCompositionEnd);
-
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('compositionstart', handleCompositionStart);
-        document.removeEventListener('compositionend', handleCompositionEnd);
-      };
+      // 少し遅延を入れて隠しinputにフォーカス
+      setTimeout(() => {
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.focus();
+        }
+      }, 10);
     }
-  }, [isFocused, handleKeyDown, handleCompositionStart, handleCompositionEnd]);
+  }, [isFocused]);
 
 
   return (
     <div className="flex flex-col h-full">
+      {/* フォーカス用の隠しinput要素 */}
+      {isFocused && (
+        <input
+          ref={hiddenInputRef}
+          type="text"
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+          onKeyDown={handleReactKeyDown}
+          onCompositionStart={handleCompositionStart}
+          onCompositionEnd={handleCompositionEnd}
+          autoComplete="off"
+        />
+      )}
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-gray-800 border-gray-700">
         <div className="flex items-center justify-between">

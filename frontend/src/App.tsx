@@ -708,23 +708,18 @@ function App() {
 
   // ClaudeOutputからのキー入力ハンドラー
   const handleClaudeKeyInput = (key: string) => {
-    console.log('📤 Received key input:', JSON.stringify(key), 'Socket:', !!socket, 'CurrentRepo:', currentRepo, 'SessionId:', currentSessionId);
     if (socket) {
       socket.emit('send-command', {
         command: key,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
       });
-      console.log('📡 Sent to socket:', { command: key, sessionId: currentSessionId, repositoryPath: currentRepo });
-    } else {
-      console.error('❌ No socket connection');
     }
   };
 
   // ClaudeOutputのフォーカス切り替えハンドラー
   const handleClaudeOutputFocus = () => {
     const newFocused = !claudeOutputFocused;
-    console.log('🎯 Claude output focus changed:', claudeOutputFocused, '->', newFocused);
     setClaudeOutputFocused(newFocused);
     // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
     if (claudeOutputFocused && commandInputRef.current) {
