@@ -83,26 +83,6 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     return null;
   }, [isComposing]);
 
-  // フォーカス時のキーハンドラ（ネイティブKeyboardEvent用）
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isFocused || !onKeyInput) return;
-
-    // ESCキーでフォーカス解除
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      if (onClickFocus) {
-        onClickFocus(); // フォーカス状態を切り替える
-      }
-      return;
-    }
-
-    const keyInput = getKeyMapping(e);
-    if (keyInput !== null) {
-      e.preventDefault();
-      onKeyInput(keyInput);
-    }
-  }, [isFocused, onKeyInput, getKeyMapping, onClickFocus, isComposing]);
-
   // Reactイベント用のキーハンドラ
   const handleReactKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isFocused || !onKeyInput) return;

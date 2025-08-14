@@ -9,6 +9,7 @@ import React, {
 interface CommandInputProps {
   onSendCommand: (command: string) => void;
   onSendArrowKey?: (direction: 'up' | 'down' | 'left' | 'right') => void;
+  onSendTabKey?: (shift?: boolean) => void;
   onSendInterrupt?: () => void;
   onSendEscape?: () => void;
   onClearClaude?: () => void;
@@ -25,6 +26,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
     {
       onSendCommand,
       onSendArrowKey,
+      onSendTabKey,
       onSendInterrupt,
       onSendEscape,
       onClearClaude,
@@ -172,6 +174,17 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
             {/* 下段: 制御ボタン群 */}
             <div className="flex items-center justify-center">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                {onSendTabKey && (
+                  <button
+                    type="button"
+                    onClick={() => onSendTabKey(true)}
+                    disabled={disabled}
+                    className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    title="シフト+タブキー"
+                  >
+                    Shift+Tab
+                  </button>
+                )}
                 {onSendInterrupt && (
                   <button
                     type="button"

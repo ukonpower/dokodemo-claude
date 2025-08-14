@@ -674,6 +674,18 @@ function App() {
     }
   };
 
+  const handleSendTabKey = (shift: boolean = false) => {
+    if (socket) {
+      // TabとShift+Tabに対応するコード
+      const tabKey = shift ? '\x1b[Z' : '\t';  // Shift+TabはCSI Z、Tabは\t
+      socket.emit('send-command', {
+        command: tabKey,
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo,
+      });
+    }
+  };
+
   const handleSendInterrupt = () => {
     if (socket) {
       socket.emit('claude-interrupt', {
@@ -1020,6 +1032,7 @@ function App() {
                 ref={commandInputRef}
                 onSendCommand={handleSendCommand}
                 onSendArrowKey={handleSendArrowKey}
+                onSendTabKey={handleSendTabKey}
                 onSendInterrupt={handleSendInterrupt}
                 onSendEscape={handleSendEscape}
                 onClearClaude={handleClearClaude}
