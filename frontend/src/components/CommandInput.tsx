@@ -37,6 +37,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
   ) => {
     const [command, setCommand] = useState('');
     const [showModelMenu, setShowModelMenu] = useState(false);
+    const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const sendCommand = () => {
@@ -276,8 +277,114 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                 >
                   Commit
                 </button>
+                
+                {/* iOS対応: キーボードボタン表示切替 */}
+                <button
+                  type="button"
+                  onClick={() => setShowKeyboardButtons(!showKeyboardButtons)}
+                  disabled={disabled}
+                  className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-600 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                  title="iOS向けキーボード表示切替"
+                >
+                  ⌨️
+                </button>
               </div>
             </div>
+
+            {/* iOS向けキーボードボタンパネル */}
+            {showKeyboardButtons && (
+              <div className="bg-gray-800 rounded-lg p-3 border border-gray-600">
+                <div className="space-y-3">
+                  <div className="text-xs text-gray-400 text-center">iOS向けキーボード</div>
+                  
+                  {/* 矢印キー（追加） */}
+                  {onSendArrowKey && (
+                    <div className="flex flex-col items-center">
+                      <div className="text-xs text-gray-400 mb-2">矢印キー</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div></div>
+                        <button
+                          type="button"
+                          onClick={() => onSendArrowKey('up')}
+                          disabled={disabled}
+                          className="flex items-center justify-center w-12 h-12 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-500 text-lg font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                          title="上キー"
+                        >
+                          ↑
+                        </button>
+                        <div></div>
+                        <button
+                          type="button"
+                          onClick={() => onSendArrowKey('left')}
+                          disabled={disabled}
+                          className="flex items-center justify-center w-12 h-12 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-500 text-lg font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                          title="左キー"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSendArrowKey('down')}
+                          disabled={disabled}
+                          className="flex items-center justify-center w-12 h-12 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-500 text-lg font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                          title="下キー"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSendArrowKey('right')}
+                          disabled={disabled}
+                          className="flex items-center justify-center w-12 h-12 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-500 text-lg font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                          title="右キー"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* その他のキー */}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {onSendTabKey && (
+                      <button
+                        type="button"
+                        onClick={() => onSendTabKey(true)}
+                        disabled={disabled}
+                        className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-400 touch-manipulation min-h-[2.5rem]"
+                        title="モード切り替え"
+                      >
+                        Mode
+                      </button>
+                    )}
+                    
+                    {onSendEscape && (
+                      <button
+                        type="button"
+                        onClick={onSendEscape}
+                        disabled={disabled}
+                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation min-h-[2.5rem]"
+                        title="エスケープキー (ESC)"
+                      >
+                        ESC
+                      </button>
+                    )}
+                    
+                    {onSendInterrupt && (
+                      <button
+                        type="button"
+                        onClick={onSendInterrupt}
+                        disabled={disabled}
+                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-400 touch-manipulation min-h-[2.5rem]"
+                        title="プロセスを中断 (Ctrl+C)"
+                      >
+                        Ctrl+C
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>

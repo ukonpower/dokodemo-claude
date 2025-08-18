@@ -26,6 +26,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   const [input, setInput] = useState('');
   const [selectedText, setSelectedText] = useState('');
   const [showCopyButton, setShowCopyButton] = useState(false);
+  const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const xtermInstance = useRef<XTerm | null>(null);
@@ -43,6 +44,26 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       left: '\x1b[D',
     };
     onInput(terminal.id, arrowKeys[direction]);
+  };
+
+  // タブキー送信
+  const handleTabKey = () => {
+    onInput(terminal.id, '\t');
+  };
+
+  // Ctrl+C送信
+  const handleCtrlC = () => {
+    onSignal(terminal.id, 'SIGINT');
+  };
+
+  // ESCキー送信
+  const handleEscKey = () => {
+    onInput(terminal.id, '\x1b');
+  };
+
+  // Enterキー送信
+  const handleEnterKey = () => {
+    onInput(terminal.id, '\r');
   };
 
   // コピー機能
@@ -331,28 +352,41 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-1">
+        
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* キーボードボタン表示切替 */}
+          <button
+            onClick={() => setShowKeyboardButtons(!showKeyboardButtons)}
+            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+            title="キーボードボタンの表示/非表示"
+          >
+            ⌨️
+          </button>
+          
           {/* 全選択ボタン */}
           <button
             onClick={handleSelectAll}
-            className="text-gray-400 hover:text-blue-400 text-xs px-2 py-1 rounded flex-shrink-0"
+            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
             title="全選択"
           >
             全選択
           </button>
+          
           {/* コピーボタン（選択時のみ表示） */}
           {showCopyButton && (
             <button
               onClick={handleCopy}
-              className="text-gray-400 hover:text-green-400 text-xs px-2 py-1 rounded flex-shrink-0 bg-gray-700"
+              className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded border border-blue-500 transition-colors"
               title="コピー"
             >
               コピー
             </button>
           )}
+          
+          {/* 閉じるボタン */}
           <button
             onClick={() => onClose(terminal.id)}
-            className="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded flex-shrink-0"
+            className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded border border-red-500 transition-colors"
             title="ターミナルを閉じる"
           >
             ×
@@ -360,153 +394,104 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         </div>
       </div>
 
-      {/* XTermターミナル出力エリア */}
+      {/* キーボードボタンパネル（iOS向け） */}
+      {showKeyboardButtons && (
+        <div className="bg-gray-800 px-2 py-2 border-b border-gray-700">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+            {/* 矢印キー */}
+            <div className="flex space-x-1">
+              <button
+                onClick={() => handleArrowKey('up')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="↑"
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => handleArrowKey('down')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="↓"
+              >
+                ↓
+              </button>
+              <button
+                onClick={() => handleArrowKey('left')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="←"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => handleArrowKey('right')}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="→"
+              >
+                →
+              </button>
+            </div>
+            
+            {/* 特殊キー */}
+            <div className="flex space-x-1">
+              <button
+                onClick={handleTabKey}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="Tab"
+              >
+                Tab
+              </button>
+              <button
+                onClick={handleEnterKey}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="Enter"
+              >
+                Enter
+              </button>
+              <button
+                onClick={handleCtrlC}
+                className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded border border-red-500 transition-colors"
+                title="Ctrl+C"
+              >
+                Ctrl+C
+              </button>
+              <button
+                onClick={handleEscKey}
+                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                title="ESC"
+              >
+                ESC
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ターミナルメイン表示 */}
       <div
+        className="flex-1 overflow-hidden bg-gray-900"
         ref={terminalContainerRef}
-        className="flex-1 bg-gray-900 overflow-auto"
-        onClick={() => {
-          // ターミナルクリック時にXTermにフォーカス
-          if (xtermInstance.current) {
-            xtermInstance.current.focus();
-          }
-        }}
       >
-        <div
-          ref={terminalRef}
-          className="h-full w-full"
-          style={{
-            background: '#111827',
-            minHeight: '200px',
-            width: 'max-content',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            whiteSpace: 'nowrap',
-            // iOS対応: テキスト選択を有効化
-            userSelect: 'text',
-            WebkitUserSelect: 'text',
-            // iOS対応: タッチ操作とスクロールの最適化
-            touchAction: 'manipulation',
-            WebkitTouchCallout: 'default',
-          }}
-        />
+        <div ref={terminalRef} className="h-full w-full" />
       </div>
 
-      {/* 入力エリア */}
-      <div className="border-t border-gray-700 p-2 sm:p-3 bg-gray-800">
-        <form onSubmit={handleSubmit} className="flex space-x-2 mb-2">
-          <span className="text-gray-400 flex-shrink-0 font-mono">$</span>
+      {/* 入力フィールド（フォールバック用、通常はXTermの直接入力を使用） */}
+      <div className="bg-gray-800 px-2 sm:px-3 py-2 border-t border-gray-700">
+        <form onSubmit={handleSubmit} className="flex space-x-2">
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-gray-300 outline-none text-xs sm:text-sm min-w-0 font-mono"
-            placeholder={
-              terminal.status === 'exited'
-                ? 'ターミナルが終了しました'
-                : 'ターミナルをクリックして直接入力できます'
-            }
-            disabled={terminal.status === 'exited'}
+            className="flex-1 bg-gray-700 text-white px-2 py-1 rounded border border-gray-600 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="コマンド入力（フォールバック用）"
           />
+          <button
+            type="submit"
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs transition-colors"
+          >
+            送信
+          </button>
         </form>
-
-        {/* コントロールボタン */}
-        <div className="flex flex-col space-y-3">
-          {/* 方向キーとコントロールボタンを横並びに配置 */}
-          <div className="flex items-center justify-center space-x-4">
-            {/* 方向キーボタン */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="grid grid-cols-3 gap-1">
-                <div></div>
-                <button
-                  type="button"
-                  onClick={() => handleArrowKey('up')}
-                  disabled={terminal.status === 'exited'}
-                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="上キー"
-                >
-                  ↑
-                </button>
-                <div></div>
-                <button
-                  type="button"
-                  onClick={() => handleArrowKey('left')}
-                  disabled={terminal.status === 'exited'}
-                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="左キー"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleArrowKey('down')}
-                  disabled={terminal.status === 'exited'}
-                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="下キー"
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleArrowKey('right')}
-                  disabled={terminal.status === 'exited'}
-                  className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="右キー"
-                >
-                  →
-                </button>
-              </div>
-            </div>
-
-            {/* Ctrl+C、ESC、Enterボタン */}
-            <div className="flex flex-col items-center space-y-2">
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => onSignal(terminal.id, 'SIGINT')}
-                  className="flex items-center justify-center w-14 h-8 sm:w-16 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="プロセスを中断 (Ctrl+C)"
-                  disabled={terminal.status === 'exited'}
-                >
-                  Ctrl+C
-                </button>
-                <button
-                  onClick={() => onSignal(terminal.id, 'ESC')}
-                  className="flex items-center justify-center w-12 h-8 sm:w-14 sm:h-9 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                  title="エスケープキー (ESC)"
-                  disabled={terminal.status === 'exited'}
-                >
-                  ESC
-                </button>
-              </div>
-            </div>
-
-            {/* Enterボタン */}
-            <div className="flex flex-col items-center space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (input.trim()) {
-                    onInput(terminal.id, input + '\n');
-                    setInput('');
-                  } else {
-                    onInput(terminal.id, '\n');
-                  }
-                }}
-                disabled={terminal.status === 'exited'}
-                className="bg-blue-600 text-white px-6 py-2.5 sm:px-4 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium min-h-[2.5rem] sm:min-h-[2rem] flex items-center touch-manipulation"
-                title="コマンドを実行 (Enter)"
-              >
-                Enter
-              </button>
-            </div>
-          </div>
-
-          <div className="text-xs text-gray-400 text-center">
-            <span className="hidden sm:inline">Enter: 実行</span>
-            <span className="sm:hidden">Enter:実行</span>
-          </div>
-        </div>
       </div>
     </div>
   );
