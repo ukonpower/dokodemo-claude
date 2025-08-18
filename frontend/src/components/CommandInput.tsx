@@ -174,17 +174,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
             {/* 下段: 制御ボタン群 */}
             <div className="flex items-center justify-center">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                {onSendTabKey && (
-                  <button
-                    type="button"
-                    onClick={() => onSendTabKey(true)}
-                    disabled={disabled}
-                    className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
-                    title="シフト+タブキー"
-                  >
-                    Shift+Tab
-                  </button>
-                )}
+                
                 {onSendInterrupt && (
                   <button
                     type="button"
@@ -212,10 +202,22 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onClearClaude}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400 touch-manipulation"
+                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-cyan-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 touch-manipulation"
                     title="Claude CLIをクリア (/clear)"
                   >
                     Clear
+                  </button>
+                )}
+                <div className="w-full"></div>
+                {onSendTabKey && (
+                  <button
+                    type="button"
+                    onClick={() => onSendTabKey(true)}
+                    disabled={disabled}
+                    className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-orange-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-orange-400 touch-manipulation"
+                    title="モード切り替え"
+                  >
+                    Mode
                   </button>
                 )}
                 {onChangeModel && (
