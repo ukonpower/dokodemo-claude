@@ -1211,6 +1211,55 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 差分チェックサーバー関連のイベントハンドラ
+
+  // 差分チェックサーバーの開始
+  socket.on('start-review-server', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const server = await processManager.startReviewServer(repositoryPath);
+      socket.emit('review-server-started', {
+        success: true,
+        message: `差分チェックサーバーを開始しました: ${server.url}`,
+        server,
+      });
+    } catch (error) {
+      socket.emit('review-server-started', {
+        success: false,
+        message: `差分チェックサーバーの開始に失敗しました: ${error}`,
+      });
+    }
+  });
+
+  // 差分チェックサーバーの停止
+  socket.on('stop-review-server', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const success = await processManager.stopReviewServer(repositoryPath);
+      socket.emit('review-server-stopped', {
+        success,
+        message: success 
+          ? '差分チェックサーバーを停止しました'
+          : '差分チェックサーバーが見つかりません',
+        repositoryPath,
+      });
+    } catch (error) {
+      socket.emit('review-server-stopped', {
+        success: false,
+        message: `差分チェックサーバーの停止に失敗しました: ${error}`,
+        repositoryPath,
+      });
+    }
+  });
+
+  // 差分チェックサーバー一覧の取得
+  socket.on('get-review-servers', () => {
+    const servers = processManager.getAllReviewServers();
+    socket.emit('review-servers-list', { servers });
+  });
+
   socket.on('disconnect', () => {
     // クライアント切断時のクリーンアップ
     clientActiveRepositories.delete(socket.id);

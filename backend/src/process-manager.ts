@@ -3,10 +3,12 @@ import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { spawn } from 'child_process';
 import {
   CommandShortcut,
   AutoModeConfig,
   AutoModeState,
+  ReviewServer,
 } from './types/index.js';
 
 // Claude CLI出力履歴の行情報
@@ -74,6 +76,7 @@ export class ProcessManager extends EventEmitter {
   private autoModeConfigs: Map<string, AutoModeConfig> = new Map();
   private autoModeStates: Map<string, AutoModeState> = new Map();
   private autoModeTimers: Map<string, NodeJS.Timeout> = new Map(); // 待機中のタイマーを管理
+  private reviewServers: Map<string, ReviewServer> = new Map(); // リポジトリパス → ReviewServer
   private processesDir: string;
   private claudeSessionsFile: string;
   private terminalsFile: string;
@@ -84,6 +87,8 @@ export class ProcessManager extends EventEmitter {
   private terminalCounter = 0;
   private shortcutCounter = 0;
   private autoModeConfigCounter = 0;
+  private reviewServerMainPortCounter = 3100; // reviewitサーバーのポート番号（3100から開始）
+  private reviewServerProxyPortCounter = 3200; // プロキシサーバーのポート番号（3200から開始）
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
   private processMonitoringInterval: NodeJS.Timeout | null = null; // プロセス監視タイマー
 
@@ -1067,6 +1072,9 @@ export class ProcessManager extends EventEmitter {
     // 自走モード関連データをクリーンアップ
     await this.cleanupRepositoryAutoMode(repositoryPath);
 
+    // 差分チェックサーバーをクリーンアップ
+    await this.cleanupRepositoryReviewServer(repositoryPath);
+
     // 永続化ファイルからも削除
     await this.removeRepositoryFromPersistence(repositoryPath);
 
@@ -1690,5 +1698,133 @@ export class ProcessManager extends EventEmitter {
     }
 
     return { isWaiting: false };
+  }
+
+  // 差分チェックサーバー関連メソッド
+
+  /**
+   * 差分チェックサーバーを開始します
+   */
+  async startReviewServer(repositoryPath: string): Promise<ReviewServer> {
+    // 既存のサーバーがあるかチェック
+    const existingServer = this.reviewServers.get(repositoryPath);
+    if (existingServer && existingServer.status === 'running') {
+      return existingServer;
+    }
+
+    const mainPort = this.reviewServerMainPortCounter++;
+    const proxyPort = this.reviewServerProxyPortCounter++;
+    const url = `http://localhost:${proxyPort}`;
+
+    const server: ReviewServer = {
+      repositoryPath,
+      mainPort,
+      proxyPort,
+      status: 'starting',
+      url,
+      startedAt: Date.now(),
+    };
+
+    this.reviewServers.set(repositoryPath, server);
+
+    try {
+      // reviewitサーバーを起動
+      const reviewitProcess = spawn('npx', ['reviewit', '--port', mainPort.toString(), '--no-open'], {
+        cwd: repositoryPath,
+        stdio: 'pipe',
+        detached: false,
+      });
+
+      server.mainPid = reviewitProcess.pid;
+
+      // プロキシサーバーを起動
+      const proxyProcess = spawn('npx', ['http-proxy-cli', `localhost:${mainPort}`, '--hostname', '0.0.0.0', '--port', proxyPort.toString()], {
+        stdio: 'pipe',
+        detached: false,
+      });
+
+      server.proxyPid = proxyProcess.pid;
+
+      // プロセス終了ハンドラを設定
+      reviewitProcess.on('exit', (code) => {
+        console.log(`reviewit process exited with code ${code} for ${repositoryPath}`);
+        const currentServer = this.reviewServers.get(repositoryPath);
+        if (currentServer) {
+          currentServer.status = code === 0 ? 'stopped' : 'error';
+          this.reviewServers.set(repositoryPath, currentServer);
+        }
+      });
+
+      proxyProcess.on('exit', (code) => {
+        console.log(`proxy process exited with code ${code} for ${repositoryPath}`);
+      });
+
+      // サーバーの起動を待つ（3秒間）
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      server.status = 'running';
+      this.reviewServers.set(repositoryPath, server);
+
+      return server;
+    } catch (error) {
+      server.status = 'error';
+      this.reviewServers.set(repositoryPath, server);
+      throw error;
+    }
+  }
+
+  /**
+   * 差分チェックサーバーを停止します
+   */
+  async stopReviewServer(repositoryPath: string): Promise<boolean> {
+    const server = this.reviewServers.get(repositoryPath);
+    if (!server) {
+      return false;
+    }
+
+    try {
+      // reviewitプロセスを終了
+      if (server.mainPid) {
+        process.kill(server.mainPid, 'SIGTERM');
+      }
+
+      // プロキシプロセスを終了
+      if (server.proxyPid) {
+        process.kill(server.proxyPid, 'SIGTERM');
+      }
+
+      server.status = 'stopped';
+      this.reviewServers.set(repositoryPath, server);
+
+      return true;
+    } catch (error) {
+      console.error(`Failed to stop review server for ${repositoryPath}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 差分チェックサーバーの状態を取得します
+   */
+  getReviewServer(repositoryPath: string): ReviewServer | undefined {
+    return this.reviewServers.get(repositoryPath);
+  }
+
+  /**
+   * 全ての差分チェックサーバーを取得します
+   */
+  getAllReviewServers(): ReviewServer[] {
+    return Array.from(this.reviewServers.values());
+  }
+
+  /**
+   * リポジトリ削除時に関連する差分チェックサーバーをクリーンアップします
+   */
+  async cleanupRepositoryReviewServer(repositoryPath: string): Promise<void> {
+    const server = this.reviewServers.get(repositoryPath);
+    if (server) {
+      await this.stopReviewServer(repositoryPath);
+      this.reviewServers.delete(repositoryPath);
+    }
   }
 }

@@ -87,6 +87,18 @@ export interface AutoModeState {
   lastExecutionTime?: number;
 }
 
+// 差分チェックサーバー関連の型定義
+export interface ReviewServer {
+  repositoryPath: string;
+  mainPort: number;     // reviewitポート（3100〜）
+  proxyPort: number;    // プロキシポート（3200〜）
+  status: 'starting' | 'running' | 'stopped' | 'error';
+  mainPid?: number;     // reviewitプロセスID
+  proxyPid?: number;    // プロキシプロセスID
+  url: string;          // アクセス用URL（プロキシ経由）
+  startedAt?: number;
+}
+
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'clone-status': (data: { status: string; message: string }) => void;
@@ -228,6 +240,19 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
   }) => void;
+
+  // 差分チェックサーバー関連イベント
+  'review-server-started': (data: {
+    success: boolean;
+    message: string;
+    server?: ReviewServer;
+  }) => void;
+  'review-server-stopped': (data: {
+    success: boolean;
+    message: string;
+    repositoryPath: string;
+  }) => void;
+  'review-servers-list': (data: { servers: ReviewServer[] }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -313,4 +338,9 @@ export interface ClientToServerEvents {
   'stop-automode': (data: { repositoryPath: string }) => void;
   'get-automode-status': (data: { repositoryPath: string }) => void;
   'force-execute-automode': (data: { repositoryPath: string }) => void;
+
+  // 差分チェックサーバー関連イベント
+  'start-review-server': (data: { repositoryPath: string }) => void;
+  'stop-review-server': (data: { repositoryPath: string }) => void;
+  'get-review-servers': () => void;
 }

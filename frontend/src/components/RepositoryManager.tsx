@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import type { GitRepository } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { GitRepository, ReviewServer, ServerToClientEvents, ClientToServerEvents } from '../types';
+import type { Socket } from 'socket.io-client';
 
 interface RepositoryManagerProps {
   repositories: GitRepository[];
@@ -8,6 +9,7 @@ interface RepositoryManagerProps {
   onCreateRepository: (name: string) => void;
   onSwitchRepository: (path: string) => void;
   isConnected: boolean;
+  socket?: Socket<ServerToClientEvents, ClientToServerEvents> | null;
 }
 
 const RepositoryManager: React.FC<RepositoryManagerProps> = ({
@@ -17,11 +19,14 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   onCreateRepository,
   onSwitchRepository,
   isConnected,
+  socket,
 }) => {
   const [repoUrl, setRepoUrl] = useState('');
   const [repoName, setRepoName] = useState('');
   const [isCloning, setIsCloning] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
+  const [reviewServers, setReviewServers] = useState<ReviewServer[]>([]);
+  const [startingServers, setStartingServers] = useState<Set<string>>(new Set());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +85,85 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
         return '不明';
     }
   };
+
+  // 差分チェックサーバー関連の関数
+  const handleStartReviewServer = (repositoryPath: string) => {
+    if (!socket) return;
+
+    setStartingServers(prev => new Set(prev).add(repositoryPath));
+    socket.emit('start-review-server', { repositoryPath });
+  };
+
+  const getReviewServerForRepo = (repositoryPath: string): ReviewServer | undefined => {
+    return reviewServers.find(server => server.repositoryPath === repositoryPath);
+  };
+
+  const isServerStarting = (repositoryPath: string): boolean => {
+    return startingServers.has(repositoryPath);
+  };
+
+  // Socket.IOイベントリスナーの設定
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReviewServerStarted = (data: {
+      success: boolean;
+      message: string;
+      server?: ReviewServer;
+    }) => {
+      if (data.success && data.server) {
+        setReviewServers(prev => {
+          const filtered = prev.filter(s => s.repositoryPath !== data.server!.repositoryPath);
+          return [...filtered, data.server!];
+        });
+        setStartingServers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(data.server!.repositoryPath);
+          return newSet;
+        });
+        
+        // 新しいタブでページを開く
+        window.open(data.server.url, '_blank');
+      } else {
+        // エラー時は starting 状態を解除
+        setStartingServers(prev => {
+          const newSet = new Set(prev);
+          // エラーメッセージから repositoryPath を推測するのは難しいので、全てクリア
+          newSet.clear();
+          return newSet;
+        });
+        console.error('Failed to start review server:', data.message);
+      }
+    };
+
+    const handleReviewServerStopped = (data: {
+      success: boolean;
+      repositoryPath: string;
+    }) => {
+      if (data.success) {
+        setReviewServers(prev => 
+          prev.filter(server => server.repositoryPath !== data.repositoryPath)
+        );
+      }
+    };
+
+    const handleReviewServersList = (data: { servers: ReviewServer[] }) => {
+      setReviewServers(data.servers);
+    };
+
+    socket.on('review-server-started', handleReviewServerStarted);
+    socket.on('review-server-stopped', handleReviewServerStopped);
+    socket.on('review-servers-list', handleReviewServersList);
+
+    // 初期データを取得
+    socket.emit('get-review-servers');
+
+    return () => {
+      socket.off('review-server-started', handleReviewServerStarted);
+      socket.off('review-server-stopped', handleReviewServerStopped);
+      socket.off('review-servers-list', handleReviewServersList);
+    };
+  }, [socket]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -163,6 +247,40 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                       {repo.path}
                     </p>
                   </div>
+                  
+                  {/* 差分チェックボタン */}
+                  {repo.status === 'ready' && (
+                    <div className="pt-2 border-t border-gray-600">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // 親のonClickを防ぐ
+                          const server = getReviewServerForRepo(repo.path);
+                          if (server && server.status === 'running') {
+                            // 既にサーバーが動いている場合は直接ページを開く
+                            window.open(server.url, '_blank');
+                          } else {
+                            // サーバーを起動
+                            handleStartReviewServer(repo.path);
+                          }
+                        }}
+                        disabled={isServerStarting(repo.path)}
+                        className={`w-full text-xs py-1.5 px-2 rounded transition-colors ${
+                          isServerStarting(repo.path)
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            : getReviewServerForRepo(repo.path)?.status === 'running'
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {isServerStarting(repo.path)
+                          ? '起動中...'
+                          : getReviewServerForRepo(repo.path)?.status === 'running'
+                            ? '差分チェック（実行中）'
+                            : '差分チェック'
+                        }
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* ステータスラベル（右上貼り付け） */}

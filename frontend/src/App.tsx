@@ -867,6 +867,7 @@ function App() {
                     onCreateRepository={handleCreateRepository}
                     onSwitchRepository={handleSwitchRepository}
                     isConnected={isConnected}
+                    socket={socket}
                   />
                 </div>
               </div>
