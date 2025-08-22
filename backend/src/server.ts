@@ -1218,7 +1218,10 @@ io.on('connection', (socket) => {
     const { repositoryPath } = data;
 
     try {
-      const server = await processManager.startReviewServer(repositoryPath);
+      // クライアントのホスト情報を取得
+      const hostname = socket.handshake.headers.host?.split(':')[0] || 'localhost';
+      
+      const server = await processManager.startReviewServer(repositoryPath, hostname);
       socket.emit('review-server-started', {
         success: true,
         message: `差分チェックサーバーを開始しました: ${server.url}`,

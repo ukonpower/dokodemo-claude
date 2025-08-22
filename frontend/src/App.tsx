@@ -10,6 +10,7 @@ import type {
   CommandShortcut,
   AutoModeConfig,
   AutoModeState,
+  ReviewServer,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
@@ -145,6 +146,10 @@ function App() {
   const [autoModeState, setAutoModeState] = useState<AutoModeState | null>(
     null
   );
+
+  // 差分チェック関連の状態
+  const [reviewServers, setReviewServers] = useState<ReviewServer[]>([]);
+  const [startingReviewServer, setStartingReviewServer] = useState<boolean>(false);
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -470,6 +475,35 @@ function App() {
         }
       });
 
+      // 差分チェック関連のイベントハンドラ
+      socketInstance.on('review-server-started', (data) => {
+        if (data.success && data.server) {
+          setReviewServers(prev => {
+            const filtered = prev.filter(s => s.repositoryPath !== data.server!.repositoryPath);
+            return [...filtered, data.server!];
+          });
+          setStartingReviewServer(false);
+          
+          // 新しいタブでページを開く
+          window.open(data.server.url, '_blank');
+        } else {
+          setStartingReviewServer(false);
+          console.error('Failed to start review server:', data.message);
+        }
+      });
+
+      socketInstance.on('review-server-stopped', (data) => {
+        if (data.success) {
+          setReviewServers(prev => 
+            prev.filter(server => server.repositoryPath !== data.repositoryPath)
+          );
+        }
+      });
+
+      socketInstance.on('review-servers-list', (data) => {
+        setReviewServers(data.servers);
+      });
+
       socketInstance.on('connect', () => {
         // Connected to server
         setIsConnected(true);
@@ -522,6 +556,9 @@ function App() {
               repositoryPath: currentPath,
             });
             // Emitted automode events
+            
+            // 差分チェックサーバー一覧も取得
+            socketInstance.emit('get-review-servers');
           } else {
             // No current repo detected after delay
           }
@@ -806,6 +843,24 @@ function App() {
     }
   };
 
+  // 差分チェック関連のハンドラ
+  const handleStartReviewServer = () => {
+    if (socket && currentRepo) {
+      setStartingReviewServer(true);
+      socket.emit('start-review-server', { repositoryPath: currentRepo });
+    }
+  };
+
+  const handleStopReviewServer = () => {
+    if (socket && currentRepo) {
+      socket.emit('stop-review-server', { repositoryPath: currentRepo });
+    }
+  };
+
+  const getCurrentReviewServer = (): ReviewServer | undefined => {
+    return reviewServers.find(server => server.repositoryPath === currentRepo);
+  };
+
 
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
@@ -954,6 +1009,65 @@ function App() {
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
+              {/* 差分チェックボタン */}
+              <div className="flex items-center space-x-1">
+                {startingReviewServer ? (
+                  // 起動中 - ローディングアイコン
+                  <button
+                    disabled
+                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded-md cursor-not-allowed"
+                    title="差分チェックサーバー起動中..."
+                  >
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="hidden sm:inline">起動中...</span>
+                  </button>
+                ) : getCurrentReviewServer()?.status === 'running' ? (
+                  // 実行中 - 開くボタン + 停止ボタン
+                  <>
+                    <button
+                      onClick={() => {
+                        const server = getCurrentReviewServer();
+                        if (server) {
+                          window.open(server.url, '_blank');
+                        }
+                      }}
+                      className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                      title="差分チェック画面を開く"
+                    >
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      <span className="hidden sm:inline">差分チェック</span>
+                    </button>
+                    <button
+                      onClick={handleStopReviewServer}
+                      className="inline-flex items-center px-2 py-1.5 text-xs font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                      title="差分チェックサーバーを停止"
+                    >
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  // 停止中 - 開始ボタン
+                  <button
+                    onClick={handleStartReviewServer}
+                    disabled={!isConnected}
+                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 border border-blue-500 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="差分チェックサーバーを開始"
+                  >
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="hidden sm:inline">差分チェック</span>
+                  </button>
+                )}
+              </div>
+
               <div className="flex items-center space-x-2">
                 <div
                   className={`w-2 h-2 rounded-full ${

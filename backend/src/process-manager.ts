@@ -1705,7 +1705,7 @@ export class ProcessManager extends EventEmitter {
   /**
    * 差分チェックサーバーを開始します
    */
-  async startReviewServer(repositoryPath: string): Promise<ReviewServer> {
+  async startReviewServer(repositoryPath: string, hostname?: string): Promise<ReviewServer> {
     // 既存のサーバーがあるかチェック
     const existingServer = this.reviewServers.get(repositoryPath);
     if (existingServer && existingServer.status === 'running') {
@@ -1714,7 +1714,9 @@ export class ProcessManager extends EventEmitter {
 
     const mainPort = this.reviewServerMainPortCounter++;
     const proxyPort = this.reviewServerProxyPortCounter++;
-    const url = `http://localhost:${proxyPort}`;
+    // ホスト名を動的に設定（デフォルトはlocalhost）
+    const host = hostname || 'localhost';
+    const url = `http://${host}:${proxyPort}`;
 
     const server: ReviewServer = {
       repositoryPath,
