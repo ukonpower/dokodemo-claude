@@ -1712,6 +1712,14 @@ export class ProcessManager extends EventEmitter {
       return existingServer;
     }
 
+    // 絶対パスを確保
+    const absoluteRepoPath = path.isAbsolute(repositoryPath) 
+      ? repositoryPath 
+      : path.resolve(repositoryPath);
+    
+    // デバッグログ
+    console.log(`Starting reviewit server in directory: ${absoluteRepoPath}`);
+
     const mainPort = this.reviewServerMainPortCounter++;
     const proxyPort = this.reviewServerProxyPortCounter++;
     // ホスト名を動的に設定（デフォルトはlocalhost）
@@ -1730,17 +1738,18 @@ export class ProcessManager extends EventEmitter {
     this.reviewServers.set(repositoryPath, server);
 
     try {
-      // reviewitサーバーを起動
+      // reviewitサーバーを起動（絶対パスを使用）
       const reviewitProcess = spawn('npx', ['reviewit', '--port', mainPort.toString(), '--no-open'], {
-        cwd: repositoryPath,
+        cwd: absoluteRepoPath,
         stdio: 'pipe',
         detached: false,
       });
 
       server.mainPid = reviewitProcess.pid;
 
-      // プロキシサーバーを起動
+      // プロキシサーバーを起動（同じディレクトリで実行）
       const proxyProcess = spawn('npx', ['http-proxy-cli', `localhost:${mainPort}`, '--hostname', '0.0.0.0', '--port', proxyPort.toString()], {
+        cwd: absoluteRepoPath,
         stdio: 'pipe',
         detached: false,
       });
