@@ -156,6 +156,8 @@ function App() {
   const [startingReviewServer, setStartingReviewServer] =
     useState<boolean>(false);
   const [showDiffMenu, setShowDiffMenu] = useState<boolean>(false);
+  const [difitUrl, setDifitUrl] = useState<string | null>(null);
+  const [showDifitNotification, setShowDifitNotification] = useState<boolean>(false);
   
   // ドロップダウンメニュー用のref
   const diffMenuRef = useRef<HTMLDivElement>(null);
@@ -520,7 +522,25 @@ function App() {
               url = `${window.location.protocol}//${window.location.hostname}:${port}`;
             }
           }
-          window.open(url, '_blank');
+          
+          // iOS Safariでのポップアップブロック対策
+          const newWindow = window.open(url, '_blank');
+          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            // ポップアップがブロックされた場合の処理
+            console.warn('Popup blocked. Showing notification with link.');
+            
+            // UI通知を表示
+            setDifitUrl(url);
+            setShowDifitNotification(true);
+            
+            // 3秒後に自動で通知を閉じる
+            setTimeout(() => {
+              setShowDifitNotification(false);
+            }, 10000); // 10秒間表示
+          } else {
+            // タブが正常に開けた場合は通知を隠す
+            setShowDifitNotification(false);
+          }
         } else {
           setStartingReviewServer(false);
           console.error('Failed to start review server:', data.message);
@@ -1367,6 +1387,67 @@ function App() {
           </div>
         </section>
       </main>
+
+      {/* difit サーバー通知（ポップアップブロック対応） */}
+      {showDifitNotification && difitUrl && (
+        <div className="fixed top-4 right-4 bg-blue-800 rounded-lg shadow-xl max-w-sm w-full p-4 border border-blue-600 z-50">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-6 w-6 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-white mb-2">
+                🚀 difit サーバーが起動しました
+              </h3>
+              <p className="text-xs text-blue-200 mb-3">
+                ポップアップがブロックされました。手動でページを開いてください。
+              </p>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => {
+                    window.open(difitUrl, '_blank');
+                  }}
+                  className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                >
+                  ページを開く
+                </button>
+                <div className="bg-blue-900 rounded p-2 border border-blue-700">
+                  <p className="text-xs text-blue-200 break-all">
+                    {difitUrl}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowDifitNotification(false);
+                setDifitUrl(null);
+              }}
+              className="flex-shrink-0 text-blue-400 hover:text-blue-300 focus:outline-none"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 削除確認ダイアログ */}
       {showDeleteConfirm && (
