@@ -88,7 +88,6 @@ export class ProcessManager extends EventEmitter {
   private terminalCounter = 0;
   private shortcutCounter = 0;
   private autoModeConfigCounter = 0;
-  private reviewServerMainPortCounter = 3100; // difitサーバーのポート番号（3100から開始）
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
   private processMonitoringInterval: NodeJS.Timeout | null = null; // プロセス監視タイマー
 
@@ -1748,7 +1747,8 @@ export class ProcessManager extends EventEmitter {
 
     console.log(`Starting difit server in directory: ${absoluteRepoPath}`);
 
-    const mainPort = this.reviewServerMainPortCounter++;
+    // difit固定ポート3100を使用
+    const mainPort = 3100;
     const url = `http://0.0.0.0:${mainPort}`;
 
     const server: ReviewServer = {

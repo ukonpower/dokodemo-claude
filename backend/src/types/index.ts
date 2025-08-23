@@ -355,7 +355,7 @@ export interface DiffConfig {
 // 差分チェックサーバー関連の型定義
 export interface ReviewServer {
   repositoryPath: string;
-  mainPort: number; // difitポート（3100〜）
+  mainPort: number; // difit固定ポート（3100）
   status: 'starting' | 'running' | 'stopped' | 'error';
   mainPid?: number; // difitプロセスID
   url: string; // アクセス用URL
