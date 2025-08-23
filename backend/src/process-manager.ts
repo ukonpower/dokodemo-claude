@@ -1,7 +1,6 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
-import {openSync} from 'node:fs';
 
 import path from 'path';
 import os from 'os';
@@ -10,6 +9,7 @@ import {
   AutoModeConfig,
   AutoModeState,
   ReviewServer,
+  DiffConfig,
 } from './types/index.js';
 
 // Claude CLI出力履歴の行情報
@@ -656,7 +656,7 @@ export class ProcessManager extends EventEmitter {
       try {
         const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
         const persistedSessions: PersistedClaudeSession[] = JSON.parse(data);
-        
+
         let found = false;
         for (const persistedSession of persistedSessions) {
           if (persistedSession.repositoryPath === repositoryPath) {
@@ -1703,20 +1703,49 @@ export class ProcessManager extends EventEmitter {
   // 差分チェックサーバー関連メソッド
 
   /**
+   * 差分設定からdifitコマンドのターゲットを取得します
+   */
+  private getDiffTarget(diffConfig: DiffConfig): string {
+    switch (diffConfig.type) {
+      case 'staged':
+        return 'staged';
+      case 'working':
+        return 'working';
+      case 'custom':
+        return diffConfig.customValue || 'HEAD';
+      case 'HEAD':
+      default:
+        return 'HEAD';
+    }
+  }
+
+  /**
    * 差分チェックサーバーを開始します
    */
-  async startReviewServer(repositoryPath: string): Promise<ReviewServer> {
-    // 既存のサーバーがあるかチェック
+  async startReviewServer(
+    repositoryPath: string,
+    diffConfig?: DiffConfig
+  ): Promise<ReviewServer> {
+    // 既存のサーバーがある場合は停止してから新しいサーバーを起動（使い捨てモード）
     const existingServer = this.reviewServers.get(repositoryPath);
-    if (existingServer && existingServer.status === 'running') {
-      return existingServer;
+    if (
+      existingServer &&
+      (existingServer.status === 'running' ||
+        existingServer.status === 'starting')
+    ) {
+      console.log(
+        `Stopping existing difit server for repository: ${repositoryPath}`
+      );
+      await this.stopReviewServer(repositoryPath);
+      // プロセスが完全に停止するまで少し待つ
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // 絶対パスを確保
-    const absoluteRepoPath = path.isAbsolute(repositoryPath) 
-      ? repositoryPath 
+    const absoluteRepoPath = path.isAbsolute(repositoryPath)
+      ? repositoryPath
       : path.resolve(repositoryPath);
-    
+
     console.log(`Starting difit server in directory: ${absoluteRepoPath}`);
 
     const mainPort = this.reviewServerMainPortCounter++;
@@ -1728,35 +1757,45 @@ export class ProcessManager extends EventEmitter {
       status: 'starting',
       url,
       startedAt: Date.now(),
+      diffConfig: diffConfig || { type: 'HEAD' }, // デフォルトはHEAD
     };
 
     this.reviewServers.set(repositoryPath, server);
 
     try {
       // PTYを使用してdifitサーバーを起動
-      const p = pty.spawn(process.platform === 'win32' ? 'powershell.exe' : 'bash', [], {
-        name: 'xterm-color',
-        cols: 120,
-        rows: 30,
-        cwd: absoluteRepoPath,
-        env: process.env,
-      });
+      const p = pty.spawn(
+        process.platform === 'win32' ? 'powershell.exe' : 'bash',
+        [],
+        {
+          name: 'xterm-color',
+          cols: 120,
+          rows: 30,
+          cwd: absoluteRepoPath,
+          env: process.env,
+        }
+      );
 
       server.mainPid = p.pid;
-      // PTYインスタンスも保持（型定義に追加する必要があるが、実際は内部使用のみ）
-      (server as any).ptyProcess = p;
+      // PTYインスタンスも保持
+      (server as unknown as Record<string, unknown>).ptyProcess = p;
 
-      // difitコマンドを実行
-      p.write(`npx -y difit HEAD --host 0.0.0.0 --port ${mainPort} --no-open\r`);
-      
+      // difitコマンドを実行（差分タイプを動的に指定）
+      const diffTarget = this.getDiffTarget(diffConfig || { type: 'HEAD' });
+      p.write(
+        `npx -y difit ${diffTarget} --host 0.0.0.0 --port ${mainPort} --no-open\r`
+      );
+
       // difitの出力をコンソールに表示
-      p.onData(data => {
+      p.onData((data) => {
         console.log(`difit output: ${data}`);
       });
 
       // プロセス終了ハンドラを設定
       p.onExit(({ exitCode }) => {
-        console.log(`difit process exited with code ${exitCode} for ${repositoryPath}`);
+        console.log(
+          `difit process exited with code ${exitCode} for ${repositoryPath}`
+        );
         const currentServer = this.reviewServers.get(repositoryPath);
         if (currentServer) {
           currentServer.status = exitCode === 0 ? 'stopped' : 'error';
@@ -1765,7 +1804,7 @@ export class ProcessManager extends EventEmitter {
       });
 
       // サーバーの起動を待つ（3秒間）
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       server.status = 'running';
       this.reviewServers.set(repositoryPath, server);
@@ -1789,7 +1828,8 @@ export class ProcessManager extends EventEmitter {
 
     try {
       // PTYプロセスを終了
-      const ptyProcess = (server as any).ptyProcess;
+      const ptyProcess = (server as unknown as Record<string, unknown>)
+        .ptyProcess as pty.IPty | undefined;
       if (ptyProcess) {
         ptyProcess.kill('SIGTERM');
       } else if (server.mainPid) {
@@ -1801,7 +1841,10 @@ export class ProcessManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error(`Failed to stop review server for ${repositoryPath}:`, error);
+      console.error(
+        `Failed to stop review server for ${repositoryPath}:`,
+        error
+      );
       return false;
     }
   }

@@ -11,6 +11,8 @@ import type {
   AutoModeConfig,
   AutoModeState,
   ReviewServer,
+  DiffType,
+  DiffConfig,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
@@ -39,7 +41,8 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('repo') || '';
   });
-  const [claudeOutputFocused, setClaudeOutputFocused] = useState<boolean>(false);
+  const [claudeOutputFocused, setClaudeOutputFocused] =
+    useState<boolean>(false);
 
   // ブラウザの戻る/進むボタン対応
   useEffect(() => {
@@ -66,7 +69,7 @@ function App() {
           if (socket) {
             // サーバーにアクティブリポジトリを通知
             socket.emit('switch-repo', { path: repoFromUrl });
-            
+
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
             socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
@@ -103,7 +106,7 @@ function App() {
     if (currentRepo) {
       // リポジトリが選択された時はローディング開始
       setIsLoadingRepoData(true);
-      
+
       // 3秒のタイムアウトを設定（フォールバック）
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
@@ -149,7 +152,10 @@ function App() {
 
   // 差分チェック関連の状態
   const [reviewServers, setReviewServers] = useState<ReviewServer[]>([]);
-  const [startingReviewServer, setStartingReviewServer] = useState<boolean>(false);
+  const [startingReviewServer, setStartingReviewServer] =
+    useState<boolean>(false);
+  const [diffType, setDiffType] = useState<DiffType>('HEAD');
+  const [customDiffValue, setCustomDiffValue] = useState<string>('');
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -167,14 +173,13 @@ function App() {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
     }
-    
+
     // ローディング状態を確実に終了
     setIsLoadingRepoData(false);
   }, []);
 
   // ローディングタイムアウト用のref
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 
   useEffect(() => {
     let reconnectTimeout: ReturnType<typeof setTimeout>;
@@ -218,7 +223,7 @@ function App() {
             }
             return newOutput;
           });
-          
+
           // Claude出力が更新されたらローディング終了
           endLoadingOnClaudeOutput();
         }
@@ -305,7 +310,7 @@ function App() {
           socketInstance.emit('get-automode-status', {
             repositoryPath: data.currentPath,
           });
-          
+
           // ローディング状態を解除
           setIsSwitchingRepo(false);
         } else {
@@ -334,7 +339,7 @@ function App() {
             .join('');
           setRawOutput(historyOutput);
           // Claude history applied
-          
+
           // Claude履歴が受信されたらローディング終了
           endLoadingOnClaudeOutput();
         } else {
@@ -478,12 +483,14 @@ function App() {
       // 差分チェック関連のイベントハンドラ
       socketInstance.on('review-server-started', (data) => {
         if (data.success && data.server) {
-          setReviewServers(prev => {
-            const filtered = prev.filter(s => s.repositoryPath !== data.server!.repositoryPath);
+          setReviewServers((prev) => {
+            const filtered = prev.filter(
+              (s) => s.repositoryPath !== data.server!.repositoryPath
+            );
             return [...filtered, data.server!];
           });
           setStartingReviewServer(false);
-          
+
           // 新しいタブでページを開く
           window.open(data.server.url, '_blank');
         } else {
@@ -494,8 +501,10 @@ function App() {
 
       socketInstance.on('review-server-stopped', (data) => {
         if (data.success) {
-          setReviewServers(prev => 
-            prev.filter(server => server.repositoryPath !== data.repositoryPath)
+          setReviewServers((prev) =>
+            prev.filter(
+              (server) => server.repositoryPath !== data.repositoryPath
+            )
           );
         }
       });
@@ -523,7 +532,7 @@ function App() {
             // Current repo detected after delay
             // サーバーにアクティブリポジトリを通知
             socketInstance.emit('switch-repo', { path: currentPath });
-            
+
             socketInstance.emit('list-terminals', {
               repositoryPath: currentPath,
             });
@@ -556,7 +565,7 @@ function App() {
               repositoryPath: currentPath,
             });
             // Emitted automode events
-            
+
             // 差分チェックサーバー一覧も取得
             socketInstance.emit('get-review-servers');
           } else {
@@ -649,7 +658,7 @@ function App() {
     if (socket) {
       socket.emit('switch-repo', { path: '' });
     }
-    
+
     setCurrentRepo('');
     setRawOutput(''); // CLIログをクリア
     setAutoModeConfigs([]);
@@ -714,7 +723,7 @@ function App() {
   const handleSendTabKey = (shift: boolean = false) => {
     if (socket) {
       // TabとShift+Tabに対応するコード
-      const tabKey = shift ? '\x1b[Z' : '\t';  // Shift+TabはCSI Z、Tabは\t
+      const tabKey = shift ? '\x1b[Z' : '\t'; // Shift+TabはCSI Z、Tabは\t
       socket.emit('send-command', {
         command: tabKey,
         sessionId: currentSessionId,
@@ -754,7 +763,7 @@ function App() {
   const handleClearClaudeOutput = () => {
     // フロントエンド側の表示をクリア
     setRawOutput('');
-    
+
     // バックエンド側の履歴もクリア
     if (socket && currentRepo) {
       socket.emit('clear-claude-output', { repositoryPath: currentRepo });
@@ -847,21 +856,26 @@ function App() {
   const handleStartReviewServer = () => {
     if (socket && currentRepo) {
       setStartingReviewServer(true);
-      socket.emit('start-review-server', { repositoryPath: currentRepo });
-    }
-  };
 
-  const handleStopReviewServer = () => {
-    if (socket && currentRepo) {
-      socket.emit('stop-review-server', { repositoryPath: currentRepo });
+      const diffConfig: DiffConfig = {
+        type: diffType,
+        ...(diffType === 'custom' && customDiffValue
+          ? { customValue: customDiffValue }
+          : {}),
+      };
+
+      socket.emit('start-review-server', {
+        repositoryPath: currentRepo,
+        diffConfig,
+      });
     }
   };
 
   const getCurrentReviewServer = (): ReviewServer | undefined => {
-    return reviewServers.find(server => server.repositoryPath === currentRepo);
+    return reviewServers.find(
+      (server) => server.repositoryPath === currentRepo
+    );
   };
-
-
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
@@ -922,7 +936,6 @@ function App() {
                     onCreateRepository={handleCreateRepository}
                     onSwitchRepository={handleSwitchRepository}
                     isConnected={isConnected}
-                    socket={socket}
                   />
                 </div>
               </div>
@@ -1010,7 +1023,39 @@ function App() {
             </div>
             <div className="flex items-center justify-end space-x-3">
               {/* 差分チェックボタン */}
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-2">
+                {/* 差分タイプ選択 */}
+                {!startingReviewServer &&
+                  getCurrentReviewServer()?.status !== 'running' && (
+                    <div className="flex items-center space-x-1">
+                      <select
+                        value={diffType}
+                        onChange={(e) => {
+                          const newDiffType = e.target.value as DiffType;
+                          setDiffType(newDiffType);
+                          if (newDiffType !== 'custom') {
+                            setCustomDiffValue('');
+                          }
+                        }}
+                        className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1"
+                      >
+                        <option value="HEAD">HEAD</option>
+                        <option value="staged">Staged</option>
+                        <option value="working">Working</option>
+                        <option value="custom">カスタム</option>
+                      </select>
+                      {diffType === 'custom' && (
+                        <input
+                          type="text"
+                          value={customDiffValue}
+                          onChange={(e) => setCustomDiffValue(e.target.value)}
+                          placeholder="ブランチ名やコミットハッシュ"
+                          className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1 w-32"
+                        />
+                      )}
+                    </div>
+                  )}
+
                 {startingReviewServer ? (
                   // 起動中 - ローディングアイコン
                   <button
@@ -1018,50 +1063,71 @@ function App() {
                     className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded-md cursor-not-allowed"
                     title="差分チェックサーバー起動中..."
                   >
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     <span className="hidden sm:inline">起動中...</span>
                   </button>
                 ) : getCurrentReviewServer()?.status === 'running' ? (
-                  // 実行中 - 開くボタン + 停止ボタン
-                  <>
-                    <button
-                      onClick={() => {
-                        const server = getCurrentReviewServer();
-                        if (server) {
-                          window.open(server.url, '_blank');
-                        }
-                      }}
-                      className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                      title="差分チェック画面を開く"
+                  // 実行中 - 開くボタンのみ（停止ボタンは削除）
+                  <button
+                    onClick={() => {
+                      const server = getCurrentReviewServer();
+                      if (server) {
+                        window.open(server.url, '_blank');
+                      }
+                    }}
+                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                    title="差分チェック画面を開く"
+                  >
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      <span className="hidden sm:inline">差分チェック</span>
-                    </button>
-                    <button
-                      onClick={handleStopReviewServer}
-                      className="inline-flex items-center px-2 py-1.5 text-xs font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                      title="差分チェックサーバーを停止"
-                    >
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                      </svg>
-                    </button>
-                  </>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">差分チェック</span>
+                  </button>
                 ) : (
                   // 停止中 - 開始ボタン
                   <button
                     onClick={handleStartReviewServer}
-                    disabled={!isConnected}
+                    disabled={
+                      !isConnected ||
+                      (diffType === 'custom' && !customDiffValue.trim())
+                    }
                     className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 border border-blue-500 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     title="差分チェックサーバーを開始"
                   >
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span className="hidden sm:inline">差分チェック</span>
                   </button>
@@ -1230,13 +1296,15 @@ function App() {
                 </svg>
                 自走モード
               </h3>
-              
+
               {/* 自走モード停止ボタン */}
               {autoModeState?.isRunning && (
                 <button
                   onClick={() => {
                     if (socket && currentRepo) {
-                      socket.emit('stop-automode', { repositoryPath: currentRepo });
+                      socket.emit('stop-automode', {
+                        repositoryPath: currentRepo,
+                      });
                     }
                   }}
                   disabled={!isConnected}
@@ -1395,7 +1463,6 @@ function App() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

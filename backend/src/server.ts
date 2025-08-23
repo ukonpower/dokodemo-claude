@@ -520,7 +520,7 @@ io.on('connection', (socket) => {
 
     // クライアントのアクティブリポジトリを更新
     clientActiveRepositories.set(socket.id, repoPath || '');
-    
+
     // 空のpathの場合はリポジトリ選択モード（処理終了）
     if (!repoPath) {
       return;
@@ -590,13 +590,16 @@ io.on('connection', (socket) => {
     let commandToSend = command;
 
     // 特殊キーや単一文字の場合はそのまま送信（改行を追加しない）
-    if (command.startsWith('\x1b[') ||    // 方向キー（ANSIエスケープシーケンス）
-        command === '\x1b' ||             // ESCキー
-        command === '\r' ||               // Enterキー
-        command === '\x03' ||             // Ctrl+C
-        command === '\x7f' ||             // Backspace
-        command === '\t' ||               // Tab
-        (command.length === 1 && !command.match(/[\r\n]/))) { // 単一文字（改行以外）
+    if (
+      command.startsWith('\x1b[') || // 方向キー（ANSIエスケープシーケンス）
+      command === '\x1b' || // ESCキー
+      command === '\r' || // Enterキー
+      command === '\x03' || // Ctrl+C
+      command === '\x7f' || // Backspace
+      command === '\t' || // Tab
+      (command.length === 1 && !command.match(/[\r\n]/))
+    ) {
+      // 単一文字（改行以外）
       // そのまま送信（改行を追加しない）
       commandToSend = command;
     } else {
@@ -688,7 +691,8 @@ io.on('connection', (socket) => {
     }
 
     try {
-      const success = await processManager.clearClaudeOutputHistory(repositoryPath);
+      const success =
+        await processManager.clearClaudeOutputHistory(repositoryPath);
       if (success) {
         // クリア完了を通知（オプション）
         socket.emit('claude-output-cleared', {
@@ -1215,13 +1219,13 @@ io.on('connection', (socket) => {
 
   // 差分チェックサーバーの開始
   socket.on('start-review-server', async (data) => {
-    const { repositoryPath } = data;
+    const { repositoryPath, diffConfig } = data;
 
     try {
-      // クライアントのホスト情報を取得
-      const hostname = socket.handshake.headers.host?.split(':')[0] || 'localhost';
-      
-      const server = await processManager.startReviewServer(repositoryPath, hostname);
+      const server = await processManager.startReviewServer(
+        repositoryPath,
+        diffConfig
+      );
       socket.emit('review-server-started', {
         success: true,
         message: `差分チェックサーバーを開始しました: ${server.url}`,
@@ -1243,7 +1247,7 @@ io.on('connection', (socket) => {
       const success = await processManager.stopReviewServer(repositoryPath);
       socket.emit('review-server-stopped', {
         success,
-        message: success 
+        message: success
           ? '差分チェックサーバーを停止しました'
           : '差分チェックサーバーが見つかりません',
         repositoryPath,

@@ -87,14 +87,23 @@ export interface AutoModeState {
   lastExecutionTime?: number;
 }
 
+// 差分タイプ関連の型定義
+export type DiffType = 'HEAD' | 'staged' | 'working' | 'custom';
+
+export interface DiffConfig {
+  type: DiffType;
+  customValue?: string; // カスタムの場合のブランチ名やコミットハッシュ
+}
+
 // 差分チェックサーバー関連の型定義
 export interface ReviewServer {
   repositoryPath: string;
-  mainPort: number;     // difitポート（3100〜）
+  mainPort: number; // difitポート（3100〜）
   status: 'starting' | 'running' | 'stopped' | 'error';
-  mainPid?: number;     // difitプロセスID
-  url: string;          // アクセス用URL
+  mainPid?: number; // difitプロセスID
+  url: string; // アクセス用URL
   startedAt?: number;
+  diffConfig?: DiffConfig; // 差分設定
 }
 
 export interface ServerToClientEvents {
@@ -338,7 +347,10 @@ export interface ClientToServerEvents {
   'force-execute-automode': (data: { repositoryPath: string }) => void;
 
   // 差分チェックサーバー関連イベント
-  'start-review-server': (data: { repositoryPath: string }) => void;
+  'start-review-server': (data: {
+    repositoryPath: string;
+    diffConfig?: DiffConfig;
+  }) => void;
   'stop-review-server': (data: { repositoryPath: string }) => void;
   'get-review-servers': () => void;
 }

@@ -352,7 +352,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-1 sm:space-x-2">
           {/* キーボードボタン表示切替 */}
           <button
@@ -362,7 +362,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           >
             ⌨️
           </button>
-          
+
           {/* 全選択ボタン */}
           <button
             onClick={handleSelectAll}
@@ -371,7 +371,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           >
             全選択
           </button>
-          
+
           {/* コピーボタン（選択時のみ表示） */}
           {showCopyButton && (
             <button
@@ -382,7 +382,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
               コピー
             </button>
           )}
-          
+
           {/* 閉じるボタン */}
           <button
             onClick={() => onClose(terminal.id)}
@@ -429,7 +429,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
                 →
               </button>
             </div>
-            
+
             {/* 特殊キー */}
             <div className="flex space-x-1">
               <button

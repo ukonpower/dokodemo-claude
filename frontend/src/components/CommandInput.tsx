@@ -94,22 +94,22 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
     return (
       <div className="space-y-3 sm:space-y-4">
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-            <div>
-              <textarea
-                ref={inputRef}
-                value={command}
-                onChange={(e) => setCommand(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  disabled
-                    ? 'リポジトリを選択してください...'
-                    : 'Claude CLIへの指示を入力してください'
-                }
-                className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
-                rows={3}
-                disabled={disabled}
-              />
-            </div>
+          <div>
+            <textarea
+              ref={inputRef}
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                disabled
+                  ? 'リポジトリを選択してください...'
+                  : 'Claude CLIへの指示を入力してください'
+              }
+              className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
+              rows={3}
+              disabled={disabled}
+            />
+          </div>
 
           <div className="flex flex-col space-y-4">
             {/* 上段: 方向キーとEnterボタン */}
@@ -175,7 +175,6 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
             {/* 下段: 制御ボタン群 */}
             <div className="flex items-center justify-center">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                
                 {onSendInterrupt && (
                   <button
                     type="button"
@@ -277,7 +276,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                 >
                   Commit
                 </button>
-                
+
                 {/* iOS対応: キーボードボタン表示切替 */}
                 <button
                   type="button"
@@ -295,8 +294,10 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
             {showKeyboardButtons && (
               <div className="bg-gray-800 rounded-lg p-3 border border-gray-600">
                 <div className="space-y-3">
-                  <div className="text-xs text-gray-400 text-center">iOS向けキーボード</div>
-                  
+                  <div className="text-xs text-gray-400 text-center">
+                    iOS向けキーボード
+                  </div>
+
                   {/* 矢印キー（追加） */}
                   {onSendArrowKey && (
                     <div className="flex flex-col items-center">
@@ -343,7 +344,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       </div>
                     </div>
                   )}
-                  
+
                   {/* その他のキー */}
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     {onSendTabKey && (
@@ -357,7 +358,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                         Mode
                       </button>
                     )}
-                    
+
                     {onSendEscape && (
                       <button
                         type="button"
@@ -369,7 +370,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                         ESC
                       </button>
                     )}
-                    
+
                     {onSendInterrupt && (
                       <button
                         type="button"

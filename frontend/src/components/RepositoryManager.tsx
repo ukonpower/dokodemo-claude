@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import type { GitRepository, ServerToClientEvents, ClientToServerEvents } from '../types';
-import type { Socket } from 'socket.io-client';
+import type { GitRepository } from '../types';
 
 interface RepositoryManagerProps {
   repositories: GitRepository[];
@@ -9,7 +8,6 @@ interface RepositoryManagerProps {
   onCreateRepository: (name: string) => void;
   onSwitchRepository: (path: string) => void;
   isConnected: boolean;
-  socket?: Socket<ServerToClientEvents, ClientToServerEvents> | null;
 }
 
 const RepositoryManager: React.FC<RepositoryManagerProps> = ({
@@ -19,7 +17,6 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   onCreateRepository,
   onSwitchRepository,
   isConnected,
-  socket,
 }) => {
   const [repoUrl, setRepoUrl] = useState('');
   const [repoName, setRepoName] = useState('');
@@ -83,7 +80,6 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
         return '不明';
     }
   };
-
 
   return (
     <div className="space-y-6 sm:space-y-8">
