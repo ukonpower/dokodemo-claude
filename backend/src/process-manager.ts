@@ -1800,8 +1800,6 @@ export class ProcessManager extends EventEmitter {
       // difitの出力を監視してポート番号を動的に抽出
       let serverDetected = false;
       p.onData((data) => {
-        console.log(`difit output: ${data}`);
-        
         // 🚀 difit server started on http://localhost:3102 のパターンを検出
         const serverStartedMatch = data.match(/🚀.*difit server started on http:\/\/localhost:(\d+)/);
         if (serverStartedMatch && !serverDetected) {
