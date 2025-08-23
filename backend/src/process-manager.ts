@@ -1,9 +1,10 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
+import {openSync} from 'node:fs';
+
 import path from 'path';
 import os from 'os';
-import { spawn } from 'child_process';
 import {
   CommandShortcut,
   AutoModeConfig,
@@ -87,8 +88,7 @@ export class ProcessManager extends EventEmitter {
   private terminalCounter = 0;
   private shortcutCounter = 0;
   private autoModeConfigCounter = 0;
-  private reviewServerMainPortCounter = 3100; // reviewitサーバーのポート番号（3100から開始）
-  private reviewServerProxyPortCounter = 3200; // プロキシサーバーのポート番号（3200から開始）
+  private reviewServerMainPortCounter = 3100; // difitサーバーのポート番号（3100から開始）
   private readonly MAX_OUTPUT_LINES = 500; // 最大出力行数
   private processMonitoringInterval: NodeJS.Timeout | null = null; // プロセス監視タイマー
 
@@ -1705,7 +1705,7 @@ export class ProcessManager extends EventEmitter {
   /**
    * 差分チェックサーバーを開始します
    */
-  async startReviewServer(repositoryPath: string, hostname?: string): Promise<ReviewServer> {
+  async startReviewServer(repositoryPath: string): Promise<ReviewServer> {
     // 既存のサーバーがあるかチェック
     const existingServer = this.reviewServers.get(repositoryPath);
     if (existingServer && existingServer.status === 'running') {
@@ -1717,19 +1717,14 @@ export class ProcessManager extends EventEmitter {
       ? repositoryPath 
       : path.resolve(repositoryPath);
     
-    // デバッグログ
-    console.log(`Starting reviewit server in directory: ${absoluteRepoPath}`);
+    console.log(`Starting difit server in directory: ${absoluteRepoPath}`);
 
     const mainPort = this.reviewServerMainPortCounter++;
-    const proxyPort = this.reviewServerProxyPortCounter++;
-    // ホスト名を動的に設定（デフォルトはlocalhost）
-    const host = hostname || 'localhost';
-    const url = `http://${host}:${proxyPort}`;
+    const url = `http://0.0.0.0:${mainPort}`;
 
     const server: ReviewServer = {
       repositoryPath,
       mainPort,
-      proxyPort,
       status: 'starting',
       url,
       startedAt: Date.now(),
@@ -1738,36 +1733,35 @@ export class ProcessManager extends EventEmitter {
     this.reviewServers.set(repositoryPath, server);
 
     try {
-      // reviewitサーバーを起動（絶対パスを使用）
-      const reviewitProcess = spawn('npx', ['reviewit', '--port', mainPort.toString(), '--no-open'], {
+      // PTYを使用してdifitサーバーを起動
+      const p = pty.spawn(process.platform === 'win32' ? 'powershell.exe' : 'bash', [], {
+        name: 'xterm-color',
+        cols: 120,
+        rows: 30,
         cwd: absoluteRepoPath,
-        stdio: 'pipe',
-        detached: false,
+        env: process.env,
       });
 
-      server.mainPid = reviewitProcess.pid;
+      server.mainPid = p.pid;
+      // PTYインスタンスも保持（型定義に追加する必要があるが、実際は内部使用のみ）
+      (server as any).ptyProcess = p;
 
-      // プロキシサーバーを起動（同じディレクトリで実行）
-      const proxyProcess = spawn('npx', ['http-proxy-cli', `localhost:${mainPort}`, '--hostname', '0.0.0.0', '--port', proxyPort.toString()], {
-        cwd: absoluteRepoPath,
-        stdio: 'pipe',
-        detached: false,
+      // difitコマンドを実行
+      p.write(`npx -y difit HEAD --host 0.0.0.0 --port ${mainPort} --no-open\r`);
+      
+      // difitの出力をコンソールに表示
+      p.onData(data => {
+        console.log(`difit output: ${data}`);
       });
-
-      server.proxyPid = proxyProcess.pid;
 
       // プロセス終了ハンドラを設定
-      reviewitProcess.on('exit', (code) => {
-        console.log(`reviewit process exited with code ${code} for ${repositoryPath}`);
+      p.onExit(({ exitCode }) => {
+        console.log(`difit process exited with code ${exitCode} for ${repositoryPath}`);
         const currentServer = this.reviewServers.get(repositoryPath);
         if (currentServer) {
-          currentServer.status = code === 0 ? 'stopped' : 'error';
+          currentServer.status = exitCode === 0 ? 'stopped' : 'error';
           this.reviewServers.set(repositoryPath, currentServer);
         }
-      });
-
-      proxyProcess.on('exit', (code) => {
-        console.log(`proxy process exited with code ${code} for ${repositoryPath}`);
       });
 
       // サーバーの起動を待つ（3秒間）
@@ -1794,14 +1788,12 @@ export class ProcessManager extends EventEmitter {
     }
 
     try {
-      // reviewitプロセスを終了
-      if (server.mainPid) {
+      // PTYプロセスを終了
+      const ptyProcess = (server as any).ptyProcess;
+      if (ptyProcess) {
+        ptyProcess.kill('SIGTERM');
+      } else if (server.mainPid) {
         process.kill(server.mainPid, 'SIGTERM');
-      }
-
-      // プロキシプロセスを終了
-      if (server.proxyPid) {
-        process.kill(server.proxyPid, 'SIGTERM');
       }
 
       server.status = 'stopped';

@@ -90,12 +90,10 @@ export interface AutoModeState {
 // 差分チェックサーバー関連の型定義
 export interface ReviewServer {
   repositoryPath: string;
-  mainPort: number;     // reviewitポート（3100〜）
-  proxyPort: number;    // プロキシポート（3200〜）
+  mainPort: number;     // difitポート（3100〜）
   status: 'starting' | 'running' | 'stopped' | 'error';
-  mainPid?: number;     // reviewitプロセスID
-  proxyPid?: number;    // プロキシプロセスID
-  url: string;          // アクセス用URL（プロキシ経由）
+  mainPid?: number;     // difitプロセスID
+  url: string;          // アクセス用URL
   startedAt?: number;
 }
 
