@@ -1802,6 +1802,12 @@ export class ProcessManager extends EventEmitter {
       p.onData((data) => {
         console.log(`difit output: ${data}`);
         
+        // (Y/n)プロンプトの検出と自動応答
+        if (data.includes('(Y/n)')) {
+          console.log('Detected (Y/n) prompt, sending "y" automatically');
+          p.write('y\r');
+        }
+        
         // 🚀 difit server started on http://localhost:3102 のパターンを検出
         const serverStartedMatch = data.match(/🚀.*difit server started on http:\/\/localhost:(\d+)/);
         if (serverStartedMatch && !serverDetected) {
