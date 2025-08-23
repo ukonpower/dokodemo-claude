@@ -158,6 +158,7 @@ function App() {
   const [showDiffMenu, setShowDiffMenu] = useState<boolean>(false);
   const [difitUrl, setDifitUrl] = useState<string | null>(null);
   const [showDifitNotification, setShowDifitNotification] = useState<boolean>(false);
+  const [showDifitOpenButton, setShowDifitOpenButton] = useState<boolean>(false);
   
   // ドロップダウンメニュー用のref
   const diffMenuRef = useRef<HTMLDivElement>(null);
@@ -527,19 +528,21 @@ function App() {
           const newWindow = window.open(url, '_blank');
           if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
             // ポップアップがブロックされた場合の処理
-            console.warn('Popup blocked. Showing notification with link.');
+            console.warn('Popup blocked. Showing notification with link and open button.');
             
             // UI通知を表示
             setDifitUrl(url);
             setShowDifitNotification(true);
+            setShowDifitOpenButton(true); // オープンボタンを表示
             
-            // 3秒後に自動で通知を閉じる
+            // 10秒後に自動で通知を閉じる
             setTimeout(() => {
               setShowDifitNotification(false);
             }, 10000); // 10秒間表示
           } else {
-            // タブが正常に開けた場合は通知を隠す
+            // タブが正常に開けた場合は通知とオープンボタンを隠す
             setShowDifitNotification(false);
+            setShowDifitOpenButton(false);
           }
         } else {
           setStartingReviewServer(false);
@@ -1102,8 +1105,39 @@ function App() {
             isConnected={isConnected}
           />
           
-          {/* difitドロップダウンボタン */}
-          <div className="relative">
+          {/* difitボタングループ */}
+          <div className="flex items-center">
+            {/* difitページオープンボタン（ポップアップブロック対応） */}
+            {showDifitOpenButton && difitUrl && (
+              <button
+                onClick={() => {
+                  window.open(difitUrl, '_blank');
+                  setShowDifitOpenButton(false);
+                  setShowDifitNotification(false);
+                }}
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 mr-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                title="difitページを開く"
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                <span className="hidden sm:inline">🚀 Open</span>
+                <span className="sm:hidden">🚀</span>
+              </button>
+            )}
+
+            {/* difitドロップダウンボタン */}
+            <div className="relative">
             {startingReviewServer ? (
               // 起動中 - ローディングアイコン
               <button
@@ -1181,6 +1215,7 @@ function App() {
                 )}
               </div>
             )}
+          </div>
           </div>
         </div>
 
@@ -1433,7 +1468,7 @@ function App() {
             <button
               onClick={() => {
                 setShowDifitNotification(false);
-                setDifitUrl(null);
+                // difitUrlとオープンボタンはそのまま残す
               }}
               className="flex-shrink-0 text-blue-400 hover:text-blue-300 focus:outline-none"
             >
