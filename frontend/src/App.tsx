@@ -1024,37 +1024,36 @@ function App() {
             <div className="flex items-center justify-end space-x-3">
               {/* 差分チェックボタン */}
               <div className="flex items-center space-x-2">
-                {/* 差分タイプ選択 */}
-                {!startingReviewServer &&
-                  getCurrentReviewServer()?.status !== 'running' && (
-                    <div className="flex items-center space-x-1">
-                      <select
-                        value={diffType}
-                        onChange={(e) => {
-                          const newDiffType = e.target.value as DiffType;
-                          setDiffType(newDiffType);
-                          if (newDiffType !== 'custom') {
-                            setCustomDiffValue('');
-                          }
-                        }}
-                        className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1"
-                      >
-                        <option value="HEAD">HEAD</option>
-                        <option value="staged">Staged</option>
-                        <option value="working">Working</option>
-                        <option value="custom">カスタム</option>
-                      </select>
-                      {diffType === 'custom' && (
-                        <input
-                          type="text"
-                          value={customDiffValue}
-                          onChange={(e) => setCustomDiffValue(e.target.value)}
-                          placeholder="ブランチ名やコミットハッシュ"
-                          className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1 w-32"
-                        />
-                      )}
-                    </div>
-                  )}
+                {/* 差分タイプ選択 - 始動中以外は常に表示 */}
+                {!startingReviewServer && (
+                  <div className="flex items-center space-x-1">
+                    <select
+                      value={diffType}
+                      onChange={(e) => {
+                        const newDiffType = e.target.value as DiffType;
+                        setDiffType(newDiffType);
+                        if (newDiffType !== 'custom') {
+                          setCustomDiffValue('');
+                        }
+                      }}
+                      className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1"
+                    >
+                      <option value="HEAD">HEAD</option>
+                      <option value="staged">Staged</option>
+                      <option value="working">Working</option>
+                      <option value="custom">カスタム</option>
+                    </select>
+                    {diffType === 'custom' && (
+                      <input
+                        type="text"
+                        value={customDiffValue}
+                        onChange={(e) => setCustomDiffValue(e.target.value)}
+                        placeholder="ブランチ名やコミットハッシュ"
+                        className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1 w-32"
+                      />
+                    )}
+                  </div>
+                )}
 
                 {startingReviewServer ? (
                   // 起動中 - ローディングアイコン
@@ -1079,32 +1078,58 @@ function App() {
                     <span className="hidden sm:inline">起動中...</span>
                   </button>
                 ) : getCurrentReviewServer()?.status === 'running' ? (
-                  // 実行中 - 開くボタンのみ（停止ボタンは削除）
-                  <button
-                    onClick={() => {
-                      const server = getCurrentReviewServer();
-                      if (server) {
-                        window.open(server.url, '_blank');
-                      }
-                    }}
-                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                    title="差分チェック画面を開く"
-                  >
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  // 実行中 - 開くボタンと再起動ボタン
+                  <>
+                    <button
+                      onClick={() => {
+                        const server = getCurrentReviewServer();
+                        if (server) {
+                          window.open(server.url, '_blank');
+                        }
+                      }}
+                      className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                      title="差分チェック画面を開く"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">差分チェック</span>
-                  </button>
+                      <svg
+                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                      <span className="hidden sm:inline">開く</span>
+                    </button>
+                    <button
+                      onClick={handleStartReviewServer}
+                      disabled={
+                        !isConnected ||
+                        (diffType === 'custom' && !customDiffValue.trim())
+                      }
+                      className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-orange-600 border border-orange-500 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title="新しい差分で再起動"
+                    >
+                      <svg
+                        className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <span className="hidden sm:inline">再起動</span>
+                    </button>
+                  </>
                 ) : (
                   // 停止中 - 開始ボタン
                   <button
