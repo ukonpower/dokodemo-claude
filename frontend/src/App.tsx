@@ -1425,52 +1425,16 @@ function App() {
 
       {/* difit サーバー通知（ポップアップブロック対応） */}
       {showDifitNotification && difitUrl && (
-        <div className="fixed top-4 right-4 bg-blue-800 rounded-lg shadow-xl max-w-sm w-full p-4 border border-blue-600 z-50">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-6 w-6 text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-white mb-2">
-                🚀 difit サーバーが起動しました
-              </h3>
-              <p className="text-xs text-blue-200 mb-3">
-                ポップアップがブロックされました。手動でページを開いてください。
-              </p>
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={() => {
-                    window.open(difitUrl, '_blank');
-                  }}
-                  className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                >
-                  ページを開く
-                </button>
-                <div className="bg-blue-900 rounded p-2 border border-blue-700">
-                  <p className="text-xs text-blue-200 break-all">
-                    {difitUrl}
-                  </p>
-                </div>
-              </div>
-            </div>
+        <div className="fixed bottom-4 right-4 bg-gray-800 rounded-lg shadow-xl max-w-xs w-full p-3 border border-gray-700 z-50">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-white">
+              🚀 difitサーバー起動
+            </h3>
             <button
               onClick={() => {
                 setShowDifitNotification(false);
-                // difitUrlとオープンボタンはそのまま残す
               }}
-              className="flex-shrink-0 text-blue-400 hover:text-blue-300 focus:outline-none"
+              className="text-gray-400 hover:text-gray-300 focus:outline-none"
             >
               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -1480,6 +1444,23 @@ function App() {
                 />
               </svg>
             </button>
+          </div>
+          <p className="text-xs text-gray-300 mb-3">
+            ポップアップがブロックされました
+          </p>
+          <button
+            onClick={() => {
+              window.open(difitUrl, '_blank');
+              setShowDifitNotification(false);
+            }}
+            className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors mb-2"
+          >
+            ページを開く
+          </button>
+          <div className="bg-gray-700 rounded p-2 border border-gray-600">
+            <p className="text-xs text-gray-300 break-all">
+              {difitUrl}
+            </p>
           </div>
         </div>
       )}
