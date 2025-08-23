@@ -1,6 +1,8 @@
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
+import { spawn } from 'child_process';
+import net from 'net';
 
 import path from 'path';
 import os from 'os';
@@ -1725,6 +1727,15 @@ export class ProcessManager extends EventEmitter {
     repositoryPath: string,
     diffConfig?: DiffConfig
   ): Promise<ReviewServer> {
+    // ポート3100の使用状況をチェック
+    const isPortBusy = await this.isPortInUse(3100);
+    if (isPortBusy) {
+      console.log('Port 3100 is in use, killing existing processes...');
+      await this.killProcessOnPort(3100);
+      // ポートが解放されるまで待機
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
     // 既存のサーバーがある場合は停止してから新しいサーバーを起動（使い捨てモード）
     const existingServer = this.reviewServers.get(repositoryPath);
     if (
@@ -1736,8 +1747,8 @@ export class ProcessManager extends EventEmitter {
         `Stopping existing difit server for repository: ${repositoryPath}`
       );
       await this.stopReviewServer(repositoryPath);
-      // プロセスが完全に停止するまで少し待つ
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // プロセスが完全に停止するまでより長く待つ
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     // 絶対パスを確保
@@ -1857,6 +1868,71 @@ export class ProcessManager extends EventEmitter {
   /**
    * 差分チェックサーバーを停止します
    */
+  /**
+   * ポートが使用中かどうかをチェック
+   */
+  private isPortInUse(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      server.listen(port, () => {
+        server.once('close', () => {
+          resolve(false);
+        });
+        server.close();
+      });
+      server.on('error', () => {
+        resolve(true);
+      });
+    });
+  }
+
+  /**
+   * 指定されたポートを使用しているプロセスを終了
+   */
+  private async killProcessOnPort(port: number): Promise<boolean> {
+    try {
+      console.log(`Checking and killing processes on port ${port}`);
+      
+      // プラットフォームに応じてコマンドを選択
+      const isWindows = process.platform === 'win32';
+      let command: string;
+      let args: string[];
+      
+      if (isWindows) {
+        // Windows: netstatでポートを使用しているプロセスIDを取得してtaskkillで終了
+        command = 'cmd';
+        args = ['/c', `for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port}') do taskkill /f /pid %a`];
+      } else {
+        // Unix系: lsofでプロセスIDを取得してkillで終了
+        command = 'sh';
+        args = ['-c', `lsof -ti:${port} | xargs -r kill -9`];
+      }
+
+      const result = spawn(command, args);
+      
+      return new Promise((resolve) => {
+        result.on('close', (code) => {
+          console.log(`Kill process on port ${port} exited with code: ${code}`);
+          resolve(code === 0);
+        });
+        
+        result.on('error', (error) => {
+          console.error(`Error killing process on port ${port}:`, error);
+          resolve(false);
+        });
+        
+        // タイムアウト設定（5秒）
+        setTimeout(() => {
+          result.kill();
+          resolve(false);
+        }, 5000);
+      });
+    } catch (error) {
+      console.error(`Failed to kill process on port ${port}:`, error);
+      return false;
+    }
+  }
+
   async stopReviewServer(repositoryPath: string): Promise<boolean> {
     const server = this.reviewServers.get(repositoryPath);
     if (!server) {
@@ -1864,13 +1940,39 @@ export class ProcessManager extends EventEmitter {
     }
 
     try {
+      console.log(`Stopping review server for ${repositoryPath} (PID: ${server.mainPid})`);
+
       // PTYプロセスを終了
       const ptyProcess = (server as unknown as Record<string, unknown>)
         .ptyProcess as pty.IPty | undefined;
       if (ptyProcess) {
+        console.log('Sending SIGTERM to PTY process...');
         ptyProcess.kill('SIGTERM');
+        // 少し待ってからSIGKILLを送信
+        setTimeout(() => {
+          try {
+            ptyProcess.kill('SIGKILL');
+          } catch {
+            console.log('PTY process already terminated');
+          }
+        }, 2000);
       } else if (server.mainPid) {
+        console.log(`Sending SIGTERM to process ${server.mainPid}...`);
         process.kill(server.mainPid, 'SIGTERM');
+        // 少し待ってからSIGKILLを送信
+        setTimeout(() => {
+          try {
+            process.kill(server.mainPid!, 'SIGKILL');
+          } catch {
+            console.log('Process already terminated');
+          }
+        }, 2000);
+      }
+
+      // ポート3100で動作している可能性のあるプロセスを強制終了
+      if (server.mainPort === 3100) {
+        console.log('Force killing any process on port 3100...');
+        await this.killProcessOnPort(3100);
       }
 
       server.status = 'stopped';
