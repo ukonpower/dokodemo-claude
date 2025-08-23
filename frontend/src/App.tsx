@@ -511,8 +511,16 @@ function App() {
           });
           setStartingReviewServer(false);
 
-          // 新しいタブでページを開く
-          window.open(data.server.url, '_blank');
+          // 新しいタブでページを開く（ブラウザベースのURLを構築）
+          let url = data.server.url;
+          if (url.includes('localhost')) {
+            // localhostを現在のブラウザのホスト名に置き換える
+            const port = url.match(/:(\d+)/)?.[1];
+            if (port) {
+              url = `${window.location.protocol}//${window.location.hostname}:${port}`;
+            }
+          }
+          window.open(url, '_blank');
         } else {
           setStartingReviewServer(false);
           console.error('Failed to start review server:', data.message);

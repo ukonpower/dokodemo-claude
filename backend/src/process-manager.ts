@@ -1786,9 +1786,35 @@ export class ProcessManager extends EventEmitter {
         `npx -y difit ${diffTarget} --host 0.0.0.0 --port ${mainPort} --no-open\r`
       );
 
-      // difitの出力をコンソールに表示
+      // difitの出力を監視してポート番号を動的に抽出
+      let serverDetected = false;
       p.onData((data) => {
         console.log(`difit output: ${data}`);
+        
+        // 🚀 difit server started on http://localhost:3102 のパターンを検出
+        const serverStartedMatch = data.match(/🚀.*difit server started on http:\/\/localhost:(\d+)/);
+        if (serverStartedMatch && !serverDetected) {
+          serverDetected = true;
+          const detectedPort = parseInt(serverStartedMatch[1], 10);
+          console.log(`Detected difit server on port: ${detectedPort}`);
+          
+          // サーバー情報を更新して動的ポートを反映
+          const currentServer = this.reviewServers.get(repositoryPath);
+          if (currentServer) {
+            currentServer.mainPort = detectedPort;
+            // ブラウザベースのURLを構築するため、URLをlocalhost形式で更新
+            currentServer.url = `http://localhost:${detectedPort}`;
+            currentServer.status = 'running';
+            this.reviewServers.set(repositoryPath, currentServer);
+            
+            // 成功イベントを送信（フロントエンドでタブが開かれる）
+            this.emit('reviewServerStarted', {
+              success: true,
+              message: 'Difit server started successfully',
+              server: currentServer,
+            });
+          }
+        }
       });
 
       // プロセス終了ハンドラを設定
@@ -1803,11 +1829,22 @@ export class ProcessManager extends EventEmitter {
         }
       });
 
-      // サーバーの起動を待つ（3秒間）
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // サーバーの起動を待つ（5秒間、動的ポート検出のため）
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      server.status = 'running';
-      this.reviewServers.set(repositoryPath, server);
+      // ポート検出に失敗した場合はフォールバック処理
+      if (!serverDetected) {
+        console.log(`Difit server port not detected, using fallback port: ${mainPort}`);
+        server.status = 'running';
+        this.reviewServers.set(repositoryPath, server);
+        
+        // フォールバック時もイベントを送信
+        this.emit('reviewServerStarted', {
+          success: true,
+          message: `Difit server started on fallback port: ${mainPort}`,
+          server,
+        });
+      }
 
       return server;
     } catch (error) {

@@ -316,6 +316,19 @@ processManager.on('terminal-exit', (data) => {
   io.emit('terminal-closed', { terminalId: data.terminalId });
 });
 
+// ReviewServerStartedイベントのハンドラ
+processManager.on('reviewServerStarted', (data) => {
+  // 全てのクライアントに差分チェックサーバー開始を通知
+  // ブラウザベースのURLに変換するため、localhostを現在のホストに置き換える
+  const server = { ...data.server };
+  if (server.url && server.url.includes('localhost')) {
+    // フロントエンドでwindow.location.hostを使用してURLを構築するため、
+    // ここではlocalhostのままにしておく（フロントエンドで動的に置換される）
+  }
+  
+  io.emit('review-server-started', data);
+});
+
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
   // クライアントの初期化（アクティブリポジトリなし）
@@ -1222,15 +1235,9 @@ io.on('connection', (socket) => {
     const { repositoryPath, diffConfig } = data;
 
     try {
-      const server = await processManager.startReviewServer(
-        repositoryPath,
-        diffConfig
-      );
-      socket.emit('review-server-started', {
-        success: true,
-        message: `差分チェックサーバーを開始しました: ${server.url}`,
-        server,
-      });
+      // startReviewServerは内部でイベントを発行するため、ここでは結果を待つだけ
+      await processManager.startReviewServer(repositoryPath, diffConfig);
+      // イベント送信はProcessManagerの内部で行われる（reviewServerStartedイベント）
     } catch (error) {
       socket.emit('review-server-started', {
         success: false,
