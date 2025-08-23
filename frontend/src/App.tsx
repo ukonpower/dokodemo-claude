@@ -155,8 +155,10 @@ function App() {
   const [_reviewServers, setReviewServers] = useState<ReviewServer[]>([]);
   const [startingReviewServer, setStartingReviewServer] =
     useState<boolean>(false);
-  const [diffType, setDiffType] = useState<DiffType>('HEAD');
-  const [customDiffValue, setCustomDiffValue] = useState<string>('');
+  const [showDiffMenu, setShowDiffMenu] = useState<boolean>(false);
+  
+  // ドロップダウンメニュー用のref
+  const diffMenuRef = useRef<HTMLDivElement>(null);
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -166,6 +168,23 @@ function App() {
   useEffect(() => {
     isLoadingRepoDataRef.current = isLoadingRepoData;
   }, [isLoadingRepoData]);
+
+  // ドロップダウンメニューの外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (diffMenuRef.current && !diffMenuRef.current.contains(event.target as Node)) {
+        setShowDiffMenu(false);
+      }
+    };
+
+    if (showDiffMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDiffMenu]);
 
   // Claude CLI出力が更新されたらローディングを終了する関数
   const endLoadingOnClaudeOutput = useCallback(() => {
@@ -853,16 +872,14 @@ function App() {
     }
   };
 
-  // 差分チェック関連のハンドラ
-  const handleStartReviewServer = () => {
+  // 差分タイプを指定してdifitを起動するハンドラ
+  const handleStartDifitWithType = (type: DiffType) => {
     if (socket && currentRepo) {
+      setShowDiffMenu(false); // メニューを閉じる
       setStartingReviewServer(true);
 
       const diffConfig: DiffConfig = {
-        type: diffType,
-        ...(diffType === 'custom' && customDiffValue
-          ? { customValue: customDiffValue }
-          : {}),
+        type: type,
       };
 
       socket.emit('start-review-server', {
@@ -1018,90 +1035,6 @@ function App() {
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
-              {/* 差分チェックボタン */}
-              <div className="flex items-center space-x-2">
-                {/* 差分タイプ選択 - 始動中以外は常に表示 */}
-                {!startingReviewServer && (
-                  <div className="flex items-center space-x-1">
-                    <select
-                      value={diffType}
-                      onChange={(e) => {
-                        const newDiffType = e.target.value as DiffType;
-                        setDiffType(newDiffType);
-                        if (newDiffType !== 'custom') {
-                          setCustomDiffValue('');
-                        }
-                      }}
-                      className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1"
-                    >
-                      <option value="HEAD">HEAD</option>
-                      <option value="staged">Staged</option>
-                      <option value="working">Working</option>
-                      <option value="custom">カスタム</option>
-                    </select>
-                    {diffType === 'custom' && (
-                      <input
-                        type="text"
-                        value={customDiffValue}
-                        onChange={(e) => setCustomDiffValue(e.target.value)}
-                        placeholder="ブランチ名やコミットハッシュ"
-                        className="text-xs bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 py-1 w-32"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {startingReviewServer ? (
-                  // 起動中 - ローディングアイコン
-                  <button
-                    disabled
-                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded-md cursor-not-allowed"
-                    title="差分チェックサーバー起動中..."
-                  >
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">起動中...</span>
-                  </button>
-                ) : (
-                  // 実行中・停止中共通 - 開くボタン（常に再起動してから開く）
-                  <button
-                    onClick={handleStartReviewServer}
-                    disabled={
-                      !isConnected ||
-                      (diffType === 'custom' && !customDiffValue.trim())
-                    }
-                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-green-600 border border-green-500 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="差分チェック画面を開く"
-                  >
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                    <span className="hidden sm:inline">開く</span>
-                  </button>
-                )}
-              </div>
-
               <div className="flex items-center space-x-2">
                 <div
                   className={`w-2 h-2 rounded-full ${
@@ -1133,13 +1066,94 @@ function App() {
       {/* メインコンテンツ */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
         {/* ブランチセレクター */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 justify-between">
           <BranchSelector
             branches={branches}
             currentBranch={currentBranch}
             onSwitchBranch={handleSwitchBranch}
             isConnected={isConnected}
           />
+          
+          {/* difitドロップダウンボタン */}
+          <div className="relative">
+            {startingReviewServer ? (
+              // 起動中 - ローディングアイコン
+              <button
+                disabled
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded-md cursor-not-allowed"
+                title="difit起動中..."
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span className="hidden sm:inline">起動中...</span>
+              </button>
+            ) : (
+              // difitドロップダウンボタン
+              <div ref={diffMenuRef}>
+                <button
+                  onClick={() => setShowDiffMenu(!showDiffMenu)}
+                  disabled={!isConnected}
+                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 border border-blue-500 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="差分タイプを選択してdifitを起動"
+                >
+                  <span>difit</span>
+                  <svg
+                    className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* ドロップダウンメニュー - ダークモード対応コンパクト */}
+                {showDiffMenu && (
+                  <div className="absolute right-0 mt-2 w-24 sm:w-28 bg-gray-800 rounded-md shadow-lg ring-1 ring-gray-700 z-50">
+                    <div className="py-0.5">
+                      <button
+                        onClick={() => handleStartDifitWithType('HEAD')}
+                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        <span>HEAD</span>
+                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">最新</span>
+                      </button>
+                      <button
+                        onClick={() => handleStartDifitWithType('staged')}
+                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        <span>Staged</span>
+                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">準備済</span>
+                      </button>
+                      <button
+                        onClick={() => handleStartDifitWithType('working')}
+                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        <span>Working</span>
+                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">作業中</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Claude CLI セクション */}
