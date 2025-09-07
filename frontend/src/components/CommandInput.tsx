@@ -13,7 +13,7 @@ interface CommandInputProps {
   onSendInterrupt?: () => void;
   onSendEscape?: () => void;
   onClearClaude?: () => void;
-  onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet') => void;
+  onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
   disabled?: boolean;
 }
 
@@ -35,7 +35,16 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
     },
     ref
   ) => {
-    const [command, setCommand] = useState('');
+    const [command, setCommand] = useState(() => {
+      // localStorage から初期値を読み込み
+      try {
+        const savedCommand = localStorage.getItem('claude-command-input');
+        return savedCommand || '';
+      } catch (error) {
+        console.warn('localStorage の読み込みに失敗しました:', error);
+        return '';
+      }
+    });
     const [showModelMenu, setShowModelMenu] = useState(false);
     const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +57,12 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
         // コマンド送信
         onSendCommand(command);
         setCommand('');
+        // コマンド送信後にlocalStorageをクリア
+        try {
+          localStorage.removeItem('claude-command-input');
+        } catch (error) {
+          console.warn('localStorage のクリアに失敗しました:', error);
+        }
       } else {
         // コマンドが入力されていない場合：エンターキーを送信
         onSendCommand('\r');
@@ -74,6 +89,15 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
         return;
       }
     };
+
+    // commandが変更される度にlocalStorageに保存
+    useEffect(() => {
+      try {
+        localStorage.setItem('claude-command-input', command);
+      } catch (error) {
+        console.warn('localStorage への保存に失敗しました:', error);
+      }
+    }, [command]);
 
     // フォーカスを自動で設定
     useEffect(() => {
@@ -259,9 +283,19 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                             onChangeModel('Sonnet');
                             setShowModelMenu(false);
                           }}
-                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600 rounded-b-md"
+                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600"
                         >
                           Sonnet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChangeModel('OpusPlan');
+                            setShowModelMenu(false);
+                          }}
+                          className="block w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-600 rounded-b-md"
+                        >
+                          OpusPlan
                         </button>
                       </div>
                     )}

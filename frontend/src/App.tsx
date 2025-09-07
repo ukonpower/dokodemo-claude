@@ -844,10 +844,12 @@ function App() {
     }
   };
 
-  const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet') => {
+  const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => {
     if (socket) {
+      // モデル名を適切な値に変換
+      const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
       socket.emit('send-command', {
-        command: `/model ${model}`,
+        command: `/model ${modelValue}`,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
       });
