@@ -194,7 +194,7 @@ export class ProcessManager extends EventEmitter {
     // PTYを使用してClaude CLIを対話モードで起動
     const claudeProcess = pty.spawn(
       'claude',
-      ['--dangerously-skip-permissions'],
+      ['--dangerously-skip-permissions', '--model', 'opusplan'],
       {
         name: 'xterm-color',
         cols: 120,
