@@ -5,6 +5,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
+import type { AiProvider } from '../types';
 
 interface CommandInputProps {
   onSendCommand: (command: string) => void;
@@ -12,8 +13,9 @@ interface CommandInputProps {
   onSendTabKey?: (shift?: boolean) => void;
   onSendInterrupt?: () => void;
   onSendEscape?: () => void;
-  onClearClaude?: () => void;
+  onClearAi?: () => void;
   onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
+  currentProvider?: AiProvider;
   disabled?: boolean;
 }
 
@@ -29,16 +31,36 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
       onSendTabKey,
       onSendInterrupt,
       onSendEscape,
-      onClearClaude,
+      onClearAi,
       onChangeModel,
+      currentProvider = 'claude',
       disabled = false,
     },
     ref
   ) => {
+    // プロバイダー別のローカルストレージキーを生成
+    const getStorageKey = () => `ai-command-input-${currentProvider}`;
+    const getLegacyStorageKey = () => 'claude-command-input'; // 旧キー（フォールバック用）
+
     const [command, setCommand] = useState(() => {
-      // localStorage から初期値を読み込み
+      // localStorage から初期値を読み込み（プロバイダー別）
       try {
-        const savedCommand = localStorage.getItem('claude-command-input');
+        const currentKey = getStorageKey();
+        const legacyKey = getLegacyStorageKey();
+
+        // 新しいキーから読み込み
+        let savedCommand = localStorage.getItem(currentKey);
+
+        // 新しいキーが存在しない場合、レガシーキーからフォールバック
+        if (!savedCommand && currentProvider === 'claude') {
+          savedCommand = localStorage.getItem(legacyKey);
+          // レガシーデータが見つかった場合、新しいキーに移行
+          if (savedCommand) {
+            localStorage.setItem(currentKey, savedCommand);
+            localStorage.removeItem(legacyKey);
+          }
+        }
+
         return savedCommand || '';
       } catch (error) {
         console.warn('localStorage の読み込みに失敗しました:', error);
@@ -57,9 +79,9 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
         // コマンド送信
         onSendCommand(command);
         setCommand('');
-        // コマンド送信後にlocalStorageをクリア
+        // コマンド送信後にlocalStorageをクリア（プロバイダー別）
         try {
-          localStorage.removeItem('claude-command-input');
+          localStorage.removeItem(getStorageKey());
         } catch (error) {
           console.warn('localStorage のクリアに失敗しました:', error);
         }
@@ -90,14 +112,25 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
       }
     };
 
-    // commandが変更される度にlocalStorageに保存
+    // commandまたはcurrentProviderが変更される度にlocalStorageに保存
     useEffect(() => {
       try {
-        localStorage.setItem('claude-command-input', command);
+        localStorage.setItem(getStorageKey(), command);
       } catch (error) {
         console.warn('localStorage への保存に失敗しました:', error);
       }
-    }, [command]);
+    }, [command, currentProvider]);
+
+    // プロバイダー変更時にコマンド入力欄を復元
+    useEffect(() => {
+      try {
+        const currentKey = getStorageKey();
+        const savedCommand = localStorage.getItem(currentKey) || '';
+        setCommand(savedCommand);
+      } catch (error) {
+        console.warn('プロバイダー変更時のlocalStorage読み込みに失敗しました:', error);
+      }
+    }, [currentProvider]);
 
     // フォーカスを自動で設定
     useEffect(() => {
@@ -115,6 +148,32 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
       },
     }));
 
+    // プロバイダー情報を取得
+    const getProviderInfo = () => {
+      switch (currentProvider) {
+        case 'claude':
+          return {
+            name: 'Claude CLI',
+            placeholder: 'Claude CLIへの指示を入力してください',
+            clearTitle: 'Claude CLIをクリア (/clear)',
+          };
+        case 'codex':
+          return {
+            name: 'Codex CLI',
+            placeholder: 'Codex CLIへの指示を入力してください',
+            clearTitle: 'Codex CLIをクリア (/clear)',
+          };
+        default:
+          return {
+            name: 'AI CLI',
+            placeholder: 'AI CLIへの指示を入力してください',
+            clearTitle: 'AI CLIをクリア (/clear)',
+          };
+      }
+    };
+
+    const providerInfo = getProviderInfo();
+
     return (
       <div className="space-y-3 sm:space-y-4">
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
@@ -127,7 +186,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
               placeholder={
                 disabled
                   ? 'リポジトリを選択してください...'
-                  : 'Claude CLIへの指示を入力してください'
+                  : providerInfo.placeholder
               }
               className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
               rows={3}
@@ -221,13 +280,13 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     ESC
                   </button>
                 )}
-                {onClearClaude && (
+                {onClearAi && (
                   <button
                     type="button"
-                    onClick={onClearClaude}
+                    onClick={onClearAi}
                     disabled={disabled}
                     className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded border border-cyan-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 touch-manipulation"
-                    title="Claude CLIをクリア (/clear)"
+                    title={providerInfo.clearTitle}
                   >
                     Clear
                   </button>

@@ -863,6 +863,27 @@ io.on('connection', (socket) => {
     }
   });
 
+  // AI出力履歴のクリア（新形式）
+  socket.on('clear-ai-output', async (data) => {
+    const { repositoryPath, provider } = data;
+    if (!repositoryPath || !provider) {
+      return;
+    }
+    try {
+      const success = await processManager.clearAiOutputHistory(repositoryPath, provider);
+      if (success) {
+        // クリア完了を通知
+        socket.emit('ai-output-cleared', {
+          repositoryPath,
+          provider,
+          success: true,
+        });
+      }
+    } catch {
+      // エラーは無視（フロントエンド側ではすでに表示がクリアされている）
+    }
+  });
+
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信

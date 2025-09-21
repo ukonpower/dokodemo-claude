@@ -1013,6 +1013,48 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * 指定されたリポジトリとプロバイダーのAI出力履歴をクリア
+   */
+  async clearAiOutputHistory(repositoryPath: string, provider: AiProvider): Promise<boolean> {
+    try {
+      // アクティブなセッションから履歴をクリア
+      const session = this.getAiSessionByRepository(repositoryPath, provider);
+      if (session) {
+        session.outputHistory = [];
+        // 永続化
+        await this.persistAiSessions();
+        return true;
+      }
+
+      // アクティブなセッションがない場合、永続化ファイルからもクリア
+      try {
+        const data = await fs.readFile(this.aiSessionsFile, 'utf-8');
+        const persistedSessions: PersistedAiSession[] = JSON.parse(data);
+        let found = false;
+        for (const persistedSession of persistedSessions) {
+          if (persistedSession.repositoryPath === repositoryPath && persistedSession.provider === provider) {
+            persistedSession.outputHistory = [];
+            found = true;
+            break;
+          }
+        }
+        if (found) {
+          await fs.writeFile(
+            this.aiSessionsFile,
+            JSON.stringify(persistedSessions, null, 2)
+          );
+          return true;
+        }
+      } catch {
+        // 永続化ファイル操作エラーは無視
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * ターミナル出力履歴に新しい行を追加
    */
   private addToTerminalOutputHistory(

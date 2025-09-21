@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import type { AiProvider } from '../types';
 
-interface ClaudeOutputProps {
+interface AiOutputProps {
   rawOutput: string;
   currentProvider?: AiProvider; // プロバイダー情報を追加
   onClickFocus?: () => void;
@@ -14,7 +14,7 @@ interface ClaudeOutputProps {
   isFocused?: boolean;
 }
 
-const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
+const AiOutput: React.FC<AiOutputProps> = ({
   rawOutput,
   currentProvider = 'claude',
   onClickFocus,
@@ -142,6 +142,42 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     }
   };
 
+  // プロバイダー名とメッセージを取得
+  const getProviderInfo = useCallback(() => {
+    switch (currentProvider) {
+      case 'claude':
+        return {
+          name: 'Claude CLI',
+          shortName: 'Claude',
+          initialMessage1: 'Claude CLIの出力がここに表示されます',
+          initialMessage2: 'リポジトリを選択してClaude CLIを開始してください',
+          loadingMessage: 'Claude CLI履歴を読み込み中...',
+          headerLabel: 'Claude CLI Output',
+          focusLabel: '（キー入力モード - ESCで解除）',
+        };
+      case 'codex':
+        return {
+          name: 'Codex CLI',
+          shortName: 'Codex',
+          initialMessage1: 'Codex CLIの出力がここに表示されます',
+          initialMessage2: 'リポジトリを選択してCodex CLIを開始してください',
+          loadingMessage: 'Codex CLI履歴を読み込み中...',
+          headerLabel: 'Codex CLI Output',
+          focusLabel: '（キー入力モード - ESCで解除）',
+        };
+      default:
+        return {
+          name: 'AI CLI',
+          shortName: 'AI',
+          initialMessage1: 'AI CLIの出力がここに表示されます',
+          initialMessage2: 'リポジトリを選択してAI CLIを開始してください',
+          loadingMessage: 'AI CLI履歴を読み込み中...',
+          headerLabel: 'AI CLI Output',
+          focusLabel: '（キー入力モード - ESCで解除）',
+        };
+    }
+  }, [currentProvider]);
+
   // ターミナルを初期化
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -208,11 +244,9 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
     // 初期メッセージを表示
     if (!rawOutput) {
-      const providerName = currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI';
-      terminal.current.writeln(`${providerName}の出力がここに表示されます`);
-      terminal.current.writeln(
-        `リポジトリを選択して${providerName}を開始してください`
-      );
+      const providerInfo = getProviderInfo();
+      terminal.current.writeln(providerInfo.initialMessage1);
+      terminal.current.writeln(providerInfo.initialMessage2);
     }
 
     return () => {
@@ -221,6 +255,17 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
       }
     };
   }, []);
+
+  // プロバイダー変更時に初期メッセージを更新
+  useEffect(() => {
+    if (!terminal.current || rawOutput) return;
+
+    const providerInfo = getProviderInfo();
+    terminal.current.clear();
+    terminal.current.writeln(providerInfo.initialMessage1);
+    terminal.current.writeln(providerInfo.initialMessage2);
+    lastOutputLength.current = 0;
+  }, [currentProvider, rawOutput, getProviderInfo]);
 
   // 出力が更新されたらターミナルに書き込み
   useEffect(() => {
@@ -269,6 +314,8 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
     }
   }, [isFocused]);
 
+  const providerInfo = getProviderInfo();
+
   return (
     <div className="flex flex-col h-full">
       {/* フォーカス用の隠しinput要素 */}
@@ -298,10 +345,10 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
               className={`w-2 h-2 rounded-full ${isFocused ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`}
             ></div>
             <span className="text-gray-300 text-xs">
-              Claude CLI Output{' '}
+              {providerInfo.headerLabel}{' '}
               {isFocused && (
                 <span className="text-blue-400">
-                  （キー入力モード - ESCで解除）
+                  {providerInfo.focusLabel}
                 </span>
               )}
             </span>
@@ -328,7 +375,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
           ref={terminalRef}
           className="h-full w-full cursor-pointer"
           onClick={() => {
-            // Claude CLI出力エリアをクリックしたらキー入力モードを切り替え
+            // AI CLI出力エリアをクリックしたらキー入力モードを切り替え
             if (onClickFocus) {
               onClickFocus();
             }
@@ -344,7 +391,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
           }}
         />
 
-        {/* Claude CLI専用ローディング表示 */}
+        {/* AI CLI専用ローディング表示 */}
         {isLoading && (
           <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center">
             <div className="flex flex-col items-center space-y-3">
@@ -370,7 +417,7 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
               </svg>
               <div className="text-center">
                 <p className="text-sm font-medium text-white">
-                  Claude CLI履歴を読み込み中...
+                  {providerInfo.loadingMessage}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
                   データを準備しています
@@ -384,4 +431,4 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   );
 };
 
-export default ClaudeOutput;
+export default AiOutput;

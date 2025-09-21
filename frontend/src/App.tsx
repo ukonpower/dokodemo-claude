@@ -19,7 +19,7 @@ import type {
 } from './types';
 
 import RepositoryManager from './components/RepositoryManager';
-import ClaudeOutput from './components/ClaudeOutput';
+import AiOutput from './components/AiOutput';
 import CommandInput, { CommandInputRef } from './components/CommandInput';
 import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
@@ -37,7 +37,9 @@ function App() {
     ClientToServerEvents
   > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
-  const [rawOutput, setRawOutput] = useState<string>(''); // 生ログを保持
+  // プロバイダー別CLIログ管理
+  const [aiLogs, setAiLogs] = useState<Map<AiProvider, string>>(new Map());
+  const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     // URLのクエリパラメータからリポジトリパスを復元
     const urlParams = new URLSearchParams(window.location.search);
@@ -99,7 +101,17 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentRepo, socket]);
+
+  // プロバイダー別セッションID管理
+  const [aiSessionIds, setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
+
+  // currentProviderの最新値を保持するref
+  const currentProviderRef = useRef(currentProvider);
+  useEffect(() => {
+    currentProviderRef.current = currentProvider;
+  }, [currentProvider]);
+
   const [isConnected, setIsConnected] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -576,6 +588,44 @@ function App() {
         setReviewServers(data.servers);
       });
 
+      // AI出力クリア通知イベント（新形式）
+      socketInstance.on('ai-output-cleared', (data) => {
+        if (data.repositoryPath === currentRepoRef.current) {
+          const provider = data.provider || 'claude';
+
+          // プロバイダー別ログマップからクリア
+          setAiLogs((prevLogs) => {
+            const newLogs = new Map(prevLogs);
+            newLogs.set(provider, '');
+
+            // 現在選択中のプロバイダーと一致する場合のみ表示更新
+            if (provider === currentProviderRef.current) {
+              setRawOutput('');
+            }
+
+            return newLogs;
+          });
+        }
+      });
+
+      // Claude出力クリア通知イベント（後方互換性）
+      socketInstance.on('claude-output-cleared', (data) => {
+        if (data.repositoryPath === currentRepoRef.current) {
+          // claudeプロバイダーとして管理
+          setAiLogs((prevLogs) => {
+            const newLogs = new Map(prevLogs);
+            newLogs.set('claude', '');
+
+            // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
+            if (currentProviderRef.current === 'claude') {
+              setRawOutput('');
+            }
+
+            return newLogs;
+          });
+        }
+      });
+
       socketInstance.on('connect', () => {
         // Connected to server
         setIsConnected(true);
@@ -856,20 +906,21 @@ function App() {
     }
   };
 
-  // ClaudeOutputからのキー入力ハンドラー
-  const handleClaudeKeyInput = (key: string) => {
+  // AIOutputからのキー入力ハンドラー
+  const handleAiKeyInput = (key: string) => {
     if (socket) {
+      const providerSessionId = aiSessionIds.get(currentProvider) || currentSessionId;
       socket.emit('send-command', {
         command: key,
-        sessionId: currentSessionId,
+        sessionId: providerSessionId,
         repositoryPath: currentRepo,
         provider: currentProvider,
       });
     }
   };
 
-  // ClaudeOutputのフォーカス切り替えハンドラー
-  const handleClaudeOutputFocus = () => {
+  // AIOutputのフォーカス切り替えハンドラー
+  const handleAiOutputFocus = () => {
     const newFocused = !claudeOutputFocused;
     setClaudeOutputFocused(newFocused);
     // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
@@ -1289,13 +1340,13 @@ function App() {
           <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
             {/* AI出力エリア */}
             <div className="flex-1 min-h-0">
-              <ClaudeOutput
+              <AiOutput
                 rawOutput={rawOutput}
                 currentProvider={currentProvider}
                 isLoading={isLoadingRepoData}
-                onClickFocus={handleClaudeOutputFocus}
+                onClickFocus={handleAiOutputFocus}
                 onClearOutput={handleClearClaudeOutput}
-                onKeyInput={handleClaudeKeyInput}
+                onKeyInput={handleAiKeyInput}
                 isFocused={claudeOutputFocused}
               />
             </div>
@@ -1309,8 +1360,9 @@ function App() {
                 onSendTabKey={handleSendTabKey}
                 onSendInterrupt={handleSendInterrupt}
                 onSendEscape={handleSendEscape}
-                onClearClaude={handleClearClaude}
+                onClearAi={handleClearClaude}
                 onChangeModel={handleChangeModel}
+                currentProvider={currentProvider}
                 disabled={!isConnected || !currentRepo}
               />
             </div>
