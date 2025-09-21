@@ -1,4 +1,16 @@
-// バックエンドの型定義と同じものを定義
+// AI プロバイダーの型定義
+export type AiProvider = 'claude' | 'codex';
+
+// AI CLI関連の型定義
+export interface AiMessage {
+  id: string;
+  type: 'user' | 'ai' | 'system';
+  content: string;
+  timestamp: number;
+  provider: AiProvider; // プロバイダー情報を追加
+}
+
+// 後方互換性のためにClaudeMessageを維持
 export interface ClaudeMessage {
   id: string;
   type: 'user' | 'claude' | 'system';
@@ -42,7 +54,16 @@ export interface TerminalMessage {
   timestamp: number;
 }
 
-// Claude出力履歴関連の型定義
+// AI CLI出力履歴の行情報
+export interface AiOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+  provider: AiProvider; // プロバイダー情報を追加
+}
+
+// 後方互換性のためにClaudeOutputLineを維持
 export interface ClaudeOutputLine {
   id: string;
   timestamp: number;
@@ -115,6 +136,7 @@ export interface ServerToClientEvents {
     content: string;
     sessionId?: string;
     repositoryPath?: string;
+    provider?: AiProvider;
   }) => void;
   'repo-cloned': (data: {
     success: boolean;
@@ -141,7 +163,25 @@ export interface ServerToClientEvents {
     sessionId?: string;
   }) => void;
 
-  // Claude セッション関連イベント
+  // AI セッション関連イベント
+  'ai-session-created': (data: {
+    sessionId: string;
+    repositoryPath: string;
+    repositoryName: string;
+    provider: AiProvider;
+  }) => void;
+  'ai-output-history': (data: {
+    repositoryPath: string;
+    history: AiOutputLine[];
+    provider: AiProvider;
+  }) => void;
+  'ai-output-cleared': (data: {
+    repositoryPath: string;
+    provider: AiProvider;
+    success: boolean;
+  }) => void;
+
+  // Claude セッション関連イベント（後方互換性）
   'claude-session-created': (data: {
     sessionId: string;
     repositoryPath: string;
@@ -266,13 +306,21 @@ export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
   'delete-repo': (data: { path: string; name: string }) => void;
-  'switch-repo': (data: { path: string }) => void;
+  'switch-repo': (data: { path: string; provider?: AiProvider }) => void;
   'list-repos': () => void;
   'send-command': (data: {
     command: string;
     sessionId?: string;
     repositoryPath?: string;
+    provider?: AiProvider;
   }) => void;
+  'ai-interrupt': (data?: {
+    sessionId?: string;
+    repositoryPath?: string;
+    provider?: AiProvider;
+  }) => void;
+  'get-ai-history': (data: { repositoryPath: string; provider: AiProvider }) => void;
+  'clear-ai-output': (data: { repositoryPath: string; provider: AiProvider }) => void;
   'claude-interrupt': (data?: {
     sessionId?: string;
     repositoryPath?: string;

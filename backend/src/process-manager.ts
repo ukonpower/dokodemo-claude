@@ -12,6 +12,8 @@ import {
   AutoModeState,
   ReviewServer,
   DiffConfig,
+  AiProvider,
+  AiOutputLine,
 } from './types/index.js';
 
 // Claude CLI出力履歴の行情報
@@ -30,7 +32,20 @@ export interface TerminalOutputLine {
   type: 'stdout' | 'stderr' | 'system';
 }
 
-// 永続化されるClaude CLIセッション情報
+// 永続化されるAI CLIセッション情報
+export interface PersistedAiSession {
+  id: string;
+  repositoryPath: string;
+  repositoryName: string;
+  pid: number;
+  isActive: boolean;
+  createdAt: number;
+  lastAccessedAt: number;
+  provider: AiProvider; // プロバイダー情報を追加
+  outputHistory?: AiOutputLine[]; // 出力履歴を追加
+}
+
+// 後方互換性のためにPersistedClaudeSessionを維持
 export interface PersistedClaudeSession {
   id: string;
   repositoryPath: string;
@@ -55,7 +70,14 @@ export interface PersistedTerminal {
   outputHistory?: TerminalOutputLine[]; // 出力履歴を追加
 }
 
-// アクティブなClaude CLIセッション
+// アクティブなAI CLIセッション
+export interface ActiveAiSession extends PersistedAiSession {
+  process: pty.IPty;
+  isPty: boolean;
+  outputHistory: AiOutputLine[]; // アクティブセッションでは必須
+}
+
+// 後方互換性のためにActiveClaudeSessionを維持
 export interface ActiveClaudeSession extends PersistedClaudeSession {
   process: pty.IPty;
   isPty: boolean;
@@ -73,6 +95,9 @@ export interface ActiveTerminal extends PersistedTerminal {
  * リポジトリごとにClaude CLIセッションとターミナルを管理
  */
 export class ProcessManager extends EventEmitter {
+  // マルチプロバイダー対応のセッション管理
+  private aiSessions: Map<string, ActiveAiSession> = new Map(); // provider:repositoryPath → セッション
+  // 後方互換性のためにclaudeSessionsを維持
   private claudeSessions: Map<string, ActiveClaudeSession> = new Map();
   private terminals: Map<string, ActiveTerminal> = new Map();
   private shortcuts: Map<string, CommandShortcut> = new Map();
@@ -81,7 +106,8 @@ export class ProcessManager extends EventEmitter {
   private autoModeTimers: Map<string, NodeJS.Timeout> = new Map(); // 待機中のタイマーを管理
   private reviewServers: Map<string, ReviewServer> = new Map(); // リポジトリパス → ReviewServer
   private processesDir: string;
-  private claudeSessionsFile: string;
+  private aiSessionsFile: string; // 新しいAIセッション永続化ファイル
+  private claudeSessionsFile: string; // 後方互換性用
   private terminalsFile: string;
   private shortcutsFile: string;
   private autoModeConfigsFile: string;
@@ -96,7 +122,8 @@ export class ProcessManager extends EventEmitter {
   constructor(processesDir: string) {
     super();
     this.processesDir = processesDir;
-    this.claudeSessionsFile = path.join(processesDir, 'claude-sessions.json');
+    this.aiSessionsFile = path.join(processesDir, 'ai-sessions.json'); // 新しいファイル
+    this.claudeSessionsFile = path.join(processesDir, 'claude-sessions.json'); // 後方互換性用
     this.terminalsFile = path.join(processesDir, 'terminals.json');
     this.shortcutsFile = path.join(processesDir, 'command-shortcuts.json');
     this.autoModeConfigsFile = path.join(processesDir, 'automode-configs.json');
@@ -104,11 +131,40 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * プロバイダーのCLIコマンドと引数を取得
+   */
+  private getProviderCommand(provider: AiProvider): { command: string; args: string[] } {
+    switch (provider) {
+      case 'claude':
+        return {
+          command: 'claude',
+          args: ['--dangerously-skip-permissions', '--model', 'opusplan']
+        };
+      case 'codex':
+        // Codex CLIの実装詳細は後で調整
+        return {
+          command: process.env.CODEX_CLI_COMMAND || 'codex',
+          args: process.env.CODEX_CLI_ARGS?.split(' ') || []
+        };
+      default:
+        throw new Error(`Unsupported AI provider: ${provider}`);
+    }
+  }
+
+  /**
+   * セッションキーを生成（プロバイダー情報を含む）
+   */
+  private getSessionKey(repositoryPath: string, provider: AiProvider): string {
+    return `${provider}:${repositoryPath}`;
+  }
+
+  /**
    * プロセス管理システムの初期化
    */
   async initialize(): Promise<void> {
     await this.ensureProcessesDir();
-    await this.restoreClaudeSessions();
+    await this.migrateAndRestoreAiSessions(); // 移行処理付きの復元
+    await this.restoreClaudeSessions(); // 後方互換性用
     await this.restoreTerminals();
     await this.restoreShortcuts();
     await this.restoreAutoModeConfigs();
@@ -130,7 +186,63 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * 既存のClaude CLIセッションを復帰
+   * 移行処理付きのAIセッション復元
+   */
+  private async migrateAndRestoreAiSessions(): Promise<void> {
+    try {
+      // 新しいAIセッションファイルが存在するかチェック
+      const newFileExists = await fs.access(this.aiSessionsFile).then(() => true).catch(() => false);
+
+      if (newFileExists) {
+        // 新しいファイルが存在する場合、そのまま復元
+        const data = await fs.readFile(this.aiSessionsFile, 'utf-8');
+        const persistedSessions: PersistedAiSession[] = JSON.parse(data);
+
+        for (const session of persistedSessions) {
+          if (await this.isProcessAlive(session.pid)) {
+            // プロセスが生きている場合の処理は後で実装
+          }
+        }
+      } else {
+        // 新しいファイルが存在しない場合、既存のClaude CLIセッションを移行
+        await this.migrateLegacyClaudeSessions();
+      }
+    } catch {
+      // エラーは無視
+    }
+  }
+
+  /**
+   * 既存のClaude CLIセッションを新しい形式に移行
+   */
+  private async migrateLegacyClaudeSessions(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
+      const legacySessions: PersistedClaudeSession[] = JSON.parse(data);
+
+      const migratedSessions: PersistedAiSession[] = legacySessions.map(session => ({
+        ...session,
+        provider: 'claude' as AiProvider,
+        outputHistory: session.outputHistory?.map(line => ({
+          ...line,
+          provider: 'claude' as AiProvider
+        })) || []
+      }));
+
+      // 新しい形式で保存
+      await fs.writeFile(
+        this.aiSessionsFile,
+        JSON.stringify(migratedSessions, null, 2)
+      );
+
+      console.log(`Migrated ${migratedSessions.length} Claude CLI sessions to new format`);
+    } catch {
+      // 移行失敗時は無視（新規インストールなど）
+    }
+  }
+
+  /**
+   * 既存のClaude CLIセッションを復帰（後方互換性用）
    */
   private async restoreClaudeSessions(): Promise<void> {
     try {
@@ -183,7 +295,91 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * 新しいClaude CLIセッションを作成
+   * 新しいAI CLIセッションを作成
+   */
+  async createAiSession(
+    repositoryPath: string,
+    repositoryName: string,
+    provider: AiProvider
+  ): Promise<ActiveAiSession> {
+    const sessionId = `${provider}-${++this.sessionCounter}-${Date.now()}`;
+    const { command, args } = this.getProviderCommand(provider);
+
+    // PTYを使用してAI CLIを対話モードで起動
+    const aiProcess = pty.spawn(command, args, {
+      name: 'xterm-color',
+      cols: 120,
+      rows: 30,
+      cwd: repositoryPath,
+      env: {
+        ...process.env,
+        TERM: 'xterm-256color',
+        COLORTERM: 'truecolor',
+        FORCE_COLOR: '1',
+      },
+    });
+
+    const session: ActiveAiSession = {
+      id: sessionId,
+      repositoryPath,
+      repositoryName,
+      pid: aiProcess.pid,
+      isActive: true,
+      isPty: true,
+      process: aiProcess,
+      provider,
+      createdAt: Date.now(),
+      lastAccessedAt: Date.now(),
+      outputHistory: [], // 出力履歴を初期化
+    };
+
+    // プロセス監視
+    aiProcess.onData((data: string) => {
+      session.lastAccessedAt = Date.now();
+
+      // 出力履歴に追加
+      this.addToAiOutputHistory(session, data, 'stdout');
+
+      this.emit('ai-output', {
+        sessionId: session.id,
+        repositoryPath: session.repositoryPath,
+        type: 'stdout',
+        content: data,
+        provider: session.provider,
+      });
+    });
+
+    aiProcess.onExit(({ exitCode, signal }) => {
+      session.isActive = false;
+      this.emit('ai-exit', {
+        sessionId: session.id,
+        repositoryPath: session.repositoryPath,
+        exitCode,
+        signal,
+        provider: session.provider,
+      });
+
+      // セッションをクリーンアップ
+      const sessionKey = this.getSessionKey(repositoryPath, provider);
+      this.aiSessions.delete(sessionKey);
+      this.persistAiSessions();
+    });
+
+    const sessionKey = this.getSessionKey(repositoryPath, provider);
+    this.aiSessions.set(sessionKey, session);
+    await this.persistAiSessions();
+
+    this.emit('ai-session-created', {
+      sessionId: session.id,
+      repositoryPath: session.repositoryPath,
+      repositoryName: session.repositoryName,
+      provider: session.provider,
+    });
+    return session;
+  }
+
+  /**
+   * 新しいClaude CLIセッションを作成（後方互換性用）
    */
   async createClaudeSession(
     repositoryPath: string,
@@ -373,7 +569,75 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * リポジトリのClaude CLIセッションを取得（なければ作成）
+   * リポジトリのAI CLIセッションを取得（なければ作成）
+   */
+  async getOrCreateAiSession(
+    repositoryPath: string,
+    repositoryName: string,
+    provider: AiProvider
+  ): Promise<ActiveAiSession> {
+    const sessionKey = this.getSessionKey(repositoryPath, provider);
+
+    // 既存のアクティブセッションを検索
+    const existingSession = this.aiSessions.get(sessionKey);
+    if (existingSession && existingSession.isActive) {
+      existingSession.lastAccessedAt = Date.now();
+      await this.persistAiSessions();
+      return existingSession;
+    }
+
+    // 永続化されたセッションで生きているものがあるかチェック
+    try {
+      const data = await fs.readFile(this.aiSessionsFile, 'utf-8');
+      const persistedSessions: PersistedAiSession[] = JSON.parse(data);
+
+      for (const persistedSession of persistedSessions) {
+        if (
+          persistedSession.repositoryPath === repositoryPath &&
+          persistedSession.provider === provider &&
+          (await this.isProcessAlive(persistedSession.pid))
+        ) {
+          // 既存プロセスに新しいセッション情報を作成（実際のPTY接続は復元しない）
+          const restoredSession = await this.restoreExistingAiSession(persistedSession);
+          this.aiSessions.set(sessionKey, restoredSession);
+          await this.persistAiSessions();
+          return restoredSession;
+        }
+      }
+    } catch {
+      // ファイル読み込みエラーは無視
+    }
+
+    // 新しいセッションを作成
+    return await this.createAiSession(repositoryPath, repositoryName, provider);
+  }
+
+  /**
+   * 既存のAI CLIプロセスを復帰
+   */
+  private async restoreExistingAiSession(
+    persisted: PersistedAiSession
+  ): Promise<ActiveAiSession> {
+    // 既存プロセスはそのまま維持し、新しいセッション情報を作成
+    const session: ActiveAiSession = {
+      id: persisted.id,
+      repositoryPath: persisted.repositoryPath,
+      repositoryName: persisted.repositoryName,
+      pid: persisted.pid,
+      isActive: true,
+      isPty: false, // 既存プロセスなのでPTY接続はなし
+      process: null as unknown as pty.IPty, // 実際のPTYプロセスはなし
+      provider: persisted.provider,
+      createdAt: persisted.createdAt,
+      lastAccessedAt: Date.now(),
+      outputHistory: persisted.outputHistory || [], // 既存の出力履歴を復元
+    };
+
+    return session;
+  }
+
+  /**
+   * リポジトリのClaude CLIセッションを取得（なければ作成）（後方互換性用）
    */
   async getOrCreateClaudeSession(
     repositoryPath: string,
@@ -567,7 +831,38 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * 出力履歴に新しい行を追加
+   * AI出力履歴に新しい行を追加
+   */
+  private addToAiOutputHistory(
+    session: ActiveAiSession,
+    content: string,
+    type: 'stdout' | 'stderr' | 'system'
+  ): void {
+    const outputLine: AiOutputLine = {
+      id: `${session.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      content,
+      timestamp: Date.now(),
+      type,
+      provider: session.provider,
+    };
+
+    session.outputHistory.push(outputLine);
+
+    // 最大行数を超えた場合、古い行を削除
+    if (session.outputHistory.length > this.MAX_OUTPUT_LINES) {
+      session.outputHistory = session.outputHistory.slice(
+        -this.MAX_OUTPUT_LINES
+      );
+    }
+
+    // 永続化（非同期で実行、エラーは無視）
+    this.persistAiSessions().catch(() => {
+      // Persist error ignored
+    });
+  }
+
+  /**
+   * 出力履歴に新しい行を追加（後方互換性用）
    */
   private addToOutputHistory(
     session: ActiveClaudeSession,
@@ -597,7 +892,40 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * 指定されたリポジトリの出力履歴を取得
+   * 指定されたリポジトリとプロバイダーのAI出力履歴を取得
+   */
+  async getAiOutputHistory(repositoryPath: string, provider: AiProvider): Promise<AiOutputLine[]> {
+    const sessionKey = this.getSessionKey(repositoryPath, provider);
+
+    // まずアクティブなセッションから履歴を取得
+    const session = this.aiSessions.get(sessionKey);
+    if (session) {
+      // 最新の500行に制限
+      const history = session.outputHistory;
+      return history.slice(-500);
+    }
+
+    // アクティブなセッションがない場合、永続化された履歴を読み込み
+    try {
+      const data = await fs.readFile(this.aiSessionsFile, 'utf-8');
+      const persistedSessions: PersistedAiSession[] = JSON.parse(data);
+
+      for (const persistedSession of persistedSessions) {
+        if (persistedSession.repositoryPath === repositoryPath &&
+            persistedSession.provider === provider) {
+          const history = persistedSession.outputHistory || [];
+          return history.slice(-500);
+        }
+      }
+    } catch {
+      // Error reading persisted sessions
+    }
+
+    return [];
+  }
+
+  /**
+   * 指定されたリポジトリのClaude出力履歴を取得（後方互換性用）
    */
   async getOutputHistory(repositoryPath: string): Promise<ClaudeOutputLine[]> {
     // Getting output history
@@ -745,7 +1073,35 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * Claude CLIセッション情報の永続化
+   * AI CLIセッション情報の永続化
+   */
+  private async persistAiSessions(): Promise<void> {
+    const persistedSessions: PersistedAiSession[] = Array.from(
+      this.aiSessions.values()
+    ).map((session) => ({
+      id: session.id,
+      repositoryPath: session.repositoryPath,
+      repositoryName: session.repositoryName,
+      pid: session.pid,
+      isActive: session.isActive,
+      createdAt: session.createdAt,
+      lastAccessedAt: session.lastAccessedAt,
+      provider: session.provider,
+      outputHistory: session.outputHistory, // 出力履歴も永続化
+    }));
+
+    try {
+      await fs.writeFile(
+        this.aiSessionsFile,
+        JSON.stringify(persistedSessions, null, 2)
+      );
+    } catch {
+      // Failed to persist AI sessions
+    }
+  }
+
+  /**
+   * Claude CLIセッション情報の永続化（後方互換性用）
    */
   private async persistClaudeSessions(): Promise<void> {
     const persistedSessions: PersistedClaudeSession[] = Array.from(
@@ -840,7 +1196,47 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * Claude CLIセッションへの入力送信
+   * AI CLIセッションへの入力送信
+   */
+  sendToAiSession(sessionId: string, input: string): boolean {
+    // AI セッションから検索
+    for (const session of this.aiSessions.values()) {
+      if (session.id === sessionId && session.isActive) {
+        // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
+        if (!session.isPty || !session.process) {
+          // 非同期で新しいセッションを作成
+          this.createAiSession(session.repositoryPath, session.repositoryName, session.provider)
+            .then((newSession) => {
+              // 古いセッションを削除
+              const sessionKey = this.getSessionKey(session.repositoryPath, session.provider);
+              this.aiSessions.delete(sessionKey);
+              // 新しいセッションでコマンドを送信
+              if (newSession.process) {
+                newSession.process.write(input);
+              }
+            })
+            .catch(() => {
+              // Failed to create new session
+            });
+          return true;
+        }
+
+        try {
+          session.process.write(input);
+          session.lastAccessedAt = Date.now();
+          return true;
+        } catch {
+          // Failed to send input to AI session
+          return false;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Claude CLIセッションへの入力送信（後方互換性用）
    */
   sendToClaudeSession(sessionId: string, input: string): boolean {
     const session = this.claudeSessions.get(sessionId);
@@ -1005,7 +1401,19 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * リポジトリのClaude CLIセッションを取得
+   * リポジトリとプロバイダーのAI CLIセッションを取得
+   */
+  getAiSessionByRepository(
+    repositoryPath: string,
+    provider: AiProvider
+  ): ActiveAiSession | undefined {
+    const sessionKey = this.getSessionKey(repositoryPath, provider);
+    const session = this.aiSessions.get(sessionKey);
+    return session && session.isActive ? session : undefined;
+  }
+
+  /**
+   * リポジトリのClaude CLIセッションを取得（後方互換性用）
    */
   getClaudeSessionByRepository(
     repositoryPath: string

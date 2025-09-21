@@ -2,9 +2,11 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import type { AiProvider } from '../types';
 
 interface ClaudeOutputProps {
   rawOutput: string;
+  currentProvider?: AiProvider; // プロバイダー情報を追加
   onClickFocus?: () => void;
   isLoading?: boolean;
   onClearOutput?: () => void;
@@ -14,6 +16,7 @@ interface ClaudeOutputProps {
 
 const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
   rawOutput,
+  currentProvider = 'claude',
   onClickFocus,
   isLoading = false,
   onClearOutput,
@@ -205,9 +208,10 @@ const ClaudeOutput: React.FC<ClaudeOutputProps> = ({
 
     // 初期メッセージを表示
     if (!rawOutput) {
-      terminal.current.writeln('Claude CLIの出力がここに表示されます');
+      const providerName = currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      terminal.current.writeln(`${providerName}の出力がここに表示されます`);
       terminal.current.writeln(
-        'リポジトリを選択してClaude CLIを開始してください'
+        `リポジトリを選択して${providerName}を開始してください`
       );
     }
 

@@ -246,6 +246,25 @@ async function switchBranch(
 }
 
 // ProcessManagerのイベントハンドラー設定
+processManager.on('ai-output', (data) => {
+  // アクティブリポジトリが一致するクライアントのみに送信
+  for (const [socketId, activeRepo] of clientActiveRepositories.entries()) {
+    if (activeRepo === data.repositoryPath) {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        targetSocket.emit('claude-raw-output', {
+          type: data.type,
+          content: data.content,
+          sessionId: data.sessionId,
+          repositoryPath: data.repositoryPath,
+          provider: data.provider, // プロバイダー情報を追加
+        });
+      }
+    }
+  }
+});
+
+// 後方互換性用のClaude出力イベント
 processManager.on('claude-output', (data) => {
   // アクティブリポジトリが一致するクライアントのみに送信
   for (const [socketId, activeRepo] of clientActiveRepositories.entries()) {
@@ -257,6 +276,25 @@ processManager.on('claude-output', (data) => {
           content: data.content,
           sessionId: data.sessionId,
           repositoryPath: data.repositoryPath,
+        });
+      }
+    }
+  }
+});
+
+processManager.on('ai-exit', (data) => {
+  // アクティブリポジトリが一致するクライアントのみに送信
+  for (const [socketId, activeRepo] of clientActiveRepositories.entries()) {
+    if (activeRepo === data.repositoryPath) {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        const providerName = data.provider === 'claude' ? 'Claude Code CLI' : 'Codex CLI';
+        targetSocket.emit('claude-raw-output', {
+          type: 'system',
+          content: `\n=== ${providerName} 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
+          sessionId: data.sessionId,
+          repositoryPath: data.repositoryPath,
+          provider: data.provider,
         });
       }
     }
@@ -282,6 +320,23 @@ processManager.on('claude-exit', (data) => {
 
 processManager.on('automode-waiting', (data) => {
   io.emit('automode-waiting', data);
+});
+
+processManager.on('ai-session-created', (session) => {
+  io.emit('ai-session-created', {
+    sessionId: session.sessionId,
+    repositoryPath: session.repositoryPath,
+    repositoryName: session.repositoryName,
+    provider: session.provider,
+  });
+  // 後方互換性のため、Claude セッションの場合は既存のイベントも発行
+  if (session.provider === 'claude') {
+    io.emit('claude-session-created', {
+      sessionId: session.sessionId,
+      repositoryPath: session.repositoryPath,
+      repositoryName: session.repositoryName,
+    });
+  }
 });
 
 processManager.on('claude-session-created', (session) => {
@@ -529,7 +584,7 @@ io.on('connection', (socket) => {
 
   // リポジトリの切り替え
   socket.on('switch-repo', async (data) => {
-    const { path: repoPath } = data;
+    const { path: repoPath, provider = 'claude' } = data; // デフォルトはClaude
 
     // クライアントのアクティブリポジトリを更新
     clientActiveRepositories.set(socket.id, repoPath || '');
@@ -543,26 +598,42 @@ io.on('connection', (socket) => {
       // リポジトリ名を取得
       const repoName = path.basename(repoPath);
 
-      // Claude CLIセッションを取得または作成
-      const session = await processManager.getOrCreateClaudeSession(
+      // AI CLIセッションを取得または作成
+      const session = await processManager.getOrCreateAiSession(
         repoPath,
-        repoName
+        repoName,
+        provider
       );
 
       socket.emit('repo-switched', {
         success: true,
-        message: `リポジトリを切り替えました: ${repoPath}`,
+        message: `リポジトリを切り替えました: ${repoPath} (${provider})`,
         currentPath: repoPath,
         sessionId: session.id,
       });
 
       // 出力履歴を送信
       try {
-        const outputHistory = await processManager.getOutputHistory(repoPath);
-        socket.emit('claude-output-history', {
+        const outputHistory = await processManager.getAiOutputHistory(repoPath, provider);
+        socket.emit('ai-output-history', {
           repositoryPath: repoPath,
           history: outputHistory,
+          provider: provider,
         });
+
+        // 後方互換性のため、Claudeの場合は既存のイベントも送信
+        if (provider === 'claude') {
+          const claudeHistory = outputHistory.map(line => ({
+            id: line.id,
+            content: line.content,
+            timestamp: line.timestamp,
+            type: line.type
+          }));
+          socket.emit('claude-output-history', {
+            repositoryPath: repoPath,
+            history: claudeHistory,
+          });
+        }
       } catch {
         // Failed to get output history
       }
@@ -575,26 +646,32 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Claude CLIへのコマンド送信
+  // AI CLIへのコマンド送信
   socket.on('send-command', (data) => {
-    const { command, sessionId, repositoryPath } = data;
+    const { command, sessionId, repositoryPath, provider = 'claude' } = data;
 
     let targetSessionId = sessionId;
 
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session =
-        processManager.getClaudeSessionByRepository(repositoryPath);
+      const session = processManager.getAiSessionByRepository(repositoryPath, provider);
       if (session) {
         targetSessionId = session.id;
+      } else {
+        // 後方互換性のためClaude セッションも確認
+        const claudeSession = processManager.getClaudeSessionByRepository(repositoryPath);
+        if (claudeSession) {
+          targetSessionId = claudeSession.id;
+        }
       }
     }
 
     if (!targetSessionId) {
+      const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
       socket.emit('claude-raw-output', {
         type: 'system',
-        content:
-          'Claude CLIセッションが開始されていません。リポジトリを選択してください。\n',
+        content: `${providerName}セッションが開始されていません。リポジトリを選択してください。\n`,
+        provider: provider,
       });
       return;
     }
@@ -620,24 +697,66 @@ io.on('connection', (socket) => {
       commandToSend = command + '\r';
 
       // Claude CLIでは実行確定のためもう一度エンターキーが必要（複数文字コマンドの場合のみ）
-      setTimeout(() => {
-        processManager.sendToClaudeSession(targetSessionId, '\r');
-      }, 100); // 100ms後に実行確定
+      // Codex CLIでは必要に応じて調整
+      if (provider === 'claude') {
+        setTimeout(() => {
+          processManager.sendToAiSession(targetSessionId, '\r');
+        }, 100); // 100ms後に実行確定
+      }
     }
 
-    const success = processManager.sendToClaudeSession(
-      targetSessionId,
-      commandToSend
-    );
+    // まずAI セッションで試行
+    let success = processManager.sendToAiSession(targetSessionId, commandToSend);
+    if (!success) {
+      // 後方互換性のためClaude セッションでも試行
+      success = processManager.sendToClaudeSession(targetSessionId, commandToSend);
+    }
+
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
-        content: `Claude CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`,
+        content: `CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`,
+        provider: provider,
       });
     }
   });
 
-  // Claude CLIへのCtrl+C中断送信
+  // AI CLIへのCtrl+C中断送信
+  socket.on('ai-interrupt', (data) => {
+    const { sessionId, repositoryPath, provider = 'claude' } = data || {};
+
+    let targetSessionId = sessionId;
+
+    // sessionIdが指定されていない場合、repositoryPathから取得
+    if (!targetSessionId && repositoryPath) {
+      const session = processManager.getAiSessionByRepository(repositoryPath, provider);
+      if (session) {
+        targetSessionId = session.id;
+      }
+    }
+
+    if (!targetSessionId) {
+      const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: `${providerName}セッションが開始されていません。\n`,
+        provider: provider,
+      });
+      return;
+    }
+
+    // Ctrl+C (SIGINT)を送信
+    const success = processManager.sendToAiSession(targetSessionId, '\x03');
+    if (!success) {
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: `CLIセッションエラー: セッション ${targetSessionId} が見つかりません\n`,
+        provider: provider,
+      });
+    }
+  });
+
+  // Claude CLIへのCtrl+C中断送信（後方互換性用）
   socket.on('claude-interrupt', (data) => {
     const { sessionId, repositoryPath } = data || {};
 
@@ -670,7 +789,33 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Claude CLI履歴の取得
+  // AI CLI履歴の取得
+  socket.on('get-ai-history', async (data) => {
+    const { repositoryPath, provider } = data;
+
+    if (!repositoryPath || !provider) {
+      return;
+    }
+
+    try {
+      // 指定されたリポジトリとプロバイダーの出力履歴を取得
+      const outputHistory = await processManager.getAiOutputHistory(repositoryPath, provider);
+
+      socket.emit('ai-output-history', {
+        repositoryPath,
+        history: outputHistory,
+        provider: provider,
+      });
+    } catch {
+      socket.emit('ai-output-history', {
+        repositoryPath,
+        history: [],
+        provider: provider,
+      });
+    }
+  });
+
+  // Claude CLI履歴の取得（後方互換性用）
   socket.on('get-claude-history', async (data) => {
     const { repositoryPath } = data;
 

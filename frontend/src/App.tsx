@@ -13,6 +13,7 @@ import type {
   ReviewServer,
   DiffType,
   DiffConfig,
+  AiProvider,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
@@ -24,6 +25,7 @@ import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
 import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
+import ProviderSelector from './components/ProviderSelector';
 
 // メモリリーク対策のための最大値設定
 const MAX_RAW_OUTPUT_LENGTH = Infinity; // 100KB
@@ -41,6 +43,15 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('repo') || '';
   });
+  const [currentProvider, setCurrentProvider] = useState<AiProvider>(() => {
+    // localStorageから復元、デフォルトはclaude
+    return (localStorage.getItem('preferred-ai-provider') as AiProvider) || 'claude';
+  });
+
+  // プロバイダー変更時にlocalStorageに保存
+  useEffect(() => {
+    localStorage.setItem('preferred-ai-provider', currentProvider);
+  }, [currentProvider]);
   const [claudeOutputFocused, setClaudeOutputFocused] =
     useState<boolean>(false);
 
@@ -67,11 +78,12 @@ function App() {
         } else {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
-            // サーバーにアクティブリポジトリを通知
-            socket.emit('switch-repo', { path: repoFromUrl });
+            // サーバーにアクティブリポジトリを通知（プロバイダー情報付き）
+            socket.emit('switch-repo', { path: repoFromUrl, provider: currentProvider });
 
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
-            socket.emit('get-claude-history', { repositoryPath: repoFromUrl });
+            socket.emit('get-ai-history', { repositoryPath: repoFromUrl, provider: currentProvider });
+            socket.emit('get-claude-history', { repositoryPath: repoFromUrl }); // 後方互換性
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
             socket.emit('list-branches', { repositoryPath: repoFromUrl });
             socket.emit('get-npm-scripts', { repositoryPath: repoFromUrl });
@@ -696,11 +708,22 @@ function App() {
     if (socket) {
       // ローディング状態を開始
       setIsSwitchingRepo(true);
-      socket.emit('switch-repo', { path });
+      socket.emit('switch-repo', { path, provider: currentProvider });
       // URLにリポジトリパスを保存
       const url = new URL(window.location.href);
       url.searchParams.set('repo', path);
       window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handleProviderChange = (provider: AiProvider) => {
+    setCurrentProvider(provider);
+
+    // 既にリポジトリが選択されている場合は、新しいプロバイダーでセッションを切り替え
+    if (socket && currentRepo) {
+      setRawOutput(''); // 出力をクリア
+      socket.emit('switch-repo', { path: currentRepo, provider });
+      socket.emit('get-ai-history', { repositoryPath: currentRepo, provider });
     }
   };
 
@@ -750,6 +773,7 @@ function App() {
         command,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -767,6 +791,7 @@ function App() {
         command: arrowKeys[direction],
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -779,12 +804,19 @@ function App() {
         command: tabKey,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
 
   const handleSendInterrupt = () => {
     if (socket) {
+      socket.emit('ai-interrupt', {
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+      });
+      // 後方互換性のため
       socket.emit('claude-interrupt', {
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
@@ -798,6 +830,7 @@ function App() {
         command: '\x1b', // ESC (ASCII 27)
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -808,6 +841,7 @@ function App() {
         command: '/clear',
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -817,7 +851,8 @@ function App() {
 
     // バックエンド側の履歴もクリア
     if (socket && currentRepo) {
-      socket.emit('clear-claude-output', { repositoryPath: currentRepo });
+      socket.emit('clear-ai-output', { repositoryPath: currentRepo, provider: currentProvider });
+      socket.emit('clear-claude-output', { repositoryPath: currentRepo }); // 後方互換性
     }
   };
 
@@ -828,6 +863,7 @@ function App() {
         command: key,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -852,6 +888,7 @@ function App() {
         command: `/model ${modelValue}`,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
+        provider: currentProvider,
       });
     }
   };
@@ -1018,7 +1055,7 @@ function App() {
                       リポジトリを切り替えています
                     </h3>
                     <p className="text-sm text-gray-300">
-                      Claude CLIセッションを準備中です...
+                      {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}セッションを準備中です...
                     </p>
                   </div>
                 </div>
@@ -1068,6 +1105,14 @@ function App() {
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
+              {/* プロバイダー選択 */}
+              <div className="hidden sm:block">
+                <ProviderSelector
+                  currentProvider={currentProvider}
+                  onProviderChange={handleProviderChange}
+                  disabled={!currentRepo || !isConnected}
+                />
+              </div>
               <div className="flex items-center space-x-2">
                 <div
                   className={`w-2 h-2 rounded-full ${
@@ -1238,14 +1283,15 @@ function App() {
                   d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
-              Claude CLI
+              {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}
             </h2>
           </div>
           <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
-            {/* Claude出力エリア */}
+            {/* AI出力エリア */}
             <div className="flex-1 min-h-0">
               <ClaudeOutput
                 rawOutput={rawOutput}
+                currentProvider={currentProvider}
                 isLoading={isLoadingRepoData}
                 onClickFocus={handleClaudeOutputFocus}
                 onClearOutput={handleClearClaudeOutput}
@@ -1254,7 +1300,7 @@ function App() {
               />
             </div>
 
-            {/* Claude コマンド入力エリア */}
+            {/* AI コマンド入力エリア */}
             <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-700">
               <CommandInput
                 ref={commandInputRef}

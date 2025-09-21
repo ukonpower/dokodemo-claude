@@ -1,4 +1,16 @@
-// Claude Code CLI関連の型定義
+// AI プロバイダーの型定義
+export type AiProvider = 'claude' | 'codex';
+
+// AI CLI関連の型定義
+export interface AiMessage {
+  id: string;
+  type: 'user' | 'ai' | 'system';
+  content: string;
+  timestamp: number;
+  provider: AiProvider; // プロバイダー情報を追加
+}
+
+// 後方互換性のためにClaudeMessageを維持
 export interface ClaudeMessage {
   id: string;
   type: 'user' | 'claude' | 'system';
@@ -38,7 +50,16 @@ export interface TerminalMessage {
   timestamp: number;
 }
 
-// Claude CLI出力履歴の行情報
+// AI CLI出力履歴の行情報
+export interface AiOutputLine {
+  id: string;
+  content: string;
+  timestamp: number;
+  type: 'stdout' | 'stderr' | 'system';
+  provider: AiProvider; // プロバイダー情報を追加
+}
+
+// 後方互換性のためにClaudeOutputLineを維持
 export interface ClaudeOutputLine {
   id: string;
   content: string;
@@ -58,11 +79,13 @@ export interface TerminalOutputLine {
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
+  'ai-output': (data: AiMessage) => void; // 新しいAI出力イベント
   'claude-raw-output': (data: {
     type: 'stdout' | 'stderr' | 'system';
     content: string;
     sessionId?: string;
     repositoryPath?: string;
+    provider?: AiProvider; // プロバイダー情報を追加
   }) => void;
   'repo-cloned': (data: {
     success: boolean;
@@ -86,7 +109,25 @@ export interface ServerToClientEvents {
     sessionId?: string;
   }) => void;
 
-  // Claude セッション関連イベント
+  // AI セッション関連イベント
+  'ai-session-created': (data: {
+    sessionId: string;
+    repositoryPath: string;
+    repositoryName: string;
+    provider: AiProvider; // プロバイダー情報を追加
+  }) => void;
+  'ai-output-history': (data: {
+    repositoryPath: string;
+    history: AiOutputLine[];
+    provider: AiProvider; // プロバイダー情報を追加
+  }) => void;
+  'ai-output-cleared': (data: {
+    repositoryPath: string;
+    provider: AiProvider; // プロバイダー情報を追加
+    success: boolean;
+  }) => void;
+
+  // Claude セッション関連イベント（後方互換性）
   'claude-session-created': (data: {
     sessionId: string;
     repositoryPath: string;
@@ -216,13 +257,21 @@ export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
   'delete-repo': (data: { path: string; name: string }) => void;
-  'switch-repo': (data: { path: string }) => void;
+  'switch-repo': (data: { path: string; provider?: AiProvider }) => void; // プロバイダー選択を追加
   'list-repos': () => void;
   'send-command': (data: {
     command: string;
     sessionId?: string;
     repositoryPath?: string;
+    provider?: AiProvider; // プロバイダー情報を追加
   }) => void;
+  'ai-interrupt': (data?: {
+    sessionId?: string;
+    repositoryPath?: string;
+    provider?: AiProvider; // プロバイダー情報を追加
+  }) => void;
+  'get-ai-history': (data: { repositoryPath: string; provider: AiProvider }) => void;
+  'clear-ai-output': (data: { repositoryPath: string; provider: AiProvider }) => void;
   'claude-interrupt': (data?: {
     sessionId?: string;
     repositoryPath?: string;
@@ -306,7 +355,16 @@ export interface ClientToServerEvents {
   'get-review-servers': () => void;
 }
 
-// Claude CLI 操作関連の型定義
+// AI CLI 操作関連の型定義
+export interface AiSession {
+  process: unknown; // pty.IPty | ChildProcess
+  isActive: boolean;
+  workingDirectory: string;
+  isPty: boolean;
+  provider: AiProvider; // プロバイダー情報を追加
+}
+
+// 後方互換性のためにClaudeSessionを維持
 export interface ClaudeSession {
   process: unknown; // pty.IPty | ChildProcess
   isActive: boolean;
