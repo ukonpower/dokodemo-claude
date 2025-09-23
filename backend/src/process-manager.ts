@@ -141,10 +141,18 @@ export class ProcessManager extends EventEmitter {
           args: ['--dangerously-skip-permissions', '--model', 'opusplan']
         };
       case 'codex':
-        // Codex CLIの実装詳細は後で調整
+        // Codex CLIの設定
+        const codexCommand = process.env.CODEX_CLI_COMMAND || 'codex';
+        const codexArgs = process.env.CODEX_CLI_ARGS?.split(' ') || [];
+
+        // TTYを無効にする設定があれば追加
+        if (process.env.CODEX_CLI_NO_TTY === 'true') {
+          codexArgs.push('--no-tty');
+        }
+
         return {
-          command: process.env.CODEX_CLI_COMMAND || 'codex',
-          args: process.env.CODEX_CLI_ARGS?.split(' ') || []
+          command: codexCommand,
+          args: codexArgs
         };
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
@@ -337,14 +345,20 @@ export class ProcessManager extends EventEmitter {
     aiProcess.onData((data: string) => {
       session.lastAccessedAt = Date.now();
 
-      // 出力履歴に追加
-      this.addToAiOutputHistory(session, data, 'stdout');
+      // プロバイダー固有の処理
+      let processedData = data;
+      if (session.provider === 'codex') {
+        processedData = this.handleCodexTerminalQueries(data, aiProcess);
+      }
+
+      // 出力履歴に追加（処理済みデータを使用）
+      this.addToAiOutputHistory(session, processedData, 'stdout');
 
       this.emit('ai-output', {
         sessionId: session.id,
         repositoryPath: session.repositoryPath,
         type: 'stdout',
-        content: data,
+        content: processedData,
         provider: session.provider,
       });
     });
@@ -1754,6 +1768,52 @@ export class ProcessManager extends EventEmitter {
       await this.persistAutoModeStates();
       // Cleaned up automode data
     }
+  }
+
+  /**
+   * Codex CLIのターミナルクエリを処理
+   */
+  private handleCodexTerminalQueries(data: string, ptyProcess: pty.IPty): string {
+    // ESC[6n (cursor position request) の検出と応答
+    if (data.includes('\x1b[6n')) {
+      console.log('Detected cursor position query from Codex CLI, responding...');
+      // カーソル位置応答 (row;col R format)
+      ptyProcess.write('\x1b[1;1R');
+      // クエリ部分を除去してUIに表示しないようにする
+      return data.replace(/\x1b\[6n/g, '');
+    }
+
+    // ESC[?6n (extended cursor position request) の検出と応答
+    if (data.includes('\x1b[?6n')) {
+      console.log('Detected extended cursor position query from Codex CLI, responding...');
+      // 拡張カーソル位置応答
+      ptyProcess.write('\x1b[?1;1R');
+      // クエリ部分を除去
+      return data.replace(/\x1b\[\?6n/g, '');
+    }
+
+    // その他のDevice Status Report (DSR) クエリの検出
+    const dsrMatch = data.match(/\x1b\[\?(\d+)n/);
+    if (dsrMatch) {
+      const queryType = dsrMatch[1];
+      console.log(`Detected DSR query type ${queryType} from Codex CLI, responding...`);
+      // 一般的なDSR応答（デバイス OK）
+      ptyProcess.write(`\x1b[?${queryType};0n`);
+      // クエリ部分を除去
+      return data.replace(/\x1b\[\?\d+n/g, '');
+    }
+
+    // ESC[c (primary device attributes request) への応答
+    if (data.includes('\x1b[c')) {
+      console.log('Detected device attributes query from Codex CLI, responding...');
+      // VT100互換ターミナルとして応答
+      ptyProcess.write('\x1b[?1;2c');
+      // クエリ部分を除去
+      return data.replace(/\x1b\[c/g, '');
+    }
+
+    // 処理されなかった場合は元のデータをそのまま返す
+    return data;
   }
 
   /**

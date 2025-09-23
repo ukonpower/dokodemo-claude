@@ -37,8 +37,8 @@ function App() {
     ClientToServerEvents
   > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
-  // プロバイダー別CLIログ管理
-  const [aiLogs, setAiLogs] = useState<Map<AiProvider, string>>(new Map());
+  // プロバイダー別CLIログ管理（将来の拡張用）
+  const [_aiLogs, _setAiLogs] = useState<Map<AiProvider, string>>(new Map());
   const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     // URLのクエリパラメータからリポジトリパスを復元
@@ -102,8 +102,8 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [currentRepo, socket]);
 
-  // プロバイダー別セッションID管理
-  const [aiSessionIds, setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
+  // プロバイダー別セッションID管理（将来の拡張用）
+  const [aiSessionIds, _setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   // currentProviderの最新値を保持するref
@@ -593,8 +593,8 @@ function App() {
         if (data.repositoryPath === currentRepoRef.current) {
           const provider = data.provider || 'claude';
 
-          // プロバイダー別ログマップからクリア
-          setAiLogs((prevLogs) => {
+          // プロバイダー別ログマップからクリア（将来の拡張用）
+          _setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
             newLogs.set(provider, '');
 
@@ -611,8 +611,8 @@ function App() {
       // Claude出力クリア通知イベント（後方互換性）
       socketInstance.on('claude-output-cleared', (data) => {
         if (data.repositoryPath === currentRepoRef.current) {
-          // claudeプロバイダーとして管理
-          setAiLogs((prevLogs) => {
+          // claudeプロバイダーとして管理（将来の拡張用）
+          _setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
             newLogs.set('claude', '');
 
