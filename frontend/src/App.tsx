@@ -106,7 +106,7 @@ function App() {
   }, [currentRepo, socket]);
 
   // プロバイダー別セッションID管理（将来の拡張用）
-  const [aiSessionIds, _setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
+  const [aiSessionIds] = useState<Map<AiProvider, string>>(new Map());
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   // currentProviderの最新値を保持するref
@@ -972,7 +972,10 @@ function App() {
     // バックエンド側の履歴もクリア
     if (socket && currentRepo) {
       socket.emit('clear-ai-output', { repositoryPath: currentRepo, provider: currentProvider });
-      socket.emit('clear-claude-output', { repositoryPath: currentRepo }); // 後方互換性
+      // Claude表示時のみ後方互換イベントを送信
+      if (currentProvider === 'claude') {
+        socket.emit('clear-claude-output', { repositoryPath: currentRepo });
+      }
     }
   };
 
@@ -1411,6 +1414,7 @@ function App() {
             {/* AI出力エリア */}
             <div className="flex-1 min-h-0">
               <AiOutput
+                key={`${currentRepo}:${currentProvider}`}
                 rawOutput={rawOutput}
                 currentProvider={currentProvider}
                 isLoading={isLoadingRepoData}

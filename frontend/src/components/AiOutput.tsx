@@ -128,7 +128,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         onKeyInput(keyInput);
       }
     },
-    [isFocused, onKeyInput, getKeyMapping, onClickFocus, isComposing]
+    [isFocused, onKeyInput, getKeyMapping, onClickFocus]
   );
 
   // ターミナルの履歴をクリアする関数
@@ -254,22 +254,39 @@ const AiOutput: React.FC<AiOutputProps> = ({
         terminal.current.dispose();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // プロバイダー変更時に初期メッセージを更新
+  // プロバイダー変更時にターミナルを初期化して正しい内容に更新
   useEffect(() => {
-    if (!terminal.current || rawOutput) return;
+    if (!terminal.current) return;
 
-    const providerInfo = getProviderInfo();
+    // ターミナルをクリア
     terminal.current.clear();
-    terminal.current.writeln(providerInfo.initialMessage1);
-    terminal.current.writeln(providerInfo.initialMessage2);
     lastOutputLength.current = 0;
-  }, [currentProvider, rawOutput, getProviderInfo]);
+
+    // rawOutputがあれば全量描画、なければ初期メッセージ表示
+    if (rawOutput && rawOutput.length > 0) {
+      terminal.current.write(rawOutput);
+      lastOutputLength.current = rawOutput.length;
+    } else {
+      const info = getProviderInfo();
+      terminal.current.writeln(info.initialMessage1);
+      terminal.current.writeln(info.initialMessage2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProvider]);
 
   // 出力が更新されたらターミナルに書き込み
   useEffect(() => {
-    if (!terminal.current || !rawOutput) return;
+    if (!terminal.current) return;
+    if (!rawOutput) return;
+
+    // 入れ替え（長さが減った等）を検知したら全量描画
+    if (rawOutput.length < lastOutputLength.current) {
+      terminal.current.clear();
+      lastOutputLength.current = 0;
+    }
 
     // 新しい出力部分のみを取得
     const newOutput = rawOutput.slice(lastOutputLength.current);
