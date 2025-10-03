@@ -97,6 +97,7 @@ export interface ActiveTerminal extends PersistedTerminal {
 export class ProcessManager extends EventEmitter {
   // マルチプロバイダー対応のセッション管理
   private aiSessions: Map<string, ActiveAiSession> = new Map(); // provider:repositoryPath → セッション
+  private idIndex: Map<string, string> = new Map(); // sessionId → sessionKey (O(1)検索用)
   // 後方互換性のためにclaudeSessionsを維持
   private claudeSessions: Map<string, ActiveClaudeSession> = new Map();
   private terminals: Map<string, ActiveTerminal> = new Map();
@@ -376,11 +377,13 @@ export class ProcessManager extends EventEmitter {
       // セッションをクリーンアップ
       const sessionKey = this.getSessionKey(repositoryPath, provider);
       this.aiSessions.delete(sessionKey);
+      this.idIndex.delete(session.id); // idIndexからも削除
       this.persistAiSessions();
     });
 
     const sessionKey = this.getSessionKey(repositoryPath, provider);
     this.aiSessions.set(sessionKey, session);
+    this.idIndex.set(session.id, sessionKey); // idIndexに登録（O(1)検索用）
     await this.persistAiSessions();
 
     this.emit('ai-session-created', {
@@ -624,6 +627,29 @@ export class ProcessManager extends EventEmitter {
 
     // 新しいセッションを作成
     return await this.createAiSession(repositoryPath, repositoryName, provider);
+  }
+
+  /**
+   * AI CLIセッションの確保（強制再起動オプション付き）
+   */
+  async ensureAiSession(
+    repositoryPath: string,
+    repositoryName: string,
+    provider: AiProvider,
+    options?: { forceRestart?: boolean }
+  ): Promise<ActiveAiSession> {
+    const sessionKey = this.getSessionKey(repositoryPath, provider);
+
+    // 強制再起動が指定されている場合は既存セッションを終了
+    if (options?.forceRestart) {
+      const existingSession = this.aiSessions.get(sessionKey);
+      if (existingSession) {
+        await this.closeAiSession(sessionKey);
+      }
+    }
+
+    // セッションを取得または作成
+    return await this.getOrCreateAiSession(repositoryPath, repositoryName, provider);
   }
 
   /**
@@ -1252,43 +1278,78 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
-   * AI CLIセッションへの入力送信
+   * AI CLIセッションへの入力送信（O(1)検索）
    */
   sendToAiSession(sessionId: string, input: string): boolean {
-    // AI セッションから検索
-    for (const session of this.aiSessions.values()) {
-      if (session.id === sessionId && session.isActive) {
-        // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
-        if (!session.isPty || !session.process) {
-          // 非同期で新しいセッションを作成
-          this.createAiSession(session.repositoryPath, session.repositoryName, session.provider)
-            .then((newSession) => {
-              // 古いセッションを削除
-              const sessionKey = this.getSessionKey(session.repositoryPath, session.provider);
-              this.aiSessions.delete(sessionKey);
-              // 新しいセッションでコマンドを送信
-              if (newSession.process) {
-                newSession.process.write(input);
-              }
-            })
-            .catch(() => {
-              // Failed to create new session
-            });
-          return true;
-        }
-
-        try {
-          session.process.write(input);
-          session.lastAccessedAt = Date.now();
-          return true;
-        } catch {
-          // Failed to send input to AI session
-          return false;
-        }
-      }
+    // idIndexからsessionKeyをO(1)で検索
+    const sessionKey = this.idIndex.get(sessionId);
+    if (!sessionKey) {
+      return false;
     }
 
-    return false;
+    const session = this.aiSessions.get(sessionKey);
+    if (!session || !session.isActive) {
+      return false;
+    }
+
+    // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
+    if (!session.isPty || !session.process) {
+      // 非同期で新しいセッションを作成
+      this.createAiSession(session.repositoryPath, session.repositoryName, session.provider)
+        .then((newSession) => {
+          // 古いセッションを削除
+          this.aiSessions.delete(sessionKey);
+          this.idIndex.delete(sessionId);
+          // 新しいセッションでコマンドを送信
+          if (newSession.process) {
+            newSession.process.write(input);
+          }
+        })
+        .catch(() => {
+          // Failed to create new session
+        });
+      return true;
+    }
+
+    try {
+      session.process.write(input);
+      session.lastAccessedAt = Date.now();
+      return true;
+    } catch {
+      // Failed to send input to AI session
+      return false;
+    }
+  }
+
+  /**
+   * AI CLIセッションへのシグナル送信（O(1)検索）
+   * Ctrl+C (SIGINT) などのシグナルを送信
+   */
+  sendSignalToAiSession(sessionId: string, signal: string): boolean {
+    // idIndexからsessionKeyをO(1)で検索
+    const sessionKey = this.idIndex.get(sessionId);
+    if (!sessionKey) {
+      return false;
+    }
+
+    const session = this.aiSessions.get(sessionKey);
+    if (!session || !session.isActive) {
+      return false;
+    }
+
+    // PTY接続がない場合は失敗
+    if (!session.isPty || !session.process) {
+      return false;
+    }
+
+    try {
+      session.process.write(signal);
+      session.lastAccessedAt = Date.now();
+      return true;
+    } catch {
+      // Failed to send signal to AI session
+      return false;
+    }
   }
 
   /**

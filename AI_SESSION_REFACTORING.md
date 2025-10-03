@@ -90,21 +90,21 @@
 
 **ファイル**: `backend/src/process-manager.ts`, `backend/src/server.ts`
 
-**状態**: ⬜ 未着手
+**状態**: ✅ 完了
 
 **実装内容**:
 
 **ProcessManager側**:
-- [ ] `idIndex: Map<string, string>` を追加（sessionId → sessionKey）
-- [ ] `sendToAiSession()` をO(1)解決に改善
-- [ ] `sendSignalToAiSession(sessionId, signal)` を新設
-- [ ] `ensureAiSession(repo, provider, {forceRestart?: boolean})` を追加
+- [x] `idIndex: Map<string, string>` を追加（sessionId → sessionKey）
+- [x] `sendToAiSession()` をO(1)解決に改善
+- [x] `sendSignalToAiSession(sessionId, signal)` を新設
+- [x] `ensureAiSession(repo, provider, {forceRestart?: boolean})` を追加
 
 **Server側**:
-- [ ] `send-command` で `provider` を必須に
-- [ ] `send-command` でセッション解決を `idIndex` ベースに変更
-- [ ] `ai-interrupt` で `sendSignalToAiSession()` を使用
-- [ ] `claude-interrupt` を互換ラッパーとして残す（内部はAI側に委譲）
+- [x] `send-command` で `provider` を必須に（既存実装済み）
+- [x] `send-command` でセッション解決を `idIndex` ベースに変更
+- [x] `ai-interrupt` で `sendSignalToAiSession()` を使用
+- [x] `claude-interrupt` を互換ラッパーとして残す（内部はAI側に委譲）
 
 **検証観点**:
 - Ctrl+C/ESC/矢印/Tab/Enterの入力が双方のプロバイダーで動作
@@ -166,13 +166,13 @@
 
 ## 実装順序
 
-1. **フェーズ1-1**: フロントエンドのai-output-history購読＆aiLogs導入
-2. **フェーズ1-2**: フロントエンドのswitch-repo provider必須化
-3. **フェーズ2-3**: バックエンドのswitch-repo provider必須化
-4. **フェーズ2-1**: ProcessManagerのAIセッション終了系統一化
-5. **フェーズ2-2**: send-command/ai-interruptのAI一本化
-6. **フェーズ2-4**: 互換イベントの段階的整理
-7. **フェーズ3-1**: 統合テスト
+1. ✅ **フェーズ1-1**: フロントエンドのai-output-history購読＆aiLogs導入
+2. ✅ **フェーズ1-2**: フロントエンドのswitch-repo provider必須化
+3. ✅ **フェーズ2-3**: バックエンドのswitch-repo provider必須化
+4. ✅ **フェーズ2-1**: ProcessManagerのAIセッション終了系統一化
+5. ✅ **フェーズ2-2**: send-command/ai-interruptのAI一本化
+6. ⬜ **フェーズ2-4**: 互換イベントの段階的整理
+7. ⬜ **フェーズ3-1**: 統合テスト
 
 ---
 
@@ -207,16 +207,21 @@
 
 **フェーズ2: バックエンド改修**
 - ✅ 2-1. ProcessManagerのAIセッション終了系統一化
+- ✅ 2-2. send-command/ai-interruptのAI一本化
 - ✅ 2-3. switch-repoのprovider必須化（既存実装）
 
 **品質チェック**
 - ✅ フロントエンド型チェック完了
 - ✅ バックエンド型チェック完了
 
+**最適化**
+- ✅ idIndexによるO(1)セッション検索
+- ✅ sendSignalToAiSession()による統一的なシグナル送信
+- ✅ ensureAiSession()による柔軟なセッション管理
+
 ### ⬜ 今後の実装項目
 
 **フェーズ2: バックエンド改修**
-- ⬜ 2-2. send-command/ai-interruptのAI一本化（オプション）
 - ⬜ 2-4. 互換イベントの段階的整理（将来対応）
 
 **フェーズ3: 動作検証**
@@ -231,9 +236,36 @@
 1. **プロバイダー別履歴管理**: Claude/Codex間で履歴が独立して保持される
 2. **プロバイダー切替対応**: 切替時に即座に適切な履歴が表示される
 3. **終了系統一化**: リポジトリ削除・サーバー終了時に全AIセッションが終了
+4. **O(1)セッション検索**: idIndexによる高速なセッション解決
+5. **統一的なシグナル送信**: sendSignalToAiSession()による一貫したシグナル処理
 
 今後は以下の対応が推奨されます：
 
-1. **動作検証**: 実際にClaude/Codexを切り替えて履歴保持を確認
-2. **send-command最適化** (オプション): idIndexを導入してO(1)検索を実現
-3. **互換イベント整理** (将来): claude-*イベントの段階的廃止
+1. **動作検証**: 実際にClaude/Codexを切り替えて履歴保持・入力処理を確認
+2. **互換イベント整理** (将来): claude-*イベントの段階的廃止
+
+---
+
+## 実装の主要な改善点
+
+**フェーズ2-2で追加された機能**:
+
+1. **idIndex導入** (`process-manager.ts:100`)
+   - sessionId → sessionKeyのマッピングを保持
+   - O(n)からO(1)への検索時間の劇的改善
+
+2. **sendToAiSession()最適化** (`process-manager.ts:1260`)
+   - 線形検索からidIndexベースのO(1)検索に変更
+   - セッション検索のパフォーマンスが大幅向上
+
+3. **sendSignalToAiSession()新設** (`process-manager.ts:1305`)
+   - Ctrl+C (SIGINT) などのシグナル送信専用メソッド
+   - ai-interruptで使用され、統一的なシグナル処理を実現
+
+4. **ensureAiSession()追加** (`process-manager.ts:635`)
+   - forceRestartオプションによる柔軟なセッション管理
+   - セッションの強制再起動が可能に
+
+5. **claude-interrupt互換性維持** (`server.ts:761`)
+   - 既存のclaude-interruptイベントを継続サポート
+   - 内部ではsendSignalToAiSession()を使用

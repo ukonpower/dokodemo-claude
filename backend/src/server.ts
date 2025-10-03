@@ -746,7 +746,7 @@ io.on('connection', (socket) => {
     }
 
     // Ctrl+C (SIGINT)を送信
-    const success = processManager.sendToAiSession(targetSessionId, '\x03');
+    const success = processManager.sendSignalToAiSession(targetSessionId, '\x03');
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
@@ -757,6 +757,7 @@ io.on('connection', (socket) => {
   });
 
   // Claude CLIへのCtrl+C中断送信（後方互換性用）
+  // ai-interruptロジックに委譲
   socket.on('claude-interrupt', (data) => {
     const { sessionId, repositoryPath } = data || {};
 
@@ -764,10 +765,15 @@ io.on('connection', (socket) => {
 
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session =
-        processManager.getClaudeSessionByRepository(repositoryPath);
+      const session = processManager.getAiSessionByRepository(repositoryPath, 'claude');
       if (session) {
         targetSessionId = session.id;
+      } else {
+        // 後方互換性のためClaude セッションも確認
+        const claudeSession = processManager.getClaudeSessionByRepository(repositoryPath);
+        if (claudeSession) {
+          targetSessionId = claudeSession.id;
+        }
       }
     }
 
@@ -780,7 +786,7 @@ io.on('connection', (socket) => {
     }
 
     // Ctrl+C (SIGINT)を送信
-    const success = processManager.sendToClaudeSession(targetSessionId, '\x03');
+    const success = processManager.sendSignalToAiSession(targetSessionId, '\x03');
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
