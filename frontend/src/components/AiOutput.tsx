@@ -7,7 +7,7 @@ import type { AiProvider } from '../types';
 interface AiOutputProps {
   rawOutput: string;
   currentProvider?: AiProvider; // プロバイダー情報を追加
-  onClickFocus?: () => void;
+  onFocusChange?: (focused: boolean) => void;
   isLoading?: boolean;
   onClearOutput?: () => void;
   onKeyInput?: (key: string) => void;
@@ -17,7 +17,7 @@ interface AiOutputProps {
 const AiOutput: React.FC<AiOutputProps> = ({
   rawOutput,
   currentProvider = 'claude',
-  onClickFocus,
+  onFocusChange,
   isLoading = false,
   onClearOutput,
   onKeyInput,
@@ -28,6 +28,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [isComposing, setIsComposing] = useState(false);
 
   // コンポジションイベントハンドラー（定数として定義してメモリリーク防止）
@@ -116,8 +117,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
       // ESCキーでフォーカス解除
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (onClickFocus) {
-          onClickFocus(); // フォーカス状態を切り替える
+        if (onFocusChange) {
+          onFocusChange(false); // フォーカスをOFFに
         }
         return;
       }
@@ -128,7 +129,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         onKeyInput(keyInput);
       }
     },
-    [isFocused, onKeyInput, getKeyMapping, onClickFocus]
+    [isFocused, onKeyInput, getKeyMapping, onFocusChange]
   );
 
   // ターミナルの履歴をクリアする関数
@@ -331,10 +332,29 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [isFocused]);
 
+  // Outside click 検出
+  useEffect(() => {
+    if (!isFocused || !onFocusChange) return;
+
+    const handleDocPointerDown = (e: PointerEvent) => {
+      // クリック対象が rootRef の外部なら OFF
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        onFocusChange(false);
+      }
+    };
+
+    // キャプチャフェーズで登録（子要素のイベントより先に処理）
+    document.addEventListener('pointerdown', handleDocPointerDown, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleDocPointerDown, true);
+    };
+  }, [isFocused, onFocusChange]);
+
   const providerInfo = getProviderInfo();
 
   return (
-    <div className="flex flex-col h-full">
+    <div ref={rootRef} className="flex flex-col h-full">
       {/* フォーカス用の隠しinput要素 */}
       {isFocused && (
         <input
@@ -392,9 +412,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
           ref={terminalRef}
           className="h-full w-full cursor-pointer"
           onClick={() => {
-            // AI CLI出力エリアをクリックしたらキー入力モードを切り替え
-            if (onClickFocus) {
-              onClickFocus();
+            // AI CLI出力エリアをクリックしたらキー入力モードをON（トグルしない）
+            if (onFocusChange) {
+              onFocusChange(true);
             }
           }}
           style={{

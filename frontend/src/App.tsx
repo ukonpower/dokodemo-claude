@@ -992,12 +992,11 @@ function App() {
     }
   };
 
-  // AIOutputのフォーカス切り替えハンドラー
-  const handleAiOutputFocus = () => {
-    const newFocused = !claudeOutputFocused;
-    setClaudeOutputFocused(newFocused);
+  // AIOutputのフォーカス変更ハンドラー
+  const handleAiOutputFocusChange = (focused: boolean) => {
+    setClaudeOutputFocused(focused);
     // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
-    if (claudeOutputFocused && commandInputRef.current) {
+    if (!focused && commandInputRef.current) {
       setTimeout(() => {
         commandInputRef.current?.focus();
       }, 100);
@@ -1418,7 +1417,7 @@ function App() {
                 rawOutput={rawOutput}
                 currentProvider={currentProvider}
                 isLoading={isLoadingRepoData}
-                onClickFocus={handleAiOutputFocus}
+                onFocusChange={handleAiOutputFocusChange}
                 onClearOutput={handleClearClaudeOutput}
                 onKeyInput={handleAiKeyInput}
                 isFocused={claudeOutputFocused}
