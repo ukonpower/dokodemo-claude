@@ -37,9 +37,9 @@ function App() {
     ClientToServerEvents
   > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
-  // プロバイダー別CLIログ管理（将来の拡張用）
-  const [_aiLogs, _setAiLogs] = useState<Map<AiProvider, string>>(new Map());
-  const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用
+  // プロバイダー別CLIログ管理
+  const [aiLogs, setAiLogs] = useState<Map<AiProvider, string>>(new Map());
+  const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用（aiLogsと同期）
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     // URLのクエリパラメータからリポジトリパスを復元
     const urlParams = new URLSearchParams(window.location.search);
@@ -50,10 +50,13 @@ function App() {
     return (localStorage.getItem('preferred-ai-provider') as AiProvider) || 'claude';
   });
 
-  // プロバイダー変更時にlocalStorageに保存
+  // プロバイダー変更時にlocalStorageに保存 & rawOutputを同期
   useEffect(() => {
     localStorage.setItem('preferred-ai-provider', currentProvider);
-  }, [currentProvider]);
+
+    // プロバイダー切替時にrawOutputを同期
+    setRawOutput(aiLogs.get(currentProvider) || '');
+  }, [currentProvider, aiLogs]);
   const [claudeOutputFocused, setClaudeOutputFocused] =
     useState<boolean>(false);
 
@@ -255,20 +258,34 @@ function App() {
         setRepositories(data.repos);
       });
 
-      // 生ログの受信（現在のリポジトリと一致する場合のみ表示）
+      // 生ログの受信（プロバイダー別に管理）
       socketInstance.on('claude-raw-output', (data) => {
         // repositoryPathが指定されていて、現在のリポジトリと一致する場合のみ表示
         if (
           !data.repositoryPath ||
           data.repositoryPath === currentRepoRef.current
         ) {
-          setRawOutput((prev) => {
-            const newOutput = prev + data.content;
+          const provider = data.provider || 'claude';
+
+          // プロバイダー別ログマップに追記
+          setAiLogs((prevLogs) => {
+            const newLogs = new Map(prevLogs);
+            const currentLog = newLogs.get(provider) || '';
+            let newOutput = currentLog + data.content;
+
             // 最大文字数を超えた場合、古いデータを削除
             if (newOutput.length > MAX_RAW_OUTPUT_LENGTH) {
-              return newOutput.slice(-MAX_RAW_OUTPUT_LENGTH);
+              newOutput = newOutput.slice(-MAX_RAW_OUTPUT_LENGTH);
             }
-            return newOutput;
+
+            newLogs.set(provider, newOutput);
+
+            // 現在選択中のプロバイダーと一致する場合のみ表示更新
+            if (provider === currentProviderRef.current) {
+              setRawOutput(newOutput);
+            }
+
+            return newLogs;
           });
 
           // Claude出力が更新されたらローディング終了
@@ -375,7 +392,33 @@ function App() {
         }
       });
 
-      // Claude出力履歴受信イベント
+      // AI出力履歴受信イベント（新形式）
+      socketInstance.on('ai-output-history', (data) => {
+        if (data.repositoryPath === currentRepoRef.current) {
+          const provider = data.provider || 'claude';
+          const historyOutput = data.history
+            .map((line: ClaudeOutputLine) => line.content)
+            .join('');
+
+          // プロバイダー別ログマップに反映
+          setAiLogs((prevLogs) => {
+            const newLogs = new Map(prevLogs);
+            newLogs.set(provider, historyOutput);
+
+            // 現在選択中のプロバイダーと一致する場合のみ表示更新
+            if (provider === currentProviderRef.current) {
+              setRawOutput(historyOutput);
+            }
+
+            return newLogs;
+          });
+
+          // 履歴が受信されたらローディング終了
+          endLoadingOnClaudeOutput();
+        }
+      });
+
+      // Claude出力履歴受信イベント（後方互換性）
       socketInstance.on('claude-output-history', (data) => {
         // Received Claude history
         if (data.repositoryPath === currentRepoRef.current) {
@@ -384,7 +427,19 @@ function App() {
           const historyOutput = data.history
             .map((line: ClaudeOutputLine) => line.content)
             .join('');
-          setRawOutput(historyOutput);
+
+          // claudeプロバイダーとしてaiLogsに反映
+          setAiLogs((prevLogs) => {
+            const newLogs = new Map(prevLogs);
+            newLogs.set('claude', historyOutput);
+
+            // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
+            if (currentProviderRef.current === 'claude') {
+              setRawOutput(historyOutput);
+            }
+
+            return newLogs;
+          });
           // Claude history applied
 
           // Claude履歴が受信されたらローディング終了
@@ -593,8 +648,8 @@ function App() {
         if (data.repositoryPath === currentRepoRef.current) {
           const provider = data.provider || 'claude';
 
-          // プロバイダー別ログマップからクリア（将来の拡張用）
-          _setAiLogs((prevLogs) => {
+          // プロバイダー別ログマップからクリア
+          setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
             newLogs.set(provider, '');
 
@@ -611,8 +666,8 @@ function App() {
       // Claude出力クリア通知イベント（後方互換性）
       socketInstance.on('claude-output-cleared', (data) => {
         if (data.repositoryPath === currentRepoRef.current) {
-          // claudeプロバイダーとして管理（将来の拡張用）
-          _setAiLogs((prevLogs) => {
+          // claudeプロバイダーとして管理
+          setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
             newLogs.set('claude', '');
 
@@ -639,22 +694,28 @@ function App() {
         // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
         setTimeout(() => {
           const currentPath = currentRepoRef.current;
+          const provider = currentProviderRef.current;
           // Delayed check for currentRepo
 
           if (currentPath) {
             // Current repo detected after delay
-            // サーバーにアクティブリポジトリを通知
-            socketInstance.emit('switch-repo', { path: currentPath });
+            // サーバーにアクティブリポジトリを通知（provider付き）
+            socketInstance.emit('switch-repo', { path: currentPath, provider });
 
             socketInstance.emit('list-terminals', {
               repositoryPath: currentPath,
             });
             // Emitted list-terminals
-            // Claude履歴も取得
+            // AI履歴を取得（新形式）
+            socketInstance.emit('get-ai-history', {
+              repositoryPath: currentPath,
+              provider,
+            });
+            // Claude履歴も取得（後方互換性）
             socketInstance.emit('get-claude-history', {
               repositoryPath: currentPath,
             });
-            // Emitted get-claude-history
+            // Emitted get-history
             // ショートカット一覧も取得
             socketInstance.emit('list-shortcuts', {
               repositoryPath: currentPath,
@@ -771,8 +832,17 @@ function App() {
 
     // 既にリポジトリが選択されている場合は、新しいプロバイダーでセッションを切り替え
     if (socket && currentRepo) {
-      setRawOutput(''); // 出力をクリア
+      // aiLogsにキャッシュがあれば即座に画面反映
+      const cachedLog = aiLogs.get(provider);
+      if (cachedLog !== undefined) {
+        setRawOutput(cachedLog);
+      } else {
+        setRawOutput(''); // キャッシュがない場合はクリア
+      }
+
+      // サーバーにプロバイダー切替を通知
       socket.emit('switch-repo', { path: currentRepo, provider });
+      // 履歴を再取得して同期
       socket.emit('get-ai-history', { repositoryPath: currentRepo, provider });
     }
   };

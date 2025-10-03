@@ -1421,6 +1421,35 @@ export class ProcessManager extends EventEmitter {
   }
 
   /**
+   * AIセッションの終了（provider別）
+   */
+  async closeAiSession(sessionKey: string): Promise<boolean> {
+    const session = this.aiSessions.get(sessionKey);
+    if (!session) {
+      return false;
+    }
+
+    try {
+      session.process.kill('SIGTERM');
+      const killTimeout = setTimeout(() => {
+        if (this.aiSessions.has(sessionKey)) {
+          session.process.kill('SIGKILL');
+        }
+      }, 2000);
+
+      // セッションが終了したらタイムアウトをクリア
+      session.process.onExit(() => {
+        clearTimeout(killTimeout);
+      });
+
+      return true;
+    } catch {
+      // Failed to close AI session
+      return false;
+    }
+  }
+
+  /**
    * ターミナルの終了
    */
   async closeTerminal(terminalId: string): Promise<boolean> {
@@ -1515,7 +1544,14 @@ export class ProcessManager extends EventEmitter {
 
     const closePromises: Promise<boolean>[] = [];
 
-    // 該当リポジトリのClaude CLIセッションを終了
+    // 該当リポジトリのAI CLIセッションを終了（全プロバイダー）
+    for (const [sessionKey, session] of this.aiSessions.entries()) {
+      if (session.repositoryPath === repositoryPath) {
+        closePromises.push(this.closeAiSession(sessionKey));
+      }
+    }
+
+    // 該当リポジトリのClaude CLIセッション（後方互換性）も終了
     for (const [sessionId, session] of this.claudeSessions.entries()) {
       if (session.repositoryPath === repositoryPath) {
         closePromises.push(this.closeClaudeSession(sessionId));
@@ -1553,7 +1589,26 @@ export class ProcessManager extends EventEmitter {
     repositoryPath: string
   ): Promise<void> {
     try {
-      // Claude CLIセッションの永続化ファイルを更新
+      // AI CLIセッションの永続化ファイルを更新
+      const aiSessionsPath = path.join(
+        this.processesDir,
+        'ai-sessions.json'
+      );
+      try {
+        const aiData = await fs.readFile(aiSessionsPath, 'utf-8');
+        const aiSessions: PersistedAiSession[] = JSON.parse(aiData);
+        const filteredAiSessions = aiSessions.filter(
+          (s) => s.repositoryPath !== repositoryPath
+        );
+        await fs.writeFile(
+          aiSessionsPath,
+          JSON.stringify(filteredAiSessions, null, 2)
+        );
+      } catch {
+        // ファイルが存在しない場合は無視
+      }
+
+      // Claude CLIセッションの永続化ファイルを更新（後方互換性）
       const claudeSessionsPath = path.join(
         this.processesDir,
         'claude-sessions.json'
@@ -1831,10 +1886,17 @@ export class ProcessManager extends EventEmitter {
     // 全てのプロセスを終了
     const closePromises: Promise<boolean>[] = [];
 
+    // AIセッションを終了
+    for (const sessionKey of this.aiSessions.keys()) {
+      closePromises.push(this.closeAiSession(sessionKey));
+    }
+
+    // Claude CLIセッション（後方互換性）を終了
     for (const sessionId of this.claudeSessions.keys()) {
       closePromises.push(this.closeClaudeSession(sessionId));
     }
 
+    // ターミナルを終了
     for (const terminalId of this.terminals.keys()) {
       closePromises.push(this.closeTerminal(terminalId));
     }
@@ -1842,6 +1904,7 @@ export class ProcessManager extends EventEmitter {
     await Promise.all(closePromises);
 
     // 最終的な永続化
+    await this.persistAiSessions();
     await this.persistClaudeSessions();
     await this.persistTerminals();
     await this.persistShortcuts();
