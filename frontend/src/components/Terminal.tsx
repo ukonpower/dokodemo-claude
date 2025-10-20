@@ -482,7 +482,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-dark-bg-secondary text-white px-2 py-1 rounded-lg border border-dark-border-light text-xs focus:outline-none focus:ring-2 focus:ring-dark-accent-blue hover:border-dark-border-focus transition-all duration-150"
+            className="flex-1 bg-dark-bg-secondary text-white px-2 py-1 rounded-lg border border-dark-border-light text-xs focus:outline-none focus:ring-1 focus:ring-dark-accent-blue hover:border-dark-border-focus transition-all duration-150"
             placeholder="コマンド入力（フォールバック用）"
           />
           <button

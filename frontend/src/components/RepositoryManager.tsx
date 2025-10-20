@@ -261,7 +261,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                     value={repoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
-                    className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                    className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                     disabled={!isConnected || isCloning}
                   />
                 </div>
@@ -279,7 +279,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
                   placeholder="プロジェクト名"
-                  className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                  className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                   disabled={!isConnected || isCloning}
                 />
               </div>
@@ -292,7 +292,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                     ? !repoName.trim()
                     : !repoUrl.trim() || !repoName.trim())
                 }
-                className="w-full bg-dark-accent-green text-white py-3 px-6 rounded-lg hover:bg-dark-accent-green-hover focus:outline-none focus:ring-2 focus:ring-dark-accent-green focus:ring-offset-2 focus:ring-offset-dark-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-all duration-150 flex items-center justify-center shadow-md"
+                className="w-full bg-dark-accent-green text-white py-3 px-6 rounded-lg hover:bg-dark-accent-green-hover focus:outline-none focus:ring-1 focus:ring-dark-accent-green focus:ring-offset-2 focus:ring-offset-dark-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-all duration-150 flex items-center justify-center shadow-md"
               >
                 {isCloning ? (
                   <>

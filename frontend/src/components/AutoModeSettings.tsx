@@ -401,7 +401,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   onChange={(e) =>
                     setNewConfig({ ...newConfig, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded-md focus:outline-none focus:ring-2 focus:ring-dark-border-focus text-xs sm:text-sm"
+                  className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded-md focus:outline-none focus:ring-1 focus:ring-dark-border-focus text-xs sm:text-sm"
                   placeholder="例: 継続的リファクタリング"
                 />
               </div>
@@ -414,7 +414,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   onChange={(e) =>
                     setNewConfig({ ...newConfig, prompt: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded-md focus:outline-none focus:ring-2 focus:ring-dark-border-focus text-xs sm:text-sm"
+                  className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded-md focus:outline-none focus:ring-1 focus:ring-dark-border-focus text-xs sm:text-sm"
                   rows={4}
                   placeholder="例: 現在のコードベースを見直して、改善点があれば教えてください。可能であれば実装も行ってください。"
                 />
@@ -529,7 +529,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               name: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded focus:outline-none focus:ring-2 focus:ring-dark-border-focus text-xs sm:text-sm"
+                          className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded focus:outline-none focus:ring-1 focus:ring-dark-border-focus text-xs sm:text-sm"
                         />
                       </div>
                       <div>
@@ -544,7 +544,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               prompt: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded focus:outline-none focus:ring-2 focus:ring-dark-border-focus text-xs sm:text-sm"
+                          className="w-full px-3 py-2 bg-gray-900 border border-dark-border-light text-white rounded focus:outline-none focus:ring-1 focus:ring-dark-border-focus text-xs sm:text-sm"
                           rows={4}
                         />
                       </div>

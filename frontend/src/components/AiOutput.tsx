@@ -393,7 +393,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           {onClearOutput && (
             <button
               onClick={clearTerminal}
-              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150"
+              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
               title="出力履歴をクリア"
             >
               🗑️
