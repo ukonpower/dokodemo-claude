@@ -248,7 +248,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                 <button
                   type="submit"
                   disabled={disabled}
-                  className="bg-dark-bg-tertiary border-2 border-dark-border-light text-dark-text-primary px-8 py-3 sm:px-6 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-2 focus:ring-dark-border-focus focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
+                  className="bg-dark-bg-tertiary border border-dark-border-light text-dark-text-primary px-8 py-3 sm:px-6 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-2 focus:ring-dark-border-focus focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
                 >
                   Enter
                 </button>
@@ -274,7 +274,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onSendEscape}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border-2 border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-red touch-manipulation shadow-md transition-all duration-150"
+                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-red touch-manipulation shadow-md transition-all duration-150"
                     title="エスケープキー (ESC)"
                   >
                     ESC
@@ -285,7 +285,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onClearAi}
                     disabled={disabled}
-                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border-2 border-dark-accent-cyan hover:bg-dark-bg-hover hover:border-dark-accent-cyan-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-cyan touch-manipulation shadow-md transition-all duration-150"
+                    className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-dark-accent-cyan hover:bg-dark-bg-hover hover:border-dark-accent-cyan-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-cyan touch-manipulation shadow-md transition-all duration-150"
                     title={providerInfo.clearTitle}
                   >
                     Clear
@@ -298,7 +298,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={() => onSendTabKey(true)}
                     disabled={disabled}
-                    className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-dark-bg-secondary border-2 border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-orange touch-manipulation shadow-md transition-all duration-150"
+                    className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-dark-bg-secondary border border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-orange touch-manipulation shadow-md transition-all duration-150"
                     title="モード切り替え"
                   >
                     Mode
@@ -311,13 +311,13 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       type="button"
                       onClick={() => setShowModelMenu(!showModelMenu)}
                       disabled={disabled}
-                      className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border-2 border-dark-accent-purple hover:bg-dark-bg-hover hover:border-dark-accent-purple-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-purple touch-manipulation shadow-md transition-all duration-150"
+                      className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-purple hover:bg-dark-bg-hover hover:border-dark-accent-purple-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-purple touch-manipulation shadow-md transition-all duration-150"
                       title="モデルを選択"
                     >
                       Model
                     </button>
                     {showModelMenu && (
-                      <div className="absolute bottom-full left-0 mb-2 bg-dark-bg-secondary border-2 border-dark-border-light rounded-lg shadow-2xl z-10 min-w-[100px] overflow-hidden">
+                      <div className="absolute bottom-full left-0 mb-2 bg-dark-bg-secondary border border-dark-border-light rounded-lg shadow-2xl z-10 min-w-[100px] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => {
@@ -368,7 +368,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={() => onSendCommand('/commit')}
                     disabled={disabled}
-                    className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border-2 border-dark-accent-green hover:bg-dark-bg-hover hover:border-dark-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-green touch-manipulation shadow-md transition-all duration-150"
+                    className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-green hover:bg-dark-bg-hover hover:border-dark-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-dark-accent-green touch-manipulation shadow-md transition-all duration-150"
                     title="コミット (/commit)"
                   >
                     Commit
@@ -390,7 +390,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
 
             {/* iOS向けキーボードボタンパネル */}
             {showKeyboardButtons && (
-              <div className="bg-dark-bg-secondary rounded-lg p-3 border-2 border-dark-border-light shadow-xl">
+              <div className="bg-dark-bg-secondary rounded-lg p-3 border border-dark-border-light shadow-xl">
                 <div className="space-y-3">
                   <div className="text-xs text-dark-text-secondary text-center font-medium">
                     iOS向けキーボード
@@ -450,7 +450,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                         type="button"
                         onClick={() => onSendTabKey(true)}
                         disabled={disabled}
-                        className="bg-dark-bg-tertiary border-2 border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-dark-accent-orange touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
+                        className="bg-dark-bg-tertiary border border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-dark-accent-orange touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
                         title="モード切り替え"
                       >
                         Mode
@@ -462,7 +462,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                         type="button"
                         onClick={onSendEscape}
                         disabled={disabled}
-                        className="bg-dark-bg-tertiary border-2 border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-dark-accent-red touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
+                        className="bg-dark-bg-tertiary border border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-2 focus:ring-dark-accent-red touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
                         title="エスケープキー (ESC)"
                       >
                         ESC

@@ -1125,7 +1125,7 @@ function App() {
           {/* メインコンテンツ */}
           <main className="flex-1 flex items-center justify-center p-3 sm:p-4">
             <div className="w-full max-w-4xl">
-              <div className="bg-dark-bg-secondary rounded-xl shadow-2xl border-2 border-dark-border-light overflow-hidden">
+              <div className="bg-dark-bg-secondary rounded-xl shadow-2xl border border-dark-border-light overflow-hidden">
                 <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-dark-bg-tertiary to-dark-bg-hover text-white">
                   <h2 className="text-lg sm:text-xl font-semibold text-center">
                     リポジトリを選択してください
@@ -1151,7 +1151,7 @@ function App() {
           {/* リポジトリ切り替え中のローディングオーバーレイ */}
           {isSwitchingRepo && (
             <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-              <div className="bg-dark-bg-secondary rounded-lg shadow-2xl p-8 border-2 border-dark-border-light">
+              <div className="bg-dark-bg-secondary rounded-lg shadow-2xl p-8 border border-dark-border-light">
                 <div className="flex flex-col items-center space-y-4">
                   <svg
                     className="animate-spin h-12 w-12 text-gray-400"
@@ -1389,7 +1389,7 @@ function App() {
         </div>
 
         {/* Claude CLI セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
@@ -1448,7 +1448,7 @@ function App() {
         </section>
 
         {/* ターミナルエリア */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
@@ -1489,7 +1489,7 @@ function App() {
         </section>
 
         {/* npmスクリプトセクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
           <NpmScripts
             repositoryPath={currentRepo}
             scripts={npmScripts}
@@ -1500,7 +1500,7 @@ function App() {
         </section>
 
         {/* 自走モード設定セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-semibold text-white flex items-center">
@@ -1567,7 +1567,7 @@ function App() {
         </section>
 
         {/* リポジトリ削除セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
           <div className="px-4 sm:px-6 py-4">
             <h3 className="text-base font-semibold text-white mb-3">
               リポジトリを削除
@@ -1603,7 +1603,7 @@ function App() {
 
       {/* difit サーバー通知（ポップアップブロック対応） */}
       {showDifitNotification && difitUrl && (
-        <div className="fixed bottom-4 right-4 bg-dark-bg-secondary rounded-lg shadow-2xl max-w-xs w-full p-3 border-2 border-dark-border-light z-50">
+        <div className="fixed bottom-4 right-4 bg-dark-bg-secondary rounded-lg shadow-2xl max-w-xs w-full p-3 border border-dark-border-light z-50">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-white">
               🚀 difitサーバー起動
@@ -1646,7 +1646,7 @@ function App() {
       {/* 削除確認ダイアログ */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-bg-secondary rounded-lg shadow-2xl max-w-md w-full p-6 border-2 border-dark-border-light">
+          <div className="bg-dark-bg-secondary rounded-lg shadow-2xl max-w-md w-full p-6 border border-dark-border-light">
             <div className="flex items-center space-x-3 mb-4">
               <div className="flex-shrink-0">
                 <svg

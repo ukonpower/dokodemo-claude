@@ -121,7 +121,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
             {repositories.map((repo) => (
               <div
                 key={repo.path}
-                className={`relative group cursor-pointer bg-dark-bg-secondary border-2 rounded-lg p-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 overflow-hidden ${
+                className={`relative group cursor-pointer bg-dark-bg-secondary border rounded-lg p-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 overflow-hidden ${
                   currentRepo === repo.path
                     ? 'border-dark-border-focus bg-dark-bg-tertiary shadow-lg'
                     : 'border-dark-border-light hover:border-dark-border-focus'
@@ -195,7 +195,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
 
       {/* リポジトリ追加セクション */}
       <div className="border-t border-dark-border-DEFAULT pt-6 sm:pt-8">
-        <div className="bg-dark-bg-secondary rounded-xl p-6 sm:p-8 border-2 border-dark-border-light shadow-xl">
+        <div className="bg-dark-bg-secondary rounded-xl p-6 sm:p-8 border border-dark-border-light shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
             <svg
               className="h-5 w-5 mr-2 text-dark-accent-green"
@@ -279,7 +279,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
                   placeholder="プロジェクト名"
-                  className="w-full px-4 py-3 border-2 border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                  className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                   disabled={!isConnected || isCloning}
                 />
               </div>

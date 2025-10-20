@@ -376,7 +376,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {showCopyButton && (
             <button
               onClick={handleCopy}
-              className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-blue hover:border-dark-accent-blue-hover transition-all duration-150 shadow-sm"
+              className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border border-dark-accent-blue hover:border-dark-accent-blue-hover transition-all duration-150 shadow-sm"
               title="コピー"
             >
               コピー
@@ -386,7 +386,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {/* 閉じるボタン */}
           <button
             onClick={() => onClose(terminal.id)}
-            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
+            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
             title="ターミナルを閉じる"
           >
             ×
@@ -448,7 +448,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
               </button>
               <button
                 onClick={handleCtrlC}
-                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-white rounded-lg border border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
                 title="Ctrl+C"
               >
                 Ctrl+C

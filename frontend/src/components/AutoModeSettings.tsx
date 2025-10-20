@@ -292,7 +292,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       {/* 自走モード状態表示 */}
       {autoModeState && (
         <div
-          className={`p-4 rounded-lg border-2 ${
+          className={`p-4 rounded-lg border ${
             autoModeState.isRunning
               ? 'bg-green-900 border-green-600'
               : 'bg-gray-900 border-dark-border-light'
