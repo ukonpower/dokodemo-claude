@@ -91,13 +91,13 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
-      <div className="bg-gray-900 px-2 sm:px-4 py-2 border-b border-gray-700 flex items-center space-x-1 overflow-x-auto flex-shrink-0">
+      <div className="bg-gray-900 px-2 sm:px-4 py-2 border-b border-dark-border-DEFAULT flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
           <div
             key={terminal.id}
             className={`px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm rounded-t-lg flex items-center space-x-1 sm:space-x-2 whitespace-nowrap min-w-0 cursor-pointer ${
               activeTerminalId === terminal.id
-                ? 'bg-gray-800 text-gray-100 border border-gray-600 border-b-0'
+                ? 'bg-gray-800 text-gray-100 border border-dark-border-light border-b-0'
                 : 'bg-gray-600 text-gray-200 hover:bg-gray-500'
             }`}
             onClick={() => onActiveTerminalChange(terminal.id)}
@@ -130,7 +130,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         <button
           onClick={handleCreateTerminal}
           disabled={!isConnected || !currentRepo}
-          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-800 text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
+          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-800 text-gray-100 border border-dark-border-light rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
         >
           <span>+</span>
           <span className="hidden sm:inline">新規</span>
@@ -158,7 +158,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <button
                   onClick={handleCreateTerminal}
                   disabled={!isConnected || !currentRepo}
-                  className="px-4 py-2 bg-gray-800 text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-800 text-gray-100 border border-dark-border-light rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
                 >
                   ターミナルを作成
                 </button>
@@ -199,8 +199,8 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
         {/* コマンドショートカットセクション */}
         {terminals.length > 0 && (
-          <div className="border-t border-gray-600 bg-gray-750 flex-shrink-0">
-            <div className="px-3 py-2 border-b border-gray-600">
+          <div className="border-t border-dark-border-light bg-gray-750 flex-shrink-0">
+            <div className="px-3 py-2 border-b border-dark-border-light">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-gray-200 flex items-center">
                   <svg
@@ -232,21 +232,21 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             <div className="px-3 py-2 max-h-32 overflow-y-auto">
               {/* ショートカット作成フォーム */}
               {showCreateShortcut && (
-                <div className="mb-3 p-3 bg-gray-800 rounded-lg border border-gray-600">
+                <div className="mb-3 p-3 bg-gray-800 rounded-lg border border-dark-border-light">
                   <div className="flex flex-col space-y-2">
                     <input
                       type="text"
                       placeholder="ショートカット名（省略可）"
                       value={shortcutName}
                       onChange={(e) => setShortcutName(e.target.value)}
-                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-gray-600 rounded focus:outline-none focus:border-gray-500"
+                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-dark-border-light rounded focus:outline-none focus:border-dark-border-focus"
                     />
                     <input
                       type="text"
                       placeholder="コマンド (例: npm run dev)"
                       value={shortcutCommand}
                       onChange={(e) => setShortcutCommand(e.target.value)}
-                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-gray-600 rounded focus:outline-none focus:border-gray-500"
+                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-dark-border-light rounded focus:outline-none focus:border-dark-border-focus"
                     />
                     <div className="flex space-x-2">
                       <button
@@ -277,7 +277,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   {shortcuts.map((shortcut) => (
                     <div
                       key={shortcut.id}
-                      className="flex items-center space-x-1 bg-gray-800 rounded-lg border border-gray-600 overflow-hidden"
+                      className="flex items-center space-x-1 bg-gray-800 rounded-lg border border-dark-border-light overflow-hidden"
                     >
                       <button
                         onClick={() => handleExecuteShortcut(shortcut.id)}

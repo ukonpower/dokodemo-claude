@@ -58,7 +58,7 @@ function BranchSelector({
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={!isConnected || isLoading}
-        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-200 bg-gray-800 border border-gray-600 rounded-md hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-200 bg-gray-800 border border-dark-border-light rounded-md hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-border-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
           className="w-4 h-4 mr-2"
@@ -92,7 +92,7 @@ function BranchSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-64 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-20">
+        <div className="absolute left-0 mt-1 w-64 bg-gray-800 border border-dark-border-DEFAULT rounded-md shadow-lg z-20">
           <div className="py-1 max-h-96 overflow-y-auto">
             {branches.length === 0 ? (
               <div className="px-4 py-2 text-sm text-gray-400">
@@ -136,7 +136,7 @@ function BranchSelector({
 
                 {remoteBranches.length > 0 && (
                   <>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-700 mt-1 pt-2">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-t border-dark-border-DEFAULT mt-1 pt-2">
                       リモートブランチ
                     </div>
                     {remoteBranches.map((branch) => (

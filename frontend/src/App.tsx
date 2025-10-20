@@ -1218,7 +1218,7 @@ function App() {
                 <span className="hidden xs:inline">リポジトリ選択</span>
                 <span className="xs:hidden">戻る</span>
               </button>
-              <div className="border-l border-gray-600 pl-2 sm:pl-4 min-w-0 flex-1">
+              <div className="border-l border-dark-border-light pl-2 sm:pl-4 min-w-0 flex-1">
                 <h1 className="text-sm sm:text-lg font-semibold text-white truncate">
                   {currentRepo.split('/').pop() || 'プロジェクト'}
                 </h1>
@@ -1304,7 +1304,7 @@ function App() {
               // 起動中 - ローディングアイコン
               <button
                 disabled
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-gray-500 rounded-md cursor-not-allowed"
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-dark-border-light rounded-md cursor-not-allowed"
                 title="difit起動中..."
               >
                 <svg
@@ -1328,7 +1328,7 @@ function App() {
                 <button
                   onClick={() => setShowDiffMenu(!showDiffMenu)}
                   disabled={!isConnected}
-                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-gray-500 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   title="差分タイプを選択してdifitを起動"
                 >
                   <span>difit</span>
