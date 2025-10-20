@@ -1086,10 +1086,10 @@ function App() {
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
     return (
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-dark-bg-primary">
         <div className="min-h-screen flex flex-col">
           {/* ヘッダー */}
-          <header className="bg-gray-800 shadow-sm border-b border-gray-700">
+          <header className="bg-dark-bg-secondary shadow-sm border-b border-dark-border-DEFAULT">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                 <div className="min-w-0">
@@ -1125,8 +1125,8 @@ function App() {
           {/* メインコンテンツ */}
           <main className="flex-1 flex items-center justify-center p-3 sm:p-4">
             <div className="w-full max-w-4xl">
-              <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
-                <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-gray-700 to-gray-600 text-white">
+              <div className="bg-dark-bg-secondary rounded-xl shadow-2xl border-2 border-dark-border-light overflow-hidden">
+                <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-dark-bg-tertiary to-dark-bg-hover text-white">
                   <h2 className="text-lg sm:text-xl font-semibold text-center">
                     リポジトリを選択してください
                   </h2>
@@ -1150,8 +1150,8 @@ function App() {
 
           {/* リポジトリ切り替え中のローディングオーバーレイ */}
           {isSwitchingRepo && (
-            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+            <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+              <div className="bg-dark-bg-secondary rounded-lg shadow-2xl p-8 border-2 border-dark-border-light">
                 <div className="flex flex-col items-center space-y-4">
                   <svg
                     className="animate-spin h-12 w-12 text-blue-400"
@@ -1192,15 +1192,15 @@ function App() {
 
   // リポジトリが選択されている場合はメイン画面を表示
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-dark-bg-primary flex flex-col">
       {/* ヘッダー */}
-      <header className="bg-gray-800 shadow-sm border-b border-gray-700 sticky top-0 z-10">
+      <header className="bg-dark-bg-secondary shadow-sm border-b border-dark-border-DEFAULT sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
               <button
                 onClick={handleBackToRepoSelection}
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex-shrink-0"
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-dark-text-primary bg-dark-bg-tertiary border border-dark-border-light rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-border-focus transition-all duration-150 flex-shrink-0 shadow-md"
               >
                 <svg
                   className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
@@ -1382,8 +1382,8 @@ function App() {
         </div>
 
         {/* Claude CLI セクション */}
-        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg flex items-center justify-between">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
                 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"
@@ -1423,7 +1423,7 @@ function App() {
             </div>
 
             {/* AI コマンド入力エリア */}
-            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-700">
+            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT">
               <CommandInput
                 ref={commandInputRef}
                 onSendCommand={handleSendCommand}
@@ -1441,8 +1441,8 @@ function App() {
         </section>
 
         {/* ターミナルエリア */}
-        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
                 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"
@@ -1482,7 +1482,7 @@ function App() {
         </section>
 
         {/* npmスクリプトセクション */}
-        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
           <NpmScripts
             repositoryPath={currentRepo}
             scripts={npmScripts}
@@ -1493,7 +1493,7 @@ function App() {
         </section>
 
         {/* 自走モード設定セクション */}
-        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-semibold text-white flex items-center">
@@ -1560,7 +1560,7 @@ function App() {
         </section>
 
         {/* リポジトリ削除セクション */}
-        <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700">
+        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border-2 border-dark-border-light">
           <div className="px-4 sm:px-6 py-4">
             <h3 className="text-base font-semibold text-white mb-3">
               リポジトリを削除
@@ -1596,7 +1596,7 @@ function App() {
 
       {/* difit サーバー通知（ポップアップブロック対応） */}
       {showDifitNotification && difitUrl && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 rounded-lg shadow-xl max-w-xs w-full p-3 border border-gray-700 z-50">
+        <div className="fixed bottom-4 right-4 bg-dark-bg-secondary rounded-lg shadow-2xl max-w-xs w-full p-3 border-2 border-dark-border-light z-50">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-white">
               🚀 difitサーバー起動
@@ -1624,11 +1624,11 @@ function App() {
               window.open(difitUrl, '_blank');
               setShowDifitNotification(false);
             }}
-            className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors mb-2"
+            className="w-full bg-dark-accent-blue text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-dark-accent-blue-hover focus:outline-none focus:ring-2 focus:ring-dark-accent-blue shadow-md transition-all duration-150 mb-2"
           >
             ページを開く
           </button>
-          <div className="bg-gray-700 rounded p-2 border border-gray-600">
+          <div className="bg-dark-bg-tertiary rounded p-2 border border-dark-border-light">
             <p className="text-xs text-gray-300 break-all">
               {difitUrl}
             </p>
@@ -1638,8 +1638,8 @@ function App() {
 
       {/* 削除確認ダイアログ */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-bg-secondary rounded-lg shadow-2xl max-w-md w-full p-6 border-2 border-dark-border-light">
             <div className="flex items-center space-x-3 mb-4">
               <div className="flex-shrink-0">
                 <svg
@@ -1693,7 +1693,7 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-700 rounded-md p-3 border border-gray-600">
+              <div className="bg-dark-bg-tertiary rounded-md p-3 border border-dark-border-light">
                 <p className="text-sm font-medium text-white">
                   {currentRepo.split('/').pop()}
                 </p>
@@ -1703,7 +1703,7 @@ function App() {
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-gray-700 text-gray-200 border border-gray-600 py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                className="flex-1 bg-dark-bg-tertiary text-dark-text-primary border border-dark-border-light py-2 px-4 rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-border-focus transition-all duration-150 shadow-md"
               >
                 キャンセル
               </button>
@@ -1713,7 +1713,7 @@ function App() {
                   handleDeleteRepository(currentRepo, repoName);
                   setShowDeleteConfirm(false);
                 }}
-                className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors font-medium"
+                className="flex-1 bg-dark-accent-red text-white py-2 px-4 rounded-lg hover:bg-dark-accent-red-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-dark-accent-red transition-all duration-150 font-medium shadow-md"
               >
                 削除する
               </button>

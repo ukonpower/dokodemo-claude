@@ -188,7 +188,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                   ? 'リポジトリを選択してください...'
                   : providerInfo.placeholder
               }
-              className="w-full px-3 py-2.5 sm:py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 resize-none text-sm sm:text-base placeholder-gray-400"
+              className="w-full px-3 py-2.5 sm:py-2 border-2 border-dark-border-light bg-dark-bg-secondary text-dark-text-primary rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus resize-none text-sm sm:text-base placeholder-dark-text-muted transition-all duration-150"
               rows={3}
               disabled={disabled}
             />
