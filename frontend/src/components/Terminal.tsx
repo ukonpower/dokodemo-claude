@@ -96,7 +96,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     // XTermインスタンスを作成（横スクロール対応の設定）
     xtermInstance.current = new XTerm({
       theme: {
-        background: '#111827',
+        background: '#0a0a0a', // dark-bg-primary
         foreground: '#d1d5db',
         cursor: '#9ca3af',
         selectionBackground: '#374151',
@@ -329,15 +329,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルヘッダー */}
-      <div className="bg-gray-800 px-2 sm:px-3 py-2 flex items-center justify-between border-b border-gray-700">
+      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 flex items-center justify-between border-b border-dark-border-DEFAULT">
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
           <div
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
               terminal.status === 'active'
-                ? 'bg-green-500'
+                ? 'bg-dark-accent-green'
                 : terminal.status === 'exited'
-                  ? 'bg-red-500'
-                  : 'bg-yellow-500'
+                  ? 'bg-dark-accent-red'
+                  : 'bg-dark-accent-orange'
             }`}
           ></div>
           <span className="text-gray-300 text-xs truncate">
@@ -357,7 +357,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {/* キーボードボタン表示切替 */}
           <button
             onClick={() => setShowKeyboardButtons(!showKeyboardButtons)}
-            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
             title="キーボードボタンの表示/非表示"
           >
             ⌨️
@@ -366,7 +366,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {/* 全選択ボタン */}
           <button
             onClick={handleSelectAll}
-            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
             title="全選択"
           >
             全選択
@@ -376,7 +376,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {showCopyButton && (
             <button
               onClick={handleCopy}
-              className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded border border-blue-500 transition-colors"
+              className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-blue hover:border-dark-accent-blue-hover transition-all duration-150 shadow-sm"
               title="コピー"
             >
               コピー
@@ -386,7 +386,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           {/* 閉じるボタン */}
           <button
             onClick={() => onClose(terminal.id)}
-            className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded border border-red-500 transition-colors"
+            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
             title="ターミナルを閉じる"
           >
             ×
@@ -396,34 +396,34 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
       {/* キーボードボタンパネル（iOS向け） */}
       {showKeyboardButtons && (
-        <div className="bg-gray-800 px-2 py-2 border-b border-gray-700">
+        <div className="bg-dark-bg-secondary px-2 py-2 border-b border-dark-border-DEFAULT">
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
             {/* 矢印キー */}
             <div className="flex space-x-1">
               <button
                 onClick={() => handleArrowKey('up')}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="↑"
               >
                 ↑
               </button>
               <button
                 onClick={() => handleArrowKey('down')}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="↓"
               >
                 ↓
               </button>
               <button
                 onClick={() => handleArrowKey('left')}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="←"
               >
                 ←
               </button>
               <button
                 onClick={() => handleArrowKey('right')}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="→"
               >
                 →
@@ -434,28 +434,28 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             <div className="flex space-x-1">
               <button
                 onClick={handleTabKey}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="Tab"
               >
                 Tab
               </button>
               <button
                 onClick={handleEnterKey}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="Enter"
               >
                 Enter
               </button>
               <button
                 onClick={handleCtrlC}
-                className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded border border-red-500 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-white rounded-lg border-2 border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
                 title="Ctrl+C"
               >
                 Ctrl+C
               </button>
               <button
                 onClick={handleEscKey}
-                className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded border border-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-dark-bg-tertiary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-dark-border-light hover:border-dark-border-focus transition-all duration-150 shadow-sm"
                 title="ESC"
               >
                 ESC
@@ -467,14 +467,14 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
       {/* ターミナルメイン表示 */}
       <div
-        className="flex-1 overflow-hidden bg-gray-900"
+        className="flex-1 overflow-hidden bg-dark-bg-primary"
         ref={terminalContainerRef}
       >
         <div ref={terminalRef} className="h-full w-full" />
       </div>
 
       {/* 入力フィールド（フォールバック用、通常はXTermの直接入力を使用） */}
-      <div className="bg-gray-800 px-2 sm:px-3 py-2 border-t border-gray-700">
+      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 border-t border-dark-border-DEFAULT">
         <form onSubmit={handleSubmit} className="flex space-x-2">
           <input
             ref={inputRef}
@@ -482,12 +482,12 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-gray-700 text-white px-2 py-1 rounded border border-gray-600 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-dark-bg-secondary text-white px-2 py-1 rounded-lg border border-dark-border-light text-xs focus:outline-none focus:ring-2 focus:ring-dark-accent-blue hover:border-dark-border-focus transition-all duration-150"
             placeholder="コマンド入力（フォールバック用）"
           />
           <button
             type="submit"
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs transition-colors"
+            className="px-3 py-1 bg-dark-accent-blue hover:bg-dark-accent-blue-hover text-white rounded-lg text-xs transition-all duration-150 shadow-sm"
           >
             送信
           </button>
