@@ -1372,6 +1372,13 @@ function App() {
                         <span>Working</span>
                         <span className="hidden sm:inline ml-1 text-gray-400 text-xs">作業中</span>
                       </button>
+                      <button
+                        onClick={() => handleStartDifitWithType('all')}
+                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                      >
+                        <span>All</span>
+                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">全変更</span>
+                      </button>
                     </div>
                   </div>
                 )}

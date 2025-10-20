@@ -403,7 +403,13 @@ export interface AutoModeState {
 }
 
 // 差分タイプ関連の型定義
-export type DiffType = 'HEAD' | 'staged' | 'working' | 'custom';
+// READMEより:
+// . (dot) - 全未コミット変更 (staging area + unstaged)
+// staged - ステージングエリアの変更
+// working - 未ステージの変更のみ
+// HEAD - 最新コミット
+// custom - カスタム指定（ブランチ名、コミットハッシュ等）
+export type DiffType = 'HEAD' | 'staged' | 'working' | 'all' | 'custom';
 
 export interface DiffConfig {
   type: DiffType;

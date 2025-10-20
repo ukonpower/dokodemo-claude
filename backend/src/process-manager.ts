@@ -2346,6 +2346,9 @@ export class ProcessManager extends EventEmitter {
         return 'staged';
       case 'working':
         return 'working';
+      case 'all':
+        // 全未コミット変更（ステージング + 未ステージ）
+        return '.';
       case 'custom':
         return diffConfig.customValue || 'HEAD';
       case 'HEAD':
