@@ -121,10 +121,10 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
             {repositories.map((repo) => (
               <div
                 key={repo.path}
-                className={`relative group cursor-pointer bg-gray-700 border rounded-lg p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 overflow-hidden ${
+                className={`relative group cursor-pointer bg-dark-bg-secondary border-2 rounded-lg p-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 overflow-hidden ${
                   currentRepo === repo.path
-                    ? 'border-blue-500 bg-gray-600 shadow-sm'
-                    : 'border-gray-600 hover:border-gray-500'
+                    ? 'border-dark-border-focus bg-dark-bg-tertiary shadow-lg'
+                    : 'border-dark-border-light hover:border-dark-border-focus'
                 }`}
                 onClick={() => onSwitchRepository(repo.path)}
               >
@@ -181,12 +181,12 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                 {/* 選択インジケーター */}
                 {currentRepo === repo.path && (
                   <div className="absolute top-1.5 left-1.5">
-                    <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                    <div className="h-2 w-2 bg-dark-accent-green rounded-full"></div>
                   </div>
                 )}
 
                 {/* ホバー時のオーバーレイ */}
-                <div className="absolute inset-0 bg-gray-600 bg-opacity-30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-dark-bg-hover bg-opacity-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
               </div>
             ))}
           </div>
@@ -194,11 +194,11 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       </div>
 
       {/* リポジトリ追加セクション */}
-      <div className="border-t border-gray-600 pt-6 sm:pt-8">
-        <div className="bg-gray-700 rounded-xl p-6 sm:p-8 border border-gray-600">
+      <div className="border-t border-dark-border-DEFAULT pt-6 sm:pt-8">
+        <div className="bg-dark-bg-secondary rounded-xl p-6 sm:p-8 border-2 border-dark-border-light shadow-xl">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
             <svg
-              className="h-5 w-5 mr-2 text-blue-400"
+              className="h-5 w-5 mr-2 text-dark-accent-green"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -214,14 +214,14 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
           </h3>
 
           {/* モード切り替えタブ */}
-          <div className="flex mb-6 bg-gray-800 rounded-lg p-1">
+          <div className="flex mb-6 bg-dark-bg-primary rounded-lg p-1 border border-dark-border-light">
             <button
               type="button"
               onClick={() => setIsCreateMode(false)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
                 !isCreateMode
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-dark-bg-tertiary text-white shadow-md border border-dark-border-light'
+                  : 'text-dark-text-secondary hover:text-white hover:bg-dark-bg-hover'
               }`}
             >
               既存リポジトリをクローン
@@ -229,10 +229,10 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
             <button
               type="button"
               onClick={() => setIsCreateMode(true)}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
                 isCreateMode
-                  ? 'bg-gray-700 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-dark-bg-tertiary text-white shadow-md border border-dark-border-light'
+                  : 'text-dark-text-secondary hover:text-white hover:bg-dark-bg-hover'
               }`}
             >
               新規リポジトリを作成
@@ -261,7 +261,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                     value={repoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
-                    className="w-full px-4 py-3 border border-gray-600 bg-gray-800 text-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
+                    className="w-full px-4 py-3 border-2 border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                     disabled={!isConnected || isCloning}
                   />
                 </div>
@@ -279,7 +279,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
                   placeholder="プロジェクト名"
-                  className="w-full px-4 py-3 border border-gray-600 bg-gray-800 text-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
+                  className="w-full px-4 py-3 border-2 border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                   disabled={!isConnected || isCloning}
                 />
               </div>
@@ -292,7 +292,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                     ? !repoName.trim()
                     : !repoUrl.trim() || !repoName.trim())
                 }
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-colors flex items-center justify-center"
+                className="w-full bg-dark-accent-green text-white py-3 px-6 rounded-lg hover:bg-dark-accent-green-hover focus:outline-none focus:ring-2 focus:ring-dark-accent-green focus:ring-offset-2 focus:ring-offset-dark-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-all duration-150 flex items-center justify-center shadow-md"
               >
                 {isCloning ? (
                   <>
@@ -344,8 +344,8 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
 
       {/* 現在のプロジェクト表示 */}
       {currentRepo && (
-        <div className="pt-4 border-t border-gray-600">
-          <p className="text-xs text-gray-400 mb-1">現在のプロジェクト:</p>
+        <div className="pt-4 border-t border-dark-border-DEFAULT">
+          <p className="text-xs text-dark-text-secondary mb-1">現在のプロジェクト:</p>
           <p className="text-sm font-medium text-white truncate">
             {currentRepo.split('/').pop()}
           </p>

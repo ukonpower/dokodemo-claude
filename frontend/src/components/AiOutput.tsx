@@ -189,7 +189,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // ターミナルインスタンスを作成（横スクロール対応の設定）
     terminal.current = new Terminal({
       theme: {
-        background: '#111827',
+        background: '#0a0a0a', // dark-bg-primary
         foreground: '#d1d5db',
         cursor: '#9ca3af',
         selectionBackground: '#374151',
@@ -375,16 +375,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
         />
       )}
       {/* ヘッダー */}
-      <div className="px-2 sm:px-3 py-2 border-b bg-gray-800 border-gray-700">
+      <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 sm:space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${isFocused ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`}
+              className={`w-2 h-2 rounded-full ${isFocused ? 'bg-dark-accent-blue animate-pulse' : 'bg-dark-accent-green'}`}
             ></div>
             <span className="text-gray-300 text-xs">
               {providerInfo.headerLabel}{' '}
               {isFocused && (
-                <span className="text-blue-400">
+                <span className="text-dark-accent-blue">
                   {providerInfo.focusLabel}
                 </span>
               )}
@@ -393,7 +393,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           {onClearOutput && (
             <button
               onClick={clearTerminal}
-              className="flex items-center justify-center w-6 h-6 bg-gray-600 hover:bg-gray-500 rounded border border-gray-500 text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150"
               title="出力履歴をクリア"
             >
               🗑️
@@ -404,8 +404,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
       {/* XTermターミナル出力エリア */}
       <div
-        className={`flex-1 bg-gray-900 overflow-auto relative ${
-          isFocused ? 'ring-2 ring-blue-500 ring-inset' : ''
+        className={`flex-1 bg-dark-bg-primary overflow-auto relative ${
+          isFocused ? 'ring-2 ring-dark-accent-blue ring-inset' : ''
         }`}
       >
         <div
@@ -418,7 +418,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
             }
           }}
           style={{
-            background: '#111827',
+            background: '#0a0a0a', // dark-bg-primary
             minHeight: '200px',
             width: 'max-content',
             overflowX: 'auto',
@@ -430,10 +430,10 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
         {/* AI CLI専用ローディング表示 */}
         {isLoading && (
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center">
+          <div className="absolute inset-0 bg-dark-bg-primary bg-opacity-90 flex items-center justify-center">
             <div className="flex flex-col items-center space-y-3">
               <svg
-                className="animate-spin h-8 w-8 text-blue-400"
+                className="animate-spin h-8 w-8 text-dark-accent-blue"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

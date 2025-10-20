@@ -27,11 +27,11 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
 
   if (!hasScripts) {
     return (
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+      <div className="bg-dark-bg-tertiary rounded-lg border border-dark-border-light p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white flex items-center">
             <svg
-              className="w-4 h-4 mr-2 text-orange-400"
+              className="w-4 h-4 mr-2 text-dark-accent-orange"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -48,7 +48,7 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
           <button
             onClick={onRefreshScripts}
             disabled={!isConnected}
-            className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center px-2 py-1 text-xs font-medium text-dark-text-primary bg-dark-bg-secondary border border-dark-border-light rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm"
           >
             <svg
               className="w-3 h-3 mr-1"
@@ -74,11 +74,11 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+    <div className="bg-dark-bg-tertiary rounded-lg border border-dark-border-light p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-white flex items-center">
           <svg
-            className="w-4 h-4 mr-2 text-orange-400"
+            className="w-4 h-4 mr-2 text-dark-accent-orange"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -91,14 +91,14 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
             />
           </svg>
           npm scripts
-          <span className="ml-2 text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded">
+          <span className="ml-2 text-xs text-dark-text-secondary bg-dark-bg-secondary px-2 py-0.5 rounded">
             {scriptEntries.length}
           </span>
         </h3>
         <button
           onClick={onRefreshScripts}
           disabled={!isConnected}
-          className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center px-2 py-1 text-xs font-medium text-dark-text-primary bg-dark-bg-secondary border border-dark-border-light rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm"
         >
           <svg
             className="w-3 h-3 mr-1"
@@ -125,7 +125,7 @@ const NpmScripts: React.FC<NpmScriptsProps> = ({
               key={scriptName}
               onClick={() => onExecuteScript(scriptName)}
               disabled={!isConnected}
-              className="group relative bg-gray-700 hover:bg-orange-900 border border-gray-600 hover:border-orange-700 rounded p-2 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative bg-dark-bg-secondary hover:bg-dark-bg-hover border border-dark-border-light hover:border-dark-accent-orange rounded-lg p-2 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               title={`npm run ${scriptName}\n${command}`}
             >
               <div className="text-xs font-medium text-white truncate">
