@@ -261,7 +261,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                     value={repoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
-                    className="w-full px-4 py-3 border-2 border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                    className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                     disabled={!isConnected || isCloning}
                   />
                 </div>
