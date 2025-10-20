@@ -27,14 +27,11 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
 
   return (
     <div className="flex items-center space-x-2">
-      <label className="text-sm font-medium text-gray-700">
-        AI プロバイダー:
-      </label>
       <select
         value={currentProvider}
         onChange={(e) => onProviderChange(e.target.value as AiProvider)}
         disabled={disabled}
-        className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="px-2 py-1 sm:px-3 sm:py-1.5 bg-gray-700 border border-gray-600 rounded-md text-xs sm:text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
         title={disabled ? 'リポジトリを選択してからプロバイダーを変更してください' : ''}
       >
         {providers.map((provider) => (
@@ -43,9 +40,6 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           </option>
         ))}
       </select>
-      <div className="text-xs text-gray-500">
-        {providers.find((p) => p.value === currentProvider)?.description}
-      </div>
     </div>
   );
 };

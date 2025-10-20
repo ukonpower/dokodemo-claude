@@ -1228,14 +1228,6 @@ function App() {
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3">
-              {/* プロバイダー選択 */}
-              <div className="hidden sm:block">
-                <ProviderSelector
-                  currentProvider={currentProvider}
-                  onProviderChange={handleProviderChange}
-                  disabled={!currentRepo || !isConnected}
-                />
-              </div>
               <div className="flex items-center space-x-2">
                 <div
                   className={`w-2 h-2 rounded-full ${
@@ -1391,7 +1383,7 @@ function App() {
 
         {/* Claude CLI セクション */}
         <section className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-700 bg-gray-750 rounded-t-lg flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
                 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"
@@ -1408,6 +1400,12 @@ function App() {
               </svg>
               {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}
             </h2>
+            {/* プロバイダー選択 */}
+            <ProviderSelector
+              currentProvider={currentProvider}
+              onProviderChange={handleProviderChange}
+              disabled={!currentRepo || !isConnected}
+            />
           </div>
           <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
             {/* AI出力エリア */}
