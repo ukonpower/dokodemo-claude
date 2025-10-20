@@ -2431,7 +2431,7 @@ export class ProcessManager extends EventEmitter {
       // difitコマンドを実行（差分タイプを動的に指定）
       const diffTarget = this.getDiffTarget(diffConfig || { type: 'HEAD' });
       p.write(
-        `npx -y difit ${diffTarget} --host 0.0.0.0 --port ${mainPort} --no-open\r`
+        `npx -y difit ${diffTarget} --host 0.0.0.0 --port ${mainPort} --no-open --mode inline\r`
       );
 
       // difitの出力を監視してポート番号を動的に抽出
