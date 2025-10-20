@@ -47,9 +47,9 @@ export default {
             hover: '#252525',
           },
           border: {
-            DEFAULT: '#1f1f1f',
-            light: '#282828',
-            focus: '#353535',
+            DEFAULT: '#181818',
+            light: '#1f1f1f',
+            focus: '#2a2a2a',
           },
           text: {
             primary: '#ffffff',
