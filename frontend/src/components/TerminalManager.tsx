@@ -130,7 +130,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         <button
           onClick={handleCreateTerminal}
           disabled={!isConnected || !currentRepo}
-          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
+          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-700 text-gray-100 border border-gray-500 rounded-lg hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
         >
           <span>+</span>
           <span className="hidden sm:inline">新規</span>
@@ -158,7 +158,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <button
                   onClick={handleCreateTerminal}
                   disabled={!isConnected || !currentRepo}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-700 text-gray-100 border border-gray-500 rounded-lg hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
                 >
                   ターミナルを作成
                 </button>

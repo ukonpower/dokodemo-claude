@@ -304,7 +304,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                 className={`w-3 h-3 rounded-full ${
                   autoModeState.isRunning
                     ? 'bg-green-400 animate-pulse'
-                    : 'bg-gray-400'
+                    : 'bg-gray-500'
                 }`}
               ></div>
               <div className="min-w-0 flex-1">
@@ -370,7 +370,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           </h3>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+            className="bg-gray-700 text-gray-100 border border-gray-500 px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors"
           >
             {showCreateForm ? 'キャンセル' : '+ 新規作成'}
           </button>
@@ -381,8 +381,8 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
             <h4 className="font-semibold mb-3 text-white text-sm sm:text-base">
               新しい自走モード設定
             </h4>
-            <div className="bg-blue-900 p-3 rounded-md mb-4 border border-blue-600">
-              <p className="text-xs sm:text-sm text-blue-200">
+            <div className="bg-gray-800 p-3 rounded-md mb-4 border border-gray-600">
+              <p className="text-xs sm:text-sm text-gray-300">
                 🚀 <strong>自走モードについて:</strong>
                 <br />
                 バックエンドで定期的に実行されるため、ブラウザを閉じても継続動作します。
@@ -479,13 +479,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               <div className="flex space-x-2">
                 <button
                   onClick={handleCreateConfig}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
+                  className="bg-gray-700 text-gray-100 border border-gray-500 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
                 >
                   作成
                 </button>
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
+                  className="bg-gray-600 text-gray-100 px-4 py-2 rounded hover:bg-gray-500 transition-colors text-xs sm:text-sm"
                 >
                   キャンセル
                 </button>
@@ -611,13 +611,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       <div className="flex space-x-2">
                         <button
                           onClick={handleUpdateConfig}
-                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-xs sm:text-sm"
+                          className="bg-gray-700 text-gray-100 border border-gray-500 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
                         >
                           保存
                         </button>
                         <button
                           onClick={() => setEditingConfig(null)}
-                          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400 transition-colors text-xs sm:text-sm"
+                          className="bg-gray-600 text-gray-100 px-4 py-2 rounded hover:bg-gray-500 transition-colors text-xs sm:text-sm"
                         >
                           キャンセル
                         </button>
@@ -685,7 +685,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           <>
                             <button
                               onClick={() => setEditingConfig(config)}
-                              className="bg-gray-500 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-400 transition-colors"
+                              className="bg-gray-600 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-500 transition-colors"
                             >
                               編集
                             </button>
