@@ -31,17 +31,17 @@
 @layer components {
   .claude-output {
     @apply bg-gray-800 border rounded-lg shadow-sm;
-    border-color: #181818;
+    border-color: #1f1f1f;
   }
 
   .claude-message {
     @apply p-3 border-b last:border-b-0;
-    border-color: #181818;
+    border-color: #1f1f1f;
   }
 
   .claude-message-user {
     @apply bg-gray-700 border-l-4;
-    border-left-color: #2a2a2a;
+    border-left-color: #333333;
   }
 
   .claude-message-claude {
@@ -54,12 +54,12 @@
 
   .repository-item {
     @apply p-3 border rounded-lg hover:bg-gray-700 cursor-pointer transition-colors;
-    border-color: #181818;
+    border-color: #1f1f1f;
   }
 
   .repository-item-selected {
     @apply bg-gray-700;
-    border-color: #2a2a2a;
+    border-color: #333333;
   }
 
   .repository-status-ready {

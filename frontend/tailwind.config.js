@@ -3,6 +3,10 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
+    borderColor: (theme) => ({
+      ...theme('colors'),
+      DEFAULT: '#1f1f1f',
+    }),
     screens: {
       xs: '475px',
       sm: '640px',
@@ -47,9 +51,9 @@ export default {
             hover: '#252525',
           },
           border: {
-            DEFAULT: '#181818',
-            light: '#1f1f1f',
-            focus: '#2a2a2a',
+            DEFAULT: '#1f1f1f',
+            light: '#2a2a2a',
+            focus: '#333333',
           },
           text: {
             primary: '#ffffff',
@@ -77,5 +81,21 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities, theme }) {
+      const borderColors = theme('colors.dark.border');
+      const newUtilities = {
+        '.border-dark-border-DEFAULT': {
+          borderColor: borderColors.DEFAULT,
+        },
+        '.border-dark-border-light': {
+          borderColor: borderColors.light,
+        },
+        '.border-dark-border-focus': {
+          borderColor: borderColors.focus,
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 };
