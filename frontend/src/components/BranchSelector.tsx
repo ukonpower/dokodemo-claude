@@ -58,7 +58,7 @@ function BranchSelector({
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={!isConnected || isLoading}
-        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-200 bg-gray-700 border border-gray-600 rounded-md hover:bg-gray-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-200 bg-gray-800 border border-gray-600 rounded-md hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
           className="w-4 h-4 mr-2"
@@ -111,7 +111,7 @@ function BranchSelector({
                         onClick={() => handleBranchSwitch(branch.name)}
                         className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors flex items-center justify-between ${
                           branch.current
-                            ? 'text-blue-400 bg-gray-750'
+                            ? 'text-gray-100 bg-gray-750'
                             : 'text-gray-200'
                         }`}
                       >

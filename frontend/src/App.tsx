@@ -1154,7 +1154,7 @@ function App() {
               <div className="bg-dark-bg-secondary rounded-lg shadow-2xl p-8 border-2 border-dark-border-light">
                 <div className="flex flex-col items-center space-y-4">
                   <svg
-                    className="animate-spin h-12 w-12 text-blue-400"
+                    className="animate-spin h-12 w-12 text-gray-400"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -1246,7 +1246,7 @@ function App() {
                       : '未接続'}
                 </span>
                 {currentSessionId && (
-                  <span className="text-xs text-blue-400 font-mono">
+                  <span className="text-xs text-gray-400 font-mono">
                     #{currentSessionId.split('-')[1]}
                   </span>
                 )}
@@ -1386,7 +1386,7 @@ function App() {
           <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
             <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
               <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-400"
+                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

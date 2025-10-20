@@ -295,7 +295,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
           className={`p-4 rounded-lg border-2 ${
             autoModeState.isRunning
               ? 'bg-green-900 border-green-600'
-              : 'bg-gray-700 border-gray-600'
+              : 'bg-gray-900 border-gray-700'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -363,14 +363,14 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
       )}
 
       {/* 設定管理セクション */}
-      <div className="bg-gray-700 p-4 rounded-lg">
+      <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base sm:text-lg font-semibold text-white">
             自走モード設定
           </h3>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-gray-700 text-gray-100 border border-gray-500 px-3 py-1 rounded text-sm hover:bg-gray-600 transition-colors"
+            className="bg-gray-800 text-gray-100 border border-gray-600 px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors"
           >
             {showCreateForm ? 'キャンセル' : '+ 新規作成'}
           </button>
@@ -401,7 +401,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   onChange={(e) =>
                     setNewConfig({ ...newConfig, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm"
                   placeholder="例: 継続的リファクタリング"
                 />
               </div>
@@ -414,7 +414,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                   onChange={(e) =>
                     setNewConfig({ ...newConfig, prompt: e.target.value })
                   }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm"
                   rows={4}
                   placeholder="例: 現在のコードベースを見直して、改善点があれば教えてください。可能であれば実装も行ってください。"
                 />
@@ -479,13 +479,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               <div className="flex space-x-2">
                 <button
                   onClick={handleCreateConfig}
-                  className="bg-gray-700 text-gray-100 border border-gray-500 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
+                  className="bg-gray-800 text-gray-100 border border-gray-600 px-4 py-2 rounded hover:bg-gray-700 transition-colors text-xs sm:text-sm"
                 >
                   作成
                 </button>
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className="bg-gray-600 text-gray-100 px-4 py-2 rounded hover:bg-gray-500 transition-colors text-xs sm:text-sm"
+                  className="bg-gray-700 text-gray-100 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
                 >
                   キャンセル
                 </button>
@@ -508,10 +508,10 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
               return (
                 <div
                   key={config.id}
-                  className={`p-4 rounded border border-gray-500 ${
+                  className={`p-4 rounded border border-gray-700 ${
                     autoModeState?.isRunning && !isCurrentlyRunning
-                      ? 'bg-gray-700 opacity-50'
-                      : 'bg-gray-600'
+                      ? 'bg-gray-800 opacity-50'
+                      : 'bg-gray-800'
                   }`}
                 >
                   {editingConfig?.id === config.id ? (
@@ -529,7 +529,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               name: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                          className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm"
                         />
                       </div>
                       <div>
@@ -544,7 +544,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                               prompt: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-500 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                          className="w-full px-3 py-2 bg-gray-900 border border-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-xs sm:text-sm"
                           rows={4}
                         />
                       </div>
@@ -611,13 +611,13 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                       <div className="flex space-x-2">
                         <button
                           onClick={handleUpdateConfig}
-                          className="bg-gray-700 text-gray-100 border border-gray-500 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
+                          className="bg-gray-800 text-gray-100 border border-gray-600 px-4 py-2 rounded hover:bg-gray-700 transition-colors text-xs sm:text-sm"
                         >
                           保存
                         </button>
                         <button
                           onClick={() => setEditingConfig(null)}
-                          className="bg-gray-600 text-gray-100 px-4 py-2 rounded hover:bg-gray-500 transition-colors text-xs sm:text-sm"
+                          className="bg-gray-700 text-gray-100 px-4 py-2 rounded hover:bg-gray-600 transition-colors text-xs sm:text-sm"
                         >
                           キャンセル
                         </button>
@@ -674,7 +674,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                         )}
                       </div>
 
-                      <div className="bg-gray-700 p-3 rounded">
+                      <div className="bg-gray-900 p-3 rounded border border-gray-700">
                         <p className="text-gray-200 text-xs sm:text-sm whitespace-pre-wrap">
                           {config.prompt}
                         </p>
@@ -685,7 +685,7 @@ const AutoModeSettings: React.FC<AutoModeSettingsProps> = ({
                           <>
                             <button
                               onClick={() => setEditingConfig(config)}
-                              className="bg-gray-600 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-500 transition-colors"
+                              className="bg-gray-700 text-gray-100 px-3 py-1 rounded text-xs sm:text-sm hover:bg-gray-600 transition-colors"
                             >
                               編集
                             </button>

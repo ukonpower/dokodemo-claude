@@ -91,7 +91,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
-      <div className="bg-gray-700 px-2 sm:px-4 py-2 border-b border-gray-600 flex items-center space-x-1 overflow-x-auto flex-shrink-0">
+      <div className="bg-gray-900 px-2 sm:px-4 py-2 border-b border-gray-700 flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
           <div
             key={terminal.id}
@@ -130,7 +130,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         <button
           onClick={handleCreateTerminal}
           disabled={!isConnected || !currentRepo}
-          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-700 text-gray-100 border border-gray-500 rounded-lg hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
+          className="px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm bg-gray-800 text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center space-x-1 flex-shrink-0"
         >
           <span>+</span>
           <span className="hidden sm:inline">新規</span>
@@ -158,7 +158,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 <button
                   onClick={handleCreateTerminal}
                   disabled={!isConnected || !currentRepo}
-                  className="px-4 py-2 bg-gray-700 text-gray-100 border border-gray-500 rounded-lg hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
+                  className="px-4 py-2 bg-gray-800 text-gray-100 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 text-sm font-medium"
                 >
                   ターミナルを作成
                 </button>
@@ -239,14 +239,14 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                       placeholder="ショートカット名（省略可）"
                       value={shortcutName}
                       onChange={(e) => setShortcutName(e.target.value)}
-                      className="px-2 py-1 text-xs bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-blue-500"
+                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-gray-600 rounded focus:outline-none focus:border-gray-500"
                     />
                     <input
                       type="text"
                       placeholder="コマンド (例: npm run dev)"
                       value={shortcutCommand}
                       onChange={(e) => setShortcutCommand(e.target.value)}
-                      className="px-2 py-1 text-xs bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-blue-500"
+                      className="px-2 py-1 text-xs bg-gray-900 text-white border border-gray-600 rounded focus:outline-none focus:border-gray-500"
                     />
                     <div className="flex space-x-2">
                       <button
