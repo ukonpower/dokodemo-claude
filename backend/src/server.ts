@@ -1,10 +1,19 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// プロジェクトルートの.envファイルを読み込み
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '../..');
+dotenv.config({ path: path.join(projectRoot, '.env') });
+
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
-import path from 'path';
 
 import type {
   GitRepository,
@@ -17,10 +26,13 @@ import { ProcessManager } from './process-manager.js';
 const app = express();
 const server = createServer(app);
 
+// CORS設定を環境変数から取得
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+
 // Socket.IOサーバーの設定
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
-    origin: '*', // すべてのオリジンを許可
+    origin: CORS_ORIGIN,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -40,7 +52,7 @@ const processManager = new ProcessManager(PROCESSES_DIR);
 // Expressの設定
 app.use(
   cors({
-    origin: '*', // すべてのオリジンを許可
+    origin: CORS_ORIGIN,
     credentials: true,
   })
 );
@@ -1454,6 +1466,7 @@ io.on('connection', (socket) => {
 
 // サーバー起動
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 
 async function startServer(): Promise<void> {
   await ensureReposDir();
@@ -1462,8 +1475,8 @@ async function startServer(): Promise<void> {
   // ProcessManagerの初期化
   await processManager.initialize();
 
-  server.listen(PORT, '0.0.0.0', () => {
-    // Server started on port ${PORT}
+  server.listen(PORT, HOST, () => {
+    console.log(`Server started on ${HOST}:${PORT}`);
   });
 }
 

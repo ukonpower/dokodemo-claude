@@ -237,12 +237,14 @@ function App() {
     const reconnectDelay = 2000; // 2秒
 
     const createConnection = () => {
-      // 現在のホストを自動検出してSocket.IO接続
+      // 環境変数からバックエンドURLを取得、または自動検出
+      const apiUrl = import.meta.env.VITE_API_URL;
       const socketUrl =
-        window.location.hostname === 'localhost' ||
+        apiUrl ||
+        (window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1'
           ? 'http://localhost:3001'
-          : `http://${window.location.hostname}:3001`;
+          : `http://${window.location.hostname}:3001`);
 
       const socketInstance = io(socketUrl, {
         autoConnect: false, // 手動接続に変更
