@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Claude Code tool-use hook
+# repositories/dokodemo-claude配下のファイルのみ編集を許可する
+
+# 標準入力からJSONイベントを読み取る
+INPUT=$(cat)
+
+# jqがインストールされているか確認
+if ! command -v jq &> /dev/null; then
+    # jqがない場合はチェックをスキップ（許可）
+    exit 0
+fi
+
+# ツール名を取得
+TOOL=$(echo "$INPUT" | jq -r '.tool // empty')
+
+# ファイル編集系のツールのみチェック
+if [[ "$TOOL" != "Edit" && "$TOOL" != "Write" && "$TOOL" != "NotebookEdit" ]]; then
+    # ファイル編集以外のツールは許可
+    exit 0
+fi
+
+# ファイルパスを取得
+FILE_PATH=$(echo "$INPUT" | jq -r '.parameters.file_path // .parameters.notebook_path // empty')
+
+# ファイルパスが取得できない場合は許可（他のパラメータかもしれない）
+if [[ -z "$FILE_PATH" ]]; then
+    exit 0
+fi
+
+# 絶対パスに変換
+if [[ "$FILE_PATH" != /* ]]; then
+    FILE_PATH="$(pwd)/$FILE_PATH"
+fi
+
+# repositories/dokodemo-claude配下かチェック
+ALLOWED_DIR="/Users/ukonpower/Documents/work-space/dokodemo-claude/backend/repositories/dokodemo-claude"
+
+if [[ "$FILE_PATH" == "$ALLOWED_DIR"* ]]; then
+    # 許可されたディレクトリ内のファイル
+    exit 0
+else
+    # 許可されていないディレクトリのファイル
+    echo "❌ エラー: このファイルは編集できません"
+    echo ""
+    echo "編集が許可されているのは以下のディレクトリのみです："
+    echo "  $ALLOWED_DIR"
+    echo ""
+    echo "指定されたファイル："
+    echo "  $FILE_PATH"
+    echo ""
+    echo "IMPORTANT: repositories外のファイルは編集禁止です。"
+    echo "作業対象はrepositories/dokodemo-claude内のプロジェクトのみです。"
+    exit 1
+fi

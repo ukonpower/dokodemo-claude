@@ -445,11 +445,39 @@ fi
 
 ### 重要な制約事項
 
-**IMPORTANT: `repositories`ディレクトリより上位のディレクトリは絶対に編集しないこと**
+**IMPORTANT: このプロジェクト配下のファイルのみ編集可能**
 
-- `repositories`ディレクトリより上位のディレクトリやファイルは編集禁止
-- 作業対象は`repositories`ディレクトリ内のクローンされたプロジェクトのみ
-- この制約により、dokodemo-claudeのメインシステムファイルの誤編集を防止
+このClaude Codeセッションでは、以下のディレクトリ配下のファイル**のみ**編集が許可されています：
+
+```
+/Users/ukonpower/Documents/work-space/dokodemo-claude/backend/repositories/dokodemo-claude/
+```
+
+#### 技術的な制限
+
+- `.claude/hooks/tool-use` フックにより、上記ディレクトリ外のファイル編集は**技術的に拒否**されます
+- Edit、Write、NotebookEditなどのファイル編集ツールは、このディレクトリ配下でのみ動作します
+- 外側のdokodemo-claudeシステムファイルの誤編集を防止するための安全機構です
+
+#### 編集禁止の対象
+
+以下のファイル・ディレクトリは編集**できません**：
+- `/Users/ukonpower/Documents/work-space/dokodemo-claude/backend/` 配下のファイル
+  - `src/server.ts`
+  - `src/process-manager.ts`
+  - その他のバックエンドシステムファイル
+- `/Users/ukonpower/Documents/work-space/dokodemo-claude/frontend/` 配下のファイル
+- `/Users/ukonpower/Documents/work-space/dokodemo-claude/` 直下の設定ファイル
+
+#### 編集可能な対象
+
+- `backend/` - このプロジェクトのバックエンドコード
+- `frontend/` - このプロジェクトのフロントエンドコード
+- `.env`、`.env.example` - 環境変数設定
+- `CLAUDE.md` - プロジェクト指針
+- その他、このプロジェクト内の全てのファイル
+
+この制約により、dokodemo-claude本体のメインシステムファイルの誤編集を確実に防止します。
 
 ### Git運用方針
 
