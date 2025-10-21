@@ -186,6 +186,13 @@ export interface ServerToClientEvents {
     repositoryName: string;
     provider: AiProvider;
   }) => void;
+  'ai-restarted': (data: {
+    success: boolean;
+    message: string;
+    repositoryPath: string;
+    provider: AiProvider;
+    sessionId?: string;
+  }) => void;
   'ai-output-history': (data: {
     repositoryPath: string;
     history: AiOutputLine[];

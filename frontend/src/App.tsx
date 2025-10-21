@@ -107,7 +107,7 @@ function App() {
   }, [currentRepo, socket]);
 
   // プロバイダー別セッションID管理（将来の拡張用）
-  const [aiSessionIds] = useState<Map<AiProvider, string>>(new Map());
+  const [aiSessionIds, setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   // currentProviderの最新値を保持するref
@@ -400,6 +400,23 @@ function App() {
         if (data.repositoryPath === currentRepoRef.current) {
           setCurrentSessionId(data.sessionId);
           // Claude CLIセッション開始メッセージは表示しない（自動的にプロンプトが表示されるため）
+        }
+      });
+
+      // AI CLI再起動イベント
+      socketInstance.on('ai-restarted', (data) => {
+        if (data.repositoryPath === currentRepoRef.current && data.provider === currentProviderRef.current) {
+          if (data.success && data.sessionId) {
+            // 新しいセッションIDを更新
+            setCurrentSessionId(data.sessionId);
+
+            // aiSessionIdsマップも更新
+            setAiSessionIds((prevIds) => {
+              const newIds = new Map(prevIds);
+              newIds.set(data.provider, data.sessionId);
+              return newIds;
+            });
+          }
         }
       });
 
