@@ -237,14 +237,10 @@ function App() {
     const reconnectDelay = 2000; // 2秒
 
     const createConnection = () => {
-      // 環境変数からバックエンドURLを取得、または自動検出
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const socketUrl =
-        apiUrl ||
-        (window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
-          ? 'http://localhost:3100'
-          : `http://${window.location.hostname}:3100`);
+      // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
+      const backendPort = 3100;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
 
       const socketInstance = io(socketUrl, {
         autoConnect: false, // 手動接続に変更
@@ -252,6 +248,7 @@ function App() {
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
         timeout: 10000,
+        transports: ['websocket'],
       });
 
       setSocket(socketInstance);

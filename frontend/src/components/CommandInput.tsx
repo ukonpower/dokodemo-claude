@@ -206,7 +206,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       type="button"
                       onClick={() => onSendArrowKey('up')}
                       disabled={disabled}
-                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                       title="上キー"
                     >
                       ↑
@@ -216,7 +216,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       type="button"
                       onClick={() => onSendArrowKey('left')}
                       disabled={disabled}
-                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                       title="左キー"
                     >
                       ←
@@ -225,7 +225,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       type="button"
                       onClick={() => onSendArrowKey('down')}
                       disabled={disabled}
-                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                       title="下キー"
                     >
                       ↓
@@ -234,7 +234,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                       type="button"
                       onClick={() => onSendArrowKey('right')}
                       disabled={disabled}
-                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                      className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                       title="右キー"
                     >
                       →
@@ -248,7 +248,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                 <button
                   type="submit"
                   disabled={disabled}
-                  className="bg-dark-bg-tertiary border border-dark-border-light text-dark-text-primary px-8 py-3 sm:px-6 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-1 focus:ring-dark-border-focus focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
+                  className="bg-dark-bg-tertiary border border-gray-500 text-dark-text-primary px-8 py-3 sm:px-6 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
                 >
                   Enter
                 </button>
@@ -263,7 +263,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                     type="button"
                     onClick={onSendInterrupt}
                     disabled={disabled}
-                    className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                    className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                     title="プロセスを中断 (Ctrl+C)"
                   >
                     Ctrl+C
@@ -380,7 +380,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                   type="button"
                   onClick={() => setShowKeyboardButtons(!showKeyboardButtons)}
                   disabled={disabled}
-                  className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-dark-bg-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                  className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                   title="iOS向けキーボード表示切替"
                 >
                   ⌨️
@@ -406,7 +406,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                           type="button"
                           onClick={() => onSendArrowKey('up')}
                           disabled={disabled}
-                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                           title="上キー"
                         >
                           ↑
@@ -416,7 +416,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                           type="button"
                           onClick={() => onSendArrowKey('left')}
                           disabled={disabled}
-                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                           title="左キー"
                         >
                           ←
@@ -425,7 +425,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                           type="button"
                           onClick={() => onSendArrowKey('down')}
                           disabled={disabled}
-                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                           title="下キー"
                         >
                           ↓
@@ -434,7 +434,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                           type="button"
                           onClick={() => onSendArrowKey('right')}
                           disabled={disabled}
-                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation shadow-md transition-all duration-150"
+                          className="flex items-center justify-center w-12 h-12 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-lg font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
                           title="右キー"
                         >
                           →
@@ -474,7 +474,7 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                         type="button"
                         onClick={onSendInterrupt}
                         disabled={disabled}
-                        className="bg-dark-bg-tertiary border border-dark-border-light hover:bg-dark-bg-hover hover:border-dark-border-focus text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-1 focus:ring-dark-border-focus touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
+                        className="bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 text-dark-text-primary px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-mono focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation min-h-[2.5rem] shadow-md transition-all duration-150"
                         title="プロセスを中断 (Ctrl+C)"
                       >
                         Ctrl+C
