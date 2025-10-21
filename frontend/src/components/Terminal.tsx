@@ -11,7 +11,6 @@ interface TerminalProps {
   isActive: boolean;
   onInput: (terminalId: string, input: string) => void;
   onSignal: (terminalId: string, signal: string) => void;
-  onClose: (terminalId: string) => void;
 }
 
 const TerminalComponent: React.FC<TerminalProps> = ({
@@ -21,7 +20,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   isActive,
   onInput,
   onSignal,
-  onClose,
 }) => {
   const [input, setInput] = useState('');
   const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);

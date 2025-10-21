@@ -95,10 +95,10 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
         {terminals.map((terminal) => (
           <div
             key={terminal.id}
-            className={`px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm rounded-t-lg flex items-center space-x-1 sm:space-x-2 whitespace-nowrap min-w-0 cursor-pointer ${
+            className={`px-2 sm:px-3 py-1.5 sm:py-1 text-xs sm:text-sm rounded-t-lg flex items-center space-x-1 sm:space-x-2 whitespace-nowrap min-w-0 cursor-pointer transition-all duration-200 ${
               activeTerminalId === terminal.id
-                ? 'bg-gray-800 text-gray-100 border border-dark-border-light border-b-0'
-                : 'bg-gray-600 text-gray-200 hover:bg-gray-500'
+                ? 'bg-white text-gray-900 border-2 border-gray-400 border-b-0 font-bold shadow-lg'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
             }`}
             onClick={() => onActiveTerminalChange(terminal.id)}
           >
@@ -188,7 +188,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
               isActive={true}
               onInput={onTerminalInput}
               onSignal={onTerminalSignal}
-              onClose={onCloseTerminal}
             />
           ) : (
             <div className="h-full flex items-center justify-center bg-gray-900">
