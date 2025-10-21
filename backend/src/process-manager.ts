@@ -1491,17 +1491,37 @@ export class ProcessManager extends EventEmitter {
     }
 
     try {
+      // プロセス終了を待つPromiseを作成
+      const exitPromise = new Promise<void>((resolve) => {
+        session.process.onExit(() => {
+          resolve();
+        });
+      });
+
+      // SIGTERMを送信
       session.process.kill('SIGTERM');
+
+      // 2秒後にSIGKILLを送信するタイムアウトを設定
       const killTimeout = setTimeout(() => {
         if (this.aiSessions.has(sessionKey)) {
           session.process.kill('SIGKILL');
         }
       }, 2000);
 
-      // セッションが終了したらタイムアウトをクリア
-      session.process.onExit(() => {
-        clearTimeout(killTimeout);
-      });
+      // プロセスの終了を待つ（最大3秒）
+      await Promise.race([
+        exitPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 3000))
+      ]);
+
+      clearTimeout(killTimeout);
+
+      // Mapから削除
+      this.aiSessions.delete(sessionKey);
+      this.idIndex.delete(session.id);
+
+      // 永続化ファイルを更新
+      await this.persistAiSessions();
 
       return true;
     } catch {
