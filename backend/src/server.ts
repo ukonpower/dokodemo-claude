@@ -1465,7 +1465,7 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '3100', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
 async function startServer(): Promise<void> {

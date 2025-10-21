@@ -445,39 +445,36 @@ fi
 
 ### 重要な制約事項
 
-**IMPORTANT: このプロジェクト配下のファイルのみ編集可能**
+**IMPORTANT: Claude Codeが実行されているdokodemo-claudeプロジェクトのみ編集可能**
 
-このClaude Codeセッションでは、以下のディレクトリ配下のファイル**のみ**編集が許可されています：
+このClaude Codeセッションでは、**現在のworking directory（作業ディレクトリ）のdokodemo-claudeプロジェクト配下のファイルのみ**編集が許可されています。
 
-```
-/Users/ukonpower/Documents/work-space/dokodemo-claude/backend/repositories/dokodemo-claude/
-```
+#### 編集権限の考え方
+
+- Claude Codeが**実行されている場所**のdokodemo-claudeプロジェクトのみを編集してください
+- 例えば、Claude Codeが `/Users/ukonpower/Documents/work-space/dokodemo-claude/` で実行されている場合、そのディレクトリ配下のみが編集対象です
+- 別の場所で実行されている場合は、その場所のdokodemo-claudeプロジェクトが編集対象になります
 
 #### 技術的な制限
 
-- `.claude/hooks/tool-use` フックにより、上記ディレクトリ外のファイル編集は**技術的に拒否**されます
-- Edit、Write、NotebookEditなどのファイル編集ツールは、このディレクトリ配下でのみ動作します
-- 外側のdokodemo-claudeシステムファイルの誤編集を防止するための安全機構です
+- `.claude/hooks/tool-use` フックにより、working directory外のファイル編集は**技術的に拒否される場合があります**
+- Edit、Write、NotebookEditなどのファイル編集ツールは、現在のプロジェクト配下でのみ動作します
+- 誤って別のプロジェクトや管理外のファイルを編集することを防止するための安全機構です
 
-#### 編集禁止の対象
+#### 編集可能な対象（一般的なケース）
 
-以下のファイル・ディレクトリは編集**できません**：
-- `/Users/ukonpower/Documents/work-space/dokodemo-claude/backend/` 配下のファイル
-  - `src/server.ts`
-  - `src/process-manager.ts`
-  - その他のバックエンドシステムファイル
-- `/Users/ukonpower/Documents/work-space/dokodemo-claude/frontend/` 配下のファイル
-- `/Users/ukonpower/Documents/work-space/dokodemo-claude/` 直下の設定ファイル
+現在のworking directoryが `/Users/ukonpower/Documents/work-space/dokodemo-claude/` の場合：
 
-#### 編集可能な対象
-
-- `backend/` - このプロジェクトのバックエンドコード
-- `frontend/` - このプロジェクトのフロントエンドコード
+- `backend/` - バックエンドコード
+- `frontend/` - フロントエンドコード
 - `.env`、`.env.example` - 環境変数設定
 - `CLAUDE.md` - プロジェクト指針
-- その他、このプロジェクト内の全てのファイル
+- その他、このworking directory配下の全てのファイル
 
-この制約により、dokodemo-claude本体のメインシステムファイルの誤編集を確実に防止します。
+#### 注意事項
+
+- working directory配下に `backend/repositories/` などで管理されている**別のdokodemo-claudeプロジェクト**がある場合、それらは編集対象**外**です
+- あくまで「Claude Codeが実行されている場所のdokodemo-claude」のみを編集してください
 
 ### Git運用方針
 
