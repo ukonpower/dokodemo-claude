@@ -966,7 +966,7 @@ io.on('connection', (socket) => {
       const repoName = path.basename(repositoryPath);
 
       // 強制再起動でセッションを再作成
-      await processManager.ensureAiSession(
+      const session = await processManager.ensureAiSession(
         repositoryPath,
         repoName,
         provider,
@@ -974,6 +974,16 @@ io.on('connection', (socket) => {
       );
 
       const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+
+      // 再起動完了を通知（新しいセッションIDを含む）
+      socket.emit('ai-restarted', {
+        success: true,
+        message: `${providerName}を再起動しました`,
+        repositoryPath,
+        provider,
+        sessionId: session.id,
+      });
+
       socket.emit('claude-raw-output', {
         type: 'system',
         content: `\n=== ${providerName}を再起動しました ===\n`,
@@ -982,6 +992,14 @@ io.on('connection', (socket) => {
       });
     } catch {
       const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+
+      socket.emit('ai-restarted', {
+        success: false,
+        message: `${providerName}の再起動に失敗しました`,
+        repositoryPath,
+        provider,
+      });
+
       socket.emit('claude-raw-output', {
         type: 'system',
         content: `\n=== ${providerName}の再起動に失敗しました ===\n`,
