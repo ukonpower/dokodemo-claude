@@ -243,8 +243,8 @@ function App() {
         apiUrl ||
         (window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1'
-          ? 'http://localhost:3001'
-          : `http://${window.location.hostname}:3001`);
+          ? 'http://localhost:3100'
+          : `http://${window.location.hostname}:3100`);
 
       const socketInstance = io(socketUrl, {
         autoConnect: false, // 手動接続に変更
