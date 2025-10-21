@@ -24,8 +24,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   onClose,
 }) => {
   const [input, setInput] = useState('');
-  const [selectedText, setSelectedText] = useState('');
-  const [showCopyButton, setShowCopyButton] = useState(false);
   const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,26 +62,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   // Enterキー送信
   const handleEnterKey = () => {
     onInput(terminal.id, '\r');
-  };
-
-  // コピー機能
-  const handleCopy = async () => {
-    if (selectedText) {
-      try {
-        await navigator.clipboard.writeText(selectedText);
-        setShowCopyButton(false);
-        setSelectedText('');
-      } catch {
-        // コピーに失敗しました
-      }
-    }
-  };
-
-  // 全選択機能
-  const handleSelectAll = () => {
-    if (xtermInstance.current) {
-      xtermInstance.current.selectAll();
-    }
   };
 
   // XTermインスタンスを初期化
@@ -157,15 +135,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       }
       // その他のキーイベントもxtermで処理
       return true;
-    });
-
-    // テキスト選択イベントの監視
-    xtermInstance.current.onSelectionChange(() => {
-      if (xtermInstance.current) {
-        const selection = xtermInstance.current.getSelection();
-        setSelectedText(selection);
-        setShowCopyButton(selection.length > 0);
-      }
     });
 
     // サイズを自動調整（仮想スクロール対応）
@@ -379,35 +348,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             title="キーボードボタンの表示/非表示"
           >
             ⌨️
-          </button>
-
-          {/* 全選択ボタン */}
-          <button
-            onClick={handleSelectAll}
-            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-gray-500 hover:border-gray-400 transition-all duration-150 shadow-sm"
-            title="全選択"
-          >
-            全選択
-          </button>
-
-          {/* コピーボタン（選択時のみ表示） */}
-          {showCopyButton && (
-            <button
-              onClick={handleCopy}
-              className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border border-dark-accent-blue hover:border-dark-accent-blue-hover transition-all duration-150 shadow-sm"
-              title="コピー"
-            >
-              コピー
-            </button>
-          )}
-
-          {/* 閉じるボタン */}
-          <button
-            onClick={() => onClose(terminal.id)}
-            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-white rounded-lg border border-dark-accent-red hover:border-dark-accent-red-hover transition-all duration-150 shadow-sm"
-            title="ターミナルを閉じる"
-          >
-            ×
           </button>
         </div>
       </div>
