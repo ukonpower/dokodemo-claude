@@ -485,6 +485,8 @@ function App() {
 
       socketInstance.on('terminal-created', (terminal) => {
         setTerminals((prev) => [...prev, terminal]);
+        // 新しく作成されたターミナルを自動的にアクティブにする
+        setActiveTerminalId(terminal.id);
       });
 
       socketInstance.on('terminal-output', (message) => {
