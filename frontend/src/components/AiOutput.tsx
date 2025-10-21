@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import { RotateCw, Trash2 } from 'lucide-react';
 import type { AiProvider } from '../types';
 
 interface AiOutputProps {
@@ -399,7 +400,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
                 className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
                 title="AI CLIを再起動"
               >
-                🔄
+                <RotateCw size={14} />
               </button>
             )}
             {onClearOutput && (
@@ -408,7 +409,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
                 className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
                 title="出力履歴をクリア"
               >
-                🗑️
+                <Trash2 size={14} />
               </button>
             )}
           </div>
