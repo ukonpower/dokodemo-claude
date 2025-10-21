@@ -978,6 +978,16 @@ function App() {
     }
   };
 
+  // AI CLIの再起動ハンドラー
+  const handleRestartAiCli = () => {
+    if (socket && currentRepo) {
+      socket.emit('restart-ai-cli', {
+        repositoryPath: currentRepo,
+        provider: currentProvider
+      });
+    }
+  };
+
   // AIOutputからのキー入力ハンドラー
   const handleAiKeyInput = (key: string) => {
     if (socket) {
@@ -1423,6 +1433,7 @@ function App() {
                 isLoading={isLoadingRepoData}
                 onFocusChange={handleAiOutputFocusChange}
                 onClearOutput={handleClearClaudeOutput}
+                onRestartAi={handleRestartAiCli}
                 onKeyInput={handleAiKeyInput}
                 isFocused={claudeOutputFocused}
               />
