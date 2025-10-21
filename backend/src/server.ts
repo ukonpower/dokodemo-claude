@@ -49,6 +49,51 @@ const PROCESSES_DIR = path.join(process.cwd(), 'processes');
 // プロセス管理インスタンス
 const processManager = new ProcessManager(PROCESSES_DIR);
 
+// エディタの存在確認
+type EditorType = 'vscode' | 'cursor';
+
+interface EditorInfo {
+  id: EditorType;
+  name: string;
+  command: string;
+  available: boolean;
+}
+
+const EDITORS: Omit<EditorInfo, 'available'>[] = [
+  { id: 'vscode', name: 'VSCode', command: 'code' },
+  { id: 'cursor', name: 'Cursor', command: 'cursor' },
+];
+
+/**
+ * コマンドが利用可能かチェック
+ */
+async function checkCommandAvailable(command: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const whichProcess = spawn('which', [command]);
+
+    whichProcess.on('close', (code) => {
+      resolve(code === 0);
+    });
+
+    whichProcess.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * 利用可能なエディタリストを取得
+ */
+async function getAvailableEditors(): Promise<EditorInfo[]> {
+  const results = await Promise.all(
+    EDITORS.map(async (editor) => {
+      const available = await checkCommandAvailable(editor.command);
+      return { ...editor, available };
+    })
+  );
+  return results;
+}
+
 // Expressの設定
 app.use(
   cors({
@@ -400,6 +445,13 @@ processManager.on('reviewServerStarted', (data) => {
 io.on('connection', (socket) => {
   // クライアントの初期化（アクティブリポジトリなし）
   clientActiveRepositories.set(socket.id, '');
+
+  // 利用可能なエディタリストの取得
+  socket.on('get-available-editors', async () => {
+    const editors = await getAvailableEditors();
+    socket.emit('available-editors', { editors });
+  });
+
   // リポジトリ一覧の送信
   socket.on('list-repos', () => {
     socket.emit('repos-list', { repos: repositories });
@@ -1493,6 +1545,58 @@ io.on('connection', (socket) => {
   socket.on('get-review-servers', () => {
     const servers = processManager.getAllReviewServers();
     socket.emit('review-servers-list', { servers });
+  });
+
+  // エディタ起動関連のイベントハンドラ
+  socket.on('open-in-editor', (data) => {
+    const { repositoryPath, editor } = data;
+
+    const editorCommand = editor === 'vscode' ? 'code' : 'cursor';
+    const editorName = editor === 'vscode' ? 'VSCode' : 'Cursor';
+
+    try {
+      // エディタを起動
+      const editorProcess = spawn(editorCommand, [repositoryPath], {
+        detached: true,
+        stdio: 'ignore',
+      });
+
+      // エラーハンドリング（spawn実行後の非同期エラー）
+      editorProcess.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') {
+          socket.emit('editor-opened', {
+            success: false,
+            message: `${editorName}が見つかりません。${editorCommand}コマンドがインストールされているか確認してください。`,
+            editor,
+            repositoryPath,
+          });
+        } else {
+          socket.emit('editor-opened', {
+            success: false,
+            message: `${editorName}の起動に失敗しました: ${error.message}`,
+            editor,
+            repositoryPath,
+          });
+        }
+      });
+
+      // プロセスを親から切り離す
+      editorProcess.unref();
+
+      socket.emit('editor-opened', {
+        success: true,
+        message: `${editorName}でリポジトリを開きました`,
+        editor,
+        repositoryPath,
+      });
+    } catch (error) {
+      socket.emit('editor-opened', {
+        success: false,
+        message: `${editorName}の起動に失敗しました: ${error}`,
+        editor,
+        repositoryPath,
+      });
+    }
   });
 
   socket.on('disconnect', () => {

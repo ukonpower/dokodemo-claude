@@ -75,6 +75,16 @@ export interface TerminalOutputLine {
   type: 'stdout' | 'stderr' | 'system';
 }
 
+// エディタ関連の型定義
+export type EditorType = 'vscode' | 'cursor';
+
+export interface EditorInfo {
+  id: EditorType;
+  name: string;
+  command: string;
+  available: boolean;
+}
+
 // Socket.IO通信関連の型定義
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
@@ -251,6 +261,15 @@ export interface ServerToClientEvents {
     repositoryPath: string;
   }) => void;
   'review-servers-list': (data: { servers: ReviewServer[] }) => void;
+
+  // エディタ起動関連イベント
+  'available-editors': (data: { editors: EditorInfo[] }) => void;
+  'editor-opened': (data: {
+    success: boolean;
+    message: string;
+    editor: 'vscode' | 'cursor';
+    repositoryPath: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -354,6 +373,13 @@ export interface ClientToServerEvents {
   }) => void;
   'stop-review-server': (data: { repositoryPath: string }) => void;
   'get-review-servers': () => void;
+
+  // エディタ起動関連イベント
+  'get-available-editors': () => void;
+  'open-in-editor': (data: {
+    repositoryPath: string;
+    editor: 'vscode' | 'cursor';
+  }) => void;
 }
 
 // AI CLI 操作関連の型定義

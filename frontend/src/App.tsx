@@ -14,6 +14,7 @@ import type {
   DiffType,
   DiffConfig,
   AiProvider,
+  EditorInfo,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
@@ -121,6 +122,7 @@ function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSwitchingRepo, setIsSwitchingRepo] = useState(false);
   const [isLoadingRepoData, setIsLoadingRepoData] = useState(false);
+  const [availableEditors, setAvailableEditors] = useState<EditorInfo[]>([]);
 
   // currentRepoの最新値を保持するref
   const currentRepoRef = useRef(currentRepo);
@@ -186,9 +188,11 @@ function App() {
   const [difitUrl, setDifitUrl] = useState<string | null>(null);
   const [showDifitNotification, setShowDifitNotification] = useState<boolean>(false);
   const [showDifitOpenButton, setShowDifitOpenButton] = useState<boolean>(false);
-  
+  const [showEditorMenu, setShowEditorMenu] = useState<boolean>(false);
+
   // ドロップダウンメニュー用のref
   const diffMenuRef = useRef<HTMLDivElement>(null);
+  const editorMenuRef = useRef<HTMLDivElement>(null);
 
   // CommandInputのrefを作成
   const commandInputRef = useRef<CommandInputRef>(null);
@@ -205,16 +209,19 @@ function App() {
       if (diffMenuRef.current && !diffMenuRef.current.contains(event.target as Node)) {
         setShowDiffMenu(false);
       }
+      if (editorMenuRef.current && !editorMenuRef.current.contains(event.target as Node)) {
+        setShowEditorMenu(false);
+      }
     };
 
-    if (showDiffMenu) {
+    if (showDiffMenu || showEditorMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDiffMenu]);
+  }, [showDiffMenu, showEditorMenu]);
 
   // Claude CLI出力が更新されたらローディングを終了する関数
   const endLoadingOnClaudeOutput = useCallback(() => {
@@ -238,7 +245,7 @@ function App() {
 
     const createConnection = () => {
       // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
-      const backendPort = 3100;
+      const backendPort = import.meta.env.VITE_BACKEND_PORT || '3200';
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
 
@@ -255,6 +262,11 @@ function App() {
 
       socketInstance.on('repos-list', (data) => {
         setRepositories(data.repos);
+      });
+
+      // 利用可能なエディタリストの受信
+      socketInstance.on('available-editors', (data) => {
+        setAvailableEditors(data.editors.filter((editor: EditorInfo) => editor.available));
       });
 
       // 生ログの受信（プロバイダー別に管理）
@@ -642,6 +654,16 @@ function App() {
         setReviewServers(data.servers);
       });
 
+      // エディタ起動関連イベントハンドラ
+      socketInstance.on('editor-opened', (data) => {
+        if (data.success) {
+          console.log(data.message);
+        } else {
+          console.error(data.message);
+          alert(data.message);
+        }
+      });
+
       // AI出力クリア通知イベント（新形式）
       socketInstance.on('ai-output-cleared', (data) => {
         if (data.repositoryPath === currentRepoRef.current) {
@@ -689,6 +711,9 @@ function App() {
         // 接続時にリポジトリ一覧を取得
         socketInstance.emit('list-repos');
         // Emitted list-repos
+
+        // 利用可能なエディタリストを取得
+        socketInstance.emit('get-available-editors');
 
         // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
         setTimeout(() => {
@@ -1091,6 +1116,17 @@ function App() {
     }
   };
 
+  // エディタ起動ハンドラー
+  const handleOpenInEditor = (editor: 'vscode' | 'cursor') => {
+    if (socket && currentRepo) {
+      setShowEditorMenu(false); // メニューを閉じる
+      socket.emit('open-in-editor', {
+        repositoryPath: currentRepo,
+        editor,
+      });
+    }
+  };
+
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
@@ -1269,13 +1305,97 @@ function App() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
         {/* ブランチセレクター */}
         <div className="flex items-center space-x-4 justify-between">
-          <BranchSelector
-            branches={branches}
-            currentBranch={currentBranch}
-            onSwitchBranch={handleSwitchBranch}
-            isConnected={isConnected}
-          />
-          
+          <div className="flex items-center space-x-2">
+            <BranchSelector
+              branches={branches}
+              currentBranch={currentBranch}
+              onSwitchBranch={handleSwitchBranch}
+              isConnected={isConnected}
+            />
+
+            {/* エディタ起動ドロップダウン */}
+            <div className="relative" ref={editorMenuRef}>
+              <button
+                onClick={() => setShowEditorMenu(!showEditorMenu)}
+                disabled={!isConnected}
+                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="エディタで開く"
+              >
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                  />
+                </svg>
+                <span className="hidden sm:inline">エディタ</span>
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* エディタ選択ドロップダウンメニュー */}
+              {showEditorMenu && availableEditors.length > 0 && (
+                <div className="absolute left-0 mt-2 w-32 sm:w-36 bg-gray-800 rounded-md shadow-lg ring-1 ring-gray-700 z-50">
+                  <div className="py-0.5">
+                    {availableEditors.map((editor) => (
+                      <button
+                        key={editor.id}
+                        onClick={() => handleOpenInEditor(editor.id)}
+                        className={`flex items-center w-full px-3 py-2 text-xs sm:text-sm font-medium text-white transition-colors ${
+                          editor.id === 'vscode'
+                            ? 'hover:bg-blue-700'
+                            : 'hover:bg-purple-700'
+                        }`}
+                      >
+                        {editor.id === 'vscode' ? (
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"
+                            />
+                          </svg>
+                        )}
+                        {editor.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* difitボタングループ */}
           <div className="flex items-center">
             {/* difitページオープンボタン（ポップアップブロック対応） */}
