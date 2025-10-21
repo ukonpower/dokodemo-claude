@@ -10,6 +10,7 @@ interface AiOutputProps {
   onFocusChange?: (focused: boolean) => void;
   isLoading?: boolean;
   onClearOutput?: () => void;
+  onRestartAi?: () => void;
   onKeyInput?: (key: string) => void;
   isFocused?: boolean;
 }
@@ -20,6 +21,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onFocusChange,
   isLoading = false,
   onClearOutput,
+  onRestartAi,
   onKeyInput,
   isFocused = false,
 }) => {
@@ -390,15 +392,26 @@ const AiOutput: React.FC<AiOutputProps> = ({
               )}
             </span>
           </div>
-          {onClearOutput && (
-            <button
-              onClick={clearTerminal}
-              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-              title="出力履歴をクリア"
-            >
-              🗑️
-            </button>
-          )}
+          <div className="flex items-center space-x-2">
+            {onRestartAi && (
+              <button
+                onClick={onRestartAi}
+                className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+                title="AI CLIを再起動"
+              >
+                🔄
+              </button>
+            )}
+            {onClearOutput && (
+              <button
+                onClick={clearTerminal}
+                className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+                title="出力履歴をクリア"
+              >
+                🗑️
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

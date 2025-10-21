@@ -902,6 +902,43 @@ io.on('connection', (socket) => {
     }
   });
 
+  // AI CLIの再起動
+  socket.on('restart-ai-cli', async (data) => {
+    const { repositoryPath, provider } = data;
+    if (!repositoryPath || !provider) {
+      return;
+    }
+
+    try {
+      // リポジトリ名を取得
+      const repoName = path.basename(repositoryPath);
+
+      // 強制再起動でセッションを再作成
+      await processManager.ensureAiSession(
+        repositoryPath,
+        repoName,
+        provider,
+        { forceRestart: true }
+      );
+
+      const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: `\n=== ${providerName}を再起動しました ===\n`,
+        repositoryPath,
+        provider,
+      });
+    } catch {
+      const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      socket.emit('claude-raw-output', {
+        type: 'system',
+        content: `\n=== ${providerName}の再起動に失敗しました ===\n`,
+        repositoryPath,
+        provider,
+      });
+    }
+  });
+
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信
