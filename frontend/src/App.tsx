@@ -262,7 +262,7 @@ function App() {
 
     const createConnection = () => {
       // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
-      const backendPort = import.meta.env.DC_BACKEND_PORT || '3200';
+      const backendPort = import.meta.env.VITE_BACKEND_PORT || '3200';
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
 
@@ -1603,7 +1603,7 @@ function App() {
               {/* 左側: AI出力 + テキスト入力の塊 */}
               <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
                 {/* AI出力エリア */}
-                <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden relative">
                   <AiOutput
                     key={`${currentRepo}:${currentProvider}`}
                     rawOutput={rawOutput}

@@ -501,6 +501,15 @@ export class ProcessManager extends EventEmitter {
     const terminalId = `terminal-${++this.terminalCounter}-${Date.now()}`;
     const terminalName = name || `Terminal ${this.terminalCounter}`;
 
+    // 親プロセスの環境変数から dokodemo-claude 固有の環境変数（DC_プレフィックス）を除外
+    const cleanEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      // DC_ で始まる環境変数は除外（dokodemo-claude固有の設定）
+      if (!key.startsWith('DC_') && value !== undefined) {
+        cleanEnv[key] = value;
+      }
+    }
+
     // PTYプロセスを作成
     const ptyProcess = pty.spawn(
       os.platform() === 'win32' ? 'cmd.exe' : 'bash',
@@ -511,7 +520,7 @@ export class ProcessManager extends EventEmitter {
         rows: 30,
         cwd: repositoryPath,
         env: {
-          ...process.env,
+          ...cleanEnv,
           TERM: 'xterm-256color',
           COLORTERM: 'truecolor',
           FORCE_COLOR: '1',

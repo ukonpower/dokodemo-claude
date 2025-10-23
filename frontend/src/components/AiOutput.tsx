@@ -152,9 +152,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
   const providerInfo = getProviderInfo();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="absolute inset-0 flex flex-col">
       {/* ヘッダー */}
-      <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
+      <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 sm:space-x-2">
             <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>

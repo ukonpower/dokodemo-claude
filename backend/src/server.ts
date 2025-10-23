@@ -1664,7 +1664,7 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = parseInt(process.env.DC_BACKEND_PORT || '3200', 10);
+const PORT = parseInt(process.env.VITE_BACKEND_PORT || '3200', 10);
 const HOST = process.env.DC_HOST || '0.0.0.0';
 
 async function startServer(): Promise<void> {
