@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   // .envファイルから環境変数を読み込む
   const env = loadEnv(mode, process.cwd(), '');
-  const port = parseInt(env.VITE_PORT || '8100', 10);
+  const port = parseInt(env.VITE_PORT || '8000', 10);
 
   return {
     plugins: [react()],

@@ -463,6 +463,34 @@ fi
 - 例えば、Claude Codeが `/Users/ukonpower/Documents/work-space/dokodemo-claude/` で実行されている場合、そのディレクトリ配下のみが編集対象です
 - 別の場所で実行されている場合は、その場所のdokodemo-claudeプロジェクトが編集対象になります
 
+#### ⚠️ ネストされたdokodemo-claudeプロジェクトの警告
+
+**dokodemo-claude自身をクローンして管理する場合の重要な注意事項**：
+
+dokodemo-claudeは`backend/repositories/`配下にプロジェクトを管理する仕組みを持っており、dokodemo-claude自身をクローンすることも可能です。しかし、これは以下の問題を引き起こす可能性があります：
+
+1. **ファイル編集の混乱**
+   - 内部側（`backend/repositories/dokodemo-claude/`）でClaude Codeを起動すると、親側（現在のプロジェクト）のファイルを誤って編集してしまう可能性があります
+   - 常に`pwd`コマンドで現在のworking directoryを確認し、正しいプロジェクトで作業していることを確認してください
+
+2. **ポート番号の衝突**
+   - 親側と内部側のdokodemo-claudeが同じポート番号（バックエンド: 3200、フロントエンド: 8000）を使おうとして衝突します
+   - 内部側のdokodemo-claudeで作業する場合は、必ず`.env`ファイルで異なるポート番号を設定してください
+
+**内部側dokodemo-claudeのポート設定例**：
+```bash
+# backend/repositories/dokodemo-claude/.env
+PORT=3201          # 親側: 3200、内部側: 3201（または任意の空きポート）
+VITE_PORT=8001     # 親側: 8000、内部側: 8001（または任意の空きポート）
+VITE_BACKEND_PORT=3201  # 上記PORTと同じ値
+CORS_ORIGIN=http://localhost:8001  # VITE_PORTと同じ値
+```
+
+**推奨事項**：
+- できる限り、dokodemo-claude自身をdokodemo-claudeで管理することは避けてください
+- やむを得ず管理する場合は、上記のポート設定を**必ず**行ってください
+- 作業前に必ず`pwd`コマンドで現在のディレクトリを確認してください
+
 #### 技術的な制限
 
 - `.claude/hooks/tool-use` フックにより、working directory外のファイル編集は**技術的に拒否される場合があります**
