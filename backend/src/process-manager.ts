@@ -140,8 +140,12 @@ export class ProcessManager extends EventEmitter {
   } {
     switch (provider) {
       case 'claude':
+        // 環境変数から Claude CLI のパスを取得、デフォルトは ~/.claude/local/claude
+        const claudeCommand =
+          process.env.CLAUDE_CLI_COMMAND ||
+          `${process.env.HOME}/.claude/local/claude`;
         return {
-          command: 'claude',
+          command: claudeCommand,
           args: ['--dangerously-skip-permissions', '--model', 'opusplan'],
         };
       case 'codex':
@@ -416,8 +420,12 @@ export class ProcessManager extends EventEmitter {
     const sessionId = `claude-${++this.sessionCounter}-${Date.now()}`;
 
     // PTYを使用してClaude CLIを対話モードで起動
+    // 環境変数から Claude CLI のパスを取得、デフォルトは ~/.claude/local/claude
+    const claudeCommand =
+      process.env.CLAUDE_CLI_COMMAND ||
+      `${process.env.HOME}/.claude/local/claude`;
     const claudeProcess = pty.spawn(
-      'claude',
+      claudeCommand,
       ['--dangerously-skip-permissions', '--model', 'opusplan'],
       {
         name: 'xterm-color',
