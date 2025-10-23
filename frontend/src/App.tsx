@@ -1358,8 +1358,8 @@ function App() {
       </header>
 
       {/* メインコンテンツ */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
-        {/* ブランチセレクター */}
+      <main className="flex-1 max-w-[1920px] mx-auto w-full px-3 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col space-y-4 sm:space-y-6">
+        {/* ブランチセレクター・ツールバー */}
         <div className="flex items-center space-x-4 justify-between">
           <div className="flex items-center space-x-2">
             <BranchSelector
@@ -1581,126 +1581,14 @@ function App() {
           </div>
         </div>
 
-        {/* Claude CLI セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
-            <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
-              <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}
-            </h2>
-            {/* プロバイダー選択 */}
-            <ProviderSelector
-              currentProvider={currentProvider}
-              onProviderChange={handleProviderChange}
-              disabled={!currentRepo || !isConnected}
-            />
-          </div>
-          <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
-            {/* AI出力エリア */}
-            <div className="flex-1 min-h-0">
-              <AiOutput
-                key={`${currentRepo}:${currentProvider}`}
-                rawOutput={rawOutput}
-                currentProvider={currentProvider}
-                isLoading={isLoadingRepoData}
-                onFocusChange={handleAiOutputFocusChange}
-                onClearOutput={handleClearClaudeOutput}
-                onRestartAi={handleRestartAiCli}
-                onKeyInput={handleAiKeyInput}
-                isFocused={claudeOutputFocused}
-              />
-            </div>
-
-            {/* AI コマンド入力エリア */}
-            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT">
-              <CommandInput
-                ref={commandInputRef}
-                onSendCommand={handleSendCommand}
-                onSendArrowKey={handleSendArrowKey}
-                onSendTabKey={handleSendTabKey}
-                onSendInterrupt={handleSendInterrupt}
-                onSendEscape={handleSendEscape}
-                onClearAi={handleClearClaude}
-                onChangeModel={handleChangeModel}
-                currentProvider={currentProvider}
-                currentRepository={currentRepo}
-                disabled={!isConnected || !currentRepo}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* ターミナルエリア */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex-1 flex flex-col min-h-80 sm:min-h-96">
-          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
-            <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
-              <svg
-                className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              ターミナル
-            </h2>
-          </div>
-          <div className="flex-1 min-h-0 p-3 sm:p-6">
-            <TerminalManager
-              terminals={terminals}
-              messages={terminalMessages}
-              histories={terminalHistories}
-              shortcuts={shortcuts}
-              currentRepo={currentRepo}
-              isConnected={isConnected}
-              activeTerminalId={activeTerminalId}
-              onActiveTerminalChange={setActiveTerminalId}
-              onCreateTerminal={handleCreateTerminal}
-              onTerminalInput={handleTerminalInput}
-              onTerminalSignal={handleTerminalSignal}
-              onCloseTerminal={handleCloseTerminal}
-              onCreateShortcut={handleCreateShortcut}
-              onDeleteShortcut={handleDeleteShortcut}
-              onExecuteShortcut={handleExecuteShortcut}
-            />
-          </div>
-        </section>
-
-        {/* npmスクリプトセクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
-          <NpmScripts
-            repositoryPath={currentRepo}
-            scripts={npmScripts}
-            isConnected={isConnected}
-            onExecuteScript={handleExecuteNpmScript}
-            onRefreshScripts={handleRefreshNpmScripts}
-          />
-        </section>
-
-        {/* 自走モード設定セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
-          <div className="px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-white flex items-center">
+        {/* 2カラムグリッドレイアウト: AI CLI & ターミナル (PC時のみ) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1 min-h-0">
+          {/* Claude CLI セクション */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
+            <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"
+                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-gray-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1709,28 +1597,115 @@ function App() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                自走モード
-              </h3>
+                {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}
+              </h2>
+              {/* プロバイダー選択 */}
+              <ProviderSelector
+                currentProvider={currentProvider}
+                onProviderChange={handleProviderChange}
+                disabled={!currentRepo || !isConnected}
+              />
+            </div>
+            <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
+              {/* AI出力エリア */}
+              <div className="flex-1 min-h-0">
+                <AiOutput
+                  key={`${currentRepo}:${currentProvider}`}
+                  rawOutput={rawOutput}
+                  currentProvider={currentProvider}
+                  isLoading={isLoadingRepoData}
+                  onFocusChange={handleAiOutputFocusChange}
+                  onClearOutput={handleClearClaudeOutput}
+                  onRestartAi={handleRestartAiCli}
+                  onKeyInput={handleAiKeyInput}
+                  isFocused={claudeOutputFocused}
+                />
+              </div>
 
-              {/* 自走モード停止ボタン */}
-              {autoModeState?.isRunning && (
-                <button
-                  onClick={() => {
-                    if (socket && currentRepo) {
-                      socket.emit('stop-automode', {
-                        repositoryPath: currentRepo,
-                      });
-                    }
-                  }}
-                  disabled={!isConnected}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="自走モードを停止"
+              {/* AI コマンド入力エリア */}
+              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT">
+                <CommandInput
+                  ref={commandInputRef}
+                  onSendCommand={handleSendCommand}
+                  onSendArrowKey={handleSendArrowKey}
+                  onSendTabKey={handleSendTabKey}
+                  onSendInterrupt={handleSendInterrupt}
+                  onSendEscape={handleSendEscape}
+                  onClearAi={handleClearClaude}
+                  onChangeModel={handleChangeModel}
+                  currentProvider={currentProvider}
+                  currentRepository={currentRepo}
+                  disabled={!isConnected || !currentRepo}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* ターミナルエリア */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
+            <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
+              <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
+                <svg
+                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                ターミナル
+              </h2>
+            </div>
+            <div className="flex-1 min-h-0 p-3 sm:p-6">
+              <TerminalManager
+                terminals={terminals}
+                messages={terminalMessages}
+                histories={terminalHistories}
+                shortcuts={shortcuts}
+                currentRepo={currentRepo}
+                isConnected={isConnected}
+                activeTerminalId={activeTerminalId}
+                onActiveTerminalChange={setActiveTerminalId}
+                onCreateTerminal={handleCreateTerminal}
+                onTerminalInput={handleTerminalInput}
+                onTerminalSignal={handleTerminalSignal}
+                onCloseTerminal={handleCloseTerminal}
+                onCreateShortcut={handleCreateShortcut}
+                onDeleteShortcut={handleDeleteShortcut}
+                onExecuteShortcut={handleExecuteShortcut}
+              />
+            </div>
+          </section>
+        </div>
+
+        {/* 下部セクション: npmスクリプト、自走モード、リポジトリ削除 (横並び) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* npmスクリプトセクション */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
+            <NpmScripts
+              repositoryPath={currentRepo}
+              scripts={npmScripts}
+              isConnected={isConnected}
+              onExecuteScript={handleExecuteNpmScript}
+              onRefreshScripts={handleRefreshNpmScripts}
+            />
+          </section>
+
+          {/* 自走モード設定セクション */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
+            <div className="px-4 sm:px-6 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-white flex items-center">
                   <svg
-                    className="w-4 h-4 mr-1.5"
+                    className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1739,61 +1714,92 @@ function App() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
                     />
+                  </svg>
+                  自走モード
+                </h3>
+
+                {/* 自走モード停止ボタン */}
+                {autoModeState?.isRunning && (
+                  <button
+                    onClick={() => {
+                      if (socket && currentRepo) {
+                        socket.emit('stop-automode', {
+                          repositoryPath: currentRepo,
+                        });
+                      }
+                    }}
+                    disabled={!isConnected}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="自走モードを停止"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-1.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 10h6v4H9z"
+                      />
+                    </svg>
+                    停止
+                  </button>
+                )}
+              </div>
+              <AutoModeSettings
+                socket={socket!}
+                repositoryPath={currentRepo}
+                configs={autoModeConfigs}
+                autoModeState={autoModeState}
+              />
+            </div>
+          </section>
+
+          {/* リポジトリ削除セクション */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light md:col-span-2 lg:col-span-1">
+            <div className="px-4 sm:px-6 py-4">
+              <h3 className="text-base font-semibold text-white mb-3">
+                リポジトリを削除
+              </h3>
+              <div className="text-center">
+                <p className="text-sm text-gray-300 mb-4">
+                  このリポジトリを完全に削除します（この操作は元に戻せません）
+                </p>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={!isConnected}
+                  className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-200 bg-red-900 border border-red-700 rounded-md hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M9 10h6v4H9z"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                     />
                   </svg>
-                  停止
+                  削除
                 </button>
-              )}
+              </div>
             </div>
-            <AutoModeSettings
-              socket={socket!}
-              repositoryPath={currentRepo}
-              configs={autoModeConfigs}
-              autoModeState={autoModeState}
-            />
-          </div>
-        </section>
-
-        {/* リポジトリ削除セクション */}
-        <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light">
-          <div className="px-4 sm:px-6 py-4">
-            <h3 className="text-base font-semibold text-white mb-3">
-              リポジトリを削除
-            </h3>
-            <div className="text-center">
-              <p className="text-sm text-gray-300 mb-4">
-                このリポジトリを完全に削除します（この操作は元に戻せません）
-              </p>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={!isConnected}
-                className="inline-flex items-center justify-center px-6 py-2 text-sm font-medium text-red-200 bg-red-900 border border-red-700 rounded-md hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                削除
-              </button>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
 
       {/* difit サーバー通知（ポップアップブロック対応） */}
