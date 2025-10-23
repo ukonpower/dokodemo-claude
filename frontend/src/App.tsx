@@ -1590,6 +1590,7 @@ function App() {
                 onClearAi={handleClearClaude}
                 onChangeModel={handleChangeModel}
                 currentProvider={currentProvider}
+                currentRepository={currentRepo}
                 disabled={!isConnected || !currentRepo}
               />
             </div>
