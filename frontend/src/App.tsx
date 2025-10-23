@@ -75,7 +75,6 @@ function App() {
           setCurrentSessionId('');
           // ホームに戻る際はターミナル状態もクリア
           setTerminals([]);
-          setActiveTerminalId('');
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
@@ -170,7 +169,6 @@ function App() {
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
-  const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>(
     []
   );
@@ -345,7 +343,6 @@ function App() {
             setRawOutput('');
             setCurrentSessionId('');
             setTerminals([]);
-            setActiveTerminalId('');
             setTerminalMessages([]);
             setTerminalHistories(new Map());
             setShortcuts([]);
@@ -371,7 +368,6 @@ function App() {
 
           // ターミナル・ブランチ関連状態をクリア
           setTerminals([]);
-          setActiveTerminalId('');
           setTerminalMessages([]);
           setTerminalHistories(new Map());
           setShortcuts([]);
@@ -513,8 +509,6 @@ function App() {
 
       socketInstance.on('terminal-created', (terminal) => {
         setTerminals((prev) => [...prev, terminal]);
-        // 新しく作成されたターミナルを自動的にアクティブにする
-        setActiveTerminalId(terminal.id);
       });
 
       socketInstance.on('terminal-output', (message) => {
@@ -1179,7 +1173,6 @@ function App() {
       socket.emit('execute-npm-script', {
         repositoryPath: currentRepo,
         scriptName,
-        terminalId: activeTerminalId || undefined,
       });
     }
   };
@@ -1699,7 +1692,7 @@ function App() {
           </section>
 
           {/* ターミナルエリア */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-[35rem] sm:min-h-96">
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-[35rem]">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
@@ -1726,8 +1719,6 @@ function App() {
                 shortcuts={shortcuts}
                 currentRepo={currentRepo}
                 isConnected={isConnected}
-                activeTerminalId={activeTerminalId}
-                onActiveTerminalChange={setActiveTerminalId}
                 onCreateTerminal={handleCreateTerminal}
                 onTerminalInput={handleTerminalInput}
                 onTerminalSignal={handleTerminalSignal}

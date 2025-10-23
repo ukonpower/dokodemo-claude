@@ -92,8 +92,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     if (!terminal.current || disableStdin) {
       return;
     }
-    console.log('[TerminalOut] focusTerminal called, disableStdin:', disableStdin);
-    console.trace('[TerminalOut] Focus stack trace');
     terminal.current.focus();
     const textarea = (terminal.current as TerminalWithTextarea).textarea;
     textarea?.focus?.();
@@ -262,10 +260,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       const dy = Math.abs(e.clientY - mouseDownPos.current.y);
       const isDrag = dx > 5 || dy > 5; // 5px以上移動したらドラッグ
 
-      console.log('[TerminalOut] handleTerminalClick, disableStdin:', disableStdin, 'isDrag:', isDrag);
-
       if (isDrag) {
-        console.log('[TerminalOut] Skipping focus (drag detected)');
         mouseDownPos.current = null;
         return;
       }
@@ -274,10 +269,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     mouseDownPos.current = null;
 
     if (!disableStdin) {
-      console.log('[TerminalOut] Calling focusTerminal from click');
       focusTerminal();
-    } else {
-      console.log('[TerminalOut] Skipping focus (disableStdin=true)');
     }
     if (onClick) {
       onClick();
