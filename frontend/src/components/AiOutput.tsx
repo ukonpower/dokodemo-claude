@@ -164,12 +164,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       }
     }, 100);
 
-    // 初期メッセージを表示
-    if (!rawOutput) {
-      const providerInfo = getProviderInfo();
-      terminal.current.writeln(providerInfo.initialMessage1);
-      terminal.current.writeln(providerInfo.initialMessage2);
-    }
+    // 初期メッセージは表示しない（プロバイダー変更時のuseEffectに任せる）
 
     return () => {
       if (terminal.current) {
@@ -179,11 +174,11 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // プロバイダー変更時にターミナルを初期化して正しい内容に更新
+  // プロバイダー変更時にターミナルを初期化
   useEffect(() => {
     if (!terminal.current) return;
 
-    // ターミナルをクリア
+    // ターミナルをクリアしてリセット
     terminal.current.clear();
     lastOutputLength.current = 0;
 
@@ -199,25 +194,37 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
     // プロバイダー変更後もフォーカスを維持
     focusTerminal();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProvider, focusTerminal]);
+  }, [currentProvider, focusTerminal, getProviderInfo]);
 
-  // 出力が更新されたらターミナルに書き込み
+  // 出力が更新されたらターミナルに書き込み（差分のみ追記）
   useEffect(() => {
     if (!terminal.current) return;
-    if (!rawOutput) return;
+    if (!rawOutput) {
+      // rawOutputが空になった場合は初期メッセージを表示
+      if (lastOutputLength.current > 0) {
+        terminal.current.clear();
+        lastOutputLength.current = 0;
+        const info = getProviderInfo();
+        terminal.current.writeln(info.initialMessage1);
+        terminal.current.writeln(info.initialMessage2);
+      }
+      return;
+    }
 
     // 入れ替え（長さが減った等）を検知したら全量描画
     if (rawOutput.length < lastOutputLength.current) {
       terminal.current.clear();
-      lastOutputLength.current = 0;
+      terminal.current.write(rawOutput);
+      lastOutputLength.current = rawOutput.length;
+      terminal.current.scrollToBottom();
+      return;
     }
 
     // 新しい出力部分のみを取得
     const newOutput = rawOutput.slice(lastOutputLength.current);
 
     if (newOutput) {
-      // ターミナルをクリアして全体を再描画
+      // 初回描画時（初期メッセージが表示されている状態）は必ずクリア
       if (lastOutputLength.current === 0) {
         terminal.current.clear();
       }
@@ -230,7 +237,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       // 出力長を更新
       lastOutputLength.current = rawOutput.length;
     }
-  }, [rawOutput]);
+  }, [rawOutput, getProviderInfo]);
 
   // ウィンドウサイズ変更時に再調整
   useEffect(() => {
