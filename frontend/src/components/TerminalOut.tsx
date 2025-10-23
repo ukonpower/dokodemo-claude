@@ -143,9 +143,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    console.log("new term");
-    
-    
     // ターミナルインスタンスを作成（横スクロール対応の設定）
     terminal.current = new Terminal({
       theme: {
