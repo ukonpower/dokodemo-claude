@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
 /**
@@ -138,6 +139,10 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
     const finalFontSize = fontSize ?? (isLargeScreen ? 10 : 8);
 
+    // iOS環境の検出
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     console.log("new term");
     
     
@@ -186,6 +191,16 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // FitAddonを読み込み
     terminal.current.loadAddon(fitAddon.current);
+
+    // WebLinksAddonを読み込み（リンク処理を有効化）
+    const webLinksAddon = new WebLinksAddon((event, uri) => {
+      // iOS環境では修飾キー不要でタップのみでリンクを開く
+      // デスクトップ環境ではCtrl（macOSではCmd）キーが必要
+      if (isIOS || event.ctrlKey || event.metaKey) {
+        window.open(uri, '_blank', 'noopener,noreferrer');
+      }
+    });
+    terminal.current.loadAddon(webLinksAddon);
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
