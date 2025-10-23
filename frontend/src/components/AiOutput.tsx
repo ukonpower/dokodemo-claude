@@ -138,11 +138,13 @@ const AiOutput: React.FC<AiOutputProps> = ({
       }
     });
 
-    // サイズを自動調整
+    // サイズを自動調整してフォーカス
     setTimeout(() => {
       if (fitAddon.current && terminal.current) {
         fitAddon.current.fit();
         terminal.current.refresh(0, terminal.current.rows - 1);
+        // ターミナルにフォーカスを当てる
+        terminal.current.focus();
       }
     }, 100);
 
@@ -223,6 +225,13 @@ const AiOutput: React.FC<AiOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ターミナルエリアクリックでフォーカスする
+  const handleTerminalClick = useCallback(() => {
+    if (terminal.current) {
+      terminal.current.focus();
+    }
+  }, []);
+
   const providerInfo = getProviderInfo();
 
   return (
@@ -260,7 +269,10 @@ const AiOutput: React.FC<AiOutputProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-dark-bg-primary overflow-auto relative">
+      <div
+        className="flex-1 bg-dark-bg-primary overflow-auto relative"
+        onClick={handleTerminalClick}
+      >
         <div
           ref={terminalRef}
           className="h-full w-full"
