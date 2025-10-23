@@ -283,7 +283,11 @@ export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
   'delete-repo': (data: { path: string; name: string }) => void;
-  'switch-repo': (data: { path: string; provider?: AiProvider }) => void; // プロバイダー選択を追加
+  'switch-repo': (data: {
+    path: string;
+    provider?: AiProvider;
+    initialSize?: { cols: number; rows: number };
+  }) => void; // プロバイダー選択を追加
   'list-repos': () => void;
   'send-command': (data: {
     command: string;
@@ -307,6 +311,7 @@ export interface ClientToServerEvents {
   'restart-ai-cli': (data: {
     repositoryPath: string;
     provider: AiProvider;
+    initialSize?: { cols: number; rows: number };
   }) => void;
   'claude-interrupt': (data?: {
     sessionId?: string;
@@ -316,7 +321,11 @@ export interface ClientToServerEvents {
   'clear-claude-output': (data: { repositoryPath: string }) => void;
 
   // ターミナル関連イベント
-  'create-terminal': (data: { cwd: string; name?: string }) => void;
+  'create-terminal': (data: {
+    cwd: string;
+    name?: string;
+    initialSize?: { cols: number; rows: number };
+  }) => void;
   'terminal-input': (data: { terminalId: string; input: string }) => void;
   'list-terminals': (data?: { repositoryPath?: string }) => void;
   'close-terminal': (data: { terminalId: string }) => void;

@@ -89,6 +89,7 @@ function App() {
             socket.emit('switch-repo', {
               path: repoFromUrl,
               provider: currentProvider,
+              initialSize: aiTerminalSize || undefined,
             });
 
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
@@ -132,6 +133,11 @@ function App() {
   const [isSwitchingRepo, setIsSwitchingRepo] = useState(false);
   const [isLoadingRepoData, setIsLoadingRepoData] = useState(false);
   const [availableEditors, setAvailableEditors] = useState<EditorInfo[]>([]);
+  // AI CLIターミナルの現在のサイズを保持
+  const [aiTerminalSize, setAiTerminalSize] = useState<{
+    cols: number;
+    rows: number;
+  } | null>(null);
 
   // currentRepoの最新値を保持するref
   const currentRepoRef = useRef(currentRepo);
@@ -771,7 +777,11 @@ function App() {
           if (currentPath) {
             // Current repo detected after delay
             // サーバーにアクティブリポジトリを通知（provider付き）
-            socketInstance.emit('switch-repo', { path: currentPath, provider });
+            socketInstance.emit('switch-repo', {
+              path: currentPath,
+              provider,
+              initialSize: aiTerminalSize || undefined,
+            });
 
             socketInstance.emit('list-terminals', {
               repositoryPath: currentPath,
@@ -890,7 +900,11 @@ function App() {
     if (socket) {
       // ローディング状態を開始
       setIsSwitchingRepo(true);
-      socket.emit('switch-repo', { path, provider: currentProvider });
+      socket.emit('switch-repo', {
+        path,
+        provider: currentProvider,
+        initialSize: aiTerminalSize || undefined,
+      });
       // URLにリポジトリパスを保存
       const url = new URL(window.location.href);
       url.searchParams.set('repo', path);
@@ -912,7 +926,11 @@ function App() {
       }
 
       // サーバーにプロバイダー切替を通知
-      socket.emit('switch-repo', { path: currentRepo, provider });
+      socket.emit('switch-repo', {
+        path: currentRepo,
+        provider,
+        initialSize: aiTerminalSize || undefined,
+      });
       // 履歴を再取得して同期
       socket.emit('get-ai-history', { repositoryPath: currentRepo, provider });
     }
@@ -1059,6 +1077,7 @@ function App() {
       socket.emit('restart-ai-cli', {
         repositoryPath: currentRepo,
         provider: currentProvider,
+        initialSize: aiTerminalSize || undefined,
       });
     }
   };
@@ -1122,6 +1141,9 @@ function App() {
   };
 
   const handleAiOutputResize = (cols: number, rows: number) => {
+    // サイズ情報を保存
+    setAiTerminalSize({ cols, rows });
+
     if (socket && currentRepo) {
       socket.emit('ai-resize', {
         repositoryPath: currentRepo,

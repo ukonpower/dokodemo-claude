@@ -656,7 +656,7 @@ io.on('connection', (socket) => {
 
   // リポジトリの切り替え
   socket.on('switch-repo', async (data) => {
-    const { path: repoPath, provider = 'claude' } = data; // デフォルトはClaude
+    const { path: repoPath, provider = 'claude', initialSize } = data; // デフォルトはClaude
 
     // クライアントのアクティブリポジトリを更新
     clientActiveRepositories.set(socket.id, repoPath || '');
@@ -670,11 +670,12 @@ io.on('connection', (socket) => {
       // リポジトリ名を取得
       const repoName = path.basename(repoPath);
 
-      // AI CLIセッションを取得または作成
+      // AI CLIセッションを取得または作成（初期サイズを渡す）
       const session = await processManager.getOrCreateAiSession(
         repoPath,
         repoName,
-        provider
+        provider,
+        initialSize
       );
 
       socket.emit('repo-switched', {
@@ -996,7 +997,7 @@ io.on('connection', (socket) => {
 
   // AI CLIの再起動
   socket.on('restart-ai-cli', async (data) => {
-    const { repositoryPath, provider } = data;
+    const { repositoryPath, provider, initialSize } = data;
     if (!repositoryPath || !provider) {
       return;
     }
@@ -1005,12 +1006,12 @@ io.on('connection', (socket) => {
       // リポジトリ名を取得
       const repoName = path.basename(repositoryPath);
 
-      // 強制再起動でセッションを再作成
+      // 強制再起動でセッションを再作成（初期サイズも渡す）
       const session = await processManager.ensureAiSession(
         repositoryPath,
         repoName,
         provider,
-        { forceRestart: true }
+        { forceRestart: true, initialSize }
       );
 
       const providerName = provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
@@ -1091,10 +1092,15 @@ io.on('connection', (socket) => {
 
   // 新しいターミナルの作成
   socket.on('create-terminal', async (data) => {
-    const { cwd, name } = data;
+    const { cwd, name, initialSize } = data;
     try {
       const repoName = path.basename(cwd);
-      const terminal = await processManager.createTerminal(cwd, repoName, name);
+      const terminal = await processManager.createTerminal(
+        cwd,
+        repoName,
+        name,
+        initialSize
+      );
 
       // 新しいターミナルの出力履歴を送信（空の履歴）
       socket.emit('terminal-output-history', {

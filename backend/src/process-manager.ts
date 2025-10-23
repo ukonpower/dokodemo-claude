@@ -324,16 +324,17 @@ export class ProcessManager extends EventEmitter {
   async createAiSession(
     repositoryPath: string,
     repositoryName: string,
-    provider: AiProvider
+    provider: AiProvider,
+    initialSize?: { cols: number; rows: number }
   ): Promise<ActiveAiSession> {
     const sessionId = `${provider}-${++this.sessionCounter}-${Date.now()}`;
     const { command, args } = this.getProviderCommand(provider);
 
-    // PTYを使用してAI CLIを対話モードで起動
+    // PTYを使用してAI CLIを対話モードで起動（初期サイズを使用、未指定時はデフォルト値）
     const aiProcess = pty.spawn(command, args, {
       name: 'xterm-color',
-      cols: 120,
-      rows: 30,
+      cols: initialSize?.cols ?? 120,
+      rows: initialSize?.rows ?? 30,
       cwd: repositoryPath,
       env: {
         ...process.env,
@@ -496,7 +497,8 @@ export class ProcessManager extends EventEmitter {
   async createTerminal(
     repositoryPath: string,
     repositoryName: string,
-    name?: string
+    name?: string,
+    initialSize?: { cols: number; rows: number }
   ): Promise<ActiveTerminal> {
     const terminalId = `terminal-${++this.terminalCounter}-${Date.now()}`;
     const terminalName = name || `Terminal ${this.terminalCounter}`;
@@ -510,14 +512,14 @@ export class ProcessManager extends EventEmitter {
       }
     }
 
-    // PTYプロセスを作成
+    // PTYプロセスを作成（初期サイズを使用、未指定時はデフォルト値）
     const ptyProcess = pty.spawn(
       os.platform() === 'win32' ? 'cmd.exe' : 'bash',
       [],
       {
         name: 'xterm-color',
-        cols: 120,
-        rows: 30,
+        cols: initialSize?.cols ?? 120,
+        rows: initialSize?.rows ?? 30,
         cwd: repositoryPath,
         env: {
           ...cleanEnv,
@@ -619,7 +621,8 @@ export class ProcessManager extends EventEmitter {
   async getOrCreateAiSession(
     repositoryPath: string,
     repositoryName: string,
-    provider: AiProvider
+    provider: AiProvider,
+    initialSize?: { cols: number; rows: number }
   ): Promise<ActiveAiSession> {
     const sessionKey = this.getSessionKey(repositoryPath, provider);
 
@@ -628,6 +631,10 @@ export class ProcessManager extends EventEmitter {
     if (existingSession && existingSession.isActive) {
       existingSession.lastAccessedAt = Date.now();
       await this.persistAiSessions();
+      // 既存セッションのサイズを更新
+      if (initialSize && existingSession.process?.resize) {
+        existingSession.process.resize(initialSize.cols, initialSize.rows);
+      }
       return existingSession;
     }
 
@@ -655,7 +662,12 @@ export class ProcessManager extends EventEmitter {
     }
 
     // 新しいセッションを作成
-    return await this.createAiSession(repositoryPath, repositoryName, provider);
+    return await this.createAiSession(
+      repositoryPath,
+      repositoryName,
+      provider,
+      initialSize
+    );
   }
 
   /**
@@ -665,7 +677,7 @@ export class ProcessManager extends EventEmitter {
     repositoryPath: string,
     repositoryName: string,
     provider: AiProvider,
-    options?: { forceRestart?: boolean }
+    options?: { forceRestart?: boolean; initialSize?: { cols: number; rows: number } }
   ): Promise<ActiveAiSession> {
     const sessionKey = this.getSessionKey(repositoryPath, provider);
 
@@ -681,7 +693,8 @@ export class ProcessManager extends EventEmitter {
     return await this.getOrCreateAiSession(
       repositoryPath,
       repositoryName,
-      provider
+      provider,
+      options?.initialSize
     );
   }
 

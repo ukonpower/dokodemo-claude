@@ -84,9 +84,18 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
   // TerminalOutからターミナルインスタンスを受け取る
   const handleTerminalReady = useCallback(
-    (terminalInstance: Terminal, fitAddonInstance: FitAddon) => {
+    (
+      terminalInstance: Terminal,
+      fitAddonInstance: FitAddon,
+      initialSize?: { cols: number; rows: number }
+    ) => {
       terminal.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
+
+      // 初期サイズをバックエンドに通知
+      if (initialSize && onResize) {
+        onResize(initialSize.cols, initialSize.rows);
+      }
 
       // 初期メッセージを表示
       const info = getProviderInfo();
@@ -95,7 +104,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         terminalInstance.writeln(info.initialMessage2);
       }
     },
-    [getProviderInfo, rawOutput]
+    [getProviderInfo, rawOutput, onResize]
   );
 
   // プロバイダー変更時にターミナルを初期化

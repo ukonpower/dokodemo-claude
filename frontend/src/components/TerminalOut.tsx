@@ -27,7 +27,11 @@ interface TerminalOutProps {
    * ターミナルインスタンスが初期化された際のコールバック
    * 親コンポーネントでターミナルインスタンスを直接操作したい場合に使用
    */
-  onTerminalReady?: (terminal: Terminal, fitAddon: FitAddon) => void;
+  onTerminalReady?: (
+    terminal: Terminal,
+    fitAddon: FitAddon,
+    initialSize?: { cols: number; rows: number }
+  ) => void;
 
   /**
    * ターミナルがリサイズされた際のコールバック
@@ -192,6 +196,15 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       if (isActive) {
         focusTerminal();
       }
+
+      // 親コンポーネントにターミナルインスタンスと初期サイズを通知
+      if (onTerminalReady && terminal.current && fitAddon.current) {
+        const initialSize = {
+          cols: terminal.current.cols,
+          rows: terminal.current.rows,
+        };
+        onTerminalReady(terminal.current, fitAddon.current, initialSize);
+      }
     }, 100);
 
     if (typeof ResizeObserver !== 'undefined' && terminalRef.current) {
@@ -199,11 +212,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         fitTerminal();
       });
       resizeObserver.current.observe(terminalRef.current);
-    }
-
-    // 親コンポーネントにターミナルインスタンスを通知
-    if (onTerminalReady && terminal.current && fitAddon.current) {
-      onTerminalReady(terminal.current, fitAddon.current);
     }
 
     return () => {

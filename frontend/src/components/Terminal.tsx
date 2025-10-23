@@ -97,9 +97,18 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
   // TerminalOutからターミナルインスタンスを受け取る
   const handleTerminalReady = useCallback(
-    (terminalInstance: XTerm, fitAddonInstance: FitAddon) => {
+    (
+      terminalInstance: XTerm,
+      fitAddonInstance: FitAddon,
+      initialSize?: { cols: number; rows: number }
+    ) => {
       xtermInstance.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
+
+      // 初期サイズをバックエンドに通知
+      if (initialSize && onResize) {
+        onResize(terminal.id, initialSize.cols, initialSize.rows);
+      }
 
       // ターミナルのリサイズイベントをリッスン
       if (onResize) {
