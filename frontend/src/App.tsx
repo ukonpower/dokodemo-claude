@@ -21,7 +21,8 @@ import type {
 
 import RepositoryManager from './components/RepositoryManager';
 import AiOutput from './components/AiOutput';
-import CommandInput, { CommandInputRef } from './components/CommandInput';
+import TextInput, { TextInputRef } from './components/CommandInput';
+import { KeyboardButtons } from './components/KeyboardButtons';
 import TerminalManager from './components/TerminalManager';
 import BranchSelector from './components/BranchSelector';
 import NpmScripts from './components/NpmScripts';
@@ -207,7 +208,7 @@ function App() {
   const editorMenuRef = useRef<HTMLDivElement>(null);
 
   // CommandInputのrefを作成
-  const commandInputRef = useRef<CommandInputRef>(null);
+  const textInputRef = useRef<TextInputRef>(null);
 
   // ローディング状態のref
   const isLoadingRepoDataRef = useRef(isLoadingRepoData);
@@ -1082,9 +1083,9 @@ function App() {
   const handleAiOutputFocusChange = (focused: boolean) => {
     setClaudeOutputFocused(focused);
     // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
-    if (!focused && commandInputRef.current) {
+    if (!focused && textInputRef.current) {
       setTimeout(() => {
-        commandInputRef.current?.focus();
+        textInputRef.current?.focus();
       }, 100);
     }
   };
@@ -1610,9 +1611,9 @@ function App() {
               />
             </div>
 
-            {/* PC時: 横並び (AI出力&入力 左 + 操作ボタン 右), モバイル時: 縦並び */}
+            {/* PC時: CLI+入力と操作ボタンを横並び、モバイル時: 縦並び */}
             <div className="flex-1 min-h-0 flex flex-col lg:flex-row p-3 sm:p-6 gap-4 lg:gap-6 overflow-hidden">
-              {/* 左側: AI出力 + テキスト入力 */}
+              {/* 左側: AI出力 + テキスト入力の塊 */}
               <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
                 {/* AI出力エリア */}
                 <div className="flex-1 min-h-0 overflow-hidden">
@@ -1630,21 +1631,39 @@ function App() {
                 </div>
 
                 {/* AI コマンド入力エリア */}
-                <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT flex-shrink-0">
-                  <CommandInput
-                    ref={commandInputRef}
+                <div className="mt-4 flex-shrink-0">
+                  <TextInput
+                    ref={textInputRef}
                     onSendCommand={handleSendCommand}
-                    onSendArrowKey={handleSendArrowKey}
-                    onSendTabKey={handleSendTabKey}
-                    onSendInterrupt={handleSendInterrupt}
                     onSendEscape={handleSendEscape}
-                    onClearAi={handleClearClaude}
-                    onChangeModel={handleChangeModel}
                     currentProvider={currentProvider}
                     currentRepository={currentRepo}
                     disabled={!isConnected || !currentRepo}
                   />
                 </div>
+              </div>
+
+              {/* 右側: 操作ボタン（PCのみ横並び） */}
+              <div className="flex-shrink-0 lg:w-[220px]">
+                <KeyboardButtons
+                  disabled={!isConnected || !currentRepo}
+                  onSendArrowKey={handleSendArrowKey}
+                  onSendEnter={() => textInputRef.current?.submit()}
+                  onSendInterrupt={handleSendInterrupt}
+                  onSendEscape={handleSendEscape}
+                  onClearAi={handleClearClaude}
+                  onSendTabKey={handleSendTabKey}
+                  onChangeModel={handleChangeModel}
+                  currentProvider={currentProvider}
+                  providerInfo={{
+                    clearTitle:
+                      currentProvider === 'claude'
+                        ? 'Claude CLIをクリア (/clear)'
+                        : currentProvider === 'codex'
+                          ? 'Codex CLIをクリア (/clear)'
+                          : 'AI CLIをクリア (/clear)',
+                  }}
+                />
               </div>
             </div>
           </section>

@@ -7,35 +7,41 @@ import React, {
   useCallback,
 } from 'react';
 import type { AiProvider } from '../types';
-import { KeyboardButtons } from './KeyboardButtons';
 
-interface CommandInputProps {
+/**
+ * TextInputコンポーネントのプロパティ
+ * テキスト入力エリアのみを提供（ボタンは含まない）
+ */
+interface TextInputProps {
+  /** コマンド送信ハンドラ */
   onSendCommand: (command: string) => void;
-  onSendArrowKey?: (direction: 'up' | 'down' | 'left' | 'right') => void;
-  onSendTabKey?: (shift?: boolean) => void;
-  onSendInterrupt?: () => void;
+  /** ESC送信ハンドラ（オプション） */
   onSendEscape?: () => void;
-  onClearAi?: () => void;
-  onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
+  /** 現在のプロバイダー */
   currentProvider?: AiProvider;
-  currentRepository?: string; // プロジェクト単位で履歴を管理するために追加
+  /** 現在のリポジトリパス（履歴管理用） */
+  currentRepository?: string;
+  /** 入力無効化フラグ */
   disabled?: boolean;
 }
 
-export interface CommandInputRef {
+/**
+ * TextInputの公開メソッド
+ */
+export interface TextInputRef {
   focus: () => void;
+  submit: () => void;
 }
 
-const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
+/**
+ * AIコマンド入力用のテキストエリアコンポーネント
+ * 履歴機能とキーボードショートカット対応
+ */
+const TextInput = forwardRef<TextInputRef, TextInputProps>(
   (
     {
       onSendCommand,
-      onSendArrowKey,
-      onSendTabKey,
-      onSendInterrupt,
       onSendEscape,
-      onClearAi,
-      onChangeModel,
       currentProvider = 'claude',
       currentRepository = '',
       disabled = false,
@@ -285,12 +291,15 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
       }
     }, [disabled]);
 
-    // refでフォーカスメソッドを公開
+    // refでフォーカス・送信メソッドを公開
     useImperativeHandle(ref, () => ({
       focus: () => {
         if (inputRef.current) {
           inputRef.current.focus();
         }
+      },
+      submit: () => {
+        sendCommand();
       },
     }));
 
@@ -321,57 +330,41 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
     const providerInfo = getProviderInfo();
 
     return (
-      <div className="space-y-3 sm:space-y-4">
-        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-          {/* テキスト入力エリア */}
-          <div className="relative">
-            <textarea
-              ref={inputRef}
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                disabled
-                  ? 'リポジトリを選択してください...'
-                  : providerInfo.placeholder
-              }
-              className="w-full h-full px-3 py-2.5 sm:py-2 pr-12 border border-dark-border-light bg-dark-bg-secondary text-dark-text-primary rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus resize-none text-sm sm:text-base placeholder-dark-text-muted transition-all duration-150"
-              rows={3}
+      <form onSubmit={handleSubmit}>
+        {/* テキスト入力エリア */}
+        <div className="relative">
+          <textarea
+            ref={inputRef}
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              disabled
+                ? 'リポジトリを選択してください...'
+                : providerInfo.placeholder
+            }
+            className="w-full h-full px-3 py-2.5 sm:py-2 pr-12 border border-dark-border-light bg-dark-bg-secondary text-dark-text-primary rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus resize-none text-sm sm:text-base placeholder-dark-text-muted transition-all duration-150"
+            rows={3}
+            disabled={disabled}
+          />
+          {/* 入力クリアボタン */}
+          {command && (
+            <button
+              type="button"
+              onClick={handleClearInput}
               disabled={disabled}
-            />
-            {/* 入力クリアボタン */}
-            {command && (
-              <button
-                type="button"
-                onClick={handleClearInput}
-                disabled={disabled}
-                className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs text-dark-text-secondary hover:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 transition-all duration-150"
-                title="入力内容をクリア"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </form>
-
-        {/* キーボードボタン群（formの外） */}
-        <KeyboardButtons
-          disabled={disabled}
-          onSendArrowKey={onSendArrowKey}
-          onSendEnter={sendCommand}
-          onSendInterrupt={onSendInterrupt}
-          onSendEscape={onSendEscape}
-          onClearAi={onClearAi}
-          onSendTabKey={onSendTabKey}
-          onChangeModel={onChangeModel}
-          currentProvider={currentProvider}
-          providerInfo={providerInfo}
-        />
-      </div>
+              className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs text-dark-text-secondary hover:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 transition-all duration-150"
+              title="入力内容をクリア"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </form>
     );
   }
 );
 
-CommandInput.displayName = 'CommandInput';
+TextInput.displayName = 'TextInput';
 
-export default CommandInput;
+export default TextInput;

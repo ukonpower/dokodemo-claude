@@ -49,7 +49,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   return (
     <div className="flex flex-col space-y-4">
       {/* 上段: 方向キーとEnterボタン */}
-      <div className="flex items-center justify-center space-x-6">
+      <div className="flex items-center justify-center space-x-4">
         {/* 方向キーボタン */}
         {onSendArrowKey && (
           <div className="flex flex-col items-center">
@@ -102,7 +102,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
             type="button"
             onClick={onSendEnter}
             disabled={disabled}
-            className="bg-dark-bg-tertiary border border-gray-500 text-dark-text-primary px-8 py-3 sm:px-6 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
+            className="bg-dark-bg-tertiary border border-gray-500 text-dark-text-primary px-6 py-3 sm:px-5 sm:py-2.5 rounded-lg hover:bg-dark-bg-hover hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold min-h-[2.5rem] flex items-center touch-manipulation shadow-lg transition-all duration-150"
           >
             Enter
           </button>
@@ -111,14 +111,14 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
       {/* 下段: 制御ボタン群 */}
       <div className="flex items-center justify-center">
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {/* Ctrl+Cボタン */}
           {onSendInterrupt && (
             <button
               type="button"
               onClick={onSendInterrupt}
               disabled={disabled}
-              className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
+              className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
               title="プロセスを中断 (Ctrl+C)"
             >
               Ctrl+C
@@ -131,7 +131,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               type="button"
               onClick={onSendEscape}
               disabled={disabled}
-              className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-red touch-manipulation shadow-md transition-all duration-150"
+              className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-dark-bg-secondary border border-dark-accent-red hover:bg-dark-bg-hover hover:border-dark-accent-red-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-red touch-manipulation shadow-md transition-all duration-150"
               title="エスケープキー (ESC)"
             >
               ESC
@@ -144,7 +144,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               type="button"
               onClick={onClearAi}
               disabled={disabled}
-              className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-dark-accent-cyan hover:bg-dark-bg-hover hover:border-dark-accent-cyan-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-cyan touch-manipulation shadow-md transition-all duration-150"
+              className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-dark-bg-secondary border border-dark-accent-cyan hover:bg-dark-bg-hover hover:border-dark-accent-cyan-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-cyan touch-manipulation shadow-md transition-all duration-150"
               title={providerInfo?.clearTitle || 'クリア'}
             >
               Clear
@@ -160,7 +160,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               type="button"
               onClick={() => onSendTabKey(true)}
               disabled={disabled}
-              className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-dark-bg-secondary border border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-orange touch-manipulation shadow-md transition-all duration-150"
+              className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-orange hover:bg-dark-bg-hover hover:border-dark-accent-orange-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-orange touch-manipulation shadow-md transition-all duration-150"
               title="モード切り替え"
             >
               Mode
@@ -174,7 +174,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
                 type="button"
                 onClick={() => setShowModelMenu(!showModelMenu)}
                 disabled={disabled}
-                className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-purple hover:bg-dark-bg-hover hover:border-dark-accent-purple-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-purple touch-manipulation shadow-md transition-all duration-150"
+                className="flex items-center justify-center w-14 h-9 sm:w-16 sm:h-10 bg-dark-bg-secondary border border-dark-accent-purple hover:bg-dark-bg-hover hover:border-dark-accent-purple-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-purple touch-manipulation shadow-md transition-all duration-150"
                 title="モデルを選択"
               >
                 Model
@@ -232,7 +232,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               type="button"
               onClick={() => onSendTabKey(false)}
               disabled={disabled}
-              className="flex items-center justify-center w-20 h-9 sm:w-24 sm:h-10 bg-dark-bg-secondary border border-dark-accent-green hover:bg-dark-bg-hover hover:border-dark-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-green touch-manipulation shadow-md transition-all duration-150"
+              className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-green hover:bg-dark-bg-hover hover:border-dark-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-green touch-manipulation shadow-md transition-all duration-150"
               title="コミット (/commit)"
             >
               Commit
