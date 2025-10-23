@@ -61,8 +61,6 @@ function App() {
     // プロバイダー切替時にrawOutputを同期
     setRawOutput(aiLogs.get(currentProvider) || '');
   }, [currentProvider, aiLogs]);
-  const [claudeOutputFocused, setClaudeOutputFocused] =
-    useState<boolean>(false);
 
   // ブラウザの戻る/進むボタン対応
   useEffect(() => {
@@ -1079,17 +1077,6 @@ function App() {
     }
   };
 
-  // AIOutputのフォーカス変更ハンドラー
-  const handleAiOutputFocusChange = (focused: boolean) => {
-    setClaudeOutputFocused(focused);
-    // フォーカスが外れた場合は、CommandInputにフォーカスを戻す
-    if (!focused && textInputRef.current) {
-      setTimeout(() => {
-        textInputRef.current?.focus();
-      }, 100);
-    }
-  };
-
   const handleChangeModel = (
     model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan'
   ) => {
@@ -1622,11 +1609,9 @@ function App() {
                     rawOutput={rawOutput}
                     currentProvider={currentProvider}
                     isLoading={isLoadingRepoData}
-                    onFocusChange={handleAiOutputFocusChange}
                     onClearOutput={handleClearClaudeOutput}
                     onRestartAi={handleRestartAiCli}
                     onKeyInput={handleAiKeyInput}
-                    isFocused={claudeOutputFocused}
                   />
                 </div>
 

@@ -8,29 +8,24 @@ import type { AiProvider } from '../types';
 interface AiOutputProps {
   rawOutput: string;
   currentProvider?: AiProvider; // プロバイダー情報を追加
-  onFocusChange?: (focused: boolean) => void;
   isLoading?: boolean;
   onClearOutput?: () => void;
   onRestartAi?: () => void;
   onKeyInput?: (key: string) => void;
-  isFocused?: boolean;
 }
 
 const AiOutput: React.FC<AiOutputProps> = ({
   rawOutput,
   currentProvider = 'claude',
-  onFocusChange,
   isLoading = false,
   onClearOutput,
   onRestartAi,
   onKeyInput,
-  isFocused = false,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
-  const rootRef = useRef<HTMLDivElement>(null);
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -54,7 +49,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
           initialMessage2: 'リポジトリを選択してClaude CLIを開始してください',
           loadingMessage: 'Claude CLI履歴を読み込み中...',
           headerLabel: 'Claude CLI Output',
-          focusLabel: '（キー入力モード - ESCで解除）',
         };
       case 'codex':
         return {
@@ -64,7 +58,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
           initialMessage2: 'リポジトリを選択してCodex CLIを開始してください',
           loadingMessage: 'Codex CLI履歴を読み込み中...',
           headerLabel: 'Codex CLI Output',
-          focusLabel: '（キー入力モード - ESCで解除）',
         };
       default:
         return {
@@ -74,7 +67,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
           initialMessage2: 'リポジトリを選択してAI CLIを開始してください',
           loadingMessage: 'AI CLI履歴を読み込み中...',
           headerLabel: 'AI CLI Output',
-          focusLabel: '（キー入力モード - ESCで解除）',
         };
     }
   }, [currentProvider]);
@@ -140,13 +132,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
     // xterm.jsのonDataを使ってキー入力を受け取る
     terminal.current.onData((data) => {
-      // ESCキーでフォーカス解除
-      if (data === '\x1b' && onFocusChange) {
-        onFocusChange(false);
-        return;
-      }
-      
-      // その他のキー入力をClaude CLIに送信
+      // キー入力をClaude CLIに送信
       if (onKeyInput) {
         onKeyInput(data);
       }
@@ -237,54 +223,17 @@ const AiOutput: React.FC<AiOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // フォーカス管理: xterm.jsのfocus()/blur()を使用
-  useEffect(() => {
-    if (!terminal.current) return;
-
-    if (isFocused) {
-      terminal.current.focus();
-    } else {
-      terminal.current.blur();
-    }
-  }, [isFocused]);
-
-  // Outside click 検出
-  useEffect(() => {
-    if (!isFocused || !onFocusChange) return;
-
-    const handleDocPointerDown = (e: PointerEvent) => {
-      // クリック対象が rootRef の外部なら OFF
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        onFocusChange(false);
-      }
-    };
-
-    // キャプチャフェーズで登録（子要素のイベントより先に処理）
-    document.addEventListener('pointerdown', handleDocPointerDown, true);
-
-    return () => {
-      document.removeEventListener('pointerdown', handleDocPointerDown, true);
-    };
-  }, [isFocused, onFocusChange]);
-
   const providerInfo = getProviderInfo();
 
   return (
-    <div ref={rootRef} className="flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <div
-              className={`w-2 h-2 rounded-full ${isFocused ? 'bg-dark-accent-blue animate-pulse' : 'bg-dark-accent-green'}`}
-            ></div>
+            <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>
             <span className="text-gray-300 text-xs">
-              {providerInfo.headerLabel}{' '}
-              {isFocused && (
-                <span className="text-dark-accent-blue">
-                  {providerInfo.focusLabel}
-                </span>
-              )}
+              {providerInfo.headerLabel}
             </span>
           </div>
           <div className="flex items-center space-x-2">
@@ -311,20 +260,10 @@ const AiOutput: React.FC<AiOutputProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div
-        className={`flex-1 bg-dark-bg-primary overflow-auto relative ${
-          isFocused ? 'ring-2 ring-dark-accent-blue ring-inset' : ''
-        }`}
-      >
+      <div className="flex-1 bg-dark-bg-primary overflow-auto relative">
         <div
           ref={terminalRef}
-          className="h-full w-full cursor-pointer"
-          onClick={() => {
-            // AI CLI出力エリアをクリックしたらキー入力モードをON（トグルしない）
-            if (onFocusChange) {
-              onFocusChange(true);
-            }
-          }}
+          className="h-full w-full"
           style={{
             background: '#0a0a0a', // dark-bg-primary
             minHeight: '400px',
