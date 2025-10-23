@@ -218,7 +218,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       },
       fontFamily:
         '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: isLargeScreen ? 12 : 8, // PC時は14px, モバイル時は12px
+      fontSize: isLargeScreen ? 10 : 8, // PC時は14px, モバイル時は12px
       lineHeight: 1.4,
       cursorBlink: true,
       cursorStyle: 'block',
@@ -436,7 +436,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           }}
           style={{
             background: '#0a0a0a', // dark-bg-primary
-            minHeight: '200px',
+            minHeight: '400px',
             width: 'max-content',
             overflowX: 'auto',
             overflowY: 'auto',

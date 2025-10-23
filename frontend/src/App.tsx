@@ -1296,7 +1296,7 @@ function App() {
   return (
     <div className="min-h-screen bg-dark-bg-primary flex flex-col">
       {/* ヘッダー */}
-      <header className="bg-dark-bg-secondary shadow-sm border-b border-dark-border-DEFAULT sticky top-0 z-10">
+      <header className="bg-dark-bg-secondary shadow-sm border-b border-dark-border-DEFAULT">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
@@ -1584,8 +1584,8 @@ function App() {
 
         {/* 縦並びレイアウト: AI CLI & ターミナル */}
         <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
-          {/* Claude CLI セクション (2/3の高さ) */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col flex-[2] min-h-96">
+          {/* Claude CLI セクション (高さ拡大) */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col flex-[3] min-h-[900px]">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
