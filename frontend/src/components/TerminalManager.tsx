@@ -86,8 +86,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     onExecuteShortcut(shortcutId, activeTerminalId);
   };
 
-  const activeTerminal = terminals.find((t) => t.id === activeTerminalId);
-
   return (
     <div className="h-full flex flex-col">
       {/* ターミナルタブ */}
@@ -139,7 +137,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
       {/* ターミナル本体 */}
       <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 relative">
           {terminals.length === 0 ? (
             <div className="h-full flex items-center justify-center bg-gray-900 overflow-y-auto">
               <div className="text-center text-gray-300 max-w-sm mx-auto px-4 py-8">
@@ -180,19 +178,27 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 )}
               </div>
             </div>
-          ) : activeTerminal ? (
-            <TerminalComponent
-              terminal={activeTerminal}
-              messages={messages}
-              history={histories.get(activeTerminal.id) || []}
-              isActive={true}
-              onInput={onTerminalInput}
-              onSignal={onTerminalSignal}
-            />
           ) : (
-            <div className="h-full flex items-center justify-center bg-gray-900">
-              <p className="text-gray-300">ターミナルを選択してください</p>
-            </div>
+            <>
+              {/* 全てのターミナルをレンダリングし、CSSで表示切り替え */}
+              {terminals.map((terminal) => (
+                <div
+                  key={terminal.id}
+                  className={`absolute inset-0 ${
+                    activeTerminalId === terminal.id ? 'block' : 'hidden'
+                  }`}
+                >
+                  <TerminalComponent
+                    terminal={terminal}
+                    messages={messages}
+                    history={histories.get(terminal.id) || []}
+                    isActive={activeTerminalId === terminal.id}
+                    onInput={onTerminalInput}
+                    onSignal={onTerminalSignal}
+                  />
+                </div>
+              ))}
+            </>
           )}
         </div>
 

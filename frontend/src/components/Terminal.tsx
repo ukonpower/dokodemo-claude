@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -62,8 +62,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     onInput(terminal.id, '\r');
   };
 
-  // ペースト処理
-  const handlePaste = async () => {
+  // ペースト処理（useCallbackでメモ化）
+  const handlePaste = useCallback(async () => {
     try {
       // Clipboard APIを使用してクリップボードからテキストを取得
       const text = await navigator.clipboard.readText();
@@ -75,7 +75,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       console.error('クリップボードの読み取りに失敗しました:', error);
       // フォールバック: ブラウザの標準ペースト動作に任せる
     }
-  };
+  }, [terminal.id, onInput]);
 
   // XTermインスタンスを初期化
   useEffect(() => {
@@ -193,7 +193,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         xtermInstance.current.dispose();
       }
     };
-  }, []);
+  }, [terminal.id, onInput, handlePaste]);
 
   // ターミナルが変更された時の処理
   useEffect(() => {

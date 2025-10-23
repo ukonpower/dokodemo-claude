@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -30,110 +30,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
-  const hiddenInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [isComposing, setIsComposing] = useState(false);
-
-  // コンポジションイベントハンドラー（定数として定義してメモリリーク防止）
-  const handleCompositionStart = useCallback(() => {
-    setIsComposing(true);
-  }, []);
-
-  const handleCompositionEnd = useCallback(() => {
-    setIsComposing(false);
-  }, []);
-
-  // キーマッピング: キーイベントから送信する文字列への変換
-  const getKeyMapping = useCallback(
-    (e: KeyboardEvent): string | null => {
-      // IME入力中は無視
-      if (isComposing) return null;
-
-      // 特殊キーのマッピング
-      const keyMap: { [key: string]: string } = {
-        Enter: '\r',
-        Backspace: '\x7f',
-        Delete: '\x7f',
-        Tab: '\t',
-        Escape: '\x1b',
-        ArrowUp: '\x1b[A',
-        ArrowDown: '\x1b[B',
-        ArrowRight: '\x1b[C',
-        ArrowLeft: '\x1b[D',
-      };
-
-      // Ctrl組み合わせ
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
-        const ctrlMap: { [key: string]: string } = {
-          a: '\x01',
-          b: '\x02',
-          c: '\x03',
-          d: '\x04',
-          e: '\x05',
-          f: '\x06',
-          g: '\x07',
-          h: '\x08',
-          i: '\x09',
-          j: '\x0a',
-          k: '\x0b',
-          l: '\x0c',
-          m: '\x0d',
-          n: '\x0e',
-          o: '\x0f',
-          p: '\x10',
-          q: '\x11',
-          r: '\x12',
-          s: '\x13',
-          t: '\x14',
-          u: '\x15',
-          v: '\x16',
-          w: '\x17',
-          x: '\x18',
-          y: '\x19',
-          z: '\x1a',
-        };
-        if (ctrlMap[e.key.toLowerCase()]) {
-          return ctrlMap[e.key.toLowerCase()];
-        }
-      }
-
-      // 特殊キーの場合
-      if (keyMap[e.key]) {
-        return keyMap[e.key];
-      }
-
-      // 通常の文字キー（1文字のみ）
-      if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        return e.key;
-      }
-
-      return null;
-    },
-    [isComposing]
-  );
-
-  // Reactイベント用のキーハンドラ
-  const handleReactKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (!isFocused || !onKeyInput) return;
-
-      // ESCキーでフォーカス解除
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (onFocusChange) {
-          onFocusChange(false); // フォーカスをOFFに
-        }
-        return;
-      }
-
-      const keyInput = getKeyMapping(e.nativeEvent);
-      if (keyInput !== null) {
-        e.preventDefault();
-        onKeyInput(keyInput);
-      }
-    },
-    [isFocused, onKeyInput, getKeyMapping, onFocusChange]
-  );
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -218,14 +115,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
       },
       fontFamily:
         '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: isLargeScreen ? 10 : 8, // PC時は14px, モバイル時は12px
+      fontSize: isLargeScreen ? 10 : 8, // PC時は10px, モバイル時は8px
       lineHeight: 1.4,
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 10000,
       convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
       allowTransparency: false,
-      disableStdin: true, // 標準入力を無効化（直接入力は使わない）
+      disableStdin: false, // 標準入力を有効化してxterm.jsのキーボード処理を使う
       smoothScrollDuration: 0,
       scrollOnUserInput: false,
       fastScrollModifier: 'shift',
@@ -240,6 +137,20 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
+
+    // xterm.jsのonDataを使ってキー入力を受け取る
+    terminal.current.onData((data) => {
+      // ESCキーでフォーカス解除
+      if (data === '\x1b' && onFocusChange) {
+        onFocusChange(false);
+        return;
+      }
+      
+      // その他のキー入力をClaude CLIに送信
+      if (onKeyInput) {
+        onKeyInput(data);
+      }
+    });
 
     // サイズを自動調整
     setTimeout(() => {
@@ -326,15 +237,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // フォーカス管理
+  // フォーカス管理: xterm.jsのfocus()/blur()を使用
   useEffect(() => {
+    if (!terminal.current) return;
+
     if (isFocused) {
-      // 少し遅延を入れて隠しinputにフォーカス
-      setTimeout(() => {
-        if (hiddenInputRef.current) {
-          hiddenInputRef.current.focus();
-        }
-      }, 10);
+      terminal.current.focus();
+    } else {
+      terminal.current.blur();
     }
   }, [isFocused]);
 
@@ -361,25 +271,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
   return (
     <div ref={rootRef} className="flex flex-col h-full">
-      {/* フォーカス用の隠しinput要素 */}
-      {isFocused && (
-        <input
-          ref={hiddenInputRef}
-          type="text"
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            width: '1px',
-            height: '1px',
-            opacity: 0,
-            pointerEvents: 'none',
-          }}
-          onKeyDown={handleReactKeyDown}
-          onCompositionStart={handleCompositionStart}
-          onCompositionEnd={handleCompositionEnd}
-          autoComplete="off"
-        />
-      )}
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
         <div className="flex items-center justify-between">
