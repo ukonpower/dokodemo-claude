@@ -43,7 +43,12 @@ const clientActiveRepositories = new Map<string, string>(); // socketId -> repos
 
 // グローバル状態
 let repositories: GitRepository[] = [];
-const REPOS_DIR = path.join(process.cwd(), 'repositories');
+
+// 環境変数からリポジトリディレクトリを取得（デフォルト: repositories）
+const repositoriesDir = process.env.REPOSITORIES_DIR || 'repositories';
+const REPOS_DIR = path.isAbsolute(repositoriesDir)
+  ? repositoriesDir
+  : path.join(process.cwd(), repositoriesDir);
 const PROCESSES_DIR = path.join(process.cwd(), 'processes');
 
 // プロセス管理インスタンス
@@ -159,8 +164,10 @@ app.post('/hook/claude-event', async (req, res) => {
 async function ensureReposDir(): Promise<void> {
   try {
     await fs.access(REPOS_DIR);
+    console.log(`📁 リポジトリディレクトリを使用: ${REPOS_DIR}`);
   } catch {
     await fs.mkdir(REPOS_DIR, { recursive: true });
+    console.log(`📁 リポジトリディレクトリを作成: ${REPOS_DIR}`);
   }
 }
 
