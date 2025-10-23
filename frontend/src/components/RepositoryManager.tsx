@@ -22,6 +22,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   const [repoName, setRepoName] = useState('');
   const [isCloning, setIsCloning] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,13 +82,74 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     }
   };
 
+  // 検索クエリに基づいてリポジトリをフィルタリング
+  const filteredRepositories = repositories.filter((repo) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const name = repo.name.toLowerCase();
+    const path = repo.path.toLowerCase();
+    const url = repo.url?.toLowerCase() || '';
+
+    return name.includes(query) || path.includes(query) || url.includes(query);
+  });
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* 既存プロジェクト一覧 */}
       <div>
-        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">
-          Projects
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white">
+            Projects
+          </h2>
+          {/* 検索入力 */}
+          {repositories.length > 0 && (
+            <div className="relative flex-1 sm:max-w-md">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="プロジェクトを検索..."
+                className="w-full px-4 py-2 pl-10 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {/* クリアボタン */}
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  title="検索をクリア"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         {repositories.length === 0 ? (
           <div className="text-center py-8 sm:py-12">
             <svg
@@ -116,9 +178,37 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
               下のフォームから新しいリポジトリをクローンしてください
             </p>
           </div>
+        ) : filteredRepositories.length === 0 ? (
+          <div className="text-center py-8 sm:py-12">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-white">
+              検索結果なし
+            </h3>
+            <p className="mt-1 text-sm text-gray-300">
+              「{searchQuery}」に一致するプロジェクトが見つかりませんでした
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-dark-bg-tertiary border border-dark-border-light rounded-md hover:bg-dark-bg-hover hover:border-dark-border-focus focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus transition-all duration-150"
+            >
+              検索をクリア
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {repositories.map((repo) => (
+            {filteredRepositories.map((repo) => (
               <div
                 key={repo.path}
                 className={`relative group cursor-pointer bg-dark-bg-secondary border rounded-lg p-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 overflow-hidden ${
