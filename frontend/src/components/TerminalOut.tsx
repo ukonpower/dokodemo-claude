@@ -143,6 +143,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
     const finalFontSize = fontSize ?? (isLargeScreen ? 10 : 8);
 
+    console.log("new term");
+    
+    
     // ターミナルインスタンスを作成（横スクロール対応の設定）
     terminal.current = new Terminal({
       theme: {
@@ -194,6 +197,12 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // xterm.jsのonDataを使ってキー入力を受け取る
     terminal.current.onData((data) => {
+      // Focus In/Focus Outイベントをフィルタリング
+      // \x1b[I = Focus In, \x1b[O = Focus Out
+      if (data === '\x1b[I' || data === '\x1b[O') {
+        return; // これらのイベントは送信しない
+      }
+
       // キー入力をコールバックに送信
       if (onKeyInputRef.current) {
         onKeyInputRef.current(data);
