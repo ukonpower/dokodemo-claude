@@ -1582,9 +1582,10 @@ function App() {
         </div>
 
         {/* 2カラムグリッドレイアウト: AI CLI & ターミナル (PC時のみ) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 flex-1 min-h-0">
-          {/* Claude CLI セクション */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
+        {/* AI CLI 60%, ターミナル 40%の割合 */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 flex-1 min-h-0">
+          {/* Claude CLI セクション (3/5 = 60%) */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96 lg:col-span-3">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
@@ -1644,8 +1645,8 @@ function App() {
             </div>
           </section>
 
-          {/* ターミナルエリア */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
+          {/* ターミナルエリア (2/5 = 40%) */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96 lg:col-span-2">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
