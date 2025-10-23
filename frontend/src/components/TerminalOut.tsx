@@ -106,18 +106,29 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     if (!fitAddon.current || !terminal.current) {
       return;
     }
-    const beforeCols = terminal.current.cols;
-    const beforeRows = terminal.current.rows;
-    fitAddon.current.fit();
-    const afterCols = terminal.current.cols;
-    const afterRows = terminal.current.rows;
-    if (terminal.current.rows > 0) {
-      terminal.current.refresh(0, terminal.current.rows - 1);
+
+    // ターミナルが完全に初期化されているかチェック
+    if (!terminal.current.element) {
+      return;
     }
 
-    // サイズが変更された場合、onResizeコールバックを呼び出す
-    if (onResize && (beforeCols !== afterCols || beforeRows !== afterRows)) {
-      onResize(afterCols, afterRows);
+    try {
+      const beforeCols = terminal.current.cols;
+      const beforeRows = terminal.current.rows;
+      fitAddon.current.fit();
+      const afterCols = terminal.current.cols;
+      const afterRows = terminal.current.rows;
+      if (terminal.current.rows > 0) {
+        terminal.current.refresh(0, terminal.current.rows - 1);
+      }
+
+      // サイズが変更された場合、onResizeコールバックを呼び出す
+      if (onResize && (beforeCols !== afterCols || beforeRows !== afterRows)) {
+        onResize(afterCols, afterRows);
+      }
+    } catch (error) {
+      // fit()中にdimensionsが未定義の場合などのエラーをキャッチ
+      console.warn('Failed to fit terminal:', error);
     }
   }, [onResize]);
 
@@ -239,8 +250,12 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   // アクティブ状態が変更されたらフォーカスを当てる
   useEffect(() => {
     if (isActive && terminal.current) {
-      fitTerminal();
-      focusTerminal();
+      // display:noneから表示に切り替わった直後はDOMのサイズ計算が間に合わないため、
+      // 少し遅延させてからfitを実行
+      setTimeout(() => {
+        fitTerminal();
+        focusTerminal();
+      }, 50);
     }
   }, [isActive, focusTerminal, fitTerminal]);
 

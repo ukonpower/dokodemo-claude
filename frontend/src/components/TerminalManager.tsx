@@ -89,7 +89,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="absolute inset-0 flex flex-col">
       {/* ターミナルタブ */}
       <div className="bg-gray-900 px-2 sm:px-4 py-2 border-b border-dark-border-DEFAULT flex items-center space-x-1 overflow-x-auto flex-shrink-0">
         {terminals.map((terminal) => (
@@ -139,7 +139,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
 
       {/* ターミナル本体 */}
       <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex-1 min-h-0 h-full">
+        <div className="flex-1 min-h-0 h-full relative">
           {terminals.length === 0 ? (
             <div className="h-full flex items-center justify-center bg-gray-900 overflow-y-auto">
               <div className="text-center text-gray-300 max-w-sm mx-auto px-4 py-8">
@@ -184,7 +184,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
             terminals.map((terminal) => (
               <div
                 key={terminal.id}
-                className="h-full"
+                className="absolute inset-0"
                 style={{
                   display:
                     activeTerminalId === terminal.id ? 'block' : 'none',

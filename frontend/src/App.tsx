@@ -1699,7 +1699,7 @@ function App() {
           </section>
 
           {/* ターミナルエリア */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-[35rem] sm:min-h-96">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
@@ -1718,7 +1718,7 @@ function App() {
                 ターミナル
               </h2>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden relative">
               <TerminalManager
                 terminals={terminals}
                 messages={terminalMessages}

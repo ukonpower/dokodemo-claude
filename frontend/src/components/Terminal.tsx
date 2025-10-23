@@ -239,9 +239,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="absolute inset-0 flex flex-col">
       {/* ターミナルヘッダー */}
-      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 flex items-center justify-between border-b border-dark-border-DEFAULT">
+      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 flex items-center justify-between border-b border-dark-border-DEFAULT flex-shrink-0">
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
           <div
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
@@ -306,7 +306,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
       {/* キーボードボタンパネル（iOS向け） */}
       {showKeyboardButtons && (
-        <div className="bg-dark-bg-secondary px-2 py-2 border-b border-dark-border-DEFAULT">
+        <div className="bg-dark-bg-secondary px-2 py-2 border-b border-dark-border-DEFAULT flex-shrink-0">
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
             {/* 矢印キー */}
             <div className="flex space-x-1">
@@ -362,7 +362,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       )}
 
       {/* ターミナルメイン表示 */}
-      <div className="flex-1 min-h-0 bg-dark-bg-primary overflow-auto relative">
+      <div className="flex-1 min-h-0 h-full bg-dark-bg-primary overflow-auto relative">
         <TerminalOut
           onKeyInput={handleKeyInput}
           isActive={isActive}
@@ -374,7 +374,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       </div>
 
       {/* 入力フィールド（フォールバック用、通常はXTermの直接入力を使用） */}
-      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 border-t border-dark-border-DEFAULT">
+      <div className="bg-dark-bg-tertiary px-2 sm:px-3 py-2 border-t border-dark-border-DEFAULT flex-shrink-0">
         <form onSubmit={handleSubmit} className="flex space-x-2">
           <input
             ref={inputRef}
