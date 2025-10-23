@@ -70,6 +70,9 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     fitAddon.current = new FitAddon();
 
     // XTermインスタンスを作成（横スクロール対応の設定）
+    // PC時(lg以上)はフォントサイズを大きく設定
+    const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
+
     xtermInstance.current = new XTerm({
       theme: {
         background: '#0a0a0a', // dark-bg-primary
@@ -95,7 +98,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       },
       fontFamily:
         '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: 8,
+      fontSize: isLargeScreen ? 12 : 8, // PC時は12px, モバイル時は8px
       lineHeight: 1.2,
       cursorBlink: false,
       cursorStyle: 'block',
