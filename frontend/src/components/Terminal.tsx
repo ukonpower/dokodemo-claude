@@ -62,6 +62,21 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     onInput(terminal.id, '\r');
   };
 
+  // ペースト処理
+  const handlePaste = async () => {
+    try {
+      // Clipboard APIを使用してクリップボードからテキストを取得
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        // xtermに直接書き込み（表示用）とPTYに送信（実行用）
+        onInput(terminal.id, text);
+      }
+    } catch (error) {
+      console.error('クリップボードの読み取りに失敗しました:', error);
+      // フォールバック: ブラウザの標準ペースト動作に任せる
+    }
+  };
+
   // XTermインスタンスを初期化
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -128,15 +143,37 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       onInput(terminal.id, data);
     });
 
-    // キーボードイベントを処理（特殊キー対応）
+    // キーボードイベントを処理（Ctrl+V対応）
     xtermInstance.current.attachCustomKeyEventHandler((event) => {
-      // Ctrl+C, Ctrl+V, Ctrl+Xなどのショートカットは通常通り処理
+      // Ctrl+V または Cmd+V（Mac）でペースト処理
+      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+        event.preventDefault();
+        handlePaste();
+        return false; // イベントを停止
+      }
+
+      // Ctrl+C, Ctrl+Xなどの他のショートカットは通常通り処理
       if (event.ctrlKey || event.metaKey) {
         return true;
       }
       // その他のキーイベントもxtermで処理
       return true;
     });
+
+    // ペーストイベントをリッスン（右クリックメニューからのペースト対応）
+    const pasteHandler = (event: ClipboardEvent) => {
+      event.preventDefault();
+      const text = event.clipboardData?.getData('text');
+      if (text) {
+        onInput(terminal.id, text);
+      }
+    };
+
+    // xtermのDOM要素にペーストイベントリスナーを追加
+    const xtermElement = terminalRef.current.querySelector('.xterm');
+    if (xtermElement) {
+      xtermElement.addEventListener('paste', pasteHandler as EventListener);
+    }
 
     // サイズを自動調整（仮想スクロール対応）
     setTimeout(() => {
@@ -148,6 +185,10 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }, 100);
 
     return () => {
+      // クリーンアップ
+      if (xtermElement) {
+        xtermElement.removeEventListener('paste', pasteHandler as EventListener);
+      }
       if (xtermInstance.current) {
         xtermInstance.current.dispose();
       }
@@ -340,6 +381,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
             title="ESC"
           >
             ESC
+          </button>
+
+          {/* ペーストボタン（モバイル・iOS向け） */}
+          <button
+            onClick={handlePaste}
+            className="px-2 py-1 text-xs bg-dark-bg-secondary hover:bg-dark-bg-hover text-dark-text-primary rounded-lg border border-gray-500 hover:border-gray-400 transition-all duration-150 shadow-sm"
+            title="ペースト (Ctrl+V)"
+          >
+            📋
           </button>
 
           {/* キーボードボタン表示切替 */}
