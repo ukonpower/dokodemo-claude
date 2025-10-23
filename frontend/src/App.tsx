@@ -1674,7 +1674,7 @@ function App() {
                 ターミナル
               </h2>
             </div>
-            <div className="flex-1 min-h-0 p-3 sm:p-6">
+            <div className="flex-1 min-h-0">
               <TerminalManager
                 terminals={terminals}
                 messages={terminalMessages}

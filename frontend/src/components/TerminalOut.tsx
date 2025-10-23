@@ -69,6 +69,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
+  const resizeObserver = useRef<ResizeObserver | null>(null);
   const onKeyInputRef = useRef<typeof onKeyInput>(onKeyInput);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
@@ -89,6 +90,16 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     terminal.current.focus();
     const textarea = (terminal.current as TerminalWithTextarea).textarea;
     textarea?.focus?.();
+  }, []);
+
+  const fitTerminal = useCallback(() => {
+    if (!fitAddon.current || !terminal.current) {
+      return;
+    }
+    fitAddon.current.fit();
+    if (terminal.current.rows > 0) {
+      terminal.current.refresh(0, terminal.current.rows - 1);
+    }
   }, []);
 
   // ターミナルを初期化
@@ -161,15 +172,19 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // サイズを自動調整してフォーカス
     setTimeout(() => {
-      if (fitAddon.current && terminal.current) {
-        fitAddon.current.fit();
-        terminal.current.refresh(0, terminal.current.rows - 1);
-        // アクティブな場合はフォーカスを当てる
-        if (isActive) {
-          focusTerminal();
-        }
+      fitTerminal();
+      // アクティブな場合はフォーカスを当てる
+      if (isActive) {
+        focusTerminal();
       }
     }, 100);
+
+    if (typeof ResizeObserver !== 'undefined' && terminalRef.current) {
+      resizeObserver.current = new ResizeObserver(() => {
+        fitTerminal();
+      });
+      resizeObserver.current.observe(terminalRef.current);
+    }
 
     // 親コンポーネントにターミナルインスタンスを通知
     if (onTerminalReady && terminal.current && fitAddon.current) {
@@ -177,6 +192,10 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
 
     return () => {
+      if (resizeObserver.current) {
+        resizeObserver.current.disconnect();
+        resizeObserver.current = null;
+      }
       if (terminal.current) {
         terminal.current.dispose();
       }
@@ -187,21 +206,20 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   // ウィンドウサイズ変更時に再調整
   useEffect(() => {
     const handleResize = () => {
-      if (fitAddon.current && terminal.current) {
-        fitAddon.current.fit();
-      }
+      fitTerminal();
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [fitTerminal]);
 
   // アクティブ状態が変更されたらフォーカスを当てる
   useEffect(() => {
     if (isActive && terminal.current) {
+      fitTerminal();
       focusTerminal();
     }
-  }, [isActive, focusTerminal]);
+  }, [isActive, focusTerminal, fitTerminal]);
 
   // ターミナルエリアクリックでフォーカスする
   const handleTerminalClick = useCallback(() => {
