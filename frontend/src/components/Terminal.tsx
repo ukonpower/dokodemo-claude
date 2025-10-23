@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
 import type { Terminal, TerminalMessage, TerminalOutputLine } from '../types';
+import TerminalOut from './TerminalOut';
 
 interface TerminalProps {
   terminal: Terminal;
@@ -23,13 +23,11 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 }) => {
   const [input, setInput] = useState('');
   const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
-  const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const xtermInstance = useRef<XTerm | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastMessageCount = useRef<number>(0);
   const currentTerminalId = useRef<string>('');
-  const terminalContainerRef = useRef<HTMLDivElement>(null);
 
   // 矢印キーハンドラ
   const handleArrowKey = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -77,123 +75,22 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   }, [terminal.id, onInput]);
 
-  // XTermインスタンスを初期化
-  useEffect(() => {
-    if (!terminalRef.current) return;
-
-    // FitAddonを作成
-    fitAddon.current = new FitAddon();
-
-    // XTermインスタンスを作成（横スクロール対応の設定）
-    // PC時(lg以上)はフォントサイズを大きく設定
-    const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
-
-    xtermInstance.current = new XTerm({
-      theme: {
-        background: '#0a0a0a', // dark-bg-primary
-        foreground: '#d1d5db',
-        cursor: '#9ca3af',
-        selectionBackground: '#374151',
-        black: '#1f2937',
-        red: '#f87171',
-        green: '#86efac',
-        yellow: '#fbbf24',
-        blue: '#93c5fd',
-        magenta: '#c084fc',
-        cyan: '#67e8f9',
-        white: '#e5e7eb',
-        brightBlack: '#4b5563',
-        brightRed: '#fca5a5',
-        brightGreen: '#bbf7d0',
-        brightYellow: '#fde047',
-        brightBlue: '#bfdbfe',
-        brightMagenta: '#e9d5ff',
-        brightCyan: '#a5f3fc',
-        brightWhite: '#f9fafb',
-      },
-      fontFamily:
-        '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: isLargeScreen ? 10 : 8, // PC時は14px, モバイル時は12px
-      lineHeight: 1.4,
-      cursorBlink: false,
-      cursorStyle: 'block',
-      scrollback: 10000,
-      convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
-      allowTransparency: false,
-      disableStdin: false,
-      smoothScrollDuration: 0,
-      scrollOnUserInput: true,
-      fastScrollModifier: 'shift',
-      scrollSensitivity: 3,
-      // テキスト選択機能を有効化（iOS対応）
-      rightClickSelectsWord: true,
-      // 横スクロール対応の設定
-      cols: 600, // 適度な列数を設定
-      allowProposedApi: true, // 横スクロール機能に必要
-    });
-
-    // FitAddonを読み込み
-    xtermInstance.current.loadAddon(fitAddon.current);
-
-    // XTermをDOMに接続
-    xtermInstance.current.open(terminalRef.current);
-
-    // キーボード入力を直接PTYに送信
-    xtermInstance.current.onData((data) => {
+  // キー入力ハンドラ
+  const handleKeyInput = useCallback(
+    (data: string) => {
       onInput(terminal.id, data);
-    });
+    },
+    [terminal.id, onInput]
+  );
 
-    // キーボードイベントを処理（Ctrl+V対応）
-    xtermInstance.current.attachCustomKeyEventHandler((event) => {
-      // Ctrl+V または Cmd+V（Mac）でペースト処理
-      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-        event.preventDefault();
-        handlePaste();
-        return false; // イベントを停止
-      }
-
-      // Ctrl+C, Ctrl+Xなどの他のショートカットは通常通り処理
-      if (event.ctrlKey || event.metaKey) {
-        return true;
-      }
-      // その他のキーイベントもxtermで処理
-      return true;
-    });
-
-    // ペーストイベントをリッスン（右クリックメニューからのペースト対応）
-    const pasteHandler = (event: ClipboardEvent) => {
-      event.preventDefault();
-      const text = event.clipboardData?.getData('text');
-      if (text) {
-        onInput(terminal.id, text);
-      }
-    };
-
-    // xtermのDOM要素にペーストイベントリスナーを追加
-    const xtermElement = terminalRef.current.querySelector('.xterm');
-    if (xtermElement) {
-      xtermElement.addEventListener('paste', pasteHandler as EventListener);
-    }
-
-    // サイズを自動調整（仮想スクロール対応）
-    setTimeout(() => {
-      if (fitAddon.current && xtermInstance.current) {
-        fitAddon.current.fit();
-        // 仮想スクロール領域の正確な調整
-        xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
-      }
-    }, 100);
-
-    return () => {
-      // クリーンアップ
-      if (xtermElement) {
-        xtermElement.removeEventListener('paste', pasteHandler as EventListener);
-      }
-      if (xtermInstance.current) {
-        xtermInstance.current.dispose();
-      }
-    };
-  }, [terminal.id, onInput, handlePaste]);
+  // TerminalOutからターミナルインスタンスを受け取る
+  const handleTerminalReady = useCallback(
+    (terminalInstance: XTerm, fitAddonInstance: FitAddon) => {
+      xtermInstance.current = terminalInstance;
+      fitAddon.current = fitAddonInstance;
+    },
+    []
+  );
 
   // ターミナルが変更された時の処理
   useEffect(() => {
@@ -292,23 +189,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   }, [messages]);
 
-  // アクティブなターミナルの場合、XTermにフォーカス
-  useEffect(() => {
-    if (isActive) {
-      // XTermインスタンスにフォーカス
-      if (xtermInstance.current) {
-        xtermInstance.current.focus();
-      }
-      // アクティブになった時にサイズを再調整（仮想スクロール対応）
-      setTimeout(() => {
-        if (fitAddon.current && xtermInstance.current) {
-          fitAddon.current.fit();
-          // 仮想スクロール領域の再調整
-          xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
-        }
-      }, 100);
-    }
-  }, [isActive]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,13 +199,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // XTermがフォーカスされている場合は、入力フィールドのキーイベントは処理しない
-    if (
-      document.activeElement === terminalRef.current?.querySelector('.xterm')
-    ) {
-      return;
-    }
-
     if (e.ctrlKey) {
       if (e.key === 'c') {
         e.preventDefault();
@@ -461,11 +334,14 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       )}
 
       {/* ターミナルメイン表示 */}
-      <div
-        className="flex-1 overflow-hidden bg-dark-bg-primary"
-        ref={terminalContainerRef}
-      >
-        <div ref={terminalRef} className="h-full w-full" />
+      <div className="flex-1 overflow-hidden bg-dark-bg-primary">
+        <TerminalOut
+          onKeyInput={handleKeyInput}
+          isActive={isActive}
+          onTerminalReady={handleTerminalReady}
+          cursorBlink={false}
+          scrollOnUserInput={true}
+        />
       </div>
 
       {/* 入力フィールド（フォールバック用、通常はXTermの直接入力を使用） */}

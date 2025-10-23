@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
 import { RotateCw, Trash2 } from 'lucide-react';
 import type { AiProvider } from '../types';
+import TerminalOut from './TerminalOut';
 
 interface AiOutputProps {
   rawOutput: string;
@@ -22,26 +22,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onRestartAi,
   onKeyInput,
 }) => {
-  const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
-  const onKeyInputRef = useRef<typeof onKeyInput>();
-  useEffect(() => {
-    onKeyInputRef.current = onKeyInput;
-  }, [onKeyInput]);
-  type TerminalWithTextarea = Terminal & {
-    textarea?: HTMLTextAreaElement | null;
-  };
-
-  const focusTerminal = useCallback(() => {
-    if (!terminal.current) {
-      return;
-    }
-    terminal.current.focus();
-    const textarea = (terminal.current as TerminalWithTextarea).textarea;
-    textarea?.focus?.();
-  }, []);
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -87,92 +70,21 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [currentProvider]);
 
-  // ターミナルを初期化
-  useEffect(() => {
-    if (!terminalRef.current) return;
+  // TerminalOutからターミナルインスタンスを受け取る
+  const handleTerminalReady = useCallback(
+    (terminalInstance: Terminal, fitAddonInstance: FitAddon) => {
+      terminal.current = terminalInstance;
+      fitAddon.current = fitAddonInstance;
 
-    // FitAddonを作成
-    fitAddon.current = new FitAddon();
-
-    // ターミナルインスタンスを作成（横スクロール対応の設定）
-    // PC時(lg以上)はフォントサイズを大きく設定
-    const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
-
-    terminal.current = new Terminal({
-      theme: {
-        background: '#0a0a0a', // dark-bg-primary
-        foreground: '#d1d5db',
-        cursor: '#9ca3af',
-        selectionBackground: '#374151',
-        black: '#1f2937',
-        red: '#f87171',
-        green: '#86efac',
-        yellow: '#fbbf24',
-        blue: '#93c5fd',
-        magenta: '#c084fc',
-        cyan: '#67e8f9',
-        white: '#e5e7eb',
-        brightBlack: '#4b5563',
-        brightRed: '#fca5a5',
-        brightGreen: '#bbf7d0',
-        brightYellow: '#fde047',
-        brightBlue: '#bfdbfe',
-        brightMagenta: '#e9d5ff',
-        brightCyan: '#a5f3fc',
-        brightWhite: '#f9fafb',
-      },
-      fontFamily:
-        '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: isLargeScreen ? 10 : 8, // PC時は10px, モバイル時は8px
-      lineHeight: 1.4,
-      cursorBlink: true,
-      cursorStyle: 'block',
-      scrollback: 10000,
-      convertEol: false, // 改行の自動変換を無効化して横スクロールを有効
-      allowTransparency: false,
-      disableStdin: false, // 標準入力を有効化してxterm.jsのキーボード処理を使う
-      smoothScrollDuration: 0,
-      scrollOnUserInput: false,
-      fastScrollModifier: 'shift',
-      scrollSensitivity: 3,
-      // 横スクロール対応の設定
-      cols: 600, // 適度な列数を設定
-      allowProposedApi: true, // 横スクロール機能に必要
-    });
-
-    // FitAddonを読み込み
-    terminal.current.loadAddon(fitAddon.current);
-
-    // ターミナルをDOMに接続
-    terminal.current.open(terminalRef.current);
-
-    // xterm.jsのonDataを使ってキー入力を受け取る
-    terminal.current.onData((data) => {
-      // キー入力をClaude CLIに送信
-      if (onKeyInputRef.current) {
-        onKeyInputRef.current(data);
+      // 初期メッセージを表示
+      const info = getProviderInfo();
+      if (!rawOutput || rawOutput.length === 0) {
+        terminalInstance.writeln(info.initialMessage1);
+        terminalInstance.writeln(info.initialMessage2);
       }
-    });
-
-    // サイズを自動調整してフォーカス
-    setTimeout(() => {
-      if (fitAddon.current && terminal.current) {
-        fitAddon.current.fit();
-        terminal.current.refresh(0, terminal.current.rows - 1);
-        // ターミナルにフォーカスを当てる
-        focusTerminal();
-      }
-    }, 100);
-
-    // 初期メッセージは表示しない（プロバイダー変更時のuseEffectに任せる）
-
-    return () => {
-      if (terminal.current) {
-        terminal.current.dispose();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    },
+    [getProviderInfo, rawOutput]
+  );
 
   // プロバイダー変更時にターミナルを初期化
   useEffect(() => {
@@ -191,10 +103,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       terminal.current.writeln(info.initialMessage1);
       terminal.current.writeln(info.initialMessage2);
     }
-
-    // プロバイダー変更後もフォーカスを維持
-    focusTerminal();
-  }, [currentProvider, focusTerminal, getProviderInfo]);
+  }, [currentProvider, getProviderInfo, rawOutput]);
 
   // 出力が更新されたらターミナルに書き込み（差分のみ追記）
   useEffect(() => {
@@ -239,34 +148,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [rawOutput, getProviderInfo]);
 
-  // ウィンドウサイズ変更時に再調整
-  useEffect(() => {
-    const handleResize = () => {
-      if (fitAddon.current && terminal.current) {
-        fitAddon.current.fit();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // ローディングが終了したらフォーカスを戻す
-  useEffect(() => {
-    if (!isLoading && terminal.current) {
-      // ローディング終了後に少し遅延を入れてフォーカス
-      setTimeout(() => {
-        if (terminal.current) {
-          focusTerminal();
-        }
-      }, 100);
-    }
-  }, [focusTerminal, isLoading]);
-
-  // ターミナルエリアクリックでフォーカスする
-  const handleTerminalClick = useCallback(() => {
-    focusTerminal();
-  }, [focusTerminal]);
 
   const providerInfo = getProviderInfo();
 
@@ -305,22 +186,11 @@ const AiOutput: React.FC<AiOutputProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div
-        className="flex-1 bg-dark-bg-primary overflow-auto relative"
-        onClick={handleTerminalClick}
-      >
-        <div
-          ref={terminalRef}
-          className="h-full w-full"
-          style={{
-            background: '#0a0a0a', // dark-bg-primary
-            minHeight: '400px',
-            width: 'max-content',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            // 横スクロールを強制して改行を防ぐ
-            whiteSpace: 'nowrap',
-          }}
+      <div className="flex-1 bg-dark-bg-primary overflow-auto relative">
+        <TerminalOut
+          onKeyInput={onKeyInput}
+          isActive={!isLoading}
+          onTerminalReady={handleTerminalReady}
         />
 
         {/* AI CLI専用ローディング表示 */}
