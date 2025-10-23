@@ -19,11 +19,6 @@ interface TerminalOutProps {
   onClick?: () => void;
 
   /**
-   * アクティブかどうか（フォーカス制御用）
-   */
-  isActive?: boolean;
-
-  /**
    * ターミナルインスタンスが初期化された際のコールバック
    * 親コンポーネントでターミナルインスタンスを直接操作したい場合に使用
    */
@@ -68,7 +63,6 @@ interface TerminalOutProps {
 const TerminalOut: React.FC<TerminalOutProps> = ({
   onKeyInput,
   onClick,
-  isActive = false,
   onTerminalReady,
   onResize,
   fontSize,
@@ -81,6 +75,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const fitAddon = useRef<FitAddon | null>(null);
   const resizeObserver = useRef<ResizeObserver | null>(null);
   const onKeyInputRef = useRef<typeof onKeyInput>(onKeyInput);
+  const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -94,13 +89,15 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
   // ターミナルにフォーカスを当てる関数
   const focusTerminal = useCallback(() => {
-    if (!terminal.current) {
+    if (!terminal.current || disableStdin) {
       return;
     }
+    console.log('[TerminalOut] focusTerminal called, disableStdin:', disableStdin);
+    console.trace('[TerminalOut] Focus stack trace');
     terminal.current.focus();
     const textarea = (terminal.current as TerminalWithTextarea).textarea;
     textarea?.focus?.();
-  }, []);
+  }, [disableStdin]);
 
   const fitTerminal = useCallback(() => {
     if (!fitAddon.current || !terminal.current) {
@@ -209,13 +206,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       }
     });
 
-    // サイズを自動調整してフォーカス
+    // サイズを自動調整
     setTimeout(() => {
       fitTerminal();
-      // アクティブな場合はフォーカスを当てる
-      if (isActive) {
-        focusTerminal();
-      }
 
       // 親コンポーネントにターミナルインスタンスと初期サイズを通知
       if (onTerminalReady && terminal.current && fitAddon.current) {
@@ -256,30 +249,46 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [fitTerminal]);
 
-  // アクティブ状態が変更されたらフォーカスを当てる
-  useEffect(() => {
-    if (isActive && terminal.current) {
-      // display:noneから表示に切り替わった直後はDOMのサイズ計算が間に合わないため、
-      // 少し遅延させてからfitを実行
-      setTimeout(() => {
-        fitTerminal();
-        focusTerminal();
-      }, 50);
-    }
-  }, [isActive, focusTerminal, fitTerminal]);
+  // マウスダウン位置を記録
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    mouseDownPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
 
-  // ターミナルエリアクリックでフォーカスする
-  const handleTerminalClick = useCallback(() => {
-    focusTerminal();
+  // ターミナルエリアクリックでフォーカスする（disableStdinの場合やドラッグの場合はフォーカスしない）
+  const handleTerminalClick = useCallback((e: React.MouseEvent) => {
+    // マウスダウン位置と比較して、移動していたらドラッグと判定してフォーカスしない
+    if (mouseDownPos.current) {
+      const dx = Math.abs(e.clientX - mouseDownPos.current.x);
+      const dy = Math.abs(e.clientY - mouseDownPos.current.y);
+      const isDrag = dx > 5 || dy > 5; // 5px以上移動したらドラッグ
+
+      console.log('[TerminalOut] handleTerminalClick, disableStdin:', disableStdin, 'isDrag:', isDrag);
+
+      if (isDrag) {
+        console.log('[TerminalOut] Skipping focus (drag detected)');
+        mouseDownPos.current = null;
+        return;
+      }
+    }
+
+    mouseDownPos.current = null;
+
+    if (!disableStdin) {
+      console.log('[TerminalOut] Calling focusTerminal from click');
+      focusTerminal();
+    } else {
+      console.log('[TerminalOut] Skipping focus (disableStdin=true)');
+    }
     if (onClick) {
       onClick();
     }
-  }, [focusTerminal, onClick]);
+  }, [disableStdin, focusTerminal, onClick]);
 
   return (
     <div
       ref={terminalRef}
       className="h-full w-full bg-dark-bg-primary"
+      onMouseDown={handleMouseDown}
       onClick={handleTerminalClick}
       style={{
         background: '#0a0a0a', // dark-bg-primary

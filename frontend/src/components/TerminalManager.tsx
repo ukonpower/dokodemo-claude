@@ -194,7 +194,6 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   terminal={terminal}
                   messages={messages}
                   history={histories.get(terminal.id) || []}
-                  isActive={activeTerminalId === terminal.id}
                   onInput={onTerminalInput}
                   onSignal={onTerminalSignal}
                   onResize={onTerminalResize}

@@ -156,6 +156,27 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     });
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
+    // フォーカスイベントのログ
+    useEffect(() => {
+      const handleFocus = () => {
+        console.log('[CommandInput] textarea gained focus');
+      };
+      const handleBlur = () => {
+        console.log('[CommandInput] textarea lost focus');
+        console.trace('[CommandInput] Blur stack trace');
+      };
+
+      const textarea = inputRef.current;
+      if (textarea) {
+        textarea.addEventListener('focus', handleFocus);
+        textarea.addEventListener('blur', handleBlur);
+        return () => {
+          textarea.removeEventListener('focus', handleFocus);
+          textarea.removeEventListener('blur', handleBlur);
+        };
+      }
+    }, []);
+
     const sendCommand = () => {
       if (disabled) return;
 
@@ -289,10 +310,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // フォーカスを自動で設定
     useEffect(() => {
+      console.log('[CommandInput] autoFocus effect, autoFocus:', autoFocus, 'disabled:', disabled);
       if (!autoFocus || disabled) {
         return;
       }
       if (inputRef.current) {
+        console.log('[CommandInput] Setting focus on textarea');
         inputRef.current.focus();
       }
     }, [autoFocus, disabled]);
@@ -300,6 +323,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     // refでフォーカス・送信メソッドを公開
     useImperativeHandle(ref, () => ({
       focus: () => {
+        console.log('[CommandInput] focus() called via ref');
         if (inputRef.current) {
           inputRef.current.focus();
         }

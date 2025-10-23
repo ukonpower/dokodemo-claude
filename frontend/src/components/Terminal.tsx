@@ -8,7 +8,6 @@ interface TerminalProps {
   terminal: Terminal;
   messages: TerminalMessage[];
   history: TerminalOutputLine[];
-  isActive: boolean;
   onInput: (terminalId: string, input: string) => void;
   onSignal: (terminalId: string, signal: string) => void;
   onResize?: (terminalId: string, cols: number, rows: number) => void;
@@ -18,7 +17,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   terminal,
   messages,
   history,
-  isActive,
   onInput,
   onSignal,
   onResize,
@@ -365,7 +363,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       <div className="flex-1 min-h-0 h-full bg-dark-bg-primary overflow-auto relative">
         <TerminalOut
           onKeyInput={handleKeyInput}
-          isActive={isActive}
           onTerminalReady={handleTerminalReady}
           onResize={handleTerminalOutResize}
           cursorBlink={false}

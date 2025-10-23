@@ -89,6 +89,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       fitAddonInstance: FitAddon,
       initialSize?: { cols: number; rows: number }
     ) => {
+      console.log('[AiOutput] Terminal ready');
       terminal.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
 
@@ -210,9 +211,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
       <div className="flex-1 min-h-0 bg-dark-bg-primary overflow-auto relative">
         <TerminalOut
           onKeyInput={onKeyInput}
-          isActive={!isLoading}
           onTerminalReady={handleTerminalReady}
           onResize={handleTerminalOutResize}
+          disableStdin={false}
         />
 
         {/* AI CLI専用ローディング表示 */}
