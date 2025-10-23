@@ -180,6 +180,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
       terminal.current.writeln(info.initialMessage1);
       terminal.current.writeln(info.initialMessage2);
     }
+
+    // プロバイダー変更後もフォーカスを維持
+    terminal.current.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProvider]);
 
@@ -224,6 +227,18 @@ const AiOutput: React.FC<AiOutputProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // ローディングが終了したらフォーカスを戻す
+  useEffect(() => {
+    if (!isLoading && terminal.current) {
+      // ローディング終了後に少し遅延を入れてフォーカス
+      setTimeout(() => {
+        if (terminal.current) {
+          terminal.current.focus();
+        }
+      }, 100);
+    }
+  }, [isLoading]);
 
   // ターミナルエリアクリックでフォーカスする
   const handleTerminalClick = useCallback(() => {
