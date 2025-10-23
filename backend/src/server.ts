@@ -1133,6 +1133,12 @@ io.on('connection', (socket) => {
     processManager.resizeTerminal(terminalId, cols, rows);
   });
 
+  // AI CLIのリサイズ
+  socket.on('ai-resize', (data) => {
+    const { repositoryPath, provider, cols, rows } = data;
+    processManager.resizeAiSession(repositoryPath, provider, cols, rows);
+  });
+
   // ターミナルへのシグナル送信（Ctrl+C, Ctrl+Z等）
   socket.on('terminal-signal', (data) => {
     const { terminalId, signal } = data;

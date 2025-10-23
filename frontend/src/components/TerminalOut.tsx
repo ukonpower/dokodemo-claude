@@ -30,6 +30,11 @@ interface TerminalOutProps {
   onTerminalReady?: (terminal: Terminal, fitAddon: FitAddon) => void;
 
   /**
+   * ターミナルがリサイズされた際のコールバック
+   */
+  onResize?: (cols: number, rows: number) => void;
+
+  /**
    * カスタムフォントサイズ（省略時は画面サイズで自動設定）
    */
   fontSize?: number;
@@ -61,6 +66,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   onClick,
   isActive = false,
   onTerminalReady,
+  onResize,
   fontSize,
   cursorBlink = true,
   disableStdin = false,
@@ -96,11 +102,20 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     if (!fitAddon.current || !terminal.current) {
       return;
     }
+    const beforeCols = terminal.current.cols;
+    const beforeRows = terminal.current.rows;
     fitAddon.current.fit();
+    const afterCols = terminal.current.cols;
+    const afterRows = terminal.current.rows;
     if (terminal.current.rows > 0) {
       terminal.current.refresh(0, terminal.current.rows - 1);
     }
-  }, []);
+
+    // サイズが変更された場合、onResizeコールバックを呼び出す
+    if (onResize && (beforeCols !== afterCols || beforeRows !== afterRows)) {
+      onResize(afterCols, afterRows);
+    }
+  }, [onResize]);
 
   // ターミナルを初期化
   useEffect(() => {

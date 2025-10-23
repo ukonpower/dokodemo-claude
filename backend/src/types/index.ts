@@ -326,6 +326,12 @@ export interface ClientToServerEvents {
     rows: number;
   }) => void;
   'terminal-signal': (data: { terminalId: string; signal: string }) => void;
+  'ai-resize': (data: {
+    repositoryPath: string;
+    provider: AiProvider;
+    cols: number;
+    rows: number;
+  }) => void;
 
   // コマンドショートカット関連イベント
   'list-shortcuts': (data: { repositoryPath: string }) => void;

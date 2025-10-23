@@ -12,6 +12,7 @@ interface AiOutputProps {
   onClearOutput?: () => void;
   onRestartAi?: () => void;
   onKeyInput?: (key: string) => void;
+  onResize?: (cols: number, rows: number) => void;
 }
 
 const AiOutput: React.FC<AiOutputProps> = ({
@@ -21,6 +22,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onClearOutput,
   onRestartAi,
   onKeyInput,
+  onResize,
 }) => {
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
@@ -69,6 +71,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
         };
     }
   }, [currentProvider]);
+
+  // TerminalOutからのリサイズコールバック
+  const handleTerminalOutResize = useCallback(
+    (cols: number, rows: number) => {
+      if (onResize) {
+        onResize(cols, rows);
+      }
+    },
+    [onResize]
+  );
 
   // TerminalOutからターミナルインスタンスを受け取る
   const handleTerminalReady = useCallback(
@@ -191,6 +203,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           onKeyInput={onKeyInput}
           isActive={!isLoading}
           onTerminalReady={handleTerminalReady}
+          onResize={handleTerminalOutResize}
         />
 
         {/* AI CLI専用ローディング表示 */}

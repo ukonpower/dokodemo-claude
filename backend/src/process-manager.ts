@@ -1469,7 +1469,32 @@ export class ProcessManager extends EventEmitter {
       terminal.process.resize(cols, rows);
       return true;
     } catch {
-      // Failed to resize terminal
+      return false;
+    }
+  }
+
+  /**
+   * AI CLIセッションのリサイズ
+   */
+  resizeAiSession(
+    repositoryPath: string,
+    provider: AiProvider,
+    cols: number,
+    rows: number
+  ): boolean {
+    const session = this.getAiSessionByRepository(repositoryPath, provider);
+    if (!session || !session.isActive) {
+      return false;
+    }
+
+    try {
+      if (session.isPty) {
+        (session.process as pty.IPty).resize(cols, rows);
+        return true;
+      } else {
+        return false;
+      }
+    } catch {
       return false;
     }
   }

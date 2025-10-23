@@ -19,6 +19,7 @@ interface TerminalManagerProps {
   onCreateTerminal: (cwd: string, name?: string) => void;
   onTerminalInput: (terminalId: string, input: string) => void;
   onTerminalSignal: (terminalId: string, signal: string) => void;
+  onTerminalResize: (terminalId: string, cols: number, rows: number) => void;
   onCloseTerminal: (terminalId: string) => void;
   onCreateShortcut: (name: string, command: string) => void;
   onDeleteShortcut: (shortcutId: string) => void;
@@ -37,6 +38,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   onCreateTerminal,
   onTerminalInput,
   onTerminalSignal,
+  onTerminalResize,
   onCloseTerminal,
   onCreateShortcut,
   onDeleteShortcut,
@@ -195,6 +197,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                   isActive={activeTerminalId === terminal.id}
                   onInput={onTerminalInput}
                   onSignal={onTerminalSignal}
+                  onResize={onTerminalResize}
                 />
               </div>
             ))

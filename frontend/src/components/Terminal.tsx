@@ -11,6 +11,7 @@ interface TerminalProps {
   isActive: boolean;
   onInput: (terminalId: string, input: string) => void;
   onSignal: (terminalId: string, signal: string) => void;
+  onResize?: (terminalId: string, cols: number, rows: number) => void;
 }
 
 const TerminalComponent: React.FC<TerminalProps> = ({
@@ -20,6 +21,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   isActive,
   onInput,
   onSignal,
+  onResize,
 }) => {
   const [input, setInput] = useState('');
   const [showKeyboardButtons, setShowKeyboardButtons] = useState(false);
@@ -83,13 +85,30 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     [terminal.id, onInput]
   );
 
+  // TerminalOutからのリサイズコールバック
+  const handleTerminalOutResize = useCallback(
+    (cols: number, rows: number) => {
+      if (onResize) {
+        onResize(terminal.id, cols, rows);
+      }
+    },
+    [terminal.id, onResize]
+  );
+
   // TerminalOutからターミナルインスタンスを受け取る
   const handleTerminalReady = useCallback(
     (terminalInstance: XTerm, fitAddonInstance: FitAddon) => {
       xtermInstance.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
+
+      // ターミナルのリサイズイベントをリッスン
+      if (onResize) {
+        terminalInstance.onResize(({ cols, rows }) => {
+          onResize(terminal.id, cols, rows);
+        });
+      }
     },
-    []
+    [terminal.id, onResize]
   );
 
   // ターミナルが変更された時の処理
@@ -339,6 +358,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
           onKeyInput={handleKeyInput}
           isActive={isActive}
           onTerminalReady={handleTerminalReady}
+          onResize={handleTerminalOutResize}
           cursorBlink={false}
           scrollOnUserInput={true}
         />

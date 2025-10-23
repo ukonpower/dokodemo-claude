@@ -1111,6 +1111,27 @@ function App() {
     }
   };
 
+  const handleTerminalResize = (
+    terminalId: string,
+    cols: number,
+    rows: number
+  ) => {
+    if (socket) {
+      socket.emit('terminal-resize', { terminalId, cols, rows });
+    }
+  };
+
+  const handleAiOutputResize = (cols: number, rows: number) => {
+    if (socket && currentRepo) {
+      socket.emit('ai-resize', {
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+        cols,
+        rows,
+      });
+    }
+  };
+
   const handleCloseTerminal = (terminalId: string) => {
     if (socket) {
       socket.emit('close-terminal', { terminalId });
@@ -1612,6 +1633,7 @@ function App() {
                     onClearOutput={handleClearClaudeOutput}
                     onRestartAi={handleRestartAiCli}
                     onKeyInput={handleAiKeyInput}
+                    onResize={handleAiOutputResize}
                   />
                 </div>
 
@@ -1687,6 +1709,7 @@ function App() {
                 onCreateTerminal={handleCreateTerminal}
                 onTerminalInput={handleTerminalInput}
                 onTerminalSignal={handleTerminalSignal}
+                onTerminalResize={handleTerminalResize}
                 onCloseTerminal={handleCloseTerminal}
                 onCreateShortcut={handleCreateShortcut}
                 onDeleteShortcut={handleDeleteShortcut}
