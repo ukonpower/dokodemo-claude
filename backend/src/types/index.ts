@@ -296,9 +296,18 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
     provider?: AiProvider; // プロバイダー情報を追加
   }) => void;
-  'get-ai-history': (data: { repositoryPath: string; provider: AiProvider }) => void;
-  'clear-ai-output': (data: { repositoryPath: string; provider: AiProvider }) => void;
-  'restart-ai-cli': (data: { repositoryPath: string; provider: AiProvider }) => void;
+  'get-ai-history': (data: {
+    repositoryPath: string;
+    provider: AiProvider;
+  }) => void;
+  'clear-ai-output': (data: {
+    repositoryPath: string;
+    provider: AiProvider;
+  }) => void;
+  'restart-ai-cli': (data: {
+    repositoryPath: string;
+    provider: AiProvider;
+  }) => void;
   'claude-interrupt': (data?: {
     sessionId?: string;
     repositoryPath?: string;

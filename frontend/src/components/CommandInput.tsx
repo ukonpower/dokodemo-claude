@@ -266,7 +266,10 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
         const savedCommand = localStorage.getItem(currentKey) || '';
         setCommand(savedCommand);
       } catch (error) {
-        console.warn('プロバイダー変更時のlocalStorage読み込みに失敗しました:', error);
+        console.warn(
+          'プロバイダー変更時のlocalStorage読み込みに失敗しました:',
+          error
+        );
       }
     }, [currentProvider, getStorageKey]);
 
@@ -555,7 +558,9 @@ const CommandInput = forwardRef<CommandInputRef, CommandInputProps>(
                   {/* 矢印キー（追加） */}
                   {onSendArrowKey && (
                     <div className="flex flex-col items-center">
-                      <div className="text-xs text-dark-text-secondary mb-2">矢印キー</div>
+                      <div className="text-xs text-dark-text-secondary mb-2">
+                        矢印キー
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div></div>
                         <button

@@ -134,12 +134,15 @@ export class ProcessManager extends EventEmitter {
   /**
    * プロバイダーのCLIコマンドと引数を取得
    */
-  private getProviderCommand(provider: AiProvider): { command: string; args: string[] } {
+  private getProviderCommand(provider: AiProvider): {
+    command: string;
+    args: string[];
+  } {
     switch (provider) {
       case 'claude':
         return {
           command: 'claude',
-          args: ['--dangerously-skip-permissions', '--model', 'opusplan']
+          args: ['--dangerously-skip-permissions', '--model', 'opusplan'],
         };
       case 'codex':
         // Codex CLIの設定
@@ -153,7 +156,7 @@ export class ProcessManager extends EventEmitter {
 
         return {
           command: codexCommand,
-          args: codexArgs
+          args: codexArgs,
         };
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
@@ -200,7 +203,10 @@ export class ProcessManager extends EventEmitter {
   private async migrateAndRestoreAiSessions(): Promise<void> {
     try {
       // 新しいAIセッションファイルが存在するかチェック
-      const newFileExists = await fs.access(this.aiSessionsFile).then(() => true).catch(() => false);
+      const newFileExists = await fs
+        .access(this.aiSessionsFile)
+        .then(() => true)
+        .catch(() => false);
 
       if (newFileExists) {
         // 新しいファイルが存在する場合、そのまま復元
@@ -229,14 +235,17 @@ export class ProcessManager extends EventEmitter {
       const data = await fs.readFile(this.claudeSessionsFile, 'utf-8');
       const legacySessions: PersistedClaudeSession[] = JSON.parse(data);
 
-      const migratedSessions: PersistedAiSession[] = legacySessions.map(session => ({
-        ...session,
-        provider: 'claude' as AiProvider,
-        outputHistory: session.outputHistory?.map(line => ({
-          ...line,
-          provider: 'claude' as AiProvider
-        })) || []
-      }));
+      const migratedSessions: PersistedAiSession[] = legacySessions.map(
+        (session) => ({
+          ...session,
+          provider: 'claude' as AiProvider,
+          outputHistory:
+            session.outputHistory?.map((line) => ({
+              ...line,
+              provider: 'claude' as AiProvider,
+            })) || [],
+        })
+      );
 
       // 新しい形式で保存
       await fs.writeFile(
@@ -244,7 +253,9 @@ export class ProcessManager extends EventEmitter {
         JSON.stringify(migratedSessions, null, 2)
       );
 
-      console.log(`Migrated ${migratedSessions.length} Claude CLI sessions to new format`);
+      console.log(
+        `Migrated ${migratedSessions.length} Claude CLI sessions to new format`
+      );
     } catch {
       // 移行失敗時は無視（新規インストールなど）
     }
@@ -615,7 +626,8 @@ export class ProcessManager extends EventEmitter {
           (await this.isProcessAlive(persistedSession.pid))
         ) {
           // 既存プロセスに新しいセッション情報を作成（実際のPTY接続は復元しない）
-          const restoredSession = await this.restoreExistingAiSession(persistedSession);
+          const restoredSession =
+            await this.restoreExistingAiSession(persistedSession);
           this.aiSessions.set(sessionKey, restoredSession);
           await this.persistAiSessions();
           return restoredSession;
@@ -649,7 +661,11 @@ export class ProcessManager extends EventEmitter {
     }
 
     // セッションを取得または作成
-    return await this.getOrCreateAiSession(repositoryPath, repositoryName, provider);
+    return await this.getOrCreateAiSession(
+      repositoryPath,
+      repositoryName,
+      provider
+    );
   }
 
   /**
@@ -934,7 +950,10 @@ export class ProcessManager extends EventEmitter {
   /**
    * 指定されたリポジトリとプロバイダーのAI出力履歴を取得
    */
-  async getAiOutputHistory(repositoryPath: string, provider: AiProvider): Promise<AiOutputLine[]> {
+  async getAiOutputHistory(
+    repositoryPath: string,
+    provider: AiProvider
+  ): Promise<AiOutputLine[]> {
     const sessionKey = this.getSessionKey(repositoryPath, provider);
 
     // まずアクティブなセッションから履歴を取得
@@ -951,8 +970,10 @@ export class ProcessManager extends EventEmitter {
       const persistedSessions: PersistedAiSession[] = JSON.parse(data);
 
       for (const persistedSession of persistedSessions) {
-        if (persistedSession.repositoryPath === repositoryPath &&
-            persistedSession.provider === provider) {
+        if (
+          persistedSession.repositoryPath === repositoryPath &&
+          persistedSession.provider === provider
+        ) {
           const history = persistedSession.outputHistory || [];
           return history.slice(-500);
         }
@@ -1055,7 +1076,10 @@ export class ProcessManager extends EventEmitter {
   /**
    * 指定されたリポジトリとプロバイダーのAI出力履歴をクリア
    */
-  async clearAiOutputHistory(repositoryPath: string, provider: AiProvider): Promise<boolean> {
+  async clearAiOutputHistory(
+    repositoryPath: string,
+    provider: AiProvider
+  ): Promise<boolean> {
     try {
       // アクティブなセッションから履歴をクリア
       const session = this.getAiSessionByRepository(repositoryPath, provider);
@@ -1072,7 +1096,10 @@ export class ProcessManager extends EventEmitter {
         const persistedSessions: PersistedAiSession[] = JSON.parse(data);
         let found = false;
         for (const persistedSession of persistedSessions) {
-          if (persistedSession.repositoryPath === repositoryPath && persistedSession.provider === provider) {
+          if (
+            persistedSession.repositoryPath === repositoryPath &&
+            persistedSession.provider === provider
+          ) {
             persistedSession.outputHistory = [];
             found = true;
             break;
@@ -1295,7 +1322,11 @@ export class ProcessManager extends EventEmitter {
     // PTY接続がない場合（復帰されたセッション）は、新しいセッションを作成
     if (!session.isPty || !session.process) {
       // 非同期で新しいセッションを作成
-      this.createAiSession(session.repositoryPath, session.repositoryName, session.provider)
+      this.createAiSession(
+        session.repositoryPath,
+        session.repositoryName,
+        session.provider
+      )
         .then((newSession) => {
           // 古いセッションを削除
           this.aiSessions.delete(sessionKey);
@@ -1511,7 +1542,7 @@ export class ProcessManager extends EventEmitter {
       // プロセスの終了を待つ（最大3秒）
       await Promise.race([
         exitPromise,
-        new Promise<void>((resolve) => setTimeout(resolve, 3000))
+        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
       ]);
 
       clearTimeout(killTimeout);
@@ -1671,10 +1702,7 @@ export class ProcessManager extends EventEmitter {
   ): Promise<void> {
     try {
       // AI CLIセッションの永続化ファイルを更新
-      const aiSessionsPath = path.join(
-        this.processesDir,
-        'ai-sessions.json'
-      );
+      const aiSessionsPath = path.join(this.processesDir, 'ai-sessions.json');
       try {
         const aiData = await fs.readFile(aiSessionsPath, 'utf-8');
         const aiSessions: PersistedAiSession[] = JSON.parse(aiData);
@@ -1909,10 +1937,15 @@ export class ProcessManager extends EventEmitter {
   /**
    * Codex CLIのターミナルクエリを処理
    */
-  private handleCodexTerminalQueries(data: string, ptyProcess: pty.IPty): string {
+  private handleCodexTerminalQueries(
+    data: string,
+    ptyProcess: pty.IPty
+  ): string {
     // ESC[6n (cursor position request) の検出と応答
     if (data.includes('\x1b[6n')) {
-      console.log('Detected cursor position query from Codex CLI, responding...');
+      console.log(
+        'Detected cursor position query from Codex CLI, responding...'
+      );
       // カーソル位置応答 (row;col R format)
       ptyProcess.write('\x1b[1;1R');
       // クエリ部分を除去してUIに表示しないようにする
@@ -1921,7 +1954,9 @@ export class ProcessManager extends EventEmitter {
 
     // ESC[?6n (extended cursor position request) の検出と応答
     if (data.includes('\x1b[?6n')) {
-      console.log('Detected extended cursor position query from Codex CLI, responding...');
+      console.log(
+        'Detected extended cursor position query from Codex CLI, responding...'
+      );
       // 拡張カーソル位置応答
       ptyProcess.write('\x1b[?1;1R');
       // クエリ部分を除去
@@ -1932,7 +1967,9 @@ export class ProcessManager extends EventEmitter {
     const dsrMatch = data.match(/\x1b\[\?(\d+)n/);
     if (dsrMatch) {
       const queryType = dsrMatch[1];
-      console.log(`Detected DSR query type ${queryType} from Codex CLI, responding...`);
+      console.log(
+        `Detected DSR query type ${queryType} from Codex CLI, responding...`
+      );
       // 一般的なDSR応答（デバイス OK）
       ptyProcess.write(`\x1b[?${queryType};0n`);
       // クエリ部分を除去
@@ -1941,7 +1978,9 @@ export class ProcessManager extends EventEmitter {
 
     // ESC[c (primary device attributes request) への応答
     if (data.includes('\x1b[c')) {
-      console.log('Detected device attributes query from Codex CLI, responding...');
+      console.log(
+        'Detected device attributes query from Codex CLI, responding...'
+      );
       // VT100互換ターミナルとして応答
       ptyProcess.write('\x1b[?1;2c');
       // クエリ部分を除去
@@ -2458,20 +2497,22 @@ export class ProcessManager extends EventEmitter {
       let serverDetected = false;
       p.onData((data) => {
         console.log(`difit output: ${data}`);
-        
+
         // (Y/n)プロンプトの検出と自動応答
         if (data.includes('(Y/n)')) {
           console.log('Detected (Y/n) prompt, sending "y" automatically');
           p.write('y\r');
         }
-        
+
         // 🚀 difit server started on http://localhost:3102 のパターンを検出
-        const serverStartedMatch = data.match(/🚀.*difit server started on http:\/\/localhost:(\d+)/);
+        const serverStartedMatch = data.match(
+          /🚀.*difit server started on http:\/\/localhost:(\d+)/
+        );
         if (serverStartedMatch && !serverDetected) {
           serverDetected = true;
           const detectedPort = parseInt(serverStartedMatch[1], 10);
           console.log(`Detected difit server on port: ${detectedPort}`);
-          
+
           // サーバー情報を更新して動的ポートを反映
           const currentServer = this.reviewServers.get(repositoryPath);
           if (currentServer) {
@@ -2480,7 +2521,7 @@ export class ProcessManager extends EventEmitter {
             currentServer.url = `http://localhost:${detectedPort}`;
             currentServer.status = 'running';
             this.reviewServers.set(repositoryPath, currentServer);
-            
+
             // 成功イベントを送信（フロントエンドでタブが開かれる）
             this.emit('reviewServerStarted', {
               success: true,
@@ -2508,10 +2549,12 @@ export class ProcessManager extends EventEmitter {
 
       // ポート検出に失敗した場合はフォールバック処理
       if (!serverDetected) {
-        console.log(`Difit server port not detected, using fallback port: ${mainPort}`);
+        console.log(
+          `Difit server port not detected, using fallback port: ${mainPort}`
+        );
         server.status = 'running';
         this.reviewServers.set(repositoryPath, server);
-        
+
         // フォールバック時もイベントを送信
         this.emit('reviewServerStarted', {
           success: true,
@@ -2555,16 +2598,19 @@ export class ProcessManager extends EventEmitter {
   private async killProcessOnPort(port: number): Promise<boolean> {
     try {
       console.log(`Checking and killing processes on port ${port}`);
-      
+
       // プラットフォームに応じてコマンドを選択
       const isWindows = process.platform === 'win32';
       let command: string;
       let args: string[];
-      
+
       if (isWindows) {
         // Windows: netstatでポートを使用しているプロセスIDを取得してtaskkillで終了
         command = 'cmd';
-        args = ['/c', `for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port}') do taskkill /f /pid %a`];
+        args = [
+          '/c',
+          `for /f "tokens=5" %a in ('netstat -aon ^| findstr :${port}') do taskkill /f /pid %a`,
+        ];
       } else {
         // Unix系: lsofでプロセスIDを取得してkillで終了
         command = 'sh';
@@ -2572,18 +2618,18 @@ export class ProcessManager extends EventEmitter {
       }
 
       const result = spawn(command, args);
-      
+
       return new Promise((resolve) => {
         result.on('close', (code) => {
           console.log(`Kill process on port ${port} exited with code: ${code}`);
           resolve(code === 0);
         });
-        
+
         result.on('error', (error) => {
           console.error(`Error killing process on port ${port}:`, error);
           resolve(false);
         });
-        
+
         // タイムアウト設定（5秒）
         setTimeout(() => {
           result.kill();
@@ -2603,7 +2649,9 @@ export class ProcessManager extends EventEmitter {
     }
 
     try {
-      console.log(`Stopping review server for ${repositoryPath} (PID: ${server.mainPid})`);
+      console.log(
+        `Stopping review server for ${repositoryPath} (PID: ${server.mainPid})`
+      );
 
       // PTYプロセスを終了
       const ptyProcess = (server as unknown as Record<string, unknown>)

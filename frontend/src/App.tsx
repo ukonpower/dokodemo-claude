@@ -48,7 +48,9 @@ function App() {
   });
   const [currentProvider, setCurrentProvider] = useState<AiProvider>(() => {
     // localStorageから復元、デフォルトはclaude
-    return (localStorage.getItem('preferred-ai-provider') as AiProvider) || 'claude';
+    return (
+      (localStorage.getItem('preferred-ai-provider') as AiProvider) || 'claude'
+    );
   });
 
   // プロバイダー変更時にlocalStorageに保存 & rawOutputを同期
@@ -85,10 +87,16 @@ function App() {
           // 別のリポジトリに切り替わる場合は、そのリポジトリのターミナル一覧を取得
           if (socket) {
             // サーバーにアクティブリポジトリを通知（プロバイダー情報付き）
-            socket.emit('switch-repo', { path: repoFromUrl, provider: currentProvider });
+            socket.emit('switch-repo', {
+              path: repoFromUrl,
+              provider: currentProvider,
+            });
 
             socket.emit('list-terminals', { repositoryPath: repoFromUrl });
-            socket.emit('get-ai-history', { repositoryPath: repoFromUrl, provider: currentProvider });
+            socket.emit('get-ai-history', {
+              repositoryPath: repoFromUrl,
+              provider: currentProvider,
+            });
             socket.emit('get-claude-history', { repositoryPath: repoFromUrl }); // 後方互換性
             socket.emit('list-shortcuts', { repositoryPath: repoFromUrl });
             socket.emit('list-branches', { repositoryPath: repoFromUrl });
@@ -107,7 +115,9 @@ function App() {
   }, [currentRepo, socket]);
 
   // プロバイダー別セッションID管理（将来の拡張用）
-  const [aiSessionIds, setAiSessionIds] = useState<Map<AiProvider, string>>(new Map());
+  const [aiSessionIds, setAiSessionIds] = useState<Map<AiProvider, string>>(
+    new Map()
+  );
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
 
   // currentProviderの最新値を保持するref
@@ -186,8 +196,10 @@ function App() {
     useState<boolean>(false);
   const [showDiffMenu, setShowDiffMenu] = useState<boolean>(false);
   const [difitUrl, setDifitUrl] = useState<string | null>(null);
-  const [showDifitNotification, setShowDifitNotification] = useState<boolean>(false);
-  const [showDifitOpenButton, setShowDifitOpenButton] = useState<boolean>(false);
+  const [showDifitNotification, setShowDifitNotification] =
+    useState<boolean>(false);
+  const [showDifitOpenButton, setShowDifitOpenButton] =
+    useState<boolean>(false);
   const [showEditorMenu, setShowEditorMenu] = useState<boolean>(false);
 
   // ドロップダウンメニュー用のref
@@ -206,10 +218,16 @@ function App() {
   // ドロップダウンメニューの外側クリックで閉じる
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (diffMenuRef.current && !diffMenuRef.current.contains(event.target as Node)) {
+      if (
+        diffMenuRef.current &&
+        !diffMenuRef.current.contains(event.target as Node)
+      ) {
         setShowDiffMenu(false);
       }
-      if (editorMenuRef.current && !editorMenuRef.current.contains(event.target as Node)) {
+      if (
+        editorMenuRef.current &&
+        !editorMenuRef.current.contains(event.target as Node)
+      ) {
         setShowEditorMenu(false);
       }
     };
@@ -245,7 +263,7 @@ function App() {
 
     const createConnection = () => {
       // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
-      const backendPort = import.meta.env.VITE_BACKEND_PORT || '3200';
+      const backendPort = import.meta.env.DC_BACKEND_PORT || '3200';
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
 
@@ -266,7 +284,9 @@ function App() {
 
       // 利用可能なエディタリストの受信
       socketInstance.on('available-editors', (data) => {
-        setAvailableEditors(data.editors.filter((editor: EditorInfo) => editor.available));
+        setAvailableEditors(
+          data.editors.filter((editor: EditorInfo) => editor.available)
+        );
       });
 
       // 生ログの受信（プロバイダー別に管理）
@@ -405,7 +425,10 @@ function App() {
 
       // AI CLI再起動イベント
       socketInstance.on('ai-restarted', (data) => {
-        if (data.repositoryPath === currentRepoRef.current && data.provider === currentProviderRef.current) {
+        if (
+          data.repositoryPath === currentRepoRef.current &&
+          data.provider === currentProviderRef.current
+        ) {
           if (data.success && data.sessionId) {
             // 新しいセッションIDを更新
             setCurrentSessionId(data.sessionId);
@@ -632,18 +655,24 @@ function App() {
               url = `${window.location.protocol}//${window.location.hostname}:${port}`;
             }
           }
-          
+
           // iOS Safariでのポップアップブロック対策
           const newWindow = window.open(url, '_blank');
-          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          if (
+            !newWindow ||
+            newWindow.closed ||
+            typeof newWindow.closed === 'undefined'
+          ) {
             // ポップアップがブロックされた場合の処理
-            console.warn('Popup blocked. Showing notification with link and open button.');
-            
+            console.warn(
+              'Popup blocked. Showing notification with link and open button.'
+            );
+
             // UI通知を表示
             setDifitUrl(url);
             setShowDifitNotification(true);
             setShowDifitOpenButton(true); // オープンボタンを表示
-            
+
             // 10秒後に自動で通知を閉じる
             setTimeout(() => {
               setShowDifitNotification(false);
@@ -1014,7 +1043,10 @@ function App() {
 
     // バックエンド側の履歴もクリア
     if (socket && currentRepo) {
-      socket.emit('clear-ai-output', { repositoryPath: currentRepo, provider: currentProvider });
+      socket.emit('clear-ai-output', {
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+      });
       // Claude表示時のみ後方互換イベントを送信
       if (currentProvider === 'claude') {
         socket.emit('clear-claude-output', { repositoryPath: currentRepo });
@@ -1027,7 +1059,7 @@ function App() {
     if (socket && currentRepo) {
       socket.emit('restart-ai-cli', {
         repositoryPath: currentRepo,
-        provider: currentProvider
+        provider: currentProvider,
       });
     }
   };
@@ -1035,7 +1067,8 @@ function App() {
   // AIOutputからのキー入力ハンドラー
   const handleAiKeyInput = (key: string) => {
     if (socket) {
-      const providerSessionId = aiSessionIds.get(currentProvider) || currentSessionId;
+      const providerSessionId =
+        aiSessionIds.get(currentProvider) || currentSessionId;
       socket.emit('send-command', {
         command: key,
         sessionId: providerSessionId,
@@ -1056,7 +1089,9 @@ function App() {
     }
   };
 
-  const handleChangeModel = (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => {
+  const handleChangeModel = (
+    model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan'
+  ) => {
     if (socket) {
       // モデル名を適切な値に変換
       const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
@@ -1145,7 +1180,6 @@ function App() {
       });
     }
   };
-
 
   // リポジトリが選択されていない場合はリポジトリ管理画面を表示
   if (!currentRepo) {
@@ -1242,7 +1276,10 @@ function App() {
                       リポジトリを切り替えています
                     </h3>
                     <p className="text-sm text-gray-300">
-                      {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}セッションを準備中です...
+                      {currentProvider === 'claude'
+                        ? 'Claude CLI'
+                        : 'Codex CLI'}
+                      セッションを準備中です...
                     </p>
                   </div>
                 </div>
@@ -1389,7 +1426,7 @@ function App() {
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
-                            <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
+                            <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
                           </svg>
                         ) : (
                           <svg
@@ -1448,40 +1485,15 @@ function App() {
 
             {/* difitドロップダウンボタン */}
             <div className="relative">
-            {startingReviewServer ? (
-              // 起動中 - ローディングアイコン
-              <button
-                disabled
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-dark-border-light rounded-md cursor-not-allowed"
-                title="difit起動中..."
-              >
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                <span className="hidden sm:inline">起動中...</span>
-              </button>
-            ) : (
-              // difitドロップダウンボタン
-              <div ref={diffMenuRef}>
+              {startingReviewServer ? (
+                // 起動中 - ローディングアイコン
                 <button
-                  onClick={() => setShowDiffMenu(!showDiffMenu)}
-                  disabled={!isConnected}
-                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="差分タイプを選択してdifitを起動"
+                  disabled
+                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-400 bg-gray-600 border border-dark-border-light rounded-md cursor-not-allowed"
+                  title="difit起動中..."
                 >
-                  <span>difit</span>
                   <svg
-                    className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2"
+                    className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1490,49 +1502,82 @@ function App() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
+                  <span className="hidden sm:inline">起動中...</span>
                 </button>
+              ) : (
+                // difitドロップダウンボタン
+                <div ref={diffMenuRef}>
+                  <button
+                    onClick={() => setShowDiffMenu(!showDiffMenu)}
+                    disabled={!isConnected}
+                    className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="差分タイプを選択してdifitを起動"
+                  >
+                    <span>difit</span>
+                    <svg
+                      className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
 
-                {/* ドロップダウンメニュー - ダークモード対応コンパクト */}
-                {showDiffMenu && (
-                  <div className="absolute right-0 mt-2 w-24 sm:w-28 bg-gray-800 rounded-md shadow-lg ring-1 ring-gray-700 z-50">
-                    <div className="py-0.5">
-                      <button
-                        onClick={() => handleStartDifitWithType('HEAD')}
-                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
-                      >
-                        <span>HEAD</span>
-                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">最新</span>
-                      </button>
-                      <button
-                        onClick={() => handleStartDifitWithType('staged')}
-                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
-                      >
-                        <span>Staged</span>
-                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">準備済</span>
-                      </button>
-                      <button
-                        onClick={() => handleStartDifitWithType('working')}
-                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
-                      >
-                        <span>Working</span>
-                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">作業中</span>
-                      </button>
-                      <button
-                        onClick={() => handleStartDifitWithType('all')}
-                        className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
-                      >
-                        <span>All</span>
-                        <span className="hidden sm:inline ml-1 text-gray-400 text-xs">全変更</span>
-                      </button>
+                  {/* ドロップダウンメニュー - ダークモード対応コンパクト */}
+                  {showDiffMenu && (
+                    <div className="absolute right-0 mt-2 w-24 sm:w-28 bg-gray-800 rounded-md shadow-lg ring-1 ring-gray-700 z-50">
+                      <div className="py-0.5">
+                        <button
+                          onClick={() => handleStartDifitWithType('HEAD')}
+                          className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                        >
+                          <span>HEAD</span>
+                          <span className="hidden sm:inline ml-1 text-gray-400 text-xs">
+                            最新
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleStartDifitWithType('staged')}
+                          className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                        >
+                          <span>Staged</span>
+                          <span className="hidden sm:inline ml-1 text-gray-400 text-xs">
+                            準備済
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleStartDifitWithType('working')}
+                          className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                        >
+                          <span>Working</span>
+                          <span className="hidden sm:inline ml-1 text-gray-400 text-xs">
+                            作業中
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleStartDifitWithType('all')}
+                          className="flex items-center justify-center w-full px-2 py-2 text-xs font-medium text-white hover:bg-gray-700"
+                        >
+                          <span>All</span>
+                          <span className="hidden sm:inline ml-1 text-gray-400 text-xs">
+                            全変更
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1786,9 +1831,7 @@ function App() {
             ページを開く
           </button>
           <div className="bg-dark-bg-tertiary rounded p-2 border border-dark-border-light">
-            <p className="text-xs text-gray-300 break-all">
-              {difitUrl}
-            </p>
+            <p className="text-xs text-gray-300 break-all">{difitUrl}</p>
           </div>
         </div>
       )}

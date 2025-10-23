@@ -345,7 +345,9 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       {/* 現在のプロジェクト表示 */}
       {currentRepo && (
         <div className="pt-4 border-t border-dark-border-DEFAULT">
-          <p className="text-xs text-dark-text-secondary mb-1">現在のプロジェクト:</p>
+          <p className="text-xs text-dark-text-secondary mb-1">
+            現在のプロジェクト:
+          </p>
           <p className="text-sm font-medium text-white truncate">
             {currentRepo.split('/').pop()}
           </p>

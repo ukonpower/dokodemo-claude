@@ -27,7 +27,7 @@ const app = express();
 const server = createServer(app);
 
 // CORS設定を環境変数から取得
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const CORS_ORIGIN = process.env.DC_CORS_ORIGIN || '*';
 
 // Socket.IOサーバーの設定
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -45,7 +45,7 @@ const clientActiveRepositories = new Map<string, string>(); // socketId -> repos
 let repositories: GitRepository[] = [];
 
 // 環境変数からリポジトリディレクトリを取得（デフォルト: repositories）
-const repositoriesDir = process.env.REPOSITORIES_DIR || 'repositories';
+const repositoriesDir = process.env.DC_REPOSITORIES_DIR || 'repositories';
 const REPOS_DIR = path.isAbsolute(repositoriesDir)
   ? repositoriesDir
   : path.join(process.cwd(), repositoriesDir);
@@ -352,7 +352,8 @@ processManager.on('ai-exit', (data) => {
     if (activeRepo === data.repositoryPath) {
       const targetSocket = io.sockets.sockets.get(socketId);
       if (targetSocket) {
-        const providerName = data.provider === 'claude' ? 'Claude Code CLI' : 'Codex CLI';
+        const providerName =
+          data.provider === 'claude' ? 'Claude Code CLI' : 'Codex CLI';
         targetSocket.emit('claude-raw-output', {
           type: 'system',
           content: `\n=== ${providerName} 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`,
@@ -444,7 +445,7 @@ processManager.on('reviewServerStarted', (data) => {
     // フロントエンドでwindow.location.hostを使用してURLを構築するため、
     // ここではlocalhostのままにしておく（フロントエンドで動的に置換される）
   }
-  
+
   io.emit('review-server-started', data);
 });
 
@@ -685,7 +686,10 @@ io.on('connection', (socket) => {
 
       // 出力履歴を送信
       try {
-        const outputHistory = await processManager.getAiOutputHistory(repoPath, provider);
+        const outputHistory = await processManager.getAiOutputHistory(
+          repoPath,
+          provider
+        );
         socket.emit('ai-output-history', {
           repositoryPath: repoPath,
           history: outputHistory,
@@ -694,11 +698,11 @@ io.on('connection', (socket) => {
 
         // 後方互換性のため、Claudeの場合は既存のイベントも送信
         if (provider === 'claude') {
-          const claudeHistory = outputHistory.map(line => ({
+          const claudeHistory = outputHistory.map((line) => ({
             id: line.id,
             content: line.content,
             timestamp: line.timestamp,
-            type: line.type
+            type: line.type,
           }));
           socket.emit('claude-output-history', {
             repositoryPath: repoPath,
@@ -725,12 +729,16 @@ io.on('connection', (socket) => {
 
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session = processManager.getAiSessionByRepository(repositoryPath, provider);
+      const session = processManager.getAiSessionByRepository(
+        repositoryPath,
+        provider
+      );
       if (session) {
         targetSessionId = session.id;
       } else {
         // 後方互換性のためClaude セッションも確認
-        const claudeSession = processManager.getClaudeSessionByRepository(repositoryPath);
+        const claudeSession =
+          processManager.getClaudeSessionByRepository(repositoryPath);
         if (claudeSession) {
           targetSessionId = claudeSession.id;
         }
@@ -777,10 +785,16 @@ io.on('connection', (socket) => {
     }
 
     // まずAI セッションで試行
-    let success = processManager.sendToAiSession(targetSessionId, commandToSend);
+    let success = processManager.sendToAiSession(
+      targetSessionId,
+      commandToSend
+    );
     if (!success) {
       // 後方互換性のためClaude セッションでも試行
-      success = processManager.sendToClaudeSession(targetSessionId, commandToSend);
+      success = processManager.sendToClaudeSession(
+        targetSessionId,
+        commandToSend
+      );
     }
 
     if (!success) {
@@ -800,7 +814,10 @@ io.on('connection', (socket) => {
 
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session = processManager.getAiSessionByRepository(repositoryPath, provider);
+      const session = processManager.getAiSessionByRepository(
+        repositoryPath,
+        provider
+      );
       if (session) {
         targetSessionId = session.id;
       }
@@ -817,7 +834,10 @@ io.on('connection', (socket) => {
     }
 
     // Ctrl+C (SIGINT)を送信
-    const success = processManager.sendSignalToAiSession(targetSessionId, '\x03');
+    const success = processManager.sendSignalToAiSession(
+      targetSessionId,
+      '\x03'
+    );
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
@@ -836,12 +856,16 @@ io.on('connection', (socket) => {
 
     // sessionIdが指定されていない場合、repositoryPathから取得
     if (!targetSessionId && repositoryPath) {
-      const session = processManager.getAiSessionByRepository(repositoryPath, 'claude');
+      const session = processManager.getAiSessionByRepository(
+        repositoryPath,
+        'claude'
+      );
       if (session) {
         targetSessionId = session.id;
       } else {
         // 後方互換性のためClaude セッションも確認
-        const claudeSession = processManager.getClaudeSessionByRepository(repositoryPath);
+        const claudeSession =
+          processManager.getClaudeSessionByRepository(repositoryPath);
         if (claudeSession) {
           targetSessionId = claudeSession.id;
         }
@@ -857,7 +881,10 @@ io.on('connection', (socket) => {
     }
 
     // Ctrl+C (SIGINT)を送信
-    const success = processManager.sendSignalToAiSession(targetSessionId, '\x03');
+    const success = processManager.sendSignalToAiSession(
+      targetSessionId,
+      '\x03'
+    );
     if (!success) {
       socket.emit('claude-raw-output', {
         type: 'system',
@@ -876,7 +903,10 @@ io.on('connection', (socket) => {
 
     try {
       // 指定されたリポジトリとプロバイダーの出力履歴を取得
-      const outputHistory = await processManager.getAiOutputHistory(repositoryPath, provider);
+      const outputHistory = await processManager.getAiOutputHistory(
+        repositoryPath,
+        provider
+      );
 
       socket.emit('ai-output-history', {
         repositoryPath,
@@ -947,7 +977,10 @@ io.on('connection', (socket) => {
       return;
     }
     try {
-      const success = await processManager.clearAiOutputHistory(repositoryPath, provider);
+      const success = await processManager.clearAiOutputHistory(
+        repositoryPath,
+        provider
+      );
       if (success) {
         // クリア完了を通知
         socket.emit('ai-output-cleared', {
@@ -1631,8 +1664,8 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = parseInt(process.env.PORT || '3200', 10);
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = parseInt(process.env.DC_BACKEND_PORT || '3200', 10);
+const HOST = process.env.DC_HOST || '0.0.0.0';
 
 async function startServer(): Promise<void> {
   await ensureReposDir();
