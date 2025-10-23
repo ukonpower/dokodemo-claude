@@ -1624,6 +1624,7 @@ function App() {
                     currentProvider={currentProvider}
                     currentRepository={currentRepo}
                     disabled={!isConnected || !currentRepo}
+                    autoFocus={false}
                   />
                 </div>
               </div>

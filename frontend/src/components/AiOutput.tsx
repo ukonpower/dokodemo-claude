@@ -26,6 +26,22 @@ const AiOutput: React.FC<AiOutputProps> = ({
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
+  const onKeyInputRef = useRef<typeof onKeyInput>();
+  useEffect(() => {
+    onKeyInputRef.current = onKeyInput;
+  }, [onKeyInput]);
+  type TerminalWithTextarea = Terminal & {
+    textarea?: HTMLTextAreaElement | null;
+  };
+
+  const focusTerminal = useCallback(() => {
+    if (!terminal.current) {
+      return;
+    }
+    terminal.current.focus();
+    const textarea = (terminal.current as TerminalWithTextarea).textarea;
+    textarea?.focus?.();
+  }, []);
 
   // ターミナルの履歴をクリアする関数
   const clearTerminal = () => {
@@ -133,8 +149,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // xterm.jsのonDataを使ってキー入力を受け取る
     terminal.current.onData((data) => {
       // キー入力をClaude CLIに送信
-      if (onKeyInput) {
-        onKeyInput(data);
+      if (onKeyInputRef.current) {
+        onKeyInputRef.current(data);
       }
     });
 
@@ -144,7 +160,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         fitAddon.current.fit();
         terminal.current.refresh(0, terminal.current.rows - 1);
         // ターミナルにフォーカスを当てる
-        terminal.current.focus();
+        focusTerminal();
       }
     }, 100);
 
@@ -182,9 +198,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
 
     // プロバイダー変更後もフォーカスを維持
-    terminal.current.focus();
+    focusTerminal();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProvider]);
+  }, [currentProvider, focusTerminal]);
 
   // 出力が更新されたらターミナルに書き込み
   useEffect(() => {
@@ -234,18 +250,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
       // ローディング終了後に少し遅延を入れてフォーカス
       setTimeout(() => {
         if (terminal.current) {
-          terminal.current.focus();
+          focusTerminal();
         }
       }, 100);
     }
-  }, [isLoading]);
+  }, [focusTerminal, isLoading]);
 
   // ターミナルエリアクリックでフォーカスする
   const handleTerminalClick = useCallback(() => {
-    if (terminal.current) {
-      terminal.current.focus();
-    }
-  }, []);
+    focusTerminal();
+  }, [focusTerminal]);
 
   const providerInfo = getProviderInfo();
 

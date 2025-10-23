@@ -23,6 +23,8 @@ interface TextInputProps {
   currentRepository?: string;
   /** 入力無効化フラグ */
   disabled?: boolean;
+  /** 自動フォーカスを有効化するか */
+  autoFocus?: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       currentProvider = 'claude',
       currentRepository = '',
       disabled = false,
+      autoFocus = true,
     },
     ref
   ) => {
@@ -286,10 +289,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // フォーカスを自動で設定
     useEffect(() => {
-      if (!disabled && inputRef.current) {
+      if (!autoFocus || disabled) {
+        return;
+      }
+      if (inputRef.current) {
         inputRef.current.focus();
       }
-    }, [disabled]);
+    }, [autoFocus, disabled]);
 
     // refでフォーカス・送信メソッドを公開
     useImperativeHandle(ref, () => ({
