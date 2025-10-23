@@ -98,8 +98,8 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       },
       fontFamily:
         '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: isLargeScreen ? 12 : 8, // PC時は12px, モバイル時は8px
-      lineHeight: 1.2,
+      fontSize: isLargeScreen ? 14 : 12, // PC時は14px, モバイル時は12px
+      lineHeight: 1.4,
       cursorBlink: false,
       cursorStyle: 'block',
       scrollback: 10000,

@@ -1581,11 +1581,10 @@ function App() {
           </div>
         </div>
 
-        {/* 2カラムグリッドレイアウト: AI CLI & ターミナル (PC時のみ) */}
-        {/* AI CLI 60%, ターミナル 40%の割合 */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 flex-1 min-h-0">
-          {/* Claude CLI セクション (3/5 = 60%) */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96 lg:col-span-3">
+        {/* 縦並びレイアウト: AI CLI & ターミナル */}
+        <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
+          {/* Claude CLI セクション (2/3の高さ) */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col flex-[2] min-h-96">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg
@@ -1610,43 +1609,48 @@ function App() {
                 disabled={!currentRepo || !isConnected}
               />
             </div>
-            <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-6">
-              {/* AI出力エリア */}
-              <div className="flex-1 min-h-0">
-                <AiOutput
-                  key={`${currentRepo}:${currentProvider}`}
-                  rawOutput={rawOutput}
-                  currentProvider={currentProvider}
-                  isLoading={isLoadingRepoData}
-                  onFocusChange={handleAiOutputFocusChange}
-                  onClearOutput={handleClearClaudeOutput}
-                  onRestartAi={handleRestartAiCli}
-                  onKeyInput={handleAiKeyInput}
-                  isFocused={claudeOutputFocused}
-                />
-              </div>
 
-              {/* AI コマンド入力エリア */}
-              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT">
-                <CommandInput
-                  ref={commandInputRef}
-                  onSendCommand={handleSendCommand}
-                  onSendArrowKey={handleSendArrowKey}
-                  onSendTabKey={handleSendTabKey}
-                  onSendInterrupt={handleSendInterrupt}
-                  onSendEscape={handleSendEscape}
-                  onClearAi={handleClearClaude}
-                  onChangeModel={handleChangeModel}
-                  currentProvider={currentProvider}
-                  currentRepository={currentRepo}
-                  disabled={!isConnected || !currentRepo}
-                />
+            {/* PC時: 横並び (AI出力&入力 左 + 操作ボタン 右), モバイル時: 縦並び */}
+            <div className="flex-1 min-h-0 flex flex-col lg:flex-row p-3 sm:p-6 gap-4 lg:gap-6 overflow-hidden">
+              {/* 左側: AI出力 + テキスト入力 */}
+              <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+                {/* AI出力エリア */}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <AiOutput
+                    key={`${currentRepo}:${currentProvider}`}
+                    rawOutput={rawOutput}
+                    currentProvider={currentProvider}
+                    isLoading={isLoadingRepoData}
+                    onFocusChange={handleAiOutputFocusChange}
+                    onClearOutput={handleClearClaudeOutput}
+                    onRestartAi={handleRestartAiCli}
+                    onKeyInput={handleAiKeyInput}
+                    isFocused={claudeOutputFocused}
+                  />
+                </div>
+
+                {/* AI コマンド入力エリア */}
+                <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-dark-border-DEFAULT flex-shrink-0">
+                  <CommandInput
+                    ref={commandInputRef}
+                    onSendCommand={handleSendCommand}
+                    onSendArrowKey={handleSendArrowKey}
+                    onSendTabKey={handleSendTabKey}
+                    onSendInterrupt={handleSendInterrupt}
+                    onSendEscape={handleSendEscape}
+                    onClearAi={handleClearClaude}
+                    onChangeModel={handleChangeModel}
+                    currentProvider={currentProvider}
+                    currentRepository={currentRepo}
+                    disabled={!isConnected || !currentRepo}
+                  />
+                </div>
               </div>
             </div>
           </section>
 
-          {/* ターミナルエリア (2/5 = 40%) */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96 lg:col-span-2">
+          {/* ターミナルエリア */}
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-80 sm:min-h-96">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg

@@ -190,6 +190,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     fitAddon.current = new FitAddon();
 
     // ターミナルインスタンスを作成（横スクロール対応の設定）
+    // PC時(lg以上)はフォントサイズを大きく設定
+    const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
+
     terminal.current = new Terminal({
       theme: {
         background: '#0a0a0a', // dark-bg-primary
@@ -215,8 +218,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
       },
       fontFamily:
         '"Fira Code", "SF Mono", Monaco, Inconsolata, "Roboto Mono", "Source Code Pro", monospace',
-      fontSize: 8,
-      lineHeight: 1.2,
+      fontSize: isLargeScreen ? 12 : 8, // PC時は14px, モバイル時は12px
+      lineHeight: 1.4,
       cursorBlink: true,
       cursorStyle: 'block',
       scrollback: 10000,
