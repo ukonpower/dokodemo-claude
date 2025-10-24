@@ -1053,7 +1053,7 @@ io.on('connection', (socket) => {
   // ターミナル関連のイベントハンドラ
 
   // ターミナル一覧の送信
-  socket.on('list-terminals', (data) => {
+  socket.on('list-terminals', async (data) => {
     const { repositoryPath } = data || {};
     let terminals;
 
@@ -1076,18 +1076,25 @@ io.on('connection', (socket) => {
       })),
     });
 
-    // 各ターミナルの出力履歴を送信
-    terminals.forEach(async (terminal) => {
-      const history = await processManager.getTerminalOutputHistory(
-        terminal.id
-      );
-      if (history.length > 0) {
+    // 各ターミナルの出力履歴を順次送信（確実に送信するため）
+    for (const terminal of terminals) {
+      try {
+        const history = await processManager.getTerminalOutputHistory(
+          terminal.id
+        );
+        // 履歴が空でも送信（フロントエンド側で履歴が初期化される）
         socket.emit('terminal-output-history', {
           terminalId: terminal.id,
           history,
         });
+      } catch {
+        // エラーが発生しても空の履歴を送信
+        socket.emit('terminal-output-history', {
+          terminalId: terminal.id,
+          history: [],
+        });
       }
-    });
+    }
   });
 
   // 新しいターミナルの作成

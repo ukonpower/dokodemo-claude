@@ -762,65 +762,61 @@ function App() {
         // 利用可能なエディタリストを取得
         socketInstance.emit('get-available-editors');
 
-        // 少し遅延を入れてcurrentRepoRef の値が確実に設定されてから履歴取得
-        setTimeout(() => {
-          const currentPath = currentRepoRef.current;
-          const provider = currentProviderRef.current;
-          // Delayed check for currentRepo
+        // リポジトリが選択されている場合は即座に履歴取得
+        const currentPath = currentRepoRef.current;
+        const provider = currentProviderRef.current;
 
-          if (currentPath) {
-            // Current repo detected after delay
-            // サーバーにアクティブリポジトリを通知（provider付き）
-            socketInstance.emit('switch-repo', {
-              path: currentPath,
-              provider,
-              initialSize: aiTerminalSize || undefined,
-            });
+        if (currentPath) {
+          // Current repo detected
+          // サーバーにアクティブリポジトリを通知（provider付き）
+          socketInstance.emit('switch-repo', {
+            path: currentPath,
+            provider,
+            initialSize: aiTerminalSize || undefined,
+          });
 
-            socketInstance.emit('list-terminals', {
-              repositoryPath: currentPath,
-            });
-            // Emitted list-terminals
-            // AI履歴を取得（新形式）
-            socketInstance.emit('get-ai-history', {
-              repositoryPath: currentPath,
-              provider,
-            });
-            // Claude履歴も取得（後方互換性）
-            socketInstance.emit('get-claude-history', {
-              repositoryPath: currentPath,
-            });
-            // Emitted get-history
-            // ショートカット一覧も取得
-            socketInstance.emit('list-shortcuts', {
-              repositoryPath: currentPath,
-            });
-            // Emitted list-shortcuts
-            // ブランチ一覧も取得
-            socketInstance.emit('list-branches', {
-              repositoryPath: currentPath,
-            });
-            // Emitted list-branches
-            // npmスクリプト一覧も取得
-            socketInstance.emit('get-npm-scripts', {
-              repositoryPath: currentPath,
-            });
-            // Emitted get-npm-scripts
-            // 自走モード設定も取得
-            socketInstance.emit('get-automode-configs', {
-              repositoryPath: currentPath,
-            });
-            socketInstance.emit('get-automode-status', {
-              repositoryPath: currentPath,
-            });
-            // Emitted automode events
+          // ターミナル一覧と履歴を取得
+          socketInstance.emit('list-terminals', {
+            repositoryPath: currentPath,
+          });
 
-            // 差分チェックサーバー一覧も取得
-            socketInstance.emit('get-review-servers');
-          } else {
-            // No current repo detected after delay
-          }
-        }, 100); // 100ms遅延
+          // AI出力履歴を取得（新形式）
+          socketInstance.emit('get-ai-history', {
+            repositoryPath: currentPath,
+            provider,
+          });
+
+          // Claude出力履歴も取得（後方互換性）
+          socketInstance.emit('get-claude-history', {
+            repositoryPath: currentPath,
+          });
+
+          // ショートカット一覧も取得
+          socketInstance.emit('list-shortcuts', {
+            repositoryPath: currentPath,
+          });
+
+          // ブランチ一覧も取得
+          socketInstance.emit('list-branches', {
+            repositoryPath: currentPath,
+          });
+
+          // npmスクリプト一覧も取得
+          socketInstance.emit('get-npm-scripts', {
+            repositoryPath: currentPath,
+          });
+
+          // 自走モード設定も取得
+          socketInstance.emit('get-automode-configs', {
+            repositoryPath: currentPath,
+          });
+          socketInstance.emit('get-automode-status', {
+            repositoryPath: currentPath,
+          });
+
+          // 差分チェックサーバー一覧も取得
+          socketInstance.emit('get-review-servers');
+        }
       });
 
       socketInstance.on('disconnect', (reason) => {
