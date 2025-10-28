@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useId } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { RotateCw, Trash2 } from 'lucide-react';
@@ -24,23 +24,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onKeyInput,
   onResize,
 }) => {
+  const outputId = useId();
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
+  const hasShownInitialMessage = useRef<boolean>(false);
+  const pendingInitialOutput = useRef<string | null>(null);
 
-  // ターミナルの履歴をクリアする関数
-  const clearTerminal = () => {
-    if (terminal.current) {
-      terminal.current.clear();
-      lastOutputLength.current = 0;
-    }
-    if (onClearOutput) {
-      onClearOutput();
-    }
-  };
-
-  // プロバイダー名とメッセージを取得
-  const getProviderInfo = useCallback(() => {
+  const providerInfo = useMemo(() => {
     switch (currentProvider) {
       case 'claude':
         return {
@@ -72,6 +63,127 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [currentProvider]);
 
+  const debugLog = useCallback(
+    (message: string, extra?: Record<string, unknown>) => {
+      const rawLength = rawOutput?.length ?? 0;
+      console.debug('[AiOutput]', message, {
+        id: outputId,
+        rawLength,
+        lastOutputLength: lastOutputLength.current,
+        hasShownInitialMessage: hasShownInitialMessage.current,
+        provider: currentProvider,
+        ...extra,
+      });
+    },
+    [currentProvider, outputId, rawOutput]
+  );
+
+  const renderInitialMessages = useCallback(
+    (targetTerminal: Terminal) => {
+      targetTerminal.writeln(providerInfo.initialMessage1);
+      targetTerminal.writeln(providerInfo.initialMessage2);
+      hasShownInitialMessage.current = true;
+      debugLog('Rendered initial provider messages');
+    },
+    [debugLog, providerInfo]
+  );
+
+  const syncTerminalWithOutput = useCallback(
+    (options?: { forceFullRender?: boolean }) => {
+      if (!terminal.current) {
+        const requestedForce = options?.forceFullRender ?? false;
+        if (rawOutput) {
+          pendingInitialOutput.current = rawOutput;
+          debugLog('Terminal not ready, cached pending output', {
+            cachedLength: rawOutput.length,
+            force: requestedForce,
+          });
+        } else if (pendingInitialOutput.current && !rawOutput) {
+          pendingInitialOutput.current = null;
+        }
+        debugLog('syncTerminalWithOutput skipped: terminal not ready', {
+          force: options?.forceFullRender,
+        });
+        return;
+      }
+
+      const targetTerminal = terminal.current;
+      const shouldForceFullRender = options?.forceFullRender ?? false;
+      debugLog('syncTerminalWithOutput invoked', {
+        force: shouldForceFullRender,
+      });
+
+      if (!rawOutput) {
+        pendingInitialOutput.current = null;
+        const shouldClear =
+          shouldForceFullRender ||
+          lastOutputLength.current > 0 ||
+          !hasShownInitialMessage.current;
+
+        if (shouldClear) {
+          targetTerminal.clear();
+          lastOutputLength.current = 0;
+          hasShownInitialMessage.current = false;
+          debugLog('Cleared terminal for empty rawOutput', {
+            reason: shouldForceFullRender ? 'force' : 'stateChanged',
+          });
+        }
+
+        if (shouldForceFullRender || !hasShownInitialMessage.current) {
+          renderInitialMessages(targetTerminal);
+        }
+        return;
+      }
+
+      if (shouldForceFullRender || rawOutput.length < lastOutputLength.current) {
+        targetTerminal.clear();
+        targetTerminal.write(rawOutput);
+        lastOutputLength.current = rawOutput.length;
+        hasShownInitialMessage.current = false;
+        targetTerminal.scrollToBottom();
+        debugLog('Rendered full rawOutput', {
+          appliedLength: rawOutput.length,
+          force: shouldForceFullRender,
+        });
+        return;
+      }
+
+      const newOutput = rawOutput.slice(lastOutputLength.current);
+      if (!newOutput) {
+        debugLog('No new output to append');
+        return;
+      }
+
+      if (lastOutputLength.current === 0) {
+        targetTerminal.clear();
+      }
+
+      targetTerminal.write(newOutput);
+      targetTerminal.scrollToBottom();
+      lastOutputLength.current = rawOutput.length;
+      hasShownInitialMessage.current = false;
+      debugLog('Appended new output chunk', {
+        appendedLength: newOutput.length,
+      });
+    },
+    [debugLog, rawOutput, renderInitialMessages]
+  );
+
+  // ターミナルの履歴をクリアする関数
+  const clearTerminal = () => {
+    if (terminal.current) {
+      terminal.current.clear();
+      lastOutputLength.current = 0;
+      hasShownInitialMessage.current = false;
+      pendingInitialOutput.current = null;
+      renderInitialMessages(terminal.current);
+      debugLog('Clear button pressed');
+    }
+    if (onClearOutput) {
+      onClearOutput();
+    }
+  };
+
   // TerminalOutからのリサイズコールバック
   const handleTerminalOutResize = useCallback(
     (cols: number, rows: number) => {
@@ -89,7 +201,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       fitAddonInstance: FitAddon,
       initialSize?: { cols: number; rows: number }
     ) => {
-      console.log('[AiOutput] Terminal ready');
+      debugLog('Terminal ready');
       terminal.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
 
@@ -98,14 +210,24 @@ const AiOutput: React.FC<AiOutputProps> = ({
         onResize(initialSize.cols, initialSize.rows);
       }
 
-      // 初期メッセージを表示
-      const info = getProviderInfo();
-      if (!rawOutput || rawOutput.length === 0) {
-        terminalInstance.writeln(info.initialMessage1);
-        terminalInstance.writeln(info.initialMessage2);
+      // 既存の出力または初期メッセージを描画
+      if (pendingInitialOutput.current) {
+        const cachedOutput = pendingInitialOutput.current;
+        pendingInitialOutput.current = null;
+        terminalInstance.clear();
+        terminalInstance.write(cachedOutput);
+        lastOutputLength.current = cachedOutput.length;
+        hasShownInitialMessage.current = false;
+        terminalInstance.scrollToBottom();
+        debugLog('Flushed cached pending output', {
+          length: cachedOutput.length,
+        });
+        return;
       }
+
+      syncTerminalWithOutput({ forceFullRender: true });
     },
-    [getProviderInfo, rawOutput, onResize]
+    [debugLog, onResize, syncTerminalWithOutput]
   );
 
   // プロバイダー変更時にターミナルを初期化
@@ -115,63 +237,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // ターミナルをクリアしてリセット
     terminal.current.clear();
     lastOutputLength.current = 0;
-
-    // rawOutputがあれば全量描画、なければ初期メッセージ表示
-    if (rawOutput && rawOutput.length > 0) {
-      terminal.current.write(rawOutput);
-      lastOutputLength.current = rawOutput.length;
-    } else {
-      const info = getProviderInfo();
-      terminal.current.writeln(info.initialMessage1);
-      terminal.current.writeln(info.initialMessage2);
-    }
-  }, [currentProvider, getProviderInfo, rawOutput]);
+    hasShownInitialMessage.current = false;
+    debugLog('Provider changed, forcing full render');
+    syncTerminalWithOutput({ forceFullRender: true });
+  }, [currentProvider, debugLog, syncTerminalWithOutput]);
 
   // 出力が更新されたらターミナルに書き込み（差分のみ追記）
   useEffect(() => {
-    if (!terminal.current) return;
-    if (!rawOutput) {
-      // rawOutputが空になった場合は初期メッセージを表示
-      if (lastOutputLength.current > 0) {
-        terminal.current.clear();
-        lastOutputLength.current = 0;
-        const info = getProviderInfo();
-        terminal.current.writeln(info.initialMessage1);
-        terminal.current.writeln(info.initialMessage2);
-      }
-      return;
-    }
-
-    // 入れ替え（長さが減った等）を検知したら全量描画
-    if (rawOutput.length < lastOutputLength.current) {
-      terminal.current.clear();
-      terminal.current.write(rawOutput);
-      lastOutputLength.current = rawOutput.length;
-      terminal.current.scrollToBottom();
-      return;
-    }
-
-    // 新しい出力部分のみを取得
-    const newOutput = rawOutput.slice(lastOutputLength.current);
-
-    if (newOutput) {
-      // 初回描画時（初期メッセージが表示されている状態）は必ずクリア
-      if (lastOutputLength.current === 0) {
-        terminal.current.clear();
-      }
-
-      terminal.current.write(newOutput);
-
-      // 最下部にスクロール
-      terminal.current.scrollToBottom();
-
-      // 出力長を更新
-      lastOutputLength.current = rawOutput.length;
-    }
-  }, [rawOutput, getProviderInfo]);
-
-
-  const providerInfo = getProviderInfo();
+    debugLog('rawOutput changed, syncing terminal');
+    syncTerminalWithOutput();
+  }, [debugLog, rawOutput, syncTerminalWithOutput]);
 
   return (
     <div className="absolute inset-0 flex flex-col">

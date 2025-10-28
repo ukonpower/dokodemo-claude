@@ -41,6 +41,10 @@ function App() {
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
   // プロバイダー別CLIログ管理
   const [aiLogs, setAiLogs] = useState<Map<AiProvider, string>>(new Map());
+  const aiLogsRef = useRef(aiLogs);
+  useEffect(() => {
+    aiLogsRef.current = aiLogs;
+  }, [aiLogs]);
   const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用（aiLogsと同期）
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     // URLのクエリパラメータからリポジトリパスを復元
@@ -58,9 +62,13 @@ function App() {
   useEffect(() => {
     localStorage.setItem('preferred-ai-provider', currentProvider);
 
-    // プロバイダー切替時にrawOutputを同期
-    setRawOutput(aiLogs.get(currentProvider) || '');
-  }, [currentProvider, aiLogs]);
+    const nextOutput = aiLogs.get(currentProvider) || '';
+    console.debug('[App] sync rawOutput from provider effect', {
+      provider: currentProvider,
+      length: nextOutput.length,
+    });
+    setRawOutput(nextOutput);
+  }, [aiLogs, currentProvider]);
 
   // ブラウザの戻る/進むボタン対応
   useEffect(() => {
@@ -71,6 +79,9 @@ function App() {
       if (repoFromUrl !== currentRepo) {
         setCurrentRepo(repoFromUrl);
         if (!repoFromUrl) {
+          console.debug('[App] setRawOutput home navigation', {
+            reason: 'popstate no repo',
+          });
           setRawOutput('');
           setCurrentSessionId('');
           // ホームに戻る際はターミナル状態もクリア
@@ -301,6 +312,12 @@ function App() {
         ) {
           const provider = data.provider || 'claude';
 
+          console.debug('[App] claude-raw-output chunk', {
+            repo: data.repositoryPath,
+            provider,
+            chunkLength: data.content.length,
+          });
+
           // プロバイダー別ログマップに追記
           setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
@@ -317,6 +334,10 @@ function App() {
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
               setRawOutput(newOutput);
+              console.debug('[App] setRawOutput from chunk', {
+                provider,
+                length: newOutput.length,
+              });
             }
 
             return newLogs;
@@ -340,6 +361,9 @@ function App() {
           // 削除されたリポジトリが現在選択中のリポジトリの場合、リポジトリ選択画面に戻る
           if (currentRepoRef.current === data.path) {
             setCurrentRepo('');
+            console.debug('[App] setRawOutput repo deleted', {
+              reason: 'repo deleted',
+            });
             setRawOutput('');
             setCurrentSessionId('');
             setTerminals([]);
@@ -452,6 +476,26 @@ function App() {
             .map((line: ClaudeOutputLine) => line.content)
             .join('');
 
+          const existingLog = aiLogsRef.current.get(provider) || '';
+          if (historyOutput.length === 0 && existingLog.length > 0) {
+            console.debug(
+              '[App] skip empty ai-output-history to preserve ai history',
+              {
+                repo: data.repositoryPath,
+                provider,
+                existingLength: existingLog.length,
+              }
+            );
+            return;
+          }
+
+          console.debug('[App] ai-output-history', {
+            repo: data.repositoryPath,
+            provider,
+            lines: data.history.length,
+            length: historyOutput.length,
+          });
+
           // プロバイダー別ログマップに反映
           setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
@@ -460,6 +504,10 @@ function App() {
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
               setRawOutput(historyOutput);
+              console.debug('[App] setRawOutput from ai-output-history', {
+                provider,
+                length: historyOutput.length,
+              });
             }
 
             return newLogs;
@@ -480,6 +528,27 @@ function App() {
             .map((line: ClaudeOutputLine) => line.content)
             .join('');
 
+          const existingLog = aiLogsRef.current.get('claude') || '';
+          if (
+            historyOutput.length === 0 &&
+            existingLog.length > 0
+          ) {
+            console.debug(
+              '[App] skip empty claude-output-history to preserve ai history',
+              {
+                repo: data.repositoryPath,
+                existingLength: existingLog.length,
+              }
+            );
+            return;
+          }
+
+          console.debug('[App] claude-output-history', {
+            repo: data.repositoryPath,
+            lines: data.history.length,
+            length: historyOutput.length,
+          });
+
           // claudeプロバイダーとしてaiLogsに反映
           setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
@@ -488,6 +557,10 @@ function App() {
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
               setRawOutput(historyOutput);
+              console.debug('[App] setRawOutput from claude-output-history', {
+                provider: 'claude',
+                length: historyOutput.length,
+              });
             }
 
             return newLogs;
@@ -629,7 +702,15 @@ function App() {
             // （ブランチセレクター自体で状態が更新されるため）
           } else {
             // エラーの場合のみClaude出力エリアに表示
-            setRawOutput((prev) => prev + `\n[ERROR] ${data.message}\n`);
+            setRawOutput((prev) => {
+              const next = prev + `\n[ERROR] ${data.message}\n`;
+              console.debug('[App] setRawOutput append error', {
+                reason: 'branch switch error',
+                previousLength: prev.length,
+                nextLength: next.length,
+              });
+              return next;
+            });
           }
         }
       });
@@ -723,7 +804,11 @@ function App() {
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setRawOutput('');
+            console.debug('[App] setRawOutput provider history empty', {
+              reason: 'ai-output-cleared event',
+              provider,
+            });
+            setRawOutput('');
             }
 
             return newLogs;
@@ -741,7 +826,10 @@ function App() {
 
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
-              setRawOutput('');
+            console.debug('[App] setRawOutput claude history cleared', {
+              reason: 'claude-output-cleared event',
+            });
+            setRawOutput('');
             }
 
             return newLogs;
@@ -910,8 +998,16 @@ function App() {
       // aiLogsにキャッシュがあれば即座に画面反映
       const cachedLog = aiLogs.get(provider);
       if (cachedLog !== undefined) {
+        console.debug('[App] setRawOutput provider change', {
+          provider,
+          length: cachedLog.length,
+        });
         setRawOutput(cachedLog);
       } else {
+        console.debug('[App] setRawOutput provider change', {
+          provider,
+          reason: 'no cache',
+        });
         setRawOutput(''); // キャッシュがない場合はクリア
       }
 
@@ -933,6 +1029,9 @@ function App() {
     }
 
     setCurrentRepo('');
+    console.debug('[App] setRawOutput back to repo selection', {
+      reason: 'backToRepoSelection',
+    });
     setRawOutput(''); // CLIログをクリア
     setAutoModeConfigs([]);
     setAutoModeState(null);
@@ -1604,7 +1703,7 @@ function App() {
         {/* 縦並びレイアウト: AI CLI & ターミナル */}
         <div className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
           {/* Claude CLI セクション (高さ拡大) */}
-          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col flex-[3] min-h-[900px]">
+          <section className="bg-dark-bg-secondary rounded-lg shadow-xl border border-dark-border-light flex flex-col min-h-[25rem] sm:flex-[3] sm:min-h-[900px]">
             <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-dark-border-DEFAULT bg-dark-bg-tertiary rounded-t-lg flex items-center justify-between">
               <h2 className="text-sm sm:text-base font-semibold text-white flex items-center">
                 <svg

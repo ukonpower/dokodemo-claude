@@ -360,9 +360,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const providerInfo = getProviderInfo();
 
     return (
-      <form onSubmit={handleSubmit}>
+      <div className="space-y-2">
         {/* テキスト入力エリア */}
-        <div className="relative">
+        <form onSubmit={handleSubmit} className="relative">
           <textarea
             ref={inputRef}
             value={command}
@@ -373,24 +373,59 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 ? 'リポジトリを選択してください...'
                 : providerInfo.placeholder
             }
-            className="w-full h-full px-3 py-2.5 sm:py-2 pr-12 border border-dark-border-light bg-dark-bg-secondary text-dark-text-primary rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus resize-none text-sm sm:text-base placeholder-dark-text-muted transition-all duration-150"
+            className="w-full px-3 py-2.5 pb-14 border border-dark-border-light bg-dark-bg-secondary text-dark-text-primary rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus resize-none text-sm sm:text-base placeholder-dark-text-muted transition-all duration-150"
             rows={3}
             disabled={disabled}
           />
-          {/* 入力クリアボタン */}
-          {command && (
-            <button
-              type="button"
-              onClick={handleClearInput}
-              disabled={disabled}
-              className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 bg-dark-bg-tertiary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs text-dark-text-secondary hover:text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 transition-all duration-150"
-              title="入力内容をクリア"
+          {/* 送信ボタン（入力エリア内の右下）- 他のボタンとデザイン統一 */}
+          <button
+            type="submit"
+            disabled={disabled}
+            className="absolute bottom-3 right-3 flex items-center justify-center w-8 h-8 bg-dark-bg-secondary border border-dark-accent-blue hover:bg-dark-bg-hover hover:border-dark-accent-blue-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-blue touch-manipulation shadow-md transition-all duration-150"
+            title="送信 (Ctrl+Enter)"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              ✕
-            </button>
-          )}
-        </div>
-      </form>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 10l7-7m0 0l7 7m-7-7v18"
+              />
+            </svg>
+          </button>
+        </form>
+
+        {/* 入力クリアボタン（入力エリアの外）- 他のボタンとデザイン統一 */}
+        {command && (
+          <button
+            type="button"
+            onClick={handleClearInput}
+            disabled={disabled}
+            className="flex items-center justify-center h-9 px-4 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
+            title="入力内容をクリア"
+          >
+            <svg
+              className="w-3 h-3 mr-1.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            クリア
+          </button>
+        )}
+      </div>
     );
   }
 );
