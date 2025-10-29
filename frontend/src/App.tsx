@@ -1745,7 +1745,7 @@ function App() {
               {/* 左側: AI出力 + テキスト入力の塊 */}
               <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
                 {/* AI出力エリア */}
-                <div className="flex-1 min-h-0 overflow-hidden relative">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   <AiOutput
                     key={`${currentRepo}:${currentProvider}`}
                     rawOutput={rawOutput}
