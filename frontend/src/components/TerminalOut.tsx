@@ -5,13 +5,6 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 
 /**
- * タッチイベントクリーンアップ関数を持つTerminal型
- */
-type TerminalWithCleanup = Terminal & {
-  _touchCleanup?: () => void;
-};
-
-/**
  * TerminalOutコンポーネントのProps
  */
 interface TerminalOutProps {
@@ -209,20 +202,28 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
 
-    // iOSタッチスクロール対応: ターミナル要素にtouchmoveイベントリスナーを追加
-    const terminalElement = terminalRef.current.querySelector('.xterm');
-    if (terminalElement) {
-      const touchMoveHandler = (e: Event) => {
-        e.stopPropagation();
-      };
-      terminalElement.addEventListener('touchmove', touchMoveHandler, { passive: true });
+    // iOSタッチスクロール対応: CSS設定を追加
+    const terminalElement = terminalRef.current.querySelector('.xterm') as HTMLElement;
+    const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+    const screenElement = terminalRef.current.querySelector('.xterm-screen') as HTMLElement;
 
-      // クリーンアップ時にリスナーを削除
-      const cleanup = () => {
-        terminalElement.removeEventListener('touchmove', touchMoveHandler);
-      };
-      // クリーンアップ関数を保存（後で使用）
-      (terminal.current as TerminalWithCleanup)._touchCleanup = cleanup;
+    if (terminalElement) {
+      // 縦スクロールをネイティブに任せる
+      terminalElement.style.touchAction = 'pan-y';
+      (terminalElement.style as unknown as Record<string, string>).webkitOverflowScrolling = 'touch';
+      terminalElement.style.overscrollBehavior = 'contain';
+
+      // スクロール優先：長押し選択を無効化
+      if (screenElement) {
+        (screenElement.style as unknown as Record<string, string>).webkitUserSelect = 'none';
+        screenElement.style.userSelect = 'none';
+      }
+    }
+
+    if (viewportElement) {
+      viewportElement.style.touchAction = 'pan-y';
+      (viewportElement.style as unknown as Record<string, string>).webkitOverflowScrolling = 'touch';
+      viewportElement.style.overscrollBehavior = 'contain';
     }
 
     // xterm.jsのonDataを使ってキー入力を受け取る
@@ -266,11 +267,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         resizeObserver.current = null;
       }
       if (terminal.current) {
-        // タッチイベントリスナーのクリーンアップ
-        const terminalWithCleanup = terminal.current as TerminalWithCleanup;
-        if (terminalWithCleanup._touchCleanup) {
-          terminalWithCleanup._touchCleanup();
-        }
         terminal.current.dispose();
       }
     };
@@ -316,22 +312,18 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
   }, [disableStdin, focusTerminal, onClick]);
 
-  // タッチムーブイベントを処理（iOSタッチスクロール対応）
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // スクロールを有効にするため、イベントの伝播を停止
-    e.stopPropagation();
-  }, []);
-
   return (
     <div
       ref={terminalRef}
       className="h-full w-full bg-dark-bg-primary"
       onMouseDown={handleMouseDown}
       onClick={handleTerminalClick}
-      onTouchMove={handleTouchMove}
       style={{
         background: '#0a0a0a', // dark-bg-primary
-        WebkitOverflowScrolling: 'touch', // iOSのスムーズスクロール
+        overflow: 'auto', // スクロールを有効化
+        WebkitOverflowScrolling: 'touch', // iOSの慣性スクロール
+        touchAction: 'pan-y', // 縦スクロールをネイティブに任せる
+        overscrollBehavior: 'contain', // 親ページへの伝播を抑制
       }}
     />
   );
