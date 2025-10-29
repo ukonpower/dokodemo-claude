@@ -79,6 +79,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const lastTouchY = useRef<number>(0);
   const isTwoFingerScroll = useRef<boolean>(false);
+  const isScrollHandleDrag = useRef<boolean>(false);
+  const scrollHandleStartY = useRef<number>(0);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -349,25 +351,86 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   // 二本指スクロールの終了を検出
   const handleTouchEnd = useCallback(() => {
     isTwoFingerScroll.current = false;
+    isScrollHandleDrag.current = false;
+  }, []);
+
+  // スクロールハンドルのタッチ開始
+  const handleScrollHandleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation(); // イベント伝播を止める
+    isScrollHandleDrag.current = true;
+    scrollHandleStartY.current = e.touches[0].clientY;
+  }, []);
+
+  // スクロールハンドルのタッチ移動
+  const handleScrollHandleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isScrollHandleDrag.current) {
+      e.preventDefault(); // デフォルト動作を防止
+      e.stopPropagation();
+
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - scrollHandleStartY.current;
+      scrollHandleStartY.current = currentY;
+
+      // ターミナル要素を直接スクロール
+      if (terminalRef.current) {
+        const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+        if (viewportElement) {
+          viewportElement.scrollTop -= deltaY; // 逆方向にスクロール（自然な動き）
+        }
+      }
+    }
+  }, []);
+
+  // スクロールハンドルのタッチ終了
+  const handleScrollHandleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    isScrollHandleDrag.current = false;
   }, []);
 
   return (
-    <div
-      ref={terminalRef}
-      className="h-full w-full bg-dark-bg-primary"
-      onMouseDown={handleMouseDown}
-      onClick={handleTerminalClick}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{
-        background: '#0a0a0a', // dark-bg-primary
-        overflow: 'auto', // スクロールを有効化
-        WebkitOverflowScrolling: 'touch', // iOSの慣性スクロール
-        touchAction: 'pan-y', // 縦スクロールをネイティブに任せる
-        overscrollBehavior: 'contain', // 親ページへの伝播を抑制
-      }}
-    />
+    <div className="h-full w-full relative">
+      <div
+        ref={terminalRef}
+        className="h-full w-full bg-dark-bg-primary"
+        onMouseDown={handleMouseDown}
+        onClick={handleTerminalClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          background: '#0a0a0a', // dark-bg-primary
+          overflow: 'auto', // スクロールを有効化
+          WebkitOverflowScrolling: 'touch', // iOSの慣性スクロール
+          touchAction: 'pan-y', // 縦スクロールをネイティブに任せる
+          overscrollBehavior: 'contain', // 親ページへの伝播を抑制
+        }}
+      />
+
+      {/* スクロールハンドルエリア（右端） */}
+      <div
+        className="absolute top-0 right-0 h-full w-12 pointer-events-auto"
+        onTouchStart={handleScrollHandleTouchStart}
+        onTouchMove={handleScrollHandleTouchMove}
+        onTouchEnd={handleScrollHandleTouchEnd}
+        style={{
+          background: 'linear-gradient(to left, rgba(100, 116, 139, 0.3), transparent)',
+          touchAction: 'none', // タッチ操作を完全に制御
+          zIndex: 10,
+        }}
+      >
+        {/* スクロールハンドルのビジュアル表示 */}
+        <div
+          className="absolute top-1/2 right-2 transform -translate-y-1/2"
+          style={{
+            width: '4px',
+            height: '60px',
+            background: 'rgba(148, 163, 184, 0.6)',
+            borderRadius: '2px',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
