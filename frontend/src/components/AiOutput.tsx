@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useId } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { RotateCw, Trash2, ArrowDown } from 'lucide-react';
+import { RotateCw, ArrowDown, Maximize2 } from 'lucide-react';
 import type { AiProvider } from '../types';
 import TerminalOut from './TerminalOut';
 
@@ -9,7 +9,6 @@ interface AiOutputProps {
   rawOutput: string;
   currentProvider?: AiProvider; // プロバイダー情報を追加
   isLoading?: boolean;
-  onClearOutput?: () => void;
   onRestartAi?: () => void;
   onKeyInput?: (key: string) => void;
   onResize?: (cols: number, rows: number) => void;
@@ -19,7 +18,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
   rawOutput,
   currentProvider = 'claude',
   isLoading = false,
-  onClearOutput,
   onRestartAi,
   onKeyInput,
   onResize,
@@ -187,21 +185,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
     [debugLog, rawOutput, renderInitialMessages]
   );
 
-  // ターミナルの履歴をクリアする関数
-  const clearTerminal = () => {
-    if (terminal.current) {
-      terminal.current.clear();
-      lastOutputLength.current = 0;
-      hasShownInitialMessage.current = false;
-      pendingInitialOutput.current = null;
-      renderInitialMessages(terminal.current);
-      debugLog('Clear button pressed');
-    }
-    if (onClearOutput) {
-      onClearOutput();
-    }
-  };
-
   // 一番下までスクロールする関数
   const scrollToBottom = () => {
     if (terminal.current) {
@@ -215,6 +198,26 @@ const AiOutput: React.FC<AiOutputProps> = ({
           debugLog('Scroll to bottom button pressed', { scrollToLine });
         }
       });
+    }
+  };
+
+  // ターミナルのリサイズを再送信する関数
+  const resendTerminalSize = () => {
+    if (fitAddon.current && terminal.current) {
+      try {
+        // ターミナルをリサイズ
+        fitAddon.current.fit();
+        const cols = terminal.current.cols;
+        const rows = terminal.current.rows;
+
+        // 新しいサイズをバックエンドに送信
+        if (onResize) {
+          onResize(cols, rows);
+          debugLog('Terminal size resent', { cols, rows });
+        }
+      } catch (error) {
+        console.warn('Failed to resize terminal:', error);
+      }
     }
   };
 
@@ -286,33 +289,20 @@ const AiOutput: React.FC<AiOutputProps> = ({
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>
-            <span className="text-gray-300 text-xs">
-              {providerInfo.headerLabel}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            {onRestartAi && (
-              <button
-                onClick={onRestartAi}
-                className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-                title="AI CLIを再起動"
-              >
-                <RotateCw size={14} />
-              </button>
-            )}
-            {onClearOutput && (
-              <button
-                onClick={clearTerminal}
-                className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-                title="出力履歴をクリア"
-              >
-                <Trash2 size={14} />
-              </button>
-            )}
-          </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>
+          <span className="text-gray-300 text-xs">
+            {providerInfo.headerLabel}
+          </span>
+          {onRestartAi && (
+            <button
+              onClick={onRestartAi}
+              className="flex items-center justify-center w-5 h-5 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+              title="AI CLIを再起動"
+            >
+              <RotateCw size={12} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -325,15 +315,26 @@ const AiOutput: React.FC<AiOutputProps> = ({
           disableStdin={false}
         />
 
-        {/* スクロール位置を一番下に移動するボタン（スクロールハンドルの下） */}
-        <button
-          onClick={scrollToBottom}
-          className="absolute right-2 bottom-2 flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
-          title="一番下までスクロール"
-          style={{ zIndex: 20 }}
-        >
-          <ArrowDown size={16} />
-        </button>
+        {/* 右下のボタングループ */}
+        <div className="absolute right-2 bottom-2 flex flex-col gap-2" style={{ zIndex: 20 }}>
+          {/* リサイズ再送信ボタン */}
+          <button
+            onClick={resendTerminalSize}
+            className="flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
+            title="ターミナルサイズを再送信"
+          >
+            <Maximize2 size={16} />
+          </button>
+
+          {/* スクロール位置を一番下に移動するボタン */}
+          <button
+            onClick={scrollToBottom}
+            className="flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
+            title="一番下までスクロール"
+          >
+            <ArrowDown size={16} />
+          </button>
+        </div>
 
         {/* AI CLI専用ローディング表示 */}
         {isLoading && (

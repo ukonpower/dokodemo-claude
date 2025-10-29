@@ -1143,22 +1143,6 @@ function App() {
       });
     }
   };
-  const handleClearClaudeOutput = () => {
-    // フロントエンド側の表示をクリア
-    setRawOutput('');
-
-    // バックエンド側の履歴もクリア
-    if (socket && currentRepo) {
-      socket.emit('clear-ai-output', {
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-      // Claude表示時のみ後方互換イベントを送信
-      if (currentProvider === 'claude') {
-        socket.emit('clear-claude-output', { repositoryPath: currentRepo });
-      }
-    }
-  };
 
   // AI CLIの再起動ハンドラー
   const handleRestartAiCli = () => {
@@ -1751,7 +1735,6 @@ function App() {
                     rawOutput={rawOutput}
                     currentProvider={currentProvider}
                     isLoading={isLoadingRepoData}
-                    onClearOutput={handleClearClaudeOutput}
                     onRestartAi={handleRestartAiCli}
                     onKeyInput={handleAiKeyInput}
                     onResize={handleAiOutputResize}
