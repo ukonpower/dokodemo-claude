@@ -20,6 +20,8 @@ interface KeyboardButtonsProps {
   onSendTabKey?: (shift: boolean) => void;
   /** モデル変更ハンドラ（オプション） */
   onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
+  /** Commit送信ハンドラ（オプション） */
+  onSendCommit?: () => void;
   /** 現在のプロバイダー（'claude' | 'codex'） */
   currentProvider?: string;
   /** プロバイダー情報（クリアボタンのツールチップ用） */
@@ -41,6 +43,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onClearAi,
   onSendTabKey,
   onChangeModel,
+  onSendCommit,
   currentProvider = 'claude',
   providerInfo,
 }) => {
@@ -154,6 +157,19 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           {/* 改行（Claude Code専用ボタン用） */}
           <div className="w-full"></div>
 
+          {/* Claude Code専用ボタン: Tab */}
+          {currentProvider === 'claude' && onSendTabKey && (
+            <button
+              type="button"
+              onClick={() => onSendTabKey(false)}
+              disabled={disabled}
+              className="flex items-center justify-center w-12 h-9 sm:w-14 sm:h-10 bg-dark-bg-secondary border border-gray-500 hover:bg-dark-bg-hover hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-gray-400 touch-manipulation shadow-md transition-all duration-150"
+              title="Tabキーを送信"
+            >
+              Tab
+            </button>
+          )}
+
           {/* Claude Code専用ボタン: Mode */}
           {currentProvider === 'claude' && onSendTabKey && (
             <button
@@ -227,10 +243,10 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           )}
 
           {/* Claude Code専用ボタン: Commit */}
-          {currentProvider === 'claude' && onSendTabKey && (
+          {currentProvider === 'claude' && onSendCommit && (
             <button
               type="button"
-              onClick={() => onSendTabKey(false)}
+              onClick={onSendCommit}
               disabled={disabled}
               className="flex items-center justify-center w-16 h-9 sm:w-18 sm:h-10 bg-dark-bg-secondary border border-dark-accent-green hover:bg-dark-bg-hover hover:border-dark-accent-green-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-mono text-dark-text-primary focus:outline-none focus:ring-1 focus:ring-dark-accent-green touch-manipulation shadow-md transition-all duration-150"
               title="コミット (/commit)"

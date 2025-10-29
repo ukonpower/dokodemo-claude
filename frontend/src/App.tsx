@@ -1200,6 +1200,17 @@ function App() {
     }
   };
 
+  const handleSendCommit = () => {
+    if (socket) {
+      socket.emit('send-command', {
+        command: '/commit',
+        sessionId: currentSessionId,
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+      });
+    }
+  };
+
   // ターミナル関連のハンドラ
   const handleCreateTerminal = (cwd: string, name?: string) => {
     if (socket) {
@@ -1772,6 +1783,7 @@ function App() {
                   onClearAi={handleClearClaude}
                   onSendTabKey={handleSendTabKey}
                   onChangeModel={handleChangeModel}
+                  onSendCommit={handleSendCommit}
                   currentProvider={currentProvider}
                   providerInfo={{
                     clearTitle:
