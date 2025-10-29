@@ -140,7 +140,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
         targetTerminal.write(rawOutput);
         lastOutputLength.current = rawOutput.length;
         hasShownInitialMessage.current = false;
-        targetTerminal.scrollToBottom();
+
+        // 出力後に確実にスクロール
+        requestAnimationFrame(() => {
+          if (targetTerminal && targetTerminal.buffer) {
+            const buffer = targetTerminal.buffer.active;
+            const scrollToLine = buffer.baseY + buffer.length;
+            targetTerminal.scrollToLine(scrollToLine);
+          }
+        });
+
         debugLog('Rendered full rawOutput', {
           appliedLength: rawOutput.length,
           force: shouldForceFullRender,
@@ -159,9 +168,18 @@ const AiOutput: React.FC<AiOutputProps> = ({
       }
 
       targetTerminal.write(newOutput);
-      targetTerminal.scrollToBottom();
       lastOutputLength.current = rawOutput.length;
       hasShownInitialMessage.current = false;
+
+      // 出力後に確実にスクロール
+      requestAnimationFrame(() => {
+        if (targetTerminal && targetTerminal.buffer) {
+          const buffer = targetTerminal.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          targetTerminal.scrollToLine(scrollToLine);
+        }
+      });
+
       debugLog('Appended new output chunk', {
         appendedLength: newOutput.length,
       });
@@ -187,8 +205,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
   // 一番下までスクロールする関数
   const scrollToBottom = () => {
     if (terminal.current) {
-      terminal.current.scrollToBottom();
-      debugLog('Scroll to bottom button pressed');
+      // 確実にスクロールするために、少し遅延させて実行
+      requestAnimationFrame(() => {
+        if (terminal.current) {
+          // バッファの一番下の行番号を取得してスクロール
+          const buffer = terminal.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          terminal.current.scrollToLine(scrollToLine);
+          debugLog('Scroll to bottom button pressed', { scrollToLine });
+        }
+      });
     }
   };
 

@@ -64,7 +64,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   // 一番下までスクロール
   const scrollToBottom = () => {
     if (xtermInstance.current) {
-      xtermInstance.current.scrollToBottom();
+      // 確実にスクロールするために、少し遅延させて実行
+      requestAnimationFrame(() => {
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          // バッファの一番下の行番号を取得してスクロール
+          const buffer = xtermInstance.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          xtermInstance.current.scrollToLine(scrollToLine);
+        }
+      });
     }
   };
 
@@ -156,7 +164,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
       lastMessageCount.current = terminalMessages.length;
       currentTerminalId.current = terminal.id;
-      xtermInstance.current.scrollToBottom();
+
+      // ターミナル切り替え後に確実にスクロール
+      requestAnimationFrame(() => {
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          const buffer = xtermInstance.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          xtermInstance.current.scrollToLine(scrollToLine);
+        }
+      });
     }
     // 初回表示で履歴が空だった場合、後から履歴が読み込まれた時の対応
     else if (
@@ -192,7 +208,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         });
 
         lastMessageCount.current = terminalMessages.length;
-        xtermInstance.current.scrollToBottom();
+
+        // 履歴ロード後に確実にスクロール
+        requestAnimationFrame(() => {
+          if (xtermInstance.current && xtermInstance.current.buffer) {
+            const buffer = xtermInstance.current.buffer.active;
+            const scrollToLine = buffer.baseY + buffer.length;
+            xtermInstance.current.scrollToLine(scrollToLine);
+          }
+        });
       }
     }
   }, [terminal.id, history, messages]);
@@ -218,8 +242,14 @@ const TerminalComponent: React.FC<TerminalProps> = ({
 
       lastMessageCount.current = terminalMessages.length;
 
-      // 最下部にスクロール
-      xtermInstance.current.scrollToBottom();
+      // 最下部にスクロール（確実にスクロールするために遅延実行）
+      requestAnimationFrame(() => {
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          const buffer = xtermInstance.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          xtermInstance.current.scrollToLine(scrollToLine);
+        }
+      });
     }
   }, [messages]);
 
