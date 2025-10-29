@@ -77,6 +77,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const resizeObserver = useRef<ResizeObserver | null>(null);
   const onKeyInputRef = useRef<typeof onKeyInput>(onKeyInput);
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+  const lastTouchY = useRef<number>(0);
+  const isTwoFingerScroll = useRef<boolean>(false);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -312,12 +314,52 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
   }, [disableStdin, focusTerminal, onClick]);
 
+  // 二本指スクロールの開始を検出
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // 二本指タッチを検出
+      isTwoFingerScroll.current = true;
+      lastTouchY.current = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    } else {
+      isTwoFingerScroll.current = false;
+    }
+  }, []);
+
+  // 二本指スクロールの移動を処理
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isTwoFingerScroll.current && e.touches.length === 2) {
+      // 二本指の中点のY座標を計算
+      const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const deltaY = lastTouchY.current - currentY;
+      lastTouchY.current = currentY;
+
+      // ターミナル要素を直接スクロール
+      if (terminalRef.current) {
+        const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+        if (viewportElement) {
+          viewportElement.scrollTop += deltaY;
+        }
+      }
+
+      // デフォルト動作を防止
+      e.preventDefault();
+    }
+  }, []);
+
+  // 二本指スクロールの終了を検出
+  const handleTouchEnd = useCallback(() => {
+    isTwoFingerScroll.current = false;
+  }, []);
+
   return (
     <div
       ref={terminalRef}
       className="h-full w-full bg-dark-bg-primary"
       onMouseDown={handleMouseDown}
       onClick={handleTerminalClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       style={{
         background: '#0a0a0a', // dark-bg-primary
         overflow: 'auto', // スクロールを有効化
