@@ -408,27 +408,48 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
       {/* スクロールハンドルエリア（右端） */}
       <div
-        className="absolute top-0 right-0 h-full w-12 pointer-events-auto"
+        className="absolute top-0 right-0 h-full w-12 pointer-events-auto flex items-center justify-center"
         onTouchStart={handleScrollHandleTouchStart}
         onTouchMove={handleScrollHandleTouchMove}
         onTouchEnd={handleScrollHandleTouchEnd}
         style={{
-          background: 'linear-gradient(to left, rgba(100, 116, 139, 0.3), transparent)',
+          background: 'linear-gradient(to left, rgba(30, 41, 59, 0.2), transparent)',
           touchAction: 'none', // タッチ操作を完全に制御
           zIndex: 10,
         }}
       >
-        {/* スクロールハンドルのビジュアル表示 */}
+        {/* スクロールハンドルのビジュアル表示（3つのドット） */}
         <div
-          className="absolute top-1/2 right-2 transform -translate-y-1/2"
+          className="flex flex-col gap-1.5"
           style={{
-            width: '4px',
-            height: '60px',
-            background: 'rgba(148, 163, 184, 0.6)',
-            borderRadius: '2px',
             pointerEvents: 'none',
           }}
-        />
+        >
+          <div
+            style={{
+              width: '6px',
+              height: '6px',
+              background: 'rgba(148, 163, 184, 0.5)',
+              borderRadius: '50%',
+            }}
+          />
+          <div
+            style={{
+              width: '6px',
+              height: '6px',
+              background: 'rgba(148, 163, 184, 0.5)',
+              borderRadius: '50%',
+            }}
+          />
+          <div
+            style={{
+              width: '6px',
+              height: '6px',
+              background: 'rgba(148, 163, 184, 0.5)',
+              borderRadius: '50%',
+            }}
+          />
+        </div>
       </div>
     </div>
   );
