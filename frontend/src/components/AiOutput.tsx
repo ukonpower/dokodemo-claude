@@ -294,13 +294,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
             </span>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={scrollToBottom}
-              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-              title="一番下までスクロール"
-            >
-              <ArrowDown size={14} />
-            </button>
             {onRestartAi && (
               <button
                 onClick={onRestartAi}
@@ -331,6 +324,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
           onResize={handleTerminalOutResize}
           disableStdin={false}
         />
+
+        {/* スクロール位置を一番下に移動するボタン（スクロールハンドルの下） */}
+        <button
+          onClick={scrollToBottom}
+          className="absolute right-2 bottom-2 flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
+          title="一番下までスクロール"
+          style={{ zIndex: 20 }}
+        >
+          <ArrowDown size={16} />
+        </button>
 
         {/* AI CLI専用ローディング表示 */}
         {isLoading && (
