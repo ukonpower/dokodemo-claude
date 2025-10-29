@@ -324,7 +324,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       </div>
 
       {/* XTermターミナル出力エリア */}
-      <div className="flex-1 bg-dark-bg-primary overflow-auto relative">
+      <div className="flex-1 bg-dark-bg-primary relative">
         <TerminalOut
           onKeyInput={onKeyInput}
           onTerminalReady={handleTerminalReady}

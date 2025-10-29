@@ -407,7 +407,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       )}
 
       {/* ターミナルメイン表示 */}
-      <div className="flex-1 min-h-0 h-full bg-dark-bg-primary overflow-auto relative">
+      <div className="flex-1 min-h-0 h-full bg-dark-bg-primary relative">
         <TerminalOut
           onKeyInput={handleKeyInput}
           onTerminalReady={handleTerminalReady}
