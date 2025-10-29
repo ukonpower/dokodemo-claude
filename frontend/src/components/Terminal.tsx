@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { ArrowDown } from 'lucide-react';
 import type { Terminal, TerminalMessage, TerminalOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 
@@ -58,6 +59,13 @@ const TerminalComponent: React.FC<TerminalProps> = ({
   // Enterキー送信
   const handleEnterKey = () => {
     onInput(terminal.id, '\r');
+  };
+
+  // 一番下までスクロール
+  const scrollToBottom = () => {
+    if (xtermInstance.current) {
+      xtermInstance.current.scrollToBottom();
+    }
   };
 
   // ペースト処理（useCallbackでメモ化）
@@ -264,6 +272,15 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         </div>
 
         <div className="flex items-center space-x-1 sm:space-x-2">
+          {/* スクロールダウンボタン */}
+          <button
+            onClick={scrollToBottom}
+            className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+            title="一番下までスクロール"
+          >
+            <ArrowDown size={14} />
+          </button>
+
           {/* Ctrl+Cボタン（常時表示） */}
           <button
             onClick={handleCtrlC}

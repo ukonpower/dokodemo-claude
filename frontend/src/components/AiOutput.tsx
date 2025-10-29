@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useId } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { RotateCw, Trash2 } from 'lucide-react';
+import { RotateCw, Trash2, ArrowDown } from 'lucide-react';
 import type { AiProvider } from '../types';
 import TerminalOut from './TerminalOut';
 
@@ -184,6 +184,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   };
 
+  // 一番下までスクロールする関数
+  const scrollToBottom = () => {
+    if (terminal.current) {
+      terminal.current.scrollToBottom();
+      debugLog('Scroll to bottom button pressed');
+    }
+  };
+
   // TerminalOutからのリサイズコールバック
   const handleTerminalOutResize = useCallback(
     (cols: number, rows: number) => {
@@ -260,6 +268,13 @@ const AiOutput: React.FC<AiOutputProps> = ({
             </span>
           </div>
           <div className="flex items-center space-x-2">
+            <button
+              onClick={scrollToBottom}
+              className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+              title="一番下までスクロール"
+            >
+              <ArrowDown size={14} />
+            </button>
             {onRestartAi && (
               <button
                 onClick={onRestartAi}
