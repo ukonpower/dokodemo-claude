@@ -253,7 +253,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
     }
   }, [messages]);
 
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {

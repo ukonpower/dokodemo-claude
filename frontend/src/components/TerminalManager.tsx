@@ -183,8 +183,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 key={terminal.id}
                 className="absolute inset-0"
                 style={{
-                  display:
-                    activeTerminalId === terminal.id ? 'block' : 'none',
+                  display: activeTerminalId === terminal.id ? 'block' : 'none',
                 }}
               >
                 <TerminalComponent

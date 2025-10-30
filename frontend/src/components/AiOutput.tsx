@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo, useId } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown } from 'lucide-react';
@@ -20,7 +20,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onKeyInput,
   onResize,
 }) => {
-  const outputId = useId();
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
@@ -59,55 +58,28 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [currentProvider]);
 
-  const debugLog = useCallback(
-    (message: string, extra?: Record<string, unknown>) => {
-      const rawLength = rawOutput?.length ?? 0;
-      console.debug('[AiOutput]', message, {
-        id: outputId,
-        rawLength,
-        lastOutputLength: lastOutputLength.current,
-        hasShownInitialMessage: hasShownInitialMessage.current,
-        provider: currentProvider,
-        ...extra,
-      });
-    },
-    [currentProvider, outputId, rawOutput]
-  );
-
   const renderInitialMessages = useCallback(
     (targetTerminal: Terminal) => {
       targetTerminal.writeln(providerInfo.initialMessage1);
       targetTerminal.writeln(providerInfo.initialMessage2);
       hasShownInitialMessage.current = true;
-      debugLog('Rendered initial provider messages');
     },
-    [debugLog, providerInfo]
+    [providerInfo]
   );
 
   const syncTerminalWithOutput = useCallback(
     (options?: { forceFullRender?: boolean }) => {
       if (!terminal.current) {
-        const requestedForce = options?.forceFullRender ?? false;
         if (rawOutput) {
           pendingInitialOutput.current = rawOutput;
-          debugLog('Terminal not ready, cached pending output', {
-            cachedLength: rawOutput.length,
-            force: requestedForce,
-          });
         } else if (pendingInitialOutput.current && !rawOutput) {
           pendingInitialOutput.current = null;
         }
-        debugLog('syncTerminalWithOutput skipped: terminal not ready', {
-          force: options?.forceFullRender,
-        });
         return;
       }
 
       const targetTerminal = terminal.current;
       const shouldForceFullRender = options?.forceFullRender ?? false;
-      debugLog('syncTerminalWithOutput invoked', {
-        force: shouldForceFullRender,
-      });
 
       if (!rawOutput) {
         pendingInitialOutput.current = null;
@@ -120,9 +92,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
           targetTerminal.clear();
           lastOutputLength.current = 0;
           hasShownInitialMessage.current = false;
-          debugLog('Cleared terminal for empty rawOutput', {
-            reason: shouldForceFullRender ? 'force' : 'stateChanged',
-          });
         }
 
         if (shouldForceFullRender || !hasShownInitialMessage.current) {
@@ -131,7 +100,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
         return;
       }
 
-      if (shouldForceFullRender || rawOutput.length < lastOutputLength.current) {
+      // 出力が短くなった場合のみclearしてフルレンダリング
+      if (rawOutput.length < lastOutputLength.current) {
         targetTerminal.clear();
         targetTerminal.write(rawOutput);
         lastOutputLength.current = rawOutput.length;
@@ -146,16 +116,30 @@ const AiOutput: React.FC<AiOutputProps> = ({
           }
         });
 
-        debugLog('Rendered full rawOutput', {
-          appliedLength: rawOutput.length,
-          force: shouldForceFullRender,
+        return;
+      }
+
+      // forceFullRenderの場合でも差分更新を優先（点滅防止）
+      if (shouldForceFullRender && lastOutputLength.current === 0) {
+        targetTerminal.clear();
+        targetTerminal.write(rawOutput);
+        lastOutputLength.current = rawOutput.length;
+        hasShownInitialMessage.current = false;
+
+        // 出力後に確実にスクロール
+        requestAnimationFrame(() => {
+          if (targetTerminal && targetTerminal.buffer) {
+            const buffer = targetTerminal.buffer.active;
+            const scrollToLine = buffer.baseY + buffer.length;
+            targetTerminal.scrollToLine(scrollToLine);
+          }
         });
+
         return;
       }
 
       const newOutput = rawOutput.slice(lastOutputLength.current);
       if (!newOutput) {
-        debugLog('No new output to append');
         return;
       }
 
@@ -176,11 +160,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
         }
       });
 
-      debugLog('Appended new output chunk', {
-        appendedLength: newOutput.length,
-      });
     },
-    [debugLog, rawOutput, renderInitialMessages]
+    [rawOutput, renderInitialMessages]
   );
 
   // 一番下までスクロールする関数
@@ -193,7 +174,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
           const buffer = terminal.current.buffer.active;
           const scrollToLine = buffer.baseY + buffer.length;
           terminal.current.scrollToLine(scrollToLine);
-          debugLog('Scroll to bottom button pressed', { scrollToLine });
         }
       });
     }
@@ -211,7 +191,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
         // 新しいサイズをバックエンドに送信
         if (onResize) {
           onResize(cols, rows);
-          debugLog('Terminal size resent', { cols, rows });
         }
       } catch (error) {
         console.warn('Failed to resize terminal:', error);
@@ -236,7 +215,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
       fitAddonInstance: FitAddon,
       initialSize?: { cols: number; rows: number }
     ) => {
-      debugLog('Terminal ready');
       terminal.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
 
@@ -254,15 +232,12 @@ const AiOutput: React.FC<AiOutputProps> = ({
         lastOutputLength.current = cachedOutput.length;
         hasShownInitialMessage.current = false;
         terminalInstance.scrollToBottom();
-        debugLog('Flushed cached pending output', {
-          length: cachedOutput.length,
-        });
         return;
       }
 
       syncTerminalWithOutput({ forceFullRender: true });
     },
-    [debugLog, onResize, syncTerminalWithOutput]
+    [onResize, syncTerminalWithOutput]
   );
 
   // プロバイダー変更時にターミナルを初期化
@@ -273,15 +248,13 @@ const AiOutput: React.FC<AiOutputProps> = ({
     terminal.current.clear();
     lastOutputLength.current = 0;
     hasShownInitialMessage.current = false;
-    debugLog('Provider changed, forcing full render');
     syncTerminalWithOutput({ forceFullRender: true });
-  }, [currentProvider, debugLog, syncTerminalWithOutput]);
+  }, [currentProvider, syncTerminalWithOutput]);
 
   // 出力が更新されたらターミナルに書き込み（差分のみ追記）
   useEffect(() => {
-    debugLog('rawOutput changed, syncing terminal');
     syncTerminalWithOutput();
-  }, [debugLog, rawOutput, syncTerminalWithOutput]);
+  }, [rawOutput, syncTerminalWithOutput]);
 
   return (
     <div className="flex flex-col h-full">
@@ -324,6 +297,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           onTerminalReady={handleTerminalReady}
           onResize={handleTerminalOutResize}
           disableStdin={false}
+          cursorBlink={false}
         />
 
         {/* 右下のスクロールボタン */}

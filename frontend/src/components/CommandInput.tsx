@@ -310,7 +310,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // フォーカスを自動で設定
     useEffect(() => {
-      console.log('[CommandInput] autoFocus effect, autoFocus:', autoFocus, 'disabled:', disabled);
+      console.log(
+        '[CommandInput] autoFocus effect, autoFocus:',
+        autoFocus,
+        'disabled:',
+        disabled
+      );
       if (!autoFocus || disabled) {
         return;
       }

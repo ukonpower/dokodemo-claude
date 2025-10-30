@@ -92,7 +92,9 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       const path = repo.path.toLowerCase();
       const url = repo.url?.toLowerCase() || '';
 
-      return name.includes(query) || path.includes(query) || url.includes(query);
+      return (
+        name.includes(query) || path.includes(query) || url.includes(query)
+      );
     })
     .sort((a, b) => {
       // localStorageから最終アクセス時刻を取得
@@ -111,9 +113,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       {/* 既存プロジェクト一覧 */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-bold text-white">
-            Projects
-          </h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white">Projects</h2>
           {/* 検索入力 */}
           {repositories.length > 0 && (
             <div className="relative flex-1 sm:max-w-md">

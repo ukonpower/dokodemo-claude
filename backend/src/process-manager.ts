@@ -677,7 +677,10 @@ export class ProcessManager extends EventEmitter {
     repositoryPath: string,
     repositoryName: string,
     provider: AiProvider,
-    options?: { forceRestart?: boolean; initialSize?: { cols: number; rows: number } }
+    options?: {
+      forceRestart?: boolean;
+      initialSize?: { cols: number; rows: number };
+    }
   ): Promise<ActiveAiSession> {
     const sessionKey = this.getSessionKey(repositoryPath, provider);
 

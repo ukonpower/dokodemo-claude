@@ -63,10 +63,6 @@ function App() {
     localStorage.setItem('preferred-ai-provider', currentProvider);
 
     const nextOutput = aiLogs.get(currentProvider) || '';
-    console.debug('[App] sync rawOutput from provider effect', {
-      provider: currentProvider,
-      length: nextOutput.length,
-    });
     setRawOutput(nextOutput);
   }, [aiLogs, currentProvider]);
 
@@ -79,9 +75,6 @@ function App() {
       if (repoFromUrl !== currentRepo) {
         setCurrentRepo(repoFromUrl);
         if (!repoFromUrl) {
-          console.debug('[App] setRawOutput home navigation', {
-            reason: 'popstate no repo',
-          });
           setRawOutput('');
           setCurrentSessionId('');
           // ホームに戻る際はターミナル状態もクリア
@@ -312,12 +305,6 @@ function App() {
         ) {
           const provider = data.provider || 'claude';
 
-          console.debug('[App] claude-raw-output chunk', {
-            repo: data.repositoryPath,
-            provider,
-            chunkLength: data.content.length,
-          });
-
           // プロバイダー別ログマップに追記
           setAiLogs((prevLogs) => {
             const newLogs = new Map(prevLogs);
@@ -334,10 +321,6 @@ function App() {
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
               setRawOutput(newOutput);
-              console.debug('[App] setRawOutput from chunk', {
-                provider,
-                length: newOutput.length,
-              });
             }
 
             return newLogs;
@@ -361,9 +344,6 @@ function App() {
           // 削除されたリポジトリが現在選択中のリポジトリの場合、リポジトリ選択画面に戻る
           if (currentRepoRef.current === data.path) {
             setCurrentRepo('');
-            console.debug('[App] setRawOutput repo deleted', {
-              reason: 'repo deleted',
-            });
             setRawOutput('');
             setCurrentSessionId('');
             setTerminals([]);
@@ -478,23 +458,8 @@ function App() {
 
           const existingLog = aiLogsRef.current.get(provider) || '';
           if (historyOutput.length === 0 && existingLog.length > 0) {
-            console.debug(
-              '[App] skip empty ai-output-history to preserve ai history',
-              {
-                repo: data.repositoryPath,
-                provider,
-                existingLength: existingLog.length,
-              }
-            );
             return;
           }
-
-          console.debug('[App] ai-output-history', {
-            repo: data.repositoryPath,
-            provider,
-            lines: data.history.length,
-            length: historyOutput.length,
-          });
 
           // プロバイダー別ログマップに反映
           setAiLogs((prevLogs) => {
@@ -504,10 +469,6 @@ function App() {
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
               setRawOutput(historyOutput);
-              console.debug('[App] setRawOutput from ai-output-history', {
-                provider,
-                length: historyOutput.length,
-              });
             }
 
             return newLogs;
@@ -529,25 +490,9 @@ function App() {
             .join('');
 
           const existingLog = aiLogsRef.current.get('claude') || '';
-          if (
-            historyOutput.length === 0 &&
-            existingLog.length > 0
-          ) {
-            console.debug(
-              '[App] skip empty claude-output-history to preserve ai history',
-              {
-                repo: data.repositoryPath,
-                existingLength: existingLog.length,
-              }
-            );
+          if (historyOutput.length === 0 && existingLog.length > 0) {
             return;
           }
-
-          console.debug('[App] claude-output-history', {
-            repo: data.repositoryPath,
-            lines: data.history.length,
-            length: historyOutput.length,
-          });
 
           // claudeプロバイダーとしてaiLogsに反映
           setAiLogs((prevLogs) => {
@@ -557,10 +502,6 @@ function App() {
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
               setRawOutput(historyOutput);
-              console.debug('[App] setRawOutput from claude-output-history', {
-                provider: 'claude',
-                length: historyOutput.length,
-              });
             }
 
             return newLogs;
@@ -702,15 +643,7 @@ function App() {
             // （ブランチセレクター自体で状態が更新されるため）
           } else {
             // エラーの場合のみClaude出力エリアに表示
-            setRawOutput((prev) => {
-              const next = prev + `\n[ERROR] ${data.message}\n`;
-              console.debug('[App] setRawOutput append error', {
-                reason: 'branch switch error',
-                previousLength: prev.length,
-                nextLength: next.length,
-              });
-              return next;
-            });
+            setRawOutput((prev) => prev + `\n[ERROR] ${data.message}\n`);
           }
         }
       });
@@ -784,9 +717,7 @@ function App() {
 
       // エディタ起動関連イベントハンドラ
       socketInstance.on('editor-opened', (data) => {
-        if (data.success) {
-          console.log(data.message);
-        } else {
+        if (!data.success) {
           console.error(data.message);
           alert(data.message);
         }
@@ -804,11 +735,7 @@ function App() {
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-            console.debug('[App] setRawOutput provider history empty', {
-              reason: 'ai-output-cleared event',
-              provider,
-            });
-            setRawOutput('');
+              setRawOutput('');
             }
 
             return newLogs;
@@ -826,10 +753,7 @@ function App() {
 
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
-            console.debug('[App] setRawOutput claude history cleared', {
-              reason: 'claude-output-cleared event',
-            });
-            setRawOutput('');
+              setRawOutput('');
             }
 
             return newLogs;
@@ -1006,16 +930,8 @@ function App() {
       // aiLogsにキャッシュがあれば即座に画面反映
       const cachedLog = aiLogs.get(provider);
       if (cachedLog !== undefined) {
-        console.debug('[App] setRawOutput provider change', {
-          provider,
-          length: cachedLog.length,
-        });
         setRawOutput(cachedLog);
       } else {
-        console.debug('[App] setRawOutput provider change', {
-          provider,
-          reason: 'no cache',
-        });
         setRawOutput(''); // キャッシュがない場合はクリア
       }
 
@@ -1037,9 +953,6 @@ function App() {
     }
 
     setCurrentRepo('');
-    console.debug('[App] setRawOutput back to repo selection', {
-      reason: 'backToRepoSelection',
-    });
     setRawOutput(''); // CLIログをクリア
     setAutoModeConfigs([]);
     setAutoModeState(null);

@@ -81,6 +81,14 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const isTwoFingerScroll = useRef<boolean>(false);
   const isScrollHandleDrag = useRef<boolean>(false);
   const scrollHandleStartY = useRef<number>(0);
+  const isComposing = useRef<boolean>(false); // IME入力中かどうかを追跡
+  const blockEnterAfterComposition = useRef<boolean>(false); // IME確定直後のEnter送信を抑止
+  const skipNextEnterData = useRef<boolean>(false); // onDataで次のEnterを抑止するためのフラグ
+
+  const resetImeGuards = useCallback(() => {
+    skipNextEnterData.current = false;
+    blockEnterAfterComposition.current = false;
+  }, []);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -144,8 +152,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     const finalFontSize = fontSize ?? (isLargeScreen ? 11 : 9);
 
     // iOS環境の検出
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIOS =
+      /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     // ターミナルインスタンスを作成（横スクロール対応の設定）
     terminal.current = new Terminal({
@@ -207,31 +216,122 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     terminal.current.open(terminalRef.current);
 
     // iOSタッチスクロール対応: CSS設定を追加
-    const terminalElement = terminalRef.current.querySelector('.xterm') as HTMLElement;
-    const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
-    const screenElement = terminalRef.current.querySelector('.xterm-screen') as HTMLElement;
+    const terminalElement = terminalRef.current.querySelector(
+      '.xterm'
+    ) as HTMLElement;
+    const viewportElement = terminalRef.current.querySelector(
+      '.xterm-viewport'
+    ) as HTMLElement;
+    const screenElement = terminalRef.current.querySelector(
+      '.xterm-screen'
+    ) as HTMLElement;
 
     if (terminalElement) {
       // 縦スクロールをネイティブに任せる
       terminalElement.style.touchAction = 'pan-y';
-      (terminalElement.style as unknown as Record<string, string>).webkitOverflowScrolling = 'touch';
+      (
+        terminalElement.style as unknown as Record<string, string>
+      ).webkitOverflowScrolling = 'touch';
       terminalElement.style.overscrollBehavior = 'contain';
 
       // スクロール優先：長押し選択を無効化
       if (screenElement) {
-        (screenElement.style as unknown as Record<string, string>).webkitUserSelect = 'none';
+        (
+          screenElement.style as unknown as Record<string, string>
+        ).webkitUserSelect = 'none';
         screenElement.style.userSelect = 'none';
       }
     }
 
     if (viewportElement) {
       viewportElement.style.touchAction = 'pan-y';
-      (viewportElement.style as unknown as Record<string, string>).webkitOverflowScrolling = 'touch';
+      (
+        viewportElement.style as unknown as Record<string, string>
+      ).webkitOverflowScrolling = 'touch';
       viewportElement.style.overscrollBehavior = 'contain';
+    }
+
+    // xterm.jsのtextareaにアクセスしてIMEイベントを監視
+    const textarea = (terminal.current as TerminalWithTextarea).textarea;
+    if (textarea) {
+      // IME入力開始
+      const handleCompositionStart = () => {
+        isComposing.current = true;
+        blockEnterAfterComposition.current = false;
+        skipNextEnterData.current = false;
+      };
+
+      // IME入力終了（変換確定）
+      const handleCompositionEnd = () => {
+        isComposing.current = false;
+        blockEnterAfterComposition.current = true;
+        skipNextEnterData.current = true;
+      };
+
+      // IME確定時のEnterキーをブロック
+      const handleKeydown = (e: KeyboardEvent) => {
+        const isEnterKey =
+          e.key === 'Enter' ||
+          e.code === 'Enter' ||
+          e.code === 'NumpadEnter' ||
+          (e.key === 'Process' && (e.isComposing || isComposing.current));
+        const shouldSuppress =
+          isEnterKey &&
+          (e.isComposing || isComposing.current || blockEnterAfterComposition.current);
+
+        if (shouldSuppress) {
+          blockEnterAfterComposition.current = true;
+          skipNextEnterData.current = true;
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+
+        if (!isEnterKey && blockEnterAfterComposition.current) {
+          blockEnterAfterComposition.current = false;
+          skipNextEnterData.current = false;
+        }
+      };
+
+      const handleBlur = () => {
+        isComposing.current = false;
+        resetImeGuards();
+      };
+
+      textarea.addEventListener('compositionstart', handleCompositionStart);
+      textarea.addEventListener('compositionend', handleCompositionEnd);
+      textarea.addEventListener('keydown', handleKeydown, true);
+      textarea.addEventListener('blur', handleBlur);
+
+      // クリーンアップ関数で後で削除できるように保存
+      (
+        textarea as HTMLTextAreaElement & { _imeCleanup?: () => void }
+      )._imeCleanup = () => {
+        resetImeGuards();
+        isComposing.current = false;
+        textarea.removeEventListener(
+          'compositionstart',
+          handleCompositionStart
+        );
+        textarea.removeEventListener('compositionend', handleCompositionEnd);
+        textarea.removeEventListener('keydown', handleKeydown, true);
+        textarea.removeEventListener('blur', handleBlur);
+      };
     }
 
     // xterm.jsのonDataを使ってキー入力を受け取る
     terminal.current.onData((data) => {
+      if (skipNextEnterData.current && (data === '\r' || data === '\r\n')) {
+        resetImeGuards();
+        return;
+      }
+
+      if (blockEnterAfterComposition.current && (data === '\r' || data === '\r\n')) {
+        resetImeGuards();
+        return;
+      }
+
       // Focus In/Focus Outイベントをフィルタリング
       // \x1b[I = Focus In, \x1b[O = Focus Out
       if (data === '\x1b[I' || data === '\x1b[O') {
@@ -266,6 +366,17 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
 
     return () => {
+      // IMEイベントリスナーのクリーンアップ
+      const textarea = (terminal.current as TerminalWithTextarea)?.textarea;
+      if (textarea) {
+        const cleanup = (
+          textarea as HTMLTextAreaElement & { _imeCleanup?: () => void }
+        )._imeCleanup;
+        if (cleanup) {
+          cleanup();
+        }
+      }
+
       if (resizeObserver.current) {
         resizeObserver.current.disconnect();
         resizeObserver.current = null;
@@ -293,28 +404,31 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   }, []);
 
   // ターミナルエリアクリックでフォーカスする（disableStdinの場合やドラッグの場合はフォーカスしない）
-  const handleTerminalClick = useCallback((e: React.MouseEvent) => {
-    // マウスダウン位置と比較して、移動していたらドラッグと判定してフォーカスしない
-    if (mouseDownPos.current) {
-      const dx = Math.abs(e.clientX - mouseDownPos.current.x);
-      const dy = Math.abs(e.clientY - mouseDownPos.current.y);
-      const isDrag = dx > 5 || dy > 5; // 5px以上移動したらドラッグ
+  const handleTerminalClick = useCallback(
+    (e: React.MouseEvent) => {
+      // マウスダウン位置と比較して、移動していたらドラッグと判定してフォーカスしない
+      if (mouseDownPos.current) {
+        const dx = Math.abs(e.clientX - mouseDownPos.current.x);
+        const dy = Math.abs(e.clientY - mouseDownPos.current.y);
+        const isDrag = dx > 5 || dy > 5; // 5px以上移動したらドラッグ
 
-      if (isDrag) {
-        mouseDownPos.current = null;
-        return;
+        if (isDrag) {
+          mouseDownPos.current = null;
+          return;
+        }
       }
-    }
 
-    mouseDownPos.current = null;
+      mouseDownPos.current = null;
 
-    if (!disableStdin) {
-      focusTerminal();
-    }
-    if (onClick) {
-      onClick();
-    }
-  }, [disableStdin, focusTerminal, onClick]);
+      if (!disableStdin) {
+        focusTerminal();
+      }
+      if (onClick) {
+        onClick();
+      }
+    },
+    [disableStdin, focusTerminal, onClick]
+  );
 
   // 二本指スクロールの開始を検出
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -337,7 +451,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
       // ターミナル要素を直接スクロール
       if (terminalRef.current) {
-        const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+        const viewportElement = terminalRef.current.querySelector(
+          '.xterm-viewport'
+        ) as HTMLElement;
         if (viewportElement) {
           viewportElement.scrollTop += deltaY;
         }
@@ -373,7 +489,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
       // ターミナル要素を直接スクロール
       if (terminalRef.current) {
-        const viewportElement = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+        const viewportElement = terminalRef.current.querySelector(
+          '.xterm-viewport'
+        ) as HTMLElement;
         if (viewportElement) {
           viewportElement.scrollTop -= deltaY; // 逆方向にスクロール（自然な動き）
         }
@@ -413,7 +531,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         onTouchMove={handleScrollHandleTouchMove}
         onTouchEnd={handleScrollHandleTouchEnd}
         style={{
-          background: 'linear-gradient(to left, rgba(30, 41, 59, 0.2), transparent)',
+          background:
+            'linear-gradient(to left, rgba(30, 41, 59, 0.2), transparent)',
           touchAction: 'none', // タッチ操作を完全に制御
           zIndex: 10,
         }}
