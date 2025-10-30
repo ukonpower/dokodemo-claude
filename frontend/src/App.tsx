@@ -7,6 +7,7 @@ import type {
   TerminalMessage,
   TerminalOutputLine,
   ClaudeOutputLine,
+  AiOutputLine,
   CommandShortcut,
   AutoModeConfig,
   AutoModeState,
@@ -30,7 +31,6 @@ import AutoModeSettings from './components/AutoModeSettings';
 import ProviderSelector from './components/ProviderSelector';
 
 // メモリリーク対策のための最大値設定
-const MAX_RAW_OUTPUT_LENGTH = Infinity; // 100KB
 const MAX_TERMINAL_MESSAGES = 1000; // ターミナルメッセージの最大保持数
 
 function App() {
@@ -39,13 +39,17 @@ function App() {
     ClientToServerEvents
   > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
-  // プロバイダー別CLIログ管理
-  const [aiLogs, setAiLogs] = useState<Map<AiProvider, string>>(new Map());
-  const aiLogsRef = useRef(aiLogs);
+  // プロバイダー別CLIログ管理（メッセージ配列ベース）
+  const [aiMessages, setAiMessages] = useState<Map<AiProvider, AiOutputLine[]>>(
+    new Map()
+  );
+  const aiMessagesRef = useRef(aiMessages);
   useEffect(() => {
-    aiLogsRef.current = aiLogs;
-  }, [aiLogs]);
-  const [rawOutput, setRawOutput] = useState<string>(''); // 現在のプロバイダーの生ログを表示用（aiLogsと同期）
+    aiMessagesRef.current = aiMessages;
+  }, [aiMessages]);
+  const [currentAiMessages, setCurrentAiMessages] = useState<AiOutputLine[]>(
+    []
+  ); // 現在のプロバイダーのメッセージを表示用（aiMessagesと同期）
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     // URLのクエリパラメータからリポジトリパスを復元
     const urlParams = new URLSearchParams(window.location.search);
@@ -58,13 +62,13 @@ function App() {
     );
   });
 
-  // プロバイダー変更時にlocalStorageに保存 & rawOutputを同期
+  // プロバイダー変更時にlocalStorageに保存 & currentAiMessagesを同期
   useEffect(() => {
     localStorage.setItem('preferred-ai-provider', currentProvider);
 
-    const nextOutput = aiLogs.get(currentProvider) || '';
-    setRawOutput(nextOutput);
-  }, [aiLogs, currentProvider]);
+    const nextMessages = aiMessages.get(currentProvider) || [];
+    setCurrentAiMessages(nextMessages);
+  }, [aiMessages, currentProvider]);
 
   // ブラウザの戻る/進むボタン対応
   useEffect(() => {
@@ -75,7 +79,7 @@ function App() {
       if (repoFromUrl !== currentRepo) {
         setCurrentRepo(repoFromUrl);
         if (!repoFromUrl) {
-          setRawOutput('');
+          setCurrentAiMessages([]);
           setCurrentSessionId('');
           // ホームに戻る際はターミナル状態もクリア
           setTerminals([]);
@@ -296,39 +300,47 @@ function App() {
         );
       });
 
-      // 生ログの受信（プロバイダー別に管理）
-      socketInstance.on('claude-raw-output', (data) => {
+      // 新しい構造化メッセージの受信（プロバイダー別に管理）
+      socketInstance.on('ai-output-line', (data) => {
         // repositoryPathが指定されていて、現在のリポジトリと一致する場合のみ表示
         if (
           !data.repositoryPath ||
           data.repositoryPath === currentRepoRef.current
         ) {
-          const provider = data.provider || 'claude';
+          const provider = data.provider;
 
-          // プロバイダー別ログマップに追記
-          setAiLogs((prevLogs) => {
-            const newLogs = new Map(prevLogs);
-            const currentLog = newLogs.get(provider) || '';
-            let newOutput = currentLog + data.content;
+          // プロバイダー別メッセージ配列に追記
+          setAiMessages((prevMessages) => {
+            const newMessages = new Map(prevMessages);
+            const currentMessages = newMessages.get(provider) || [];
+            const updatedMessages = [...currentMessages, data.outputLine];
 
-            // 最大文字数を超えた場合、古いデータを削除
-            if (newOutput.length > MAX_RAW_OUTPUT_LENGTH) {
-              newOutput = newOutput.slice(-MAX_RAW_OUTPUT_LENGTH);
-            }
+            // 最大行数を超えた場合、古いデータを削除
+            const MAX_MESSAGES = 500;
+            const finalMessages =
+              updatedMessages.length > MAX_MESSAGES
+                ? updatedMessages.slice(-MAX_MESSAGES)
+                : updatedMessages;
 
-            newLogs.set(provider, newOutput);
+            newMessages.set(provider, finalMessages);
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setRawOutput(newOutput);
+              setCurrentAiMessages(finalMessages);
             }
 
-            return newLogs;
+            return newMessages;
           });
 
           // Claude出力が更新されたらローディング終了
           endLoadingOnClaudeOutput();
         }
+      });
+
+      // 生ログの受信（後方互換性用、プロバイダー別に管理）
+      socketInstance.on('claude-raw-output', (_data) => {
+        // 新しい 'ai-output-line' イベントが使用されている場合は無視
+        // (後方互換性のために残しておくが、新しいイベントが優先される)
       });
 
       socketInstance.on('repo-cloned', () => {
@@ -344,7 +356,7 @@ function App() {
           // 削除されたリポジトリが現在選択中のリポジトリの場合、リポジトリ選択画面に戻る
           if (currentRepoRef.current === data.path) {
             setCurrentRepo('');
-            setRawOutput('');
+            setCurrentAiMessages([]);
             setCurrentSessionId('');
             setTerminals([]);
             setTerminalMessages([]);
@@ -452,26 +464,24 @@ function App() {
       socketInstance.on('ai-output-history', (data) => {
         if (data.repositoryPath === currentRepoRef.current) {
           const provider = data.provider || 'claude';
-          const historyOutput = data.history
-            .map((line: ClaudeOutputLine) => line.content)
-            .join('');
+          const historyMessages: AiOutputLine[] = data.history;
 
-          const existingLog = aiLogsRef.current.get(provider) || '';
-          if (historyOutput.length === 0 && existingLog.length > 0) {
+          const existingMessages = aiMessagesRef.current.get(provider) || [];
+          if (historyMessages.length === 0 && existingMessages.length > 0) {
             return;
           }
 
-          // プロバイダー別ログマップに反映
-          setAiLogs((prevLogs) => {
-            const newLogs = new Map(prevLogs);
-            newLogs.set(provider, historyOutput);
+          // プロバイダー別メッセージ配列に反映
+          setAiMessages((prevMessages) => {
+            const newMessages = new Map(prevMessages);
+            newMessages.set(provider, historyMessages);
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setRawOutput(historyOutput);
+              setCurrentAiMessages(historyMessages);
             }
 
-            return newLogs;
+            return newMessages;
           });
 
           // 履歴が受信されたらローディング終了
@@ -481,37 +491,35 @@ function App() {
 
       // Claude出力履歴受信イベント（後方互換性）
       socketInstance.on('claude-output-history', (data) => {
-        // Received Claude history
         if (data.repositoryPath === currentRepoRef.current) {
-          // Applying Claude history to current repo
-          // 履歴を復元（既存の出力を置き換え）
-          const historyOutput = data.history
-            .map((line: ClaudeOutputLine) => line.content)
-            .join('');
+          // ClaudeOutputLineをAiOutputLineに変換してclaudeプロバイダーとして処理
+          const historyMessages: AiOutputLine[] = data.history.map(
+            (line: ClaudeOutputLine) => ({
+              ...line,
+              provider: 'claude' as AiProvider,
+            })
+          );
 
-          const existingLog = aiLogsRef.current.get('claude') || '';
-          if (historyOutput.length === 0 && existingLog.length > 0) {
+          const existingMessages = aiMessagesRef.current.get('claude') || [];
+          if (historyMessages.length === 0 && existingMessages.length > 0) {
             return;
           }
 
-          // claudeプロバイダーとしてaiLogsに反映
-          setAiLogs((prevLogs) => {
-            const newLogs = new Map(prevLogs);
-            newLogs.set('claude', historyOutput);
+          // claudeプロバイダーとしてaiMessagesに反映
+          setAiMessages((prevMessages) => {
+            const newMessages = new Map(prevMessages);
+            newMessages.set('claude', historyMessages);
 
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
-              setRawOutput(historyOutput);
+              setCurrentAiMessages(historyMessages);
             }
 
-            return newLogs;
+            return newMessages;
           });
-          // Claude history applied
 
           // Claude履歴が受信されたらローディング終了
           endLoadingOnClaudeOutput();
-        } else {
-          // Ignoring Claude history for different repo
         }
       });
 
@@ -642,8 +650,25 @@ function App() {
             // ブランチ切り替えメッセージはClaude出力エリアに表示しない
             // （ブランチセレクター自体で状態が更新されるため）
           } else {
-            // エラーの場合のみClaude出力エリアに表示
-            setRawOutput((prev) => prev + `\n[ERROR] ${data.message}\n`);
+            // エラーの場合のみAI出力エリアに表示
+            const errorMessage: AiOutputLine = {
+              id: `error-${Date.now()}`,
+              content: `\n[ERROR] ${data.message}\n`,
+              timestamp: Date.now(),
+              type: 'system',
+              provider: currentProviderRef.current,
+            };
+            setCurrentAiMessages((prev) => [...prev, errorMessage]);
+            setAiMessages((prevMessages) => {
+              const newMessages = new Map(prevMessages);
+              const currentMessages =
+                newMessages.get(currentProviderRef.current) || [];
+              newMessages.set(currentProviderRef.current, [
+                ...currentMessages,
+                errorMessage,
+              ]);
+              return newMessages;
+            });
           }
         }
       });
@@ -728,17 +753,17 @@ function App() {
         if (data.repositoryPath === currentRepoRef.current) {
           const provider = data.provider || 'claude';
 
-          // プロバイダー別ログマップからクリア
-          setAiLogs((prevLogs) => {
-            const newLogs = new Map(prevLogs);
-            newLogs.set(provider, '');
+          // プロバイダー別メッセージ配列をクリア
+          setAiMessages((prevMessages) => {
+            const newMessages = new Map(prevMessages);
+            newMessages.set(provider, []);
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setRawOutput('');
+              setCurrentAiMessages([]);
             }
 
-            return newLogs;
+            return newMessages;
           });
         }
       });
@@ -747,16 +772,16 @@ function App() {
       socketInstance.on('claude-output-cleared', (data) => {
         if (data.repositoryPath === currentRepoRef.current) {
           // claudeプロバイダーとして管理
-          setAiLogs((prevLogs) => {
-            const newLogs = new Map(prevLogs);
-            newLogs.set('claude', '');
+          setAiMessages((prevMessages) => {
+            const newMessages = new Map(prevMessages);
+            newMessages.set('claude', []);
 
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
-              setRawOutput('');
+              setCurrentAiMessages([]);
             }
 
-            return newLogs;
+            return newMessages;
           });
         }
       });
@@ -927,12 +952,12 @@ function App() {
 
     // 既にリポジトリが選択されている場合は、新しいプロバイダーでセッションを切り替え
     if (socket && currentRepo) {
-      // aiLogsにキャッシュがあれば即座に画面反映
-      const cachedLog = aiLogs.get(provider);
-      if (cachedLog !== undefined) {
-        setRawOutput(cachedLog);
+      // aiMessagesにキャッシュがあれば即座に画面反映
+      const cachedMessages = aiMessages.get(provider);
+      if (cachedMessages !== undefined) {
+        setCurrentAiMessages(cachedMessages);
       } else {
-        setRawOutput(''); // キャッシュがない場合はクリア
+        setCurrentAiMessages([]); // キャッシュがない場合はクリア
       }
 
       // サーバーにプロバイダー切替を通知
@@ -953,7 +978,7 @@ function App() {
     }
 
     setCurrentRepo('');
-    setRawOutput(''); // CLIログをクリア
+    setCurrentAiMessages([]); // CLIログをクリア
     setAutoModeConfigs([]);
     setAutoModeState(null);
     // URLからリポジトリパラメータを削除
@@ -1695,7 +1720,7 @@ function App() {
                 <div className="flex-1 min-h-0 overflow-hidden">
                   <AiOutput
                     key={`${currentRepo}:${currentProvider}`}
-                    rawOutput={rawOutput}
+                    messages={currentAiMessages}
                     currentProvider={currentProvider}
                     isLoading={isLoadingRepoData}
                     onKeyInput={handleAiKeyInput}

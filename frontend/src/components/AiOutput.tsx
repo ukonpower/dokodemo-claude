@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown } from 'lucide-react';
-import type { AiProvider } from '../types';
+import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 
 interface AiOutputProps {
-  rawOutput: string;
+  messages: AiOutputLine[]; // メッセージ配列ベースに変更
   currentProvider?: AiProvider; // プロバイダー情報を追加
   isLoading?: boolean;
   onKeyInput?: (key: string) => void;
@@ -15,7 +15,7 @@ interface AiOutputProps {
 }
 
 const AiOutput: React.FC<AiOutputProps> = ({
-  rawOutput,
+  messages,
   currentProvider = 'claude',
   isLoading = false,
   onKeyInput,
@@ -24,9 +24,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
 }) => {
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
-  const lastOutputLength = useRef<number>(0);
+  const lastMessageCount = useRef<number>(0); // メッセージ数でトラッキング
   const hasShownInitialMessage = useRef<boolean>(false);
-  const pendingInitialOutput = useRef<string | null>(null);
   const [isReloading, setIsReloading] = useState<boolean>(false);
 
   const providerInfo = useMemo(() => {
@@ -68,103 +67,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
       hasShownInitialMessage.current = true;
     },
     [providerInfo]
-  );
-
-  const syncTerminalWithOutput = useCallback(
-    (options?: { forceFullRender?: boolean }) => {
-      if (!terminal.current) {
-        if (rawOutput) {
-          pendingInitialOutput.current = rawOutput;
-        } else if (pendingInitialOutput.current && !rawOutput) {
-          pendingInitialOutput.current = null;
-        }
-        return;
-      }
-
-      const targetTerminal = terminal.current;
-      const shouldForceFullRender = options?.forceFullRender ?? false;
-
-      if (!rawOutput) {
-        pendingInitialOutput.current = null;
-        const shouldClear =
-          shouldForceFullRender ||
-          lastOutputLength.current > 0 ||
-          !hasShownInitialMessage.current;
-
-        if (shouldClear) {
-          targetTerminal.clear();
-          lastOutputLength.current = 0;
-          hasShownInitialMessage.current = false;
-        }
-
-        if (shouldForceFullRender || !hasShownInitialMessage.current) {
-          renderInitialMessages(targetTerminal);
-        }
-        return;
-      }
-
-      // 出力が短くなった場合のみclearしてフルレンダリング
-      if (rawOutput.length < lastOutputLength.current) {
-        targetTerminal.clear();
-        targetTerminal.write(rawOutput);
-        lastOutputLength.current = rawOutput.length;
-        hasShownInitialMessage.current = false;
-
-        // 出力後に確実にスクロール
-        requestAnimationFrame(() => {
-          if (targetTerminal && targetTerminal.buffer) {
-            const buffer = targetTerminal.buffer.active;
-            const scrollToLine = buffer.baseY + buffer.length;
-            targetTerminal.scrollToLine(scrollToLine);
-          }
-        });
-
-        return;
-      }
-
-      // forceFullRenderの場合でも差分更新を優先（点滅防止）
-      if (shouldForceFullRender && lastOutputLength.current === 0) {
-        targetTerminal.clear();
-        targetTerminal.write(rawOutput);
-        lastOutputLength.current = rawOutput.length;
-        hasShownInitialMessage.current = false;
-
-        // 出力後に確実にスクロール
-        requestAnimationFrame(() => {
-          if (targetTerminal && targetTerminal.buffer) {
-            const buffer = targetTerminal.buffer.active;
-            const scrollToLine = buffer.baseY + buffer.length;
-            targetTerminal.scrollToLine(scrollToLine);
-          }
-        });
-
-        return;
-      }
-
-      const newOutput = rawOutput.slice(lastOutputLength.current);
-      if (!newOutput) {
-        return;
-      }
-
-      if (lastOutputLength.current === 0) {
-        targetTerminal.clear();
-      }
-
-      targetTerminal.write(newOutput);
-      lastOutputLength.current = rawOutput.length;
-      hasShownInitialMessage.current = false;
-
-      // 出力後に確実にスクロール
-      requestAnimationFrame(() => {
-        if (targetTerminal && targetTerminal.buffer) {
-          const buffer = targetTerminal.buffer.active;
-          const scrollToLine = buffer.baseY + buffer.length;
-          targetTerminal.scrollToLine(scrollToLine);
-        }
-      });
-
-    },
-    [rawOutput, renderInitialMessages]
   );
 
   // 一番下までスクロールする関数
@@ -238,38 +140,75 @@ const AiOutput: React.FC<AiOutputProps> = ({
         onResize(initialSize.cols, initialSize.rows);
       }
 
-      // 既存の出力または初期メッセージを描画
-      if (pendingInitialOutput.current) {
-        const cachedOutput = pendingInitialOutput.current;
-        pendingInitialOutput.current = null;
+      // 初期メッセージまたは履歴を表示
+      if (messages.length === 0) {
+        renderInitialMessages(terminalInstance);
+      } else {
+        // 既存のメッセージを全て表示
         terminalInstance.clear();
-        terminalInstance.write(cachedOutput);
-        lastOutputLength.current = cachedOutput.length;
-        hasShownInitialMessage.current = false;
+        messages.forEach((message) => {
+          terminalInstance.write(message.content);
+        });
+        lastMessageCount.current = messages.length;
         terminalInstance.scrollToBottom();
-        return;
       }
-
-      syncTerminalWithOutput({ forceFullRender: true });
     },
-    [onResize, syncTerminalWithOutput]
+    [messages, onResize, renderInitialMessages]
   );
 
-  // プロバイダー変更時にターミナルを初期化
+  // プロバイダー変更時にターミナルをリセット
   useEffect(() => {
     if (!terminal.current) return;
 
     // ターミナルをクリアしてリセット
     terminal.current.clear();
-    lastOutputLength.current = 0;
+    lastMessageCount.current = 0;
     hasShownInitialMessage.current = false;
-    syncTerminalWithOutput({ forceFullRender: true });
-  }, [currentProvider, syncTerminalWithOutput]);
 
-  // 出力が更新されたらターミナルに書き込み（差分のみ追記）
+    // メッセージがあれば表示、なければ初期メッセージ
+    if (messages.length > 0) {
+      messages.forEach((message) => {
+        terminal.current?.write(message.content);
+      });
+      lastMessageCount.current = messages.length;
+      terminal.current.scrollToBottom();
+    } else {
+      renderInitialMessages(terminal.current);
+    }
+  }, [currentProvider, messages, renderInitialMessages]);
+
+  // 新しいメッセージを追記（Terminalコンポーネントと同じパターン）
   useEffect(() => {
-    syncTerminalWithOutput();
-  }, [rawOutput, syncTerminalWithOutput]);
+    if (!terminal.current) return;
+
+    // メッセージが空になった場合
+    if (messages.length === 0) {
+      if (lastMessageCount.current > 0 || !hasShownInitialMessage.current) {
+        terminal.current.clear();
+        renderInitialMessages(terminal.current);
+        lastMessageCount.current = 0;
+      }
+      return;
+    }
+
+    // 新しいメッセージのみを追記
+    const newMessages = messages.slice(lastMessageCount.current);
+    if (newMessages.length > 0) {
+      // 最初のメッセージの場合は初期メッセージをクリア
+      if (lastMessageCount.current === 0 && hasShownInitialMessage.current) {
+        terminal.current.clear();
+        hasShownInitialMessage.current = false;
+      }
+
+      newMessages.forEach((message) => {
+        terminal.current?.write(message.content);
+      });
+      lastMessageCount.current = messages.length;
+
+      // スクロール
+      scrollToBottom();
+    }
+  }, [messages, renderInitialMessages]);
 
   return (
     <div className="flex flex-col h-full">
