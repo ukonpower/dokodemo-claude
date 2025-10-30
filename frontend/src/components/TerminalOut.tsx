@@ -81,14 +81,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const isTwoFingerScroll = useRef<boolean>(false);
   const isScrollHandleDrag = useRef<boolean>(false);
   const scrollHandleStartY = useRef<number>(0);
-  const isComposing = useRef<boolean>(false); // IME入力中かどうかを追跡
-  const blockEnterAfterComposition = useRef<boolean>(false); // IME確定直後のEnter送信を抑止
-  const skipNextEnterData = useRef<boolean>(false); // onDataで次のEnterを抑止するためのフラグ
-
-  const resetImeGuards = useCallback(() => {
-    skipNextEnterData.current = false;
-    blockEnterAfterComposition.current = false;
-  }, []);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -251,92 +243,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       viewportElement.style.overscrollBehavior = 'contain';
     }
 
-    // xterm.jsのtextareaにアクセスしてIMEイベントを監視
-    const textarea = (terminal.current as TerminalWithTextarea).textarea;
-    if (textarea) {
-      // IME入力開始
-      const handleCompositionStart = () => {
-        isComposing.current = true;
-        blockEnterAfterComposition.current = false;
-        skipNextEnterData.current = false;
-      };
-
-      // IME入力終了（変換確定）
-      const handleCompositionEnd = () => {
-        isComposing.current = false;
-        blockEnterAfterComposition.current = true;
-        skipNextEnterData.current = true;
-      };
-
-      // IME確定時のEnterキーをブロック
-      const handleKeydown = (e: KeyboardEvent) => {
-        const isEnterKey =
-          e.key === 'Enter' ||
-          e.code === 'Enter' ||
-          e.code === 'NumpadEnter' ||
-          (e.key === 'Process' && (e.isComposing || isComposing.current));
-        const shouldSuppress =
-          isEnterKey &&
-          (e.isComposing ||
-            isComposing.current ||
-            blockEnterAfterComposition.current);
-
-        if (shouldSuppress) {
-          blockEnterAfterComposition.current = true;
-          skipNextEnterData.current = true;
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          return;
-        }
-
-        if (!isEnterKey && blockEnterAfterComposition.current) {
-          blockEnterAfterComposition.current = false;
-          skipNextEnterData.current = false;
-        }
-      };
-
-      const handleBlur = () => {
-        isComposing.current = false;
-        resetImeGuards();
-      };
-
-      textarea.addEventListener('compositionstart', handleCompositionStart);
-      textarea.addEventListener('compositionend', handleCompositionEnd);
-      textarea.addEventListener('keydown', handleKeydown, true);
-      textarea.addEventListener('blur', handleBlur);
-
-      // クリーンアップ関数で後で削除できるように保存
-      (
-        textarea as HTMLTextAreaElement & { _imeCleanup?: () => void }
-      )._imeCleanup = () => {
-        resetImeGuards();
-        isComposing.current = false;
-        textarea.removeEventListener(
-          'compositionstart',
-          handleCompositionStart
-        );
-        textarea.removeEventListener('compositionend', handleCompositionEnd);
-        textarea.removeEventListener('keydown', handleKeydown, true);
-        textarea.removeEventListener('blur', handleBlur);
-      };
-    }
-
     // xterm.jsのonDataを使ってキー入力を受け取る
     terminal.current.onData((data) => {
-      if (skipNextEnterData.current && (data === '\r' || data === '\r\n')) {
-        resetImeGuards();
-        return;
-      }
-
-      if (
-        blockEnterAfterComposition.current &&
-        (data === '\r' || data === '\r\n')
-      ) {
-        resetImeGuards();
-        return;
-      }
-
       // Focus In/Focus Outイベントをフィルタリング
       // \x1b[I = Focus In, \x1b[O = Focus Out
       if (data === '\x1b[I' || data === '\x1b[O') {
@@ -371,17 +279,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
 
     return () => {
-      // IMEイベントリスナーのクリーンアップ
-      const textarea = (terminal.current as TerminalWithTextarea)?.textarea;
-      if (textarea) {
-        const cleanup = (
-          textarea as HTMLTextAreaElement & { _imeCleanup?: () => void }
-        )._imeCleanup;
-        if (cleanup) {
-          cleanup();
-        }
-      }
-
       if (resizeObserver.current) {
         resizeObserver.current.disconnect();
         resizeObserver.current = null;
