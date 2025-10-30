@@ -369,7 +369,11 @@ export class ProcessManager extends EventEmitter {
       }
 
       // 出力履歴に追加（処理済みデータを使用）
-      const outputLine = this.addToAiOutputHistory(session, processedData, 'stdout');
+      const outputLine = this.addToAiOutputHistory(
+        session,
+        processedData,
+        'stdout'
+      );
 
       // 構造化されたAiOutputLineオブジェクトをemit
       this.emit('ai-output', {

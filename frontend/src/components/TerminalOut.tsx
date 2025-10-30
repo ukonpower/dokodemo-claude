@@ -277,7 +277,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           (e.key === 'Process' && (e.isComposing || isComposing.current));
         const shouldSuppress =
           isEnterKey &&
-          (e.isComposing || isComposing.current || blockEnterAfterComposition.current);
+          (e.isComposing ||
+            isComposing.current ||
+            blockEnterAfterComposition.current);
 
         if (shouldSuppress) {
           blockEnterAfterComposition.current = true;
@@ -327,7 +329,10 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         return;
       }
 
-      if (blockEnterAfterComposition.current && (data === '\r' || data === '\r\n')) {
+      if (
+        blockEnterAfterComposition.current &&
+        (data === '\r' || data === '\r\n')
+      ) {
         resetImeGuards();
         return;
       }

@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown } from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
+import { getProviderInfo } from '../utils/ai-provider-info';
 
 interface AiOutputProps {
   messages: AiOutputLine[];
@@ -14,6 +15,10 @@ interface AiOutputProps {
   onReload?: (cols: number, rows: number) => void;
 }
 
+/**
+ * AI CLI出力表示コンポーネント
+ * プロバイダー（Claude, Codex等）の出力を統一的に表示
+ */
 const AiOutput: React.FC<AiOutputProps> = ({
   messages,
   currentProvider = 'claude',
@@ -22,46 +27,22 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onResize,
   onReload,
 }) => {
+  // XTerm.js インスタンスとアドオンの参照
   const xtermInstance = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
+
+  // 状態管理
   const lastMessageCount = useRef<number>(0);
   const currentProviderId = useRef<string>('');
   const hasShownInitialMessage = useRef<boolean>(false);
   const [isReloading, setIsReloading] = useState<boolean>(false);
 
-  const providerInfo = useMemo(() => {
-    switch (currentProvider) {
-      case 'claude':
-        return {
-          name: 'Claude CLI',
-          shortName: 'Claude',
-          initialMessage1: 'Claude CLIの出力がここに表示されます',
-          initialMessage2: 'リポジトリを選択してClaude CLIを開始してください',
-          loadingMessage: 'Claude CLI履歴を読み込み中...',
-          headerLabel: 'Claude CLI Output',
-        };
-      case 'codex':
-        return {
-          name: 'Codex CLI',
-          shortName: 'Codex',
-          initialMessage1: 'Codex CLIの出力がここに表示されます',
-          initialMessage2: 'リポジトリを選択してCodex CLIを開始してください',
-          loadingMessage: 'Codex CLI履歴を読み込み中...',
-          headerLabel: 'Codex CLI Output',
-        };
-      default:
-        return {
-          name: 'AI CLI',
-          shortName: 'AI',
-          initialMessage1: 'AI CLIの出力がここに表示されます',
-          initialMessage2: 'リポジトリを選択してAI CLIを開始してください',
-          loadingMessage: 'AI CLI履歴を読み込み中...',
-          headerLabel: 'AI CLI Output',
-        };
-    }
-  }, [currentProvider]);
+  // プロバイダー情報を取得
+  const providerInfo = getProviderInfo(currentProvider);
 
-  // 初期メッセージを表示
+  /**
+   * 初期メッセージを表示
+   */
   const renderInitialMessages = useCallback(
     (targetTerminal: Terminal) => {
       targetTerminal.writeln(providerInfo.initialMessage1);
@@ -71,7 +52,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     [providerInfo]
   );
 
-  // 一番下までスクロール（Terminalコンポーネントと同じパターン）
+  /**
+   * 一番下までスクロール
+   */
   const scrollToBottom = useCallback(() => {
     if (xtermInstance.current) {
       requestAnimationFrame(() => {
@@ -84,7 +67,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, []);
 
-  // ターミナルのリロード（リサイズ + 履歴再取得）
+  /**
+   * ターミナルのリロード（リサイズ + 履歴再取得）
+   */
   const reloadTerminal = useCallback(() => {
     if (fitAddon.current && xtermInstance.current) {
       try {
@@ -114,7 +99,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [onReload, onResize]);
 
-  // TerminalOutからのリサイズコールバック
+  /**
+   * TerminalOutからのリサイズコールバック
+   */
   const handleTerminalOutResize = useCallback(
     (cols: number, rows: number) => {
       if (onResize) {
@@ -124,7 +111,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
     [onResize]
   );
 
-  // TerminalOutからターミナルインスタンスを受け取る
+  /**
+   * TerminalOutからターミナルインスタンスを受け取る
+   */
   const handleTerminalReady = useCallback(
     (
       terminalInstance: Terminal,
@@ -154,18 +143,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
         // 初期表示後にスクロール
         requestAnimationFrame(() => {
-          if (xtermInstance.current && xtermInstance.current.buffer) {
-            const buffer = xtermInstance.current.buffer.active;
-            const scrollToLine = buffer.baseY + buffer.length;
-            xtermInstance.current.scrollToLine(scrollToLine);
-          }
+          scrollToBottom();
         });
       }
     },
-    [currentProvider, messages, onResize, renderInitialMessages]
+    [currentProvider, messages, onResize, renderInitialMessages, scrollToBottom]
   );
 
-  // プロバイダーが変更された時の処理（Terminalのターミナル切り替えと同じパターン）
+  /**
+   * プロバイダーが変更された時の処理
+   */
   useEffect(() => {
     if (!xtermInstance.current) return;
 
@@ -190,16 +177,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
       // プロバイダー切り替え後に確実にスクロール
       requestAnimationFrame(() => {
-        if (xtermInstance.current && xtermInstance.current.buffer) {
-          const buffer = xtermInstance.current.buffer.active;
-          const scrollToLine = buffer.baseY + buffer.length;
-          xtermInstance.current.scrollToLine(scrollToLine);
-        }
+        scrollToBottom();
       });
     }
-  }, [currentProvider, messages, renderInitialMessages]);
+  }, [currentProvider, messages, renderInitialMessages, scrollToBottom]);
 
-  // 新しいメッセージが追加されたらXTermに書き込み（Terminalコンポーネントと同じパターン）
+  /**
+   * 新しいメッセージが追加されたらXTermに書き込み
+   */
   useEffect(() => {
     if (!xtermInstance.current || currentProviderId.current !== currentProvider)
       return;
@@ -232,14 +217,10 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
       // 最下部にスクロール
       requestAnimationFrame(() => {
-        if (xtermInstance.current && xtermInstance.current.buffer) {
-          const buffer = xtermInstance.current.buffer.active;
-          const scrollToLine = buffer.baseY + buffer.length;
-          xtermInstance.current.scrollToLine(scrollToLine);
-        }
+        scrollToBottom();
       });
     }
-  }, [messages, currentProvider, renderInitialMessages]);
+  }, [messages, currentProvider, renderInitialMessages, scrollToBottom]);
 
   return (
     <div className="flex flex-col h-full">
@@ -290,7 +271,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
         {/* 右下のスクロールボタン */}
         <div className="absolute right-2 bottom-2" style={{ zIndex: 20 }}>
-          {/* スクロール位置を一番下に移動するボタン */}
           <button
             onClick={scrollToBottom}
             className="flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
