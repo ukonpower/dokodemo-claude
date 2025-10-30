@@ -90,6 +90,12 @@ export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'claude-output': (data: ClaudeMessage) => void;
   'ai-output': (data: AiMessage) => void; // 新しいAI出力イベント
+  'ai-output-line': (data: {
+    sessionId: string;
+    repositoryPath: string;
+    provider: AiProvider;
+    outputLine: AiOutputLine; // 構造化された出力行
+  }) => void;
   'claude-raw-output': (data: {
     type: 'stdout' | 'stderr' | 'system';
     content: string;

@@ -316,12 +316,21 @@ processManager.on('ai-output', (data) => {
     if (activeRepo === data.repositoryPath) {
       const targetSocket = io.sockets.sockets.get(socketId);
       if (targetSocket) {
-        targetSocket.emit('claude-raw-output', {
-          type: data.type,
-          content: data.content,
+        // 新しいイベント: 構造化されたAiOutputLineオブジェクトを送信
+        targetSocket.emit('ai-output-line', {
           sessionId: data.sessionId,
           repositoryPath: data.repositoryPath,
-          provider: data.provider, // プロバイダー情報を追加
+          provider: data.provider,
+          outputLine: data.outputLine,
+        });
+
+        // 後方互換性: 既存の claude-raw-output も送信
+        targetSocket.emit('claude-raw-output', {
+          type: data.outputLine.type,
+          content: data.outputLine.content,
+          sessionId: data.sessionId,
+          repositoryPath: data.repositoryPath,
+          provider: data.provider,
         });
       }
     }

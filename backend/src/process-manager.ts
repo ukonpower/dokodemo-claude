@@ -369,14 +369,14 @@ export class ProcessManager extends EventEmitter {
       }
 
       // 出力履歴に追加（処理済みデータを使用）
-      this.addToAiOutputHistory(session, processedData, 'stdout');
+      const outputLine = this.addToAiOutputHistory(session, processedData, 'stdout');
 
+      // 構造化されたAiOutputLineオブジェクトをemit
       this.emit('ai-output', {
         sessionId: session.id,
         repositoryPath: session.repositoryPath,
-        type: 'stdout',
-        content: processedData,
         provider: session.provider,
+        outputLine, // 構造化データを送信
       });
     });
 
@@ -926,7 +926,7 @@ export class ProcessManager extends EventEmitter {
     session: ActiveAiSession,
     content: string,
     type: 'stdout' | 'stderr' | 'system'
-  ): void {
+  ): AiOutputLine {
     const outputLine: AiOutputLine = {
       id: `${session.id}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       content,
@@ -948,6 +948,8 @@ export class ProcessManager extends EventEmitter {
     this.persistAiSessions().catch(() => {
       // Persist error ignored
     });
+
+    return outputLine;
   }
 
   /**
