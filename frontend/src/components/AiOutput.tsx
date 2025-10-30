@@ -32,7 +32,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
   const fitAddon = useRef<FitAddon | null>(null);
 
   // 状態管理
-  const lastMessageCount = useRef<number>(0);
+  const lastMessageIds = useRef<string[]>([]);
   const currentProviderId = useRef<string>('');
   const hasShownInitialMessage = useRef<boolean>(false);
   const [isReloading, setIsReloading] = useState<boolean>(false);
@@ -139,7 +139,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         messages.forEach((message) => {
           terminalInstance.write(message.content);
         });
-        lastMessageCount.current = messages.length;
+        lastMessageIds.current = messages.map((m) => m.id);
 
         // 初期表示後にスクロール
         requestAnimationFrame(() => {
@@ -166,11 +166,11 @@ const AiOutput: React.FC<AiOutputProps> = ({
         messages.forEach((message) => {
           xtermInstance.current?.write(message.content);
         });
-        lastMessageCount.current = messages.length;
+        lastMessageIds.current = messages.map((m) => m.id);
       } else {
         // メッセージがない場合は初期メッセージを表示
         renderInitialMessages(xtermInstance.current);
-        lastMessageCount.current = 0;
+        lastMessageIds.current = [];
       }
 
       currentProviderId.current = currentProvider;
@@ -196,34 +196,59 @@ const AiOutput: React.FC<AiOutputProps> = ({
       return;
     }
 
+    // 現在のメッセージIDリストを取得
+    const currentMessageIds = messages.map((m) => m.id);
+
     console.log('[AiOutput] Processing messages:', {
       messageCount: messages.length,
-      lastMessageCount: lastMessageCount.current,
+      lastMessageCount: lastMessageIds.current.length,
       provider: currentProvider,
+      currentIds: currentMessageIds.slice(-3),
+      lastIds: lastMessageIds.current.slice(-3),
     });
 
     // メッセージが空になった場合
     if (messages.length === 0) {
-      if (lastMessageCount.current > 0 || !hasShownInitialMessage.current) {
+      if (lastMessageIds.current.length > 0 || !hasShownInitialMessage.current) {
         console.log('[AiOutput] Clearing terminal and showing initial message');
         xtermInstance.current.clear();
         renderInitialMessages(xtermInstance.current);
-        lastMessageCount.current = 0;
+        lastMessageIds.current = [];
       }
       return;
     }
 
-    // 新しいメッセージのみ処理
-    const newMessages = messages.slice(lastMessageCount.current);
+    // メッセージIDリストが変更されているかチェック
+    const idsChanged = currentMessageIds.length !== lastMessageIds.current.length ||
+      currentMessageIds.some((id, index) => id !== lastMessageIds.current[index]);
+
+    if (!idsChanged) {
+      console.log('[AiOutput] No message changes detected');
+      return;
+    }
+
+    // 新しいメッセージまたは変更されたメッセージを特定
+    let startIndex = 0;
+    for (let i = 0; i < Math.min(currentMessageIds.length, lastMessageIds.current.length); i++) {
+      if (currentMessageIds[i] !== lastMessageIds.current[i]) {
+        startIndex = i;
+        break;
+      }
+      startIndex = i + 1;
+    }
+
+    const newMessages = messages.slice(startIndex);
+
     if (newMessages.length > 0) {
-      console.log('[AiOutput] Writing new messages:', {
+      console.log('[AiOutput] Writing new/changed messages:', {
+        startIndex,
         newMessageCount: newMessages.length,
         totalMessages: messages.length,
         provider: currentProvider,
       });
 
       // 最初のメッセージの場合は初期メッセージをクリア
-      if (lastMessageCount.current === 0 && hasShownInitialMessage.current) {
+      if (lastMessageIds.current.length === 0 && hasShownInitialMessage.current) {
         console.log('[AiOutput] Clearing initial message');
         xtermInstance.current.clear();
         hasShownInitialMessage.current = false;
@@ -238,14 +263,12 @@ const AiOutput: React.FC<AiOutputProps> = ({
         xtermInstance.current?.write(message.content);
       });
 
-      lastMessageCount.current = messages.length;
+      lastMessageIds.current = currentMessageIds;
 
       // 最下部にスクロール
       requestAnimationFrame(() => {
         scrollToBottom();
       });
-    } else {
-      console.log('[AiOutput] No new messages to write');
     }
   }, [messages, currentProvider, renderInitialMessages, scrollToBottom]);
 
