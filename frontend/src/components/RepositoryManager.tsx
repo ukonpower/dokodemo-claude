@@ -82,17 +82,29 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     }
   };
 
-  // 検索クエリに基づいてリポジトリをフィルタリング
-  const filteredRepositories = repositories.filter((repo) => {
-    if (!searchQuery.trim()) return true;
+  // 検索クエリに基づいてリポジトリをフィルタリングし、最終アクセス順にソート
+  const filteredRepositories = repositories
+    .filter((repo) => {
+      if (!searchQuery.trim()) return true;
 
-    const query = searchQuery.toLowerCase();
-    const name = repo.name.toLowerCase();
-    const path = repo.path.toLowerCase();
-    const url = repo.url?.toLowerCase() || '';
+      const query = searchQuery.toLowerCase();
+      const name = repo.name.toLowerCase();
+      const path = repo.path.toLowerCase();
+      const url = repo.url?.toLowerCase() || '';
 
-    return name.includes(query) || path.includes(query) || url.includes(query);
-  });
+      return name.includes(query) || path.includes(query) || url.includes(query);
+    })
+    .sort((a, b) => {
+      // localStorageから最終アクセス時刻を取得
+      const lastAccessTimes = JSON.parse(
+        localStorage.getItem('repo-last-access') || '{}'
+      );
+      const timeA = lastAccessTimes[a.path] || 0;
+      const timeB = lastAccessTimes[b.path] || 0;
+
+      // 最終アクセス時刻の降順でソート（最近アクセスしたものが上）
+      return timeB - timeA;
+    });
 
   return (
     <div className="space-y-6 sm:space-y-8">

@@ -987,6 +987,14 @@ function App() {
       const url = new URL(window.location.href);
       url.searchParams.set('repo', path);
       window.history.pushState({}, '', url.toString());
+
+      // 最終アクセス時刻をlocalStorageに保存
+      const now = Date.now();
+      const lastAccessTimes = JSON.parse(
+        localStorage.getItem('repo-last-access') || '{}'
+      );
+      lastAccessTimes[path] = now;
+      localStorage.setItem('repo-last-access', JSON.stringify(lastAccessTimes));
     }
   };
 
@@ -1727,7 +1735,7 @@ function App() {
                   onClick={handleRestartAiCli}
                   disabled={!currentRepo || !isConnected}
                   className="flex items-center justify-center w-7 h-7 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="AI CLIを再起動"
+                  title="AI CLIセッションを再起動"
                 >
                   <svg
                     className="w-4 h-4"
@@ -1741,6 +1749,7 @@ function App() {
                       strokeWidth={2}
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
                   </svg>
                 </button>
               </div>

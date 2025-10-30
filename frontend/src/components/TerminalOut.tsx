@@ -184,7 +184,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       smoothScrollDuration: 0,
       scrollOnUserInput: scrollOnUserInput,
       fastScrollModifier: 'shift',
-      scrollSensitivity: 3,
+      scrollSensitivity: 1.5,
       // 横スクロール対応の設定
       cols: 600, // 適度な列数を設定
       allowProposedApi: true, // 横スクロール機能に必要
