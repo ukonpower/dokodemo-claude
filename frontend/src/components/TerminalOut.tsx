@@ -141,7 +141,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // フォントサイズを決定（カスタム指定がなければ画面サイズで自動設定）
     const isLargeScreen = window.innerWidth >= 1024; // lg breakpoint
-    const finalFontSize = fontSize ?? (isLargeScreen ? 10 : 8);
+    const finalFontSize = fontSize ?? (isLargeScreen ? 11 : 9);
 
     // iOS環境の検出
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||

@@ -1716,12 +1716,34 @@ function App() {
                 </svg>
                 {currentProvider === 'claude' ? 'Claude CLI' : 'Codex CLI'}
               </h2>
-              {/* プロバイダー選択 */}
-              <ProviderSelector
-                currentProvider={currentProvider}
-                onProviderChange={handleProviderChange}
-                disabled={!currentRepo || !isConnected}
-              />
+              {/* プロバイダー選択とリセットボタン */}
+              <div className="flex items-center space-x-2">
+                <ProviderSelector
+                  currentProvider={currentProvider}
+                  onProviderChange={handleProviderChange}
+                  disabled={!currentRepo || !isConnected}
+                />
+                <button
+                  onClick={handleRestartAiCli}
+                  disabled={!currentRepo || !isConnected}
+                  className="flex items-center justify-center w-7 h-7 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="AI CLIを再起動"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* PC時: CLI+入力と操作ボタンを横並び、モバイル時: 縦並び */}
@@ -1735,7 +1757,6 @@ function App() {
                     rawOutput={rawOutput}
                     currentProvider={currentProvider}
                     isLoading={isLoadingRepoData}
-                    onRestartAi={handleRestartAiCli}
                     onKeyInput={handleAiKeyInput}
                     onResize={handleAiOutputResize}
                   />

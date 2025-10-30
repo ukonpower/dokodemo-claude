@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo, useId } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { RotateCw, ArrowDown, Maximize2 } from 'lucide-react';
+import { ArrowDown, Maximize2 } from 'lucide-react';
 import type { AiProvider } from '../types';
 import TerminalOut from './TerminalOut';
 
@@ -9,7 +9,6 @@ interface AiOutputProps {
   rawOutput: string;
   currentProvider?: AiProvider; // プロバイダー情報を追加
   isLoading?: boolean;
-  onRestartAi?: () => void;
   onKeyInput?: (key: string) => void;
   onResize?: (cols: number, rows: number) => void;
 }
@@ -18,7 +17,6 @@ const AiOutput: React.FC<AiOutputProps> = ({
   rawOutput,
   currentProvider = 'claude',
   isLoading = false,
-  onRestartAi,
   onKeyInput,
   onResize,
 }) => {
@@ -289,20 +287,21 @@ const AiOutput: React.FC<AiOutputProps> = ({
     <div className="flex flex-col h-full">
       {/* ヘッダー */}
       <div className="px-2 sm:px-3 py-2 border-b bg-dark-bg-tertiary border-dark-border-DEFAULT">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>
-          <span className="text-gray-300 text-xs">
-            {providerInfo.headerLabel}
-          </span>
-          {onRestartAi && (
-            <button
-              onClick={onRestartAi}
-              className="flex items-center justify-center w-5 h-5 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-              title="AI CLIを再起動"
-            >
-              <RotateCw size={12} />
-            </button>
-          )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-dark-accent-green"></div>
+            <span className="text-gray-300 text-xs">
+              {providerInfo.headerLabel}
+            </span>
+          </div>
+          {/* リサイズ再送信ボタン */}
+          <button
+            onClick={resendTerminalSize}
+            className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
+            title="ターミナルサイズを再送信"
+          >
+            <Maximize2 size={14} />
+          </button>
         </div>
       </div>
 
@@ -315,17 +314,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
           disableStdin={false}
         />
 
-        {/* 右下のボタングループ */}
-        <div className="absolute right-2 bottom-2 flex flex-col gap-2" style={{ zIndex: 20 }}>
-          {/* リサイズ再送信ボタン */}
-          <button
-            onClick={resendTerminalSize}
-            className="flex items-center justify-center w-8 h-8 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded-full border border-dark-border-light text-white focus:outline-none focus:ring-2 focus:ring-dark-border-focus transition-all duration-150 shadow-lg"
-            title="ターミナルサイズを再送信"
-          >
-            <Maximize2 size={16} />
-          </button>
-
+        {/* 右下のスクロールボタン */}
+        <div className="absolute right-2 bottom-2" style={{ zIndex: 20 }}>
           {/* スクロール位置を一番下に移動するボタン */}
           <button
             onClick={scrollToBottom}
