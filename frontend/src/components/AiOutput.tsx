@@ -143,7 +143,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
         lastMessageIds.current = messages.map((m) => m.id);
         // メッセージ内容のマッピングを更新
         lastMessageContents.current.clear();
-        messages.forEach((m) => lastMessageContents.current.set(m.id, m.content));
+        messages.forEach((m) =>
+          lastMessageContents.current.set(m.id, m.content)
+        );
 
         // 初期表示後にスクロール
         requestAnimationFrame(() => {
@@ -173,7 +175,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
         lastMessageIds.current = messages.map((m) => m.id);
         // メッセージ内容のマッピングを更新
         lastMessageContents.current.clear();
-        messages.forEach((m) => lastMessageContents.current.set(m.id, m.content));
+        messages.forEach((m) =>
+          lastMessageContents.current.set(m.id, m.content)
+        );
       } else {
         // メッセージがない場合は初期メッセージを表示
         renderInitialMessages(xtermInstance.current);
@@ -194,31 +198,22 @@ const AiOutput: React.FC<AiOutputProps> = ({
    * 新しいメッセージが追加されたらXTermに書き込み
    */
   useEffect(() => {
-    if (!xtermInstance.current || currentProviderId.current !== currentProvider) {
-      console.log('[AiOutput] Skipping message update:', {
-        hasTerminal: !!xtermInstance.current,
-        currentProviderId: currentProviderId.current,
-        currentProvider,
-        providersMatch: currentProviderId.current === currentProvider,
-      });
+    if (
+      !xtermInstance.current ||
+      currentProviderId.current !== currentProvider
+    ) {
       return;
     }
 
     // 現在のメッセージIDリストを取得
     const currentMessageIds = messages.map((m) => m.id);
 
-    console.log('[AiOutput] Processing messages:', {
-      messageCount: messages.length,
-      lastMessageCount: lastMessageIds.current.length,
-      provider: currentProvider,
-      currentIds: currentMessageIds.slice(-3),
-      lastIds: lastMessageIds.current.slice(-3),
-    });
-
     // メッセージが空になった場合
     if (messages.length === 0) {
-      if (lastMessageIds.current.length > 0 || !hasShownInitialMessage.current) {
-        console.log('[AiOutput] Clearing terminal and showing initial message');
+      if (
+        lastMessageIds.current.length > 0 ||
+        !hasShownInitialMessage.current
+      ) {
         xtermInstance.current.clear();
         renderInitialMessages(xtermInstance.current);
         lastMessageIds.current = [];
@@ -242,29 +237,17 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
     // 変更がない場合はスキップ
     if (newMessages.length === 0) {
-      console.log('[AiOutput] No message changes detected');
       return;
     }
 
-    console.log('[AiOutput] Writing new/changed messages:', {
-      newMessageCount: newMessages.length,
-      totalMessages: messages.length,
-      provider: currentProvider,
-    });
-
     // 最初のメッセージの場合は初期メッセージをクリア
     if (lastMessageIds.current.length === 0 && hasShownInitialMessage.current) {
-      console.log('[AiOutput] Clearing initial message');
       xtermInstance.current.clear();
       hasShownInitialMessage.current = false;
     }
 
     // 新しい/変更されたメッセージを書き込み
-    newMessages.forEach((message, index) => {
-      console.log(`[AiOutput] Writing message ${index + 1}/${newMessages.length}:`, {
-        id: message.id,
-        contentLength: message.content.length,
-      });
+    newMessages.forEach((message) => {
       xtermInstance.current?.write(message.content);
       // 書き込んだメッセージの内容を記録
       lastMessageContents.current.set(message.id, message.content);

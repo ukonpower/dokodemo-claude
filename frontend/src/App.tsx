@@ -334,7 +334,10 @@ function App() {
             );
 
             if (isDuplicate) {
-              console.warn('[ai-output-line] Duplicate message:', data.outputLine.id);
+              console.warn(
+                '[ai-output-line] Duplicate message:',
+                data.outputLine.id
+              );
               return prevMessages; // 変更なし
             }
 
@@ -506,7 +509,9 @@ function App() {
 
           const existingMessages = aiMessagesRef.current.get(provider) || [];
           if (historyMessages.length === 0 && existingMessages.length > 0) {
-            console.log('[ai-output-history] Skipping empty history (already have messages)');
+            console.log(
+              '[ai-output-history] Skipping empty history (already have messages)'
+            );
             return;
           }
 
@@ -548,7 +553,9 @@ function App() {
 
           const existingMessages = aiMessagesRef.current.get('claude') || [];
           if (historyMessages.length === 0 && existingMessages.length > 0) {
-            console.log('[claude-output-history] Skipping empty history (already have messages)');
+            console.log(
+              '[claude-output-history] Skipping empty history (already have messages)'
+            );
             return;
           }
 
