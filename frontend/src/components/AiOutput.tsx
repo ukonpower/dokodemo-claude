@@ -33,6 +33,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
   // 状態管理
   const lastMessageIds = useRef<string[]>([]);
+  const lastMessageContents = useRef<Map<string, string>>(new Map()); // メッセージIDと内容のマッピング
   const currentProviderId = useRef<string>('');
   const hasShownInitialMessage = useRef<boolean>(false);
   const [isReloading, setIsReloading] = useState<boolean>(false);
@@ -140,6 +141,9 @@ const AiOutput: React.FC<AiOutputProps> = ({
           terminalInstance.write(message.content);
         });
         lastMessageIds.current = messages.map((m) => m.id);
+        // メッセージ内容のマッピングを更新
+        lastMessageContents.current.clear();
+        messages.forEach((m) => lastMessageContents.current.set(m.id, m.content));
 
         // 初期表示後にスクロール
         requestAnimationFrame(() => {
@@ -167,10 +171,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
           xtermInstance.current?.write(message.content);
         });
         lastMessageIds.current = messages.map((m) => m.id);
+        // メッセージ内容のマッピングを更新
+        lastMessageContents.current.clear();
+        messages.forEach((m) => lastMessageContents.current.set(m.id, m.content));
       } else {
         // メッセージがない場合は初期メッセージを表示
         renderInitialMessages(xtermInstance.current);
         lastMessageIds.current = [];
+        lastMessageContents.current.clear();
       }
 
       currentProviderId.current = currentProvider;
@@ -214,62 +222,61 @@ const AiOutput: React.FC<AiOutputProps> = ({
         xtermInstance.current.clear();
         renderInitialMessages(xtermInstance.current);
         lastMessageIds.current = [];
+        lastMessageContents.current.clear();
       }
       return;
     }
 
-    // メッセージIDリストが変更されているかチェック
-    const idsChanged = currentMessageIds.length !== lastMessageIds.current.length ||
-      currentMessageIds.some((id, index) => id !== lastMessageIds.current[index]);
+    // 新しいメッセージまたは内容が更新されたメッセージのみを抽出
+    const newMessages: AiOutputLine[] = [];
 
-    if (!idsChanged) {
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const lastContent = lastMessageContents.current.get(message.id);
+
+      // メッセージIDが新規、または内容が変更された場合
+      if (lastContent === undefined || lastContent !== message.content) {
+        newMessages.push(message);
+      }
+    }
+
+    // 変更がない場合はスキップ
+    if (newMessages.length === 0) {
       console.log('[AiOutput] No message changes detected');
       return;
     }
 
-    // 新しいメッセージまたは変更されたメッセージを特定
-    let startIndex = 0;
-    for (let i = 0; i < Math.min(currentMessageIds.length, lastMessageIds.current.length); i++) {
-      if (currentMessageIds[i] !== lastMessageIds.current[i]) {
-        startIndex = i;
-        break;
-      }
-      startIndex = i + 1;
+    console.log('[AiOutput] Writing new/changed messages:', {
+      newMessageCount: newMessages.length,
+      totalMessages: messages.length,
+      provider: currentProvider,
+    });
+
+    // 最初のメッセージの場合は初期メッセージをクリア
+    if (lastMessageIds.current.length === 0 && hasShownInitialMessage.current) {
+      console.log('[AiOutput] Clearing initial message');
+      xtermInstance.current.clear();
+      hasShownInitialMessage.current = false;
     }
 
-    const newMessages = messages.slice(startIndex);
-
-    if (newMessages.length > 0) {
-      console.log('[AiOutput] Writing new/changed messages:', {
-        startIndex,
-        newMessageCount: newMessages.length,
-        totalMessages: messages.length,
-        provider: currentProvider,
+    // 新しい/変更されたメッセージを書き込み
+    newMessages.forEach((message, index) => {
+      console.log(`[AiOutput] Writing message ${index + 1}/${newMessages.length}:`, {
+        id: message.id,
+        contentLength: message.content.length,
       });
+      xtermInstance.current?.write(message.content);
+      // 書き込んだメッセージの内容を記録
+      lastMessageContents.current.set(message.id, message.content);
+    });
 
-      // 最初のメッセージの場合は初期メッセージをクリア
-      if (lastMessageIds.current.length === 0 && hasShownInitialMessage.current) {
-        console.log('[AiOutput] Clearing initial message');
-        xtermInstance.current.clear();
-        hasShownInitialMessage.current = false;
-      }
+    // メッセージIDリストを更新
+    lastMessageIds.current = currentMessageIds;
 
-      // 新しいメッセージを書き込み
-      newMessages.forEach((message, index) => {
-        console.log(`[AiOutput] Writing message ${index + 1}/${newMessages.length}:`, {
-          id: message.id,
-          contentLength: message.content.length,
-        });
-        xtermInstance.current?.write(message.content);
-      });
-
-      lastMessageIds.current = currentMessageIds;
-
-      // 最下部にスクロール
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
-    }
+    // 最下部にスクロール
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
   }, [messages, currentProvider, renderInitialMessages, scrollToBottom]);
 
   return (
