@@ -251,6 +251,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
         }
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {

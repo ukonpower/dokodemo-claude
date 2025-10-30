@@ -119,6 +119,7 @@ function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRepo, socket]);
 
   // プロバイダー別セッションID管理（将来の拡張用）
@@ -338,7 +339,7 @@ function App() {
       });
 
       // 生ログの受信（後方互換性用、プロバイダー別に管理）
-      socketInstance.on('claude-raw-output', (_data) => {
+      socketInstance.on('claude-raw-output', () => {
         // 新しい 'ai-output-line' イベントが使用されている場合は無視
         // (後方互換性のために残しておくが、新しいイベントが優先される)
       });
@@ -903,6 +904,7 @@ function App() {
       }
       socketInstance.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初期化時のみ実行
 
   const handleCloneRepository = (url: string, name: string) => {

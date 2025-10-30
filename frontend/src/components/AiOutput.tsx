@@ -6,12 +6,12 @@ import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 
 interface AiOutputProps {
-  messages: AiOutputLine[]; // メッセージ配列ベースに変更
-  currentProvider?: AiProvider; // プロバイダー情報を追加
+  messages: AiOutputLine[];
+  currentProvider?: AiProvider;
   isLoading?: boolean;
   onKeyInput?: (key: string) => void;
   onResize?: (cols: number, rows: number) => void;
-  onReload?: (cols: number, rows: number) => void; // リロードハンドラー（リサイズ + 履歴再取得）
+  onReload?: (cols: number, rows: number) => void;
 }
 
 const AiOutput: React.FC<AiOutputProps> = ({
@@ -22,9 +22,10 @@ const AiOutput: React.FC<AiOutputProps> = ({
   onResize,
   onReload,
 }) => {
-  const terminal = useRef<Terminal | null>(null);
+  const xtermInstance = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
-  const lastMessageCount = useRef<number>(0); // メッセージ数でトラッキング
+  const lastMessageCount = useRef<number>(0);
+  const currentProviderId = useRef<string>('');
   const hasShownInitialMessage = useRef<boolean>(false);
   const [isReloading, setIsReloading] = useState<boolean>(false);
 
@@ -60,6 +61,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   }, [currentProvider]);
 
+  // 初期メッセージを表示
   const renderInitialMessages = useCallback(
     (targetTerminal: Terminal) => {
       targetTerminal.writeln(providerInfo.initialMessage1);
@@ -69,34 +71,31 @@ const AiOutput: React.FC<AiOutputProps> = ({
     [providerInfo]
   );
 
-  // 一番下までスクロールする関数
-  const scrollToBottom = () => {
-    if (terminal.current) {
-      // 確実にスクロールするために、少し遅延させて実行
+  // 一番下までスクロール（Terminalコンポーネントと同じパターン）
+  const scrollToBottom = useCallback(() => {
+    if (xtermInstance.current) {
       requestAnimationFrame(() => {
-        if (terminal.current) {
-          // バッファの一番下の行番号を取得してスクロール
-          const buffer = terminal.current.buffer.active;
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          const buffer = xtermInstance.current.buffer.active;
           const scrollToLine = buffer.baseY + buffer.length;
-          terminal.current.scrollToLine(scrollToLine);
+          xtermInstance.current.scrollToLine(scrollToLine);
         }
       });
     }
-  };
+  }, []);
 
-  // ターミナルのリロード関数（リサイズ + 履歴再取得）
-  const reloadTerminal = () => {
-    if (fitAddon.current && terminal.current) {
+  // ターミナルのリロード（リサイズ + 履歴再取得）
+  const reloadTerminal = useCallback(() => {
+    if (fitAddon.current && xtermInstance.current) {
       try {
-        // リロード開始
         setIsReloading(true);
 
         // ターミナルをリサイズ
         fitAddon.current.fit();
-        const cols = terminal.current.cols;
-        const rows = terminal.current.rows;
+        const cols = xtermInstance.current.cols;
+        const rows = xtermInstance.current.rows;
 
-        // onReloadが提供されている場合はそれを使用（リサイズ + 履歴再取得）
+        // onReloadが提供されている場合はリサイズ + 履歴再取得
         // 提供されていない場合は従来のonResizeを使用（リサイズのみ）
         if (onReload) {
           onReload(cols, rows);
@@ -104,7 +103,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
           onResize(cols, rows);
         }
 
-        // 1秒後にリロード状態を解除（視覚的フィードバック）
+        // 1秒後にリロード状態を解除
         setTimeout(() => {
           setIsReloading(false);
         }, 1000);
@@ -113,7 +112,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
         setIsReloading(false);
       }
     }
-  };
+  }, [onReload, onResize]);
 
   // TerminalOutからのリサイズコールバック
   const handleTerminalOutResize = useCallback(
@@ -132,7 +131,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
       fitAddonInstance: FitAddon,
       initialSize?: { cols: number; rows: number }
     ) => {
-      terminal.current = terminalInstance;
+      xtermInstance.current = terminalInstance;
       fitAddon.current = fitAddonInstance;
 
       // 初期サイズをバックエンドに通知
@@ -140,75 +139,107 @@ const AiOutput: React.FC<AiOutputProps> = ({
         onResize(initialSize.cols, initialSize.rows);
       }
 
+      // 現在のプロバイダーIDを設定
+      currentProviderId.current = currentProvider;
+
       // 初期メッセージまたは履歴を表示
       if (messages.length === 0) {
         renderInitialMessages(terminalInstance);
       } else {
         // 既存のメッセージを全て表示
-        terminalInstance.clear();
         messages.forEach((message) => {
           terminalInstance.write(message.content);
         });
         lastMessageCount.current = messages.length;
-        terminalInstance.scrollToBottom();
+
+        // 初期表示後にスクロール
+        requestAnimationFrame(() => {
+          if (xtermInstance.current && xtermInstance.current.buffer) {
+            const buffer = xtermInstance.current.buffer.active;
+            const scrollToLine = buffer.baseY + buffer.length;
+            xtermInstance.current.scrollToLine(scrollToLine);
+          }
+        });
       }
     },
-    [messages, onResize, renderInitialMessages]
+    [currentProvider, messages, onResize, renderInitialMessages]
   );
 
-  // プロバイダー変更時にターミナルをリセット
+  // プロバイダーが変更された時の処理（Terminalのターミナル切り替えと同じパターン）
   useEffect(() => {
-    if (!terminal.current) return;
+    if (!xtermInstance.current) return;
 
-    // ターミナルをクリアしてリセット
-    terminal.current.clear();
-    lastMessageCount.current = 0;
-    hasShownInitialMessage.current = false;
+    // プロバイダーが変更された場合、出力をクリアして新しい内容をロード
+    if (currentProviderId.current !== currentProvider) {
+      // 出力をクリア
+      xtermInstance.current.clear();
 
-    // メッセージがあれば表示、なければ初期メッセージ
-    if (messages.length > 0) {
-      messages.forEach((message) => {
-        terminal.current?.write(message.content);
+      // 現在のメッセージをロード
+      if (messages.length > 0) {
+        messages.forEach((message) => {
+          xtermInstance.current?.write(message.content);
+        });
+        lastMessageCount.current = messages.length;
+      } else {
+        // メッセージがない場合は初期メッセージを表示
+        renderInitialMessages(xtermInstance.current);
+        lastMessageCount.current = 0;
+      }
+
+      currentProviderId.current = currentProvider;
+
+      // プロバイダー切り替え後に確実にスクロール
+      requestAnimationFrame(() => {
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          const buffer = xtermInstance.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          xtermInstance.current.scrollToLine(scrollToLine);
+        }
       });
-      lastMessageCount.current = messages.length;
-      terminal.current.scrollToBottom();
-    } else {
-      renderInitialMessages(terminal.current);
     }
   }, [currentProvider, messages, renderInitialMessages]);
 
-  // 新しいメッセージを追記（Terminalコンポーネントと同じパターン）
+  // 新しいメッセージが追加されたらXTermに書き込み（Terminalコンポーネントと同じパターン）
   useEffect(() => {
-    if (!terminal.current) return;
+    if (!xtermInstance.current || currentProviderId.current !== currentProvider)
+      return;
 
     // メッセージが空になった場合
     if (messages.length === 0) {
       if (lastMessageCount.current > 0 || !hasShownInitialMessage.current) {
-        terminal.current.clear();
-        renderInitialMessages(terminal.current);
+        xtermInstance.current.clear();
+        renderInitialMessages(xtermInstance.current);
         lastMessageCount.current = 0;
       }
       return;
     }
 
-    // 新しいメッセージのみを追記
+    // 新しいメッセージのみ処理
     const newMessages = messages.slice(lastMessageCount.current);
     if (newMessages.length > 0) {
       // 最初のメッセージの場合は初期メッセージをクリア
       if (lastMessageCount.current === 0 && hasShownInitialMessage.current) {
-        terminal.current.clear();
+        xtermInstance.current.clear();
         hasShownInitialMessage.current = false;
       }
 
+      // 新しいメッセージを書き込み
       newMessages.forEach((message) => {
-        terminal.current?.write(message.content);
+        xtermInstance.current?.write(message.content);
       });
+
       lastMessageCount.current = messages.length;
 
-      // スクロール
-      scrollToBottom();
+      // 最下部にスクロール
+      requestAnimationFrame(() => {
+        if (xtermInstance.current && xtermInstance.current.buffer) {
+          const buffer = xtermInstance.current.buffer.active;
+          const scrollToLine = buffer.baseY + buffer.length;
+          xtermInstance.current.scrollToLine(scrollToLine);
+        }
+      });
     }
-  }, [messages, renderInitialMessages]);
+  }, [messages, currentProvider, renderInitialMessages]);
 
   return (
     <div className="flex flex-col h-full">
