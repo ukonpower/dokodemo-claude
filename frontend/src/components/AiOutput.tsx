@@ -186,12 +186,26 @@ const AiOutput: React.FC<AiOutputProps> = ({
    * 新しいメッセージが追加されたらXTermに書き込み
    */
   useEffect(() => {
-    if (!xtermInstance.current || currentProviderId.current !== currentProvider)
+    if (!xtermInstance.current || currentProviderId.current !== currentProvider) {
+      console.log('[AiOutput] Skipping message update:', {
+        hasTerminal: !!xtermInstance.current,
+        currentProviderId: currentProviderId.current,
+        currentProvider,
+        providersMatch: currentProviderId.current === currentProvider,
+      });
       return;
+    }
+
+    console.log('[AiOutput] Processing messages:', {
+      messageCount: messages.length,
+      lastMessageCount: lastMessageCount.current,
+      provider: currentProvider,
+    });
 
     // メッセージが空になった場合
     if (messages.length === 0) {
       if (lastMessageCount.current > 0 || !hasShownInitialMessage.current) {
+        console.log('[AiOutput] Clearing terminal and showing initial message');
         xtermInstance.current.clear();
         renderInitialMessages(xtermInstance.current);
         lastMessageCount.current = 0;
@@ -202,14 +216,25 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // 新しいメッセージのみ処理
     const newMessages = messages.slice(lastMessageCount.current);
     if (newMessages.length > 0) {
+      console.log('[AiOutput] Writing new messages:', {
+        newMessageCount: newMessages.length,
+        totalMessages: messages.length,
+        provider: currentProvider,
+      });
+
       // 最初のメッセージの場合は初期メッセージをクリア
       if (lastMessageCount.current === 0 && hasShownInitialMessage.current) {
+        console.log('[AiOutput] Clearing initial message');
         xtermInstance.current.clear();
         hasShownInitialMessage.current = false;
       }
 
       // 新しいメッセージを書き込み
-      newMessages.forEach((message) => {
+      newMessages.forEach((message, index) => {
+        console.log(`[AiOutput] Writing message ${index + 1}/${newMessages.length}:`, {
+          id: message.id,
+          contentLength: message.content.length,
+        });
         xtermInstance.current?.write(message.content);
       });
 
@@ -219,6 +244,8 @@ const AiOutput: React.FC<AiOutputProps> = ({
       requestAnimationFrame(() => {
         scrollToBottom();
       });
+    } else {
+      console.log('[AiOutput] No new messages to write');
     }
   }, [messages, currentProvider, renderInitialMessages, scrollToBottom]);
 

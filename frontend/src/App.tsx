@@ -67,7 +67,12 @@ function App() {
     localStorage.setItem('preferred-ai-provider', currentProvider);
 
     const nextMessages = aiMessages.get(currentProvider) || [];
-    setCurrentAiMessages(nextMessages);
+    console.log('[App] Provider changed, updating currentAiMessages:', {
+      provider: currentProvider,
+      messageCount: nextMessages.length,
+    });
+    // 新しい配列参照を作成して確実に再レンダリングをトリガー
+    setCurrentAiMessages([...nextMessages]);
   }, [aiMessages, currentProvider]);
 
   // ブラウザの戻る/進むボタン対応
@@ -310,10 +315,29 @@ function App() {
         ) {
           const provider = data.provider;
 
+          // デバッグログ
+          console.log('[ai-output-line] received:', {
+            provider,
+            currentProvider: currentProviderRef.current,
+            messageId: data.outputLine.id,
+            contentLength: data.outputLine.content.length,
+          });
+
           // プロバイダー別メッセージ配列に追記
           setAiMessages((prevMessages) => {
             const newMessages = new Map(prevMessages);
             const currentMessages = newMessages.get(provider) || [];
+
+            // 重複チェック: 同じIDのメッセージは追加しない
+            const isDuplicate = currentMessages.some(
+              (msg) => msg.id === data.outputLine.id
+            );
+
+            if (isDuplicate) {
+              console.warn('[ai-output-line] Duplicate message:', data.outputLine.id);
+              return prevMessages; // 変更なし
+            }
+
             const updatedMessages = [...currentMessages, data.outputLine];
 
             // 最大行数を超えた場合、古いデータを削除
@@ -325,9 +349,16 @@ function App() {
 
             newMessages.set(provider, finalMessages);
 
+            console.log('[ai-output-line] State updated:', {
+              provider,
+              messageCount: finalMessages.length,
+              isCurrentProvider: provider === currentProviderRef.current,
+            });
+
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setCurrentAiMessages(finalMessages);
+              // 新しい配列参照を作成して確実に再レンダリングをトリガー
+              setCurrentAiMessages([...finalMessages]);
             }
 
             return newMessages;
@@ -467,8 +498,15 @@ function App() {
           const provider = data.provider || 'claude';
           const historyMessages: AiOutputLine[] = data.history;
 
+          console.log('[ai-output-history] received:', {
+            provider,
+            historyCount: historyMessages.length,
+            currentProvider: currentProviderRef.current,
+          });
+
           const existingMessages = aiMessagesRef.current.get(provider) || [];
           if (historyMessages.length === 0 && existingMessages.length > 0) {
+            console.log('[ai-output-history] Skipping empty history (already have messages)');
             return;
           }
 
@@ -479,7 +517,9 @@ function App() {
 
             // 現在選択中のプロバイダーと一致する場合のみ表示更新
             if (provider === currentProviderRef.current) {
-              setCurrentAiMessages(historyMessages);
+              console.log('[ai-output-history] Updating currentAiMessages');
+              // 新しい配列参照を作成して確実に再レンダリングをトリガー
+              setCurrentAiMessages([...historyMessages]);
             }
 
             return newMessages;
@@ -501,8 +541,14 @@ function App() {
             })
           );
 
+          console.log('[claude-output-history] received (legacy):', {
+            historyCount: historyMessages.length,
+            currentProvider: currentProviderRef.current,
+          });
+
           const existingMessages = aiMessagesRef.current.get('claude') || [];
           if (historyMessages.length === 0 && existingMessages.length > 0) {
+            console.log('[claude-output-history] Skipping empty history (already have messages)');
             return;
           }
 
@@ -513,7 +559,9 @@ function App() {
 
             // 現在選択中のプロバイダーがclaudeの場合のみ表示更新
             if (currentProviderRef.current === 'claude') {
-              setCurrentAiMessages(historyMessages);
+              console.log('[claude-output-history] Updating currentAiMessages');
+              // 新しい配列参照を作成して確実に再レンダリングをトリガー
+              setCurrentAiMessages([...historyMessages]);
             }
 
             return newMessages;
