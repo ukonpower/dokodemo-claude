@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown } from 'lucide-react';
@@ -11,6 +11,7 @@ interface AiOutputProps {
   isLoading?: boolean;
   onKeyInput?: (key: string) => void;
   onResize?: (cols: number, rows: number) => void;
+  onReload?: (cols: number, rows: number) => void; // リロードハンドラー（リサイズ + 履歴再取得）
 }
 
 const AiOutput: React.FC<AiOutputProps> = ({
@@ -19,12 +20,14 @@ const AiOutput: React.FC<AiOutputProps> = ({
   isLoading = false,
   onKeyInput,
   onResize,
+  onReload,
 }) => {
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
   const lastOutputLength = useRef<number>(0);
   const hasShownInitialMessage = useRef<boolean>(false);
   const pendingInitialOutput = useRef<string | null>(null);
+  const [isReloading, setIsReloading] = useState<boolean>(false);
 
   const providerInfo = useMemo(() => {
     switch (currentProvider) {
@@ -179,21 +182,33 @@ const AiOutput: React.FC<AiOutputProps> = ({
     }
   };
 
-  // ターミナルのリサイズを再送信する関数
-  const resendTerminalSize = () => {
+  // ターミナルのリロード関数（リサイズ + 履歴再取得）
+  const reloadTerminal = () => {
     if (fitAddon.current && terminal.current) {
       try {
+        // リロード開始
+        setIsReloading(true);
+
         // ターミナルをリサイズ
         fitAddon.current.fit();
         const cols = terminal.current.cols;
         const rows = terminal.current.rows;
 
-        // 新しいサイズをバックエンドに送信
-        if (onResize) {
+        // onReloadが提供されている場合はそれを使用（リサイズ + 履歴再取得）
+        // 提供されていない場合は従来のonResizeを使用（リサイズのみ）
+        if (onReload) {
+          onReload(cols, rows);
+        } else if (onResize) {
           onResize(cols, rows);
         }
+
+        // 1秒後にリロード状態を解除（視覚的フィードバック）
+        setTimeout(() => {
+          setIsReloading(false);
+        }, 1000);
       } catch (error) {
-        console.warn('Failed to resize terminal:', error);
+        console.warn('Failed to reload terminal:', error);
+        setIsReloading(false);
       }
     }
   };
@@ -269,12 +284,15 @@ const AiOutput: React.FC<AiOutputProps> = ({
           </div>
           {/* リロードボタン */}
           <button
-            onClick={resendTerminalSize}
-            className="flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150"
-            title="ターミナルをリロード"
+            onClick={reloadTerminal}
+            disabled={isReloading}
+            className={`flex items-center justify-center w-6 h-6 bg-dark-bg-secondary hover:bg-dark-bg-hover rounded border border-dark-border-light text-white focus:outline-none focus:ring-1 focus:ring-dark-border-focus transition-all duration-150 ${
+              isReloading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            title="リサイズして出力を再取得"
           >
             <svg
-              className="w-3.5 h-3.5"
+              className={`w-3.5 h-3.5 ${isReloading ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

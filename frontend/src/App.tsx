@@ -1090,6 +1090,25 @@ function App() {
     }
   };
 
+  // AI出力のリロードハンドラー（リサイズ + 履歴再取得）
+  const handleReloadAiOutput = (cols: number, rows: number) => {
+    if (socket && currentRepo) {
+      // 1. リサイズを送信
+      socket.emit('ai-resize', {
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+        cols,
+        rows,
+      });
+
+      // 2. 履歴を再取得
+      socket.emit('get-ai-history', {
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+      });
+    }
+  };
+
   const handleChangeModel = (
     model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan'
   ) => {
@@ -1681,6 +1700,7 @@ function App() {
                     isLoading={isLoadingRepoData}
                     onKeyInput={handleAiKeyInput}
                     onResize={handleAiOutputResize}
+                    onReload={handleReloadAiOutput}
                   />
                 </div>
 
