@@ -54,6 +54,31 @@ const AiOutput: React.FC<AiOutputProps> = ({
   );
 
   /**
+   * スクロール位置が一番下にあるかを判定
+   */
+  const isAtBottom = useCallback((): boolean => {
+    if (!xtermInstance.current || !xtermInstance.current.buffer) {
+      return true;
+    }
+
+    const buffer = xtermInstance.current.buffer.active;
+    const viewport = xtermInstance.current.buffer.active.viewportY;
+    const maxScroll = buffer.baseY + buffer.length - xtermInstance.current.rows;
+
+    // 最下部から数行以内であれば「一番下」と判定（余裕を持たせる）
+    const atBottom = viewport >= maxScroll - 2;
+
+    console.log('[AiOutput] isAtBottom check:', {
+      viewport,
+      maxScroll,
+      diff: maxScroll - viewport,
+      atBottom,
+    });
+
+    return atBottom;
+  }, []);
+
+  /**
    * 一番下までスクロール
    */
   const scrollToBottom = useCallback(() => {
@@ -67,6 +92,18 @@ const AiOutput: React.FC<AiOutputProps> = ({
       });
     }
   }, []);
+
+  /**
+   * 条件付き自動スクロール（一番下にいる場合のみスクロール）
+   */
+  const scrollToBottomIfAtBottom = useCallback(() => {
+    if (isAtBottom()) {
+      console.log('[AiOutput] Auto-scrolling (user at bottom)');
+      scrollToBottom();
+    } else {
+      console.log('[AiOutput] Skipping auto-scroll (user not at bottom)');
+    }
+  }, [isAtBottom, scrollToBottom]);
 
   /**
    * ターミナルのリロード（リサイズ + 履歴再取得）
@@ -153,7 +190,13 @@ const AiOutput: React.FC<AiOutputProps> = ({
         });
       }
     },
-    [currentProvider, messages, onResize, renderInitialMessages, scrollToBottom]
+    [
+      currentProvider,
+      messages,
+      onResize,
+      renderInitialMessages,
+      scrollToBottom,
+    ]
   );
 
   /**
@@ -187,7 +230,7 @@ const AiOutput: React.FC<AiOutputProps> = ({
 
       currentProviderId.current = currentProvider;
 
-      // プロバイダー切り替え後に確実にスクロール
+      // プロバイダー切り替え時は常にスクロール（ユーザー操作による切り替えのため）
       requestAnimationFrame(() => {
         scrollToBottom();
       });
@@ -256,11 +299,16 @@ const AiOutput: React.FC<AiOutputProps> = ({
     // メッセージIDリストを更新
     lastMessageIds.current = currentMessageIds;
 
-    // 最下部にスクロール
+    // 一番下にいる場合のみ自動スクロール
     requestAnimationFrame(() => {
-      scrollToBottom();
+      scrollToBottomIfAtBottom();
     });
-  }, [messages, currentProvider, renderInitialMessages, scrollToBottom]);
+  }, [
+    messages,
+    currentProvider,
+    renderInitialMessages,
+    scrollToBottomIfAtBottom,
+  ]);
 
   return (
     <div className="flex flex-col h-full">
