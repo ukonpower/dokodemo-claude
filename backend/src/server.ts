@@ -1750,12 +1750,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  // code-server起動
-  socket.on('start-code-server', async (data) => {
-    const { repositoryPath } = data;
-
+  // code-server起動 (互換性のため残すが、実際は自動起動される)
+  socket.on('start-code-server', async () => {
     try {
-      const server = await CodeServerManager.startCodeServer(repositoryPath);
+      const server = await CodeServerManager.startCodeServer();
       socket.emit('code-server-started', {
         success: true,
         message: `code-serverを起動しました: ${server.url}`,
@@ -1770,29 +1768,45 @@ io.on('connection', (socket) => {
   });
 
   // code-server停止
-  socket.on('stop-code-server', async (data) => {
-    const { repositoryPath } = data;
-
+  socket.on('stop-code-server', async () => {
     try {
-      await CodeServerManager.stopCodeServer(repositoryPath);
+      await CodeServerManager.stopCodeServer();
       socket.emit('code-server-stopped', {
         success: true,
         message: 'code-serverを停止しました',
-        repositoryPath,
       });
     } catch (error) {
       socket.emit('code-server-stopped', {
         success: false,
         message: `code-serverの停止に失敗しました: ${error}`,
-        repositoryPath,
       });
     }
   });
 
-  // code-server一覧の取得
-  socket.on('get-code-servers', () => {
-    const servers = CodeServerManager.getAllCodeServers();
-    socket.emit('code-servers-list', { servers });
+  // code-server情報の取得
+  socket.on('get-code-server', () => {
+    const server = CodeServerManager.getCodeServer();
+    socket.emit('code-server-info', { server });
+  });
+
+  // 特定のリポジトリを開くURLの取得
+  socket.on('get-code-server-url', (data: { repositoryPath: string }) => {
+    try {
+      const url = CodeServerManager.getCodeServerUrlForRepository(
+        data.repositoryPath
+      );
+      socket.emit('code-server-url', {
+        success: true,
+        url,
+        repositoryPath: data.repositoryPath,
+      });
+    } catch (error) {
+      socket.emit('code-server-url', {
+        success: false,
+        message: `URLの取得に失敗しました: ${error}`,
+        repositoryPath: data.repositoryPath,
+      });
+    }
   });
 
   socket.on('disconnect', () => {
@@ -1812,6 +1826,16 @@ async function startServer(): Promise<void> {
   // ProcessManagerの初期化
   await processManager.initialize();
 
+  // code-serverの自動起動
+  try {
+    console.log('🚀 code-serverを起動中...');
+    const codeServer = await CodeServerManager.startCodeServer();
+    console.log(`✅ code-serverが起動しました: ${codeServer.url}`);
+  } catch (error) {
+    console.error('⚠️  code-serverの起動に失敗しました:', error);
+    console.error('   code-serverがインストールされていない可能性があります');
+  }
+
   server.listen(PORT, HOST, () => {
     console.log(`Server started on ${HOST}:${PORT}`);
   });
@@ -1819,12 +1843,32 @@ async function startServer(): Promise<void> {
 
 // プロセス終了時のクリーンアップ
 process.on('SIGTERM', async () => {
+  console.log('Shutting down server...');
   await processManager.shutdown();
+
+  // code-serverの停止
+  try {
+    await CodeServerManager.stopCodeServer();
+    console.log('code-server stopped');
+  } catch {
+    // code-serverが起動していない場合は無視
+  }
+
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
+  console.log('Shutting down server...');
   await processManager.shutdown();
+
+  // code-serverの停止
+  try {
+    await CodeServerManager.stopCodeServer();
+    console.log('code-server stopped');
+  } catch {
+    // code-serverが起動していない場合は無視
+  }
+
   process.exit(0);
 });
 

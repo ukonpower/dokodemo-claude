@@ -301,7 +301,13 @@ export interface ServerToClientEvents {
   'code-server-stopped': (data: {
     success: boolean;
     message: string;
+  }) => void;
+  'code-server-info': (data: { server: CodeServer | null }) => void;
+  'code-server-url': (data: {
+    success: boolean;
+    url?: string;
     repositoryPath: string;
+    message?: string;
   }) => void;
   'code-servers-list': (data: { servers: CodeServer[] }) => void;
 }
@@ -443,8 +449,10 @@ export interface ClientToServerEvents {
   'get-remote-url': (data: { repositoryPath: string }) => void;
 
   // code-server関連イベント
-  'start-code-server': (data: { repositoryPath: string }) => void;
-  'stop-code-server': (data: { repositoryPath: string }) => void;
+  'start-code-server': () => void;
+  'stop-code-server': () => void;
+  'get-code-server': () => void;
+  'get-code-server-url': (data: { repositoryPath: string }) => void;
   'get-code-servers': () => void;
 }
 

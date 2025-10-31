@@ -1,117 +1,99 @@
 import { spawn, ChildProcess } from 'child_process';
 import type { CodeServer } from './types';
 
-// code-serverインスタンスを管理するMap
-const codeServers = new Map<string, CodeServer>();
+// 単一のcode-serverインスタンス
+let codeServerInstance: CodeServer | null = null;
+let codeServerProcess: ChildProcess | null = null;
 
-// 次に使用可能なポート番号を取得
-let nextPort = 8080;
-function getNextPort(): number {
-  return nextPort++;
-}
+// code-serverのポート番号(固定)
+const CODE_SERVER_PORT = 8080;
 
 /**
- * code-serverを起動する
+ * code-serverを起動する(単一インスタンス)
+ * 初回起動時のみ実際にプロセスを起動し、2回目以降は既存のインスタンス情報を返す
  */
-export async function startCodeServer(
-  repositoryPath: string
-): Promise<CodeServer> {
+export async function startCodeServer(): Promise<CodeServer> {
   // 既に起動している場合は既存のインスタンスを返す
-  const existing = codeServers.get(repositoryPath);
-  if (existing && existing.status === 'running') {
-    return existing;
+  if (codeServerInstance && codeServerInstance.status === 'running') {
+    console.log('[code-server] Already running, returning existing instance');
+    return codeServerInstance;
   }
 
-  const port = getNextPort();
-  const url = `http://localhost:${port}`;
+  const url = `http://localhost:${CODE_SERVER_PORT}`;
 
   // code-serverインスタンスを初期化
-  const server: CodeServer = {
-    repositoryPath,
-    port,
+  codeServerInstance = {
+    repositoryPath: '', // 単一インスタンスなので特定のリポジトリに紐づかない
+    port: CODE_SERVER_PORT,
     status: 'starting',
     url,
     startedAt: Date.now(),
   };
 
-  codeServers.set(repositoryPath, server);
-
   try {
     // code-serverプロセスを起動
-    // --auth none: 認証なし（ローカル環境のみ）
+    // --auth none: 認証なし(ローカル環境のみ)
     // --disable-telemetry: テレメトリ無効化
     // --bind-addr 0.0.0.0: 外部からのアクセスを許可
-    const codeServerProcess: ChildProcess = spawn(
+    // 起動時にはフォルダを指定せず、空の状態で起動
+    codeServerProcess = spawn(
       'code-server',
-      [
-        '--auth',
-        'none',
-        '--disable-telemetry',
-        '--bind-addr',
-        `0.0.0.0:${port}`,
-        repositoryPath,
-      ],
+      ['--auth', 'none', '--disable-telemetry', '--bind-addr', `0.0.0.0:${CODE_SERVER_PORT}`],
       {
-        cwd: repositoryPath,
         stdio: ['ignore', 'pipe', 'pipe'],
       }
     );
 
-    server.pid = codeServerProcess.pid;
+    codeServerInstance.pid = codeServerProcess.pid;
 
     // 標準出力をログ
     codeServerProcess.stdout?.on('data', (data) => {
       const output = data.toString();
-      console.log(`[code-server:${repositoryPath}] ${output}`);
+      console.log(`[code-server] ${output}`);
 
       // 起動完了を検出
       if (output.includes('HTTP server listening on')) {
-        server.status = 'running';
-        codeServers.set(repositoryPath, { ...server });
+        if (codeServerInstance) {
+          codeServerInstance.status = 'running';
+        }
       }
     });
 
     // エラー出力をログ
     codeServerProcess.stderr?.on('data', (data) => {
       const error = data.toString();
-      console.error(`[code-server:${repositoryPath}] ERROR: ${error}`);
+      console.error(`[code-server] ERROR: ${error}`);
     });
 
     // プロセス終了時の処理
     codeServerProcess.on('exit', (code) => {
-      console.log(
-        `[code-server:${repositoryPath}] Process exited with code ${code}`
-      );
-      const current = codeServers.get(repositoryPath);
-      if (current) {
-        current.status = 'stopped';
-        codeServers.set(repositoryPath, { ...current });
+      console.log(`[code-server] Process exited with code ${code}`);
+      if (codeServerInstance) {
+        codeServerInstance.status = 'stopped';
       }
+      codeServerProcess = null;
     });
 
     // プロセスエラー時の処理
     codeServerProcess.on('error', (err) => {
-      console.error(`[code-server:${repositoryPath}] Process error:`, err);
-      const current = codeServers.get(repositoryPath);
-      if (current) {
-        current.status = 'error';
-        codeServers.set(repositoryPath, { ...current });
+      console.error(`[code-server] Process error:`, err);
+      if (codeServerInstance) {
+        codeServerInstance.status = 'error';
       }
     });
 
-    // 起動完了を待つ（最大10秒）
+    // 起動完了を待つ(最大10秒)
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('code-server startup timeout'));
       }, 10000);
 
       const checkInterval = setInterval(() => {
-        const current = codeServers.get(repositoryPath);
-        if (current?.status === 'running') {
+        if (codeServerInstance?.status === 'running') {
           clearTimeout(timeout);
           clearInterval(checkInterval);
           resolve();
-        } else if (current?.status === 'error') {
+        } else if (codeServerInstance?.status === 'error') {
           clearTimeout(timeout);
           clearInterval(checkInterval);
           reject(new Error('code-server startup failed'));
@@ -119,14 +101,12 @@ export async function startCodeServer(
       }, 500);
     });
 
-    return codeServers.get(repositoryPath)!;
+    return codeServerInstance;
   } catch (error) {
-    console.error(
-      `Failed to start code-server for ${repositoryPath}:`,
-      error
-    );
-    server.status = 'error';
-    codeServers.set(repositoryPath, server);
+    console.error(`Failed to start code-server:`, error);
+    if (codeServerInstance) {
+      codeServerInstance.status = 'error';
+    }
     throw error;
   }
 }
@@ -134,49 +114,40 @@ export async function startCodeServer(
 /**
  * code-serverを停止する
  */
-export async function stopCodeServer(repositoryPath: string): Promise<void> {
-  const server = codeServers.get(repositoryPath);
-  if (!server) {
-    throw new Error(`No code-server found for ${repositoryPath}`);
+export async function stopCodeServer(): Promise<void> {
+  if (!codeServerInstance) {
+    throw new Error('No code-server instance found');
   }
 
-  if (server.pid) {
+  if (codeServerProcess && codeServerInstance.pid) {
     try {
-      process.kill(server.pid, 'SIGTERM');
-      server.status = 'stopped';
-      codeServers.set(repositoryPath, { ...server });
+      process.kill(codeServerInstance.pid, 'SIGTERM');
+      codeServerInstance.status = 'stopped';
+      codeServerProcess = null;
     } catch (error) {
-      console.error(`Failed to stop code-server (PID: ${server.pid}):`, error);
+      console.error(`Failed to stop code-server (PID: ${codeServerInstance.pid}):`, error);
       throw error;
     }
   }
 
-  // Mapから削除
-  codeServers.delete(repositoryPath);
+  codeServerInstance = null;
 }
 
 /**
- * 全code-serverインスタンスを取得
+ * code-serverインスタンスを取得
  */
-export function getAllCodeServers(): CodeServer[] {
-  return Array.from(codeServers.values());
+export function getCodeServer(): CodeServer | null {
+  return codeServerInstance;
 }
 
 /**
- * 特定のcode-serverインスタンスを取得
+ * 特定のリポジトリを開くためのURLを生成
  */
-export function getCodeServer(repositoryPath: string): CodeServer | undefined {
-  return codeServers.get(repositoryPath);
-}
+export function getCodeServerUrlForRepository(repositoryPath: string): string {
+  if (!codeServerInstance || codeServerInstance.status !== 'running') {
+    throw new Error('code-server is not running');
+  }
 
-/**
- * 全code-serverインスタンスを停止
- */
-export async function stopAllCodeServers(): Promise<void> {
-  const promises = Array.from(codeServers.keys()).map((repositoryPath) =>
-    stopCodeServer(repositoryPath).catch((err) =>
-      console.error(`Failed to stop code-server for ${repositoryPath}:`, err)
-    )
-  );
-  await Promise.all(promises);
+  // VS Code / code-serverでは、URLの後に?folder=でフォルダパスを指定できる
+  return `${codeServerInstance.url}/?folder=${encodeURIComponent(repositoryPath)}`;
 }
