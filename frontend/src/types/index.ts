@@ -497,7 +497,5 @@ export interface ClientToServerEvents {
   }) => void;
 
   // code-server関連イベント
-  'start-code-server': (data: { repositoryPath: string }) => void;
-  'stop-code-server': (data: { repositoryPath: string }) => void;
-  'get-code-servers': () => void;
+  'get-code-server-url': (data: { repositoryPath: string }) => void;
 }

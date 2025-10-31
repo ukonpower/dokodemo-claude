@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -12,7 +12,6 @@ import type {
   AutoModeConfig,
   AutoModeState,
   ReviewServer,
-  CodeServer,
   DiffType,
   DiffConfig,
   AiProvider,
@@ -147,6 +146,11 @@ function App() {
   const [isSwitchingRepo, setIsSwitchingRepo] = useState(false);
   const [isLoadingRepoData, setIsLoadingRepoData] = useState(false);
   const [availableEditors, setAvailableEditors] = useState<EditorInfo[]>([]);
+
+  // localhostからのアクセスかどうかを判定
+  const isLocalhost = useMemo(() => {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  }, []);
   // AI CLIターミナルの現在のサイズを保持
   const [aiTerminalSize, setAiTerminalSize] = useState<{
     cols: number;
@@ -224,10 +228,6 @@ function App() {
   const [remoteUrl, setRemoteUrl] = useState<string | null>(null);
 
   // code-server関連の状態
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_codeServers, setCodeServers] = useState<CodeServer[]>([]);
-  const [currentCodeServer, setCurrentCodeServer] =
-    useState<CodeServer | null>(null);
   const [startingCodeServer, setStartingCodeServer] =
     useState<boolean>(false);
 
@@ -834,63 +834,23 @@ function App() {
         }
       });
 
-      // code-server関連のイベントハンドラ
-      socketInstance.on('code-server-started', (data) => {
+      // code-server URL取得イベントハンドラ
+      socketInstance.on('code-server-url', (data) => {
         setStartingCodeServer(false);
-        if (data.success && data.server) {
-          setCodeServers((prev) => {
-            const filtered = prev.filter(
-              (s) => s.repositoryPath !== data.server!.repositoryPath
-            );
-            return [...filtered, data.server!];
-          });
-          setCurrentCodeServer(data.server);
-
+        if (data.success && data.url) {
           // 新しいタブでcode-serverを開く
-          let url = data.server.url;
-          if (url.includes('localhost')) {
-            const port = url.match(/:(\d+)/)?.[1];
-            if (port) {
-              url = `${window.location.protocol}//${window.location.hostname}:${port}`;
-            }
-          }
-
-          const newWindow = window.open(url, '_blank');
+          const newWindow = window.open(data.url, '_blank');
           if (
             !newWindow ||
             newWindow.closed ||
             typeof newWindow.closed === 'undefined'
           ) {
             console.warn('Popup blocked. Please allow popups for this site.');
-            alert(`code-serverを開くには次のURLにアクセスしてください:\n${url}`);
+            alert(`code-serverを開くには次のURLにアクセスしてください:\n${data.url}`);
           }
         } else {
-          console.error('Failed to start code-server:', data.message);
-          alert(`code-serverの起動に失敗しました: ${data.message}`);
-        }
-      });
-
-      socketInstance.on('code-server-stopped', (data) => {
-        if (data.success) {
-          setCodeServers((prev) =>
-            prev.filter((server) => server.repositoryPath !== data.repositoryPath)
-          );
-          if (
-            currentCodeServer &&
-            currentCodeServer.repositoryPath === data.repositoryPath
-          ) {
-            setCurrentCodeServer(null);
-          }
-        }
-      });
-
-      socketInstance.on('code-servers-list', (data) => {
-        setCodeServers(data.servers);
-        const current = data.servers.find(
-          (s: CodeServer) => s.repositoryPath === currentRepoRef.current
-        );
-        if (current) {
-          setCurrentCodeServer(current);
+          console.error('Failed to get code-server URL:', data.message);
+          alert(`code-serverのURLを取得できませんでした: ${data.message}`);
         }
       });
 
@@ -1407,20 +1367,12 @@ function App() {
     }
   };
 
-  // code-server起動ハンドラー
+  // code-server起動ハンドラー (外部アクセス時のみ使用)
   const handleStartCodeServer = () => {
     if (socket && currentRepo) {
       setStartingCodeServer(true);
-      socket.emit('start-code-server', {
-        repositoryPath: currentRepo,
-      });
-    }
-  };
-
-  // code-server停止ハンドラー
-  const handleStopCodeServer = () => {
-    if (socket && currentRepo) {
-      socket.emit('stop-code-server', {
+      // code-serverのURL取得を要求
+      socket.emit('get-code-server-url', {
         repositoryPath: currentRepo,
       });
     }
@@ -1614,14 +1566,15 @@ function App() {
               isConnected={isConnected}
             />
 
-            {/* エディタ起動ドロップダウン */}
-            <div className="relative" ref={editorMenuRef}>
-              <button
-                onClick={() => setShowEditorMenu(!showEditorMenu)}
-                disabled={!isConnected}
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="エディタで開く"
-              >
+            {/* エディタ起動ドロップダウン (localhostアクセス時のみ表示) */}
+            {isLocalhost && (
+              <div className="relative" ref={editorMenuRef}>
+                <button
+                  onClick={() => setShowEditorMenu(!showEditorMenu)}
+                  disabled={!isConnected}
+                  className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-gray-100 bg-gray-700 border border-dark-border-light rounded-md hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-dark-border-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="エディタで開く"
+                >
                 <svg
                   className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
                   fill="none"
@@ -1694,7 +1647,8 @@ function App() {
                   </div>
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
             {/* GitHubで開くボタン */}
             {remoteUrl && (
@@ -1715,30 +1669,8 @@ function App() {
               </button>
             )}
 
-            {/* code-serverボタン */}
-            {currentCodeServer && currentCodeServer.status === 'running' ? (
-              <button
-                onClick={handleStopCodeServer}
-                disabled={!isConnected}
-                className="inline-flex items-center px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-white bg-red-600 border border-red-500 rounded-md hover:bg-red-700 focus:outline-none focus:ring-1 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="code-serverを停止"
-              >
-                <svg
-                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                <span className="hidden sm:inline">code-server停止</span>
-              </button>
-            ) : (
+            {/* code-serverボタン (外部アクセス時のみ表示) */}
+            {!isLocalhost && (
               <button
                 onClick={handleStartCodeServer}
                 disabled={!isConnected || startingCodeServer}
