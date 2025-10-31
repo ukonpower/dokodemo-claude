@@ -1,12 +1,50 @@
 import { spawn, ChildProcess } from 'child_process';
+import * as net from 'net';
 import type { CodeServer } from './types';
 
 // 単一のcode-serverインスタンス
 let codeServerInstance: CodeServer | null = null;
 let codeServerProcess: ChildProcess | null = null;
 
-// code-serverのポート番号(固定)
-const CODE_SERVER_PORT = 8080;
+// code-serverのポート番号(開始ポート)
+const CODE_SERVER_PORT_START = 8080;
+const CODE_SERVER_PORT_MAX = 8090; // 最大ポート番号
+
+/**
+ * 指定されたポートが使用可能かチェックする
+ */
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false); // ポートは使用中
+      } else {
+        resolve(false); // その他のエラーも使用不可として扱う
+      }
+    });
+
+    server.once('listening', () => {
+      server.close();
+      resolve(true); // ポートは使用可能
+    });
+
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+/**
+ * 使用可能なポートを探す
+ */
+async function findAvailablePort(startPort: number, maxPort: number): Promise<number> {
+  for (let port = startPort; port <= maxPort; port++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`No available port found between ${startPort} and ${maxPort}`);
+}
 
 /**
  * code-serverを起動する(単一インスタンス)
@@ -19,18 +57,22 @@ export async function startCodeServer(): Promise<CodeServer> {
     return codeServerInstance;
   }
 
-  const url = `http://localhost:${CODE_SERVER_PORT}`;
-
-  // code-serverインスタンスを初期化
-  codeServerInstance = {
-    repositoryPath: '', // 単一インスタンスなので特定のリポジトリに紐づかない
-    port: CODE_SERVER_PORT,
-    status: 'starting',
-    url,
-    startedAt: Date.now(),
-  };
-
   try {
+    // 使用可能なポートを探す
+    const availablePort = await findAvailablePort(CODE_SERVER_PORT_START, CODE_SERVER_PORT_MAX);
+    console.log(`[code-server] Found available port: ${availablePort}`);
+
+    const url = `http://localhost:${availablePort}`;
+
+    // code-serverインスタンスを初期化
+    codeServerInstance = {
+      repositoryPath: '', // 単一インスタンスなので特定のリポジトリに紐づかない
+      port: availablePort,
+      status: 'starting',
+      url,
+      startedAt: Date.now(),
+    };
+
     // code-serverプロセスを起動
     // --auth none: 認証なし(ローカル環境のみ)
     // --disable-telemetry: テレメトリ無効化
@@ -38,7 +80,7 @@ export async function startCodeServer(): Promise<CodeServer> {
     // 起動時にはフォルダを指定せず、空の状態で起動
     codeServerProcess = spawn(
       'code-server',
-      ['--auth', 'none', '--disable-telemetry', '--bind-addr', `0.0.0.0:${CODE_SERVER_PORT}`],
+      ['--auth', 'none', '--disable-telemetry', '--bind-addr', `0.0.0.0:${availablePort}`],
       {
         stdio: ['ignore', 'pipe', 'pipe'],
       }
@@ -103,10 +145,16 @@ export async function startCodeServer(): Promise<CodeServer> {
 
     return codeServerInstance;
   } catch (error) {
-    console.error(`Failed to start code-server:`, error);
+    console.error(`[code-server] Failed to start:`, error);
     if (codeServerInstance) {
       codeServerInstance.status = 'error';
     }
+
+    // ポートが見つからなかった場合のエラーメッセージを改善
+    if (error instanceof Error && error.message.includes('No available port found')) {
+      throw new Error(`Failed to start code-server: ${error.message}`);
+    }
+
     throw error;
   }
 }
