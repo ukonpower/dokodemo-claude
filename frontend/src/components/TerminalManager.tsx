@@ -44,6 +44,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const [showCreateShortcut, setShowCreateShortcut] = useState(false);
   const [shortcutName, setShortcutName] = useState('');
   const [shortcutCommand, setShortcutCommand] = useState('');
+  const [previousTerminalCount, setPreviousTerminalCount] = useState(0);
 
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {
@@ -51,6 +52,17 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
       setActiveTerminalId(terminals[0].id);
     }
   }, [terminals, activeTerminalId]);
+
+  // 新しいターミナルが作成された時に自動的にアクティブにする
+  useEffect(() => {
+    // ターミナル数が増えた場合のみ最新のターミナルをアクティブにする
+    if (terminals.length > previousTerminalCount && terminals.length > 0) {
+      const latestTerminal = terminals[terminals.length - 1];
+      setActiveTerminalId(latestTerminal.id);
+    }
+    // ターミナル数を更新
+    setPreviousTerminalCount(terminals.length);
+  }, [terminals, previousTerminalCount]);
 
   // アクティブなターミナルが削除された場合の処理
   useEffect(() => {
