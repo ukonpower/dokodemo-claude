@@ -22,6 +22,7 @@ import type {
   ClientToServerEvents,
 } from './types/index.js';
 import { ProcessManager } from './process-manager.js';
+import * as CodeServerManager from './code-server.js';
 
 const app = express();
 const server = createServer(app);
@@ -305,6 +306,49 @@ async function switchBranch(
           message: `ブランチ切り替えエラー: ${errorOutput || output}`,
         });
       }
+    });
+  });
+}
+
+// リポジトリのリモートURLを取得
+async function getRemoteUrl(repoPath: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', ['config', '--get', 'remote.origin.url'], {
+      cwd: repoPath,
+    });
+    let output = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    gitProcess.on('exit', (code) => {
+      if (code === 0) {
+        const remoteUrl = output.trim();
+        // HTTPSまたはSSH形式のURLをHTTPSのブラウザURL形式に変換
+        // git@github.com:user/repo.git -> https://github.com/user/repo
+        // https://github.com/user/repo.git -> https://github.com/user/repo
+        let webUrl = remoteUrl;
+
+        if (webUrl.startsWith('git@')) {
+          // SSH形式: git@github.com:user/repo.git
+          webUrl = webUrl
+            .replace(/^git@/, 'https://')
+            .replace(/:/, '/')
+            .replace(/\.git$/, '');
+        } else if (webUrl.startsWith('https://') || webUrl.startsWith('http://')) {
+          // HTTPS形式: https://github.com/user/repo.git
+          webUrl = webUrl.replace(/\.git$/, '');
+        }
+
+        resolve(webUrl);
+      } else {
+        resolve(null);
+      }
+    });
+
+    gitProcess.on('error', () => {
+      resolve(null);
     });
   });
 }
@@ -1683,6 +1727,72 @@ io.on('connection', (socket) => {
         repositoryPath,
       });
     }
+  });
+
+  // リポジトリのリモートURL取得
+  socket.on('get-remote-url', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const remoteUrl = await getRemoteUrl(repositoryPath);
+      socket.emit('remote-url', {
+        success: !!remoteUrl,
+        remoteUrl: remoteUrl || null,
+        repositoryPath,
+      });
+    } catch (error) {
+      socket.emit('remote-url', {
+        success: false,
+        remoteUrl: null,
+        repositoryPath,
+        message: `リモートURL取得エラー: ${error}`,
+      });
+    }
+  });
+
+  // code-server起動
+  socket.on('start-code-server', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      const server = await CodeServerManager.startCodeServer(repositoryPath);
+      socket.emit('code-server-started', {
+        success: true,
+        message: `code-serverを起動しました: ${server.url}`,
+        server,
+      });
+    } catch (error) {
+      socket.emit('code-server-started', {
+        success: false,
+        message: `code-serverの起動に失敗しました: ${error}`,
+      });
+    }
+  });
+
+  // code-server停止
+  socket.on('stop-code-server', async (data) => {
+    const { repositoryPath } = data;
+
+    try {
+      await CodeServerManager.stopCodeServer(repositoryPath);
+      socket.emit('code-server-stopped', {
+        success: true,
+        message: 'code-serverを停止しました',
+        repositoryPath,
+      });
+    } catch (error) {
+      socket.emit('code-server-stopped', {
+        success: false,
+        message: `code-serverの停止に失敗しました: ${error}`,
+        repositoryPath,
+      });
+    }
+  });
+
+  // code-server一覧の取得
+  socket.on('get-code-servers', () => {
+    const servers = CodeServerManager.getAllCodeServers();
+    socket.emit('code-servers-list', { servers });
   });
 
   socket.on('disconnect', () => {

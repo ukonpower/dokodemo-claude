@@ -283,6 +283,27 @@ export interface ServerToClientEvents {
     editor: 'vscode' | 'cursor';
     repositoryPath: string;
   }) => void;
+
+  // リモートURL関連イベント
+  'remote-url': (data: {
+    success: boolean;
+    remoteUrl: string | null;
+    repositoryPath: string;
+    message?: string;
+  }) => void;
+
+  // code-server関連イベント
+  'code-server-started': (data: {
+    success: boolean;
+    message: string;
+    server?: CodeServer;
+  }) => void;
+  'code-server-stopped': (data: {
+    success: boolean;
+    message: string;
+    repositoryPath: string;
+  }) => void;
+  'code-servers-list': (data: { servers: CodeServer[] }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -417,6 +438,14 @@ export interface ClientToServerEvents {
     repositoryPath: string;
     editor: 'vscode' | 'cursor';
   }) => void;
+
+  // リモートURL関連イベント
+  'get-remote-url': (data: { repositoryPath: string }) => void;
+
+  // code-server関連イベント
+  'start-code-server': (data: { repositoryPath: string }) => void;
+  'stop-code-server': (data: { repositoryPath: string }) => void;
+  'get-code-servers': () => void;
 }
 
 // AI CLI 操作関連の型定義
@@ -489,4 +518,15 @@ export interface ReviewServer {
   url: string; // アクセス用URL
   startedAt?: number;
   diffConfig?: DiffConfig; // 差分設定
+}
+
+// code-server関連の型定義
+export interface CodeServer {
+  repositoryPath: string;
+  port: number; // code-serverポート
+  status: 'starting' | 'running' | 'stopped' | 'error';
+  pid?: number; // code-serverプロセスID
+  url: string; // アクセス用URL (例: http://localhost:8080)
+  password?: string; // 認証パスワード
+  startedAt?: number;
 }

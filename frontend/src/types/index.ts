@@ -143,6 +143,17 @@ export interface ReviewServer {
   diffConfig?: DiffConfig; // 差分設定
 }
 
+// code-server関連の型定義
+export interface CodeServer {
+  repositoryPath: string;
+  port: number; // code-serverポート
+  status: 'starting' | 'running' | 'stopped' | 'error';
+  pid?: number; // code-serverプロセスID
+  url: string; // アクセス用URL (例: http://localhost:8080)
+  password?: string; // 認証パスワード
+  startedAt?: number;
+}
+
 export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'clone-status': (data: { status: string; message: string }) => void;
@@ -338,6 +349,19 @@ export interface ServerToClientEvents {
     editor: 'vscode' | 'cursor';
     repositoryPath: string;
   }) => void;
+
+  // code-server関連イベント
+  'code-server-started': (data: {
+    success: boolean;
+    message: string;
+    server?: CodeServer;
+  }) => void;
+  'code-server-stopped': (data: {
+    success: boolean;
+    message: string;
+    repositoryPath: string;
+  }) => void;
+  'code-servers-list': (data: { servers: CodeServer[] }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -471,4 +495,9 @@ export interface ClientToServerEvents {
     repositoryPath: string;
     editor: 'vscode' | 'cursor';
   }) => void;
+
+  // code-server関連イベント
+  'start-code-server': (data: { repositoryPath: string }) => void;
+  'stop-code-server': (data: { repositoryPath: string }) => void;
+  'get-code-servers': () => void;
 }
