@@ -1792,9 +1792,20 @@ io.on('connection', (socket) => {
   // 特定のリポジトリを開くURLの取得
   socket.on('get-code-server-url', (data: { repositoryPath: string }) => {
     try {
-      const url = CodeServerManager.getCodeServerUrlForRepository(
+      let url = CodeServerManager.getCodeServerUrlForRepository(
         data.repositoryPath
       );
+
+      // 外部アクセスの場合、localhostをリクエスト元のホスト名に置き換える
+      const host = socket.handshake.headers.host;
+      if (host) {
+        const hostname = host.split(':')[0];
+        // localhost以外からのアクセスの場合のみ置き換え
+        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          url = url.replace('localhost', hostname);
+        }
+      }
+
       socket.emit('code-server-url', {
         success: true,
         url,

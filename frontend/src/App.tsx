@@ -29,6 +29,7 @@ import BranchSelector from './components/BranchSelector';
 import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
 import ProviderSelector from './components/ProviderSelector';
+import { PopupBlockedModal } from './components/PopupBlockedModal';
 
 // メモリリーク対策のための最大値設定
 const MAX_TERMINAL_MESSAGES = 1000; // ターミナルメッセージの最大保持数
@@ -230,6 +231,9 @@ function App() {
   // code-server関連の状態
   const [startingCodeServer, setStartingCodeServer] =
     useState<boolean>(false);
+  const [showPopupBlockedModal, setShowPopupBlockedModal] =
+    useState<boolean>(false);
+  const [blockedCodeServerUrl, setBlockedCodeServerUrl] = useState<string>('');
 
   // ドロップダウンメニュー用のref
   const diffMenuRef = useRef<HTMLDivElement>(null);
@@ -845,8 +849,10 @@ function App() {
             newWindow.closed ||
             typeof newWindow.closed === 'undefined'
           ) {
-            console.warn('Popup blocked. Please allow popups for this site.');
-            alert(`code-serverを開くには次のURLにアクセスしてください:\n${data.url}`);
+            console.warn('Popup blocked. Showing modal.');
+            // Safari等でポップアップがブロックされた場合、モーダルを表示
+            setBlockedCodeServerUrl(data.url);
+            setShowPopupBlockedModal(true);
           }
         } else {
           console.error('Failed to get code-server URL:', data.message);
@@ -2242,6 +2248,16 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* ポップアップブロックモーダル */}
+      <PopupBlockedModal
+        isOpen={showPopupBlockedModal}
+        url={blockedCodeServerUrl}
+        onClose={() => setShowPopupBlockedModal(false)}
+        onOpenInNewTab={() => {
+          window.open(blockedCodeServerUrl, '_blank');
+        }}
+      />
     </div>
   );
 }
