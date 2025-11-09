@@ -238,8 +238,19 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         return;
       }
 
-      // 上キーで履歴を遡る
+      // 上キーで履歴を遡る（カーソルが先頭にある場合のみ）
       if (e.key === 'ArrowUp') {
+        const textarea = e.currentTarget as HTMLTextAreaElement;
+        const cursorPosition = textarea.selectionStart;
+        const textBeforeCursor = command.substring(0, cursorPosition);
+        const isAtFirstLine = !textBeforeCursor.includes('\n');
+
+        // カーソルが最初の行にない場合は、通常のカーソル移動を許可
+        if (!isAtFirstLine) {
+          return;
+        }
+
+        // カーソルが最初の行にある場合のみ履歴操作
         e.preventDefault();
         const history = loadHistory();
         if (history.length === 0) return;
@@ -258,8 +269,19 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         return;
       }
 
-      // 下キーで履歴を進む
+      // 下キーで履歴を進む（カーソルが末尾にある場合のみ）
       if (e.key === 'ArrowDown') {
+        const textarea = e.currentTarget as HTMLTextAreaElement;
+        const cursorPosition = textarea.selectionStart;
+        const textAfterCursor = command.substring(cursorPosition);
+        const isAtLastLine = !textAfterCursor.includes('\n');
+
+        // カーソルが最後の行にない場合は、通常のカーソル移動を許可
+        if (!isAtLastLine) {
+          return;
+        }
+
+        // カーソルが最後の行にある場合のみ履歴操作
         e.preventDefault();
         const history = loadHistory();
         if (historyIndex === -1) return; // 履歴外の場合は何もしない
