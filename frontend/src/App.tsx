@@ -1316,6 +1316,15 @@ function App() {
     }
   };
 
+  const handleClearAiHistory = () => {
+    if (socket && currentRepo) {
+      socket.emit('clear-ai-output', {
+        repositoryPath: currentRepo,
+        provider: currentProvider,
+      });
+    }
+  };
+
   const handleCloseTerminal = (terminalId: string) => {
     if (socket) {
       socket.emit('close-terminal', { terminalId });
@@ -1923,6 +1932,7 @@ function App() {
                     onKeyInput={handleAiKeyInput}
                     onResize={handleAiOutputResize}
                     onReload={handleReloadAiOutput}
+                    onClearHistory={handleClearAiHistory}
                   />
                 </div>
 
