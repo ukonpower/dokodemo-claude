@@ -48,17 +48,18 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   const [shortcutCommand, setShortcutCommand] = useState('');
   const [previousTerminalCount, setPreviousTerminalCount] = useState(0);
 
-  // activeTerminalIdが変更された時に親コンポーネントに通知
-  useEffect(() => {
+  // activeTerminalIdを更新し、親コンポーネントに通知する関数
+  const updateActiveTerminalId = (newId: string) => {
+    setActiveTerminalId(newId);
     if (onActiveTerminalChange) {
-      onActiveTerminalChange(activeTerminalId);
+      onActiveTerminalChange(newId);
     }
-  }, [activeTerminalId, onActiveTerminalChange]);
+  };
 
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {
     if (terminals.length > 0 && !activeTerminalId) {
-      setActiveTerminalId(terminals[0].id);
+      updateActiveTerminalId(terminals[0].id);
     }
   }, [terminals, activeTerminalId]);
 
@@ -67,7 +68,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
     // ターミナル数が増えた場合のみ最新のターミナルをアクティブにする
     if (terminals.length > previousTerminalCount && terminals.length > 0) {
       const latestTerminal = terminals[terminals.length - 1];
-      setActiveTerminalId(latestTerminal.id);
+      updateActiveTerminalId(latestTerminal.id);
     }
     // ターミナル数を更新
     setPreviousTerminalCount(terminals.length);
@@ -77,7 +78,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   useEffect(() => {
     if (activeTerminalId && !terminals.find((t) => t.id === activeTerminalId)) {
       const newActiveId = terminals.length > 0 ? terminals[0].id : '';
-      setActiveTerminalId(newActiveId);
+      updateActiveTerminalId(newActiveId);
     }
   }, [terminals, activeTerminalId]);
 
@@ -118,7 +119,7 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                 ? 'bg-white text-gray-900 border-2 border-gray-400 border-b-0 font-bold shadow-lg'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
             }`}
-            onClick={() => setActiveTerminalId(terminal.id)}
+            onClick={() => updateActiveTerminalId(terminal.id)}
           >
             <div
               className={`w-2 h-2 rounded-full flex-shrink-0 ${

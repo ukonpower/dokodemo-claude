@@ -1406,6 +1406,7 @@ function App() {
 
   const handleExecuteNpmScript = (scriptName: string) => {
     if (socket && currentRepo) {
+      console.log('Executing npm script:', scriptName, 'activeTerminalId:', activeTerminalId);
       socket.emit('execute-npm-script', {
         repositoryPath: currentRepo,
         scriptName,

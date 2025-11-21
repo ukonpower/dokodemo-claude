@@ -1656,6 +1656,7 @@ io.on('connection', (socket) => {
   // npmスクリプトの実行
   socket.on('execute-npm-script', async (data) => {
     const { repositoryPath, scriptName, terminalId } = data;
+    console.log('execute-npm-script received:', { repositoryPath, scriptName, terminalId });
 
     try {
       // terminalIdが指定されている場合は既存のターミナルで実行
