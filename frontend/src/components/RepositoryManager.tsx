@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import type { GitRepository } from '../types';
+import type { GitRepository, ProjectTemplate } from '../types';
 
 interface RepositoryManagerProps {
   repositories: GitRepository[];
   currentRepo: string;
+  templates: ProjectTemplate[];
   onCloneRepository: (url: string, name: string) => void;
   onCreateRepository: (name: string) => void;
+  onCreateFromTemplate: (
+    templateUrl: string,
+    projectName: string,
+    createInitialCommit: boolean,
+    updatePackageJson: boolean
+  ) => void;
+  onSaveTemplate: (name: string, url: string, description?: string) => void;
+  onDeleteTemplate: (templateId: string) => void;
   onSwitchRepository: (path: string) => void;
   isConnected: boolean;
 }
@@ -13,36 +22,71 @@ interface RepositoryManagerProps {
 const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   repositories,
   currentRepo,
+  templates,
   onCloneRepository,
   onCreateRepository,
+  onCreateFromTemplate,
+  onSaveTemplate,
+  onDeleteTemplate,
   onSwitchRepository,
   isConnected,
 }) => {
   const [repoUrl, setRepoUrl] = useState('');
   const [repoName, setRepoName] = useState('');
   const [isCloning, setIsCloning] = useState(false);
-  const [isCreateMode, setIsCreateMode] = useState(false);
+  const [createMode, setCreateMode] = useState<'clone' | 'new' | 'template'>(
+    'clone'
+  );
   const [searchQuery, setSearchQuery] = useState('');
+
+  // テンプレート作成用のstate
+  const [templateUrl, setTemplateUrl] = useState('');
+  const [projectName, setProjectName] = useState('');
+  const [createInitialCommit, setCreateInitialCommit] = useState(true);
+  const [updatePackageJson, setUpdatePackageJson] = useState(true);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+
+  // テンプレート登録用のstate
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateUrl, setNewTemplateUrl] = useState('');
+  const [newTemplateDescription, setNewTemplateDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isCreateMode) {
+    if (createMode === 'template') {
+      if (!templateUrl.trim() || !projectName.trim()) return;
+      setIsCloning(true);
+      onCreateFromTemplate(
+        templateUrl.trim(),
+        projectName.trim(),
+        createInitialCommit,
+        updatePackageJson
+      );
+      // テンプレート作成完了後、プロジェクト名のみリセット
+      setTimeout(() => {
+        setIsCloning(false);
+        setProjectName('');
+      }, 3000);
+    } else if (createMode === 'new') {
       if (!repoName.trim()) return;
       setIsCloning(true);
       onCreateRepository(repoName);
+      setTimeout(() => {
+        setIsCloning(false);
+        setRepoName('');
+      }, 3000);
     } else {
       if (!repoUrl.trim() || !repoName.trim()) return;
       setIsCloning(true);
       onCloneRepository(repoUrl, repoName);
+      setTimeout(() => {
+        setIsCloning(false);
+        setRepoUrl('');
+        setRepoName('');
+      }, 3000);
     }
-
-    // 完了を想定してフォームをリセット（実際はサーバーからの応答で管理）
-    setTimeout(() => {
-      setIsCloning(false);
-      setRepoUrl('');
-      setRepoName('');
-    }, 3000);
   };
 
   const extractRepoName = (url: string): string => {
@@ -65,6 +109,30 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     if (url && !repoName) {
       setRepoName(extractRepoName(url));
     }
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    const selected = templates.find((t) => t.id === templateId);
+    if (selected) {
+      setSelectedTemplateId(templateId);
+      setTemplateUrl(selected.url);
+    }
+  };
+
+  const handleSaveTemplate = () => {
+    if (!newTemplateName.trim() || !newTemplateUrl.trim()) return;
+
+    onSaveTemplate(
+      newTemplateName.trim(),
+      newTemplateUrl.trim(),
+      newTemplateDescription.trim() || undefined
+    );
+
+    // フォームをリセット
+    setNewTemplateName('');
+    setNewTemplateUrl('');
+    setNewTemplateDescription('');
+    setShowTemplateManager(false);
   };
 
   const getStatusText = (status: GitRepository['status']) => {
@@ -319,80 +387,299 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
           <div className="flex mb-6 bg-dark-bg-primary rounded-lg p-1 border border-dark-border-light">
             <button
               type="button"
-              onClick={() => setIsCreateMode(false)}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
-                !isCreateMode
+              onClick={() => setCreateMode('clone')}
+              className={`flex-1 py-2 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${
+                createMode === 'clone'
                   ? 'bg-dark-bg-tertiary text-white shadow-md border border-dark-border-light'
                   : 'text-dark-text-secondary hover:text-white hover:bg-dark-bg-hover'
               }`}
             >
-              既存リポジトリをクローン
+              クローン
             </button>
             <button
               type="button"
-              onClick={() => setIsCreateMode(true)}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
-                isCreateMode
+              onClick={() => setCreateMode('template')}
+              className={`flex-1 py-2 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${
+                createMode === 'template'
                   ? 'bg-dark-bg-tertiary text-white shadow-md border border-dark-border-light'
                   : 'text-dark-text-secondary hover:text-white hover:bg-dark-bg-hover'
               }`}
             >
-              新規リポジトリを作成
+              テンプレート
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateMode('new')}
+              className={`flex-1 py-2 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${
+                createMode === 'new'
+                  ? 'bg-dark-bg-tertiary text-white shadow-md border border-dark-border-light'
+                  : 'text-dark-text-secondary hover:text-white hover:bg-dark-bg-hover'
+              }`}
+            >
+              新規作成
             </button>
           </div>
 
           <p className="text-sm text-gray-300 mb-6">
-            {isCreateMode
-              ? '新しいGitリポジトリを作成して、プロジェクトを開始します'
-              : 'GitHubやその他のGitリポジトリをクローンして新しいプロジェクトを開始します'}
+            {createMode === 'clone'
+              ? 'GitHubやその他のGitリポジトリをクローンして新しいプロジェクトを開始します'
+              : createMode === 'template'
+                ? 'テンプレートリポジトリから新しいプロジェクトを作成します'
+                : '新しいGitリポジトリを作成して、プロジェクトを開始します'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-4">
-              {!isCreateMode && (
+              {/* クローンモード */}
+              {createMode === 'clone' && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="repo-url"
+                      className="block text-sm font-medium text-gray-200 mb-2"
+                    >
+                      GitリポジトリURL
+                    </label>
+                    <input
+                      id="repo-url"
+                      type="text"
+                      value={repoUrl}
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
+                      className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                      disabled={!isConnected || isCloning}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="repo-name"
+                      className="block text-sm font-medium text-gray-200 mb-2"
+                    >
+                      プロジェクト名
+                    </label>
+                    <input
+                      id="repo-name"
+                      type="text"
+                      value={repoName}
+                      onChange={(e) => setRepoName(e.target.value)}
+                      placeholder="プロジェクト名"
+                      className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                      disabled={!isConnected || isCloning}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* テンプレートモード */}
+              {createMode === 'template' && (
+                <>
+                  {/* 登録済みテンプレート選択 */}
+                  {templates.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-200">
+                          登録済みテンプレート
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowTemplateManager(!showTemplateManager)
+                          }
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          {showTemplateManager ? '閉じる' : '管理'}
+                        </button>
+                      </div>
+                      <select
+                        value={selectedTemplateId}
+                        onChange={(e) => handleTemplateSelect(e.target.value)}
+                        className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150"
+                        disabled={!isConnected || isCloning}
+                      >
+                        <option value="">選択してください</option>
+                        {templates.map((template) => (
+                          <option key={template.id} value={template.id}>
+                            {template.name}
+                            {template.description &&
+                              ` - ${template.description}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* テンプレート管理UI */}
+                  {showTemplateManager && (
+                    <div className="bg-dark-bg-primary p-4 rounded-lg border border-dark-border-light space-y-3">
+                      <h4 className="text-sm font-medium text-gray-200">
+                        新しいテンプレートを登録
+                      </h4>
+                      <input
+                        type="text"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        placeholder="テンプレート名"
+                        className="w-full px-3 py-2 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-dark-accent-blue"
+                      />
+                      <input
+                        type="text"
+                        value={newTemplateUrl}
+                        onChange={(e) => setNewTemplateUrl(e.target.value)}
+                        placeholder="git@github.com:user/repo.git"
+                        className="w-full px-3 py-2 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-dark-accent-blue"
+                      />
+                      <input
+                        type="text"
+                        value={newTemplateDescription}
+                        onChange={(e) =>
+                          setNewTemplateDescription(e.target.value)
+                        }
+                        placeholder="説明（任意）"
+                        className="w-full px-3 py-2 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-dark-accent-blue"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveTemplate}
+                        disabled={
+                          !newTemplateName.trim() || !newTemplateUrl.trim()
+                        }
+                        className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                      >
+                        登録
+                      </button>
+
+                      {/* 登録済みテンプレート一覧 */}
+                      {templates.length > 0 && (
+                        <div className="pt-3 border-t border-dark-border-light">
+                          <h5 className="text-xs font-medium text-gray-300 mb-2">
+                            登録済みテンプレート
+                          </h5>
+                          <div className="space-y-2">
+                            {templates.map((template) => (
+                              <div
+                                key={template.id}
+                                className="flex items-center justify-between bg-dark-bg-tertiary p-2 rounded text-xs"
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium text-white">
+                                    {template.name}
+                                  </div>
+                                  {template.description && (
+                                    <div className="text-gray-400">
+                                      {template.description}
+                                    </div>
+                                  )}
+                                  <div className="text-gray-500 truncate">
+                                    {template.url}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onDeleteTemplate(template.id)
+                                  }
+                                  className="ml-2 text-red-400 hover:text-red-300"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      htmlFor="template-url"
+                      className="block text-sm font-medium text-gray-200 mb-2"
+                    >
+                      テンプレートURL
+                    </label>
+                    <input
+                      id="template-url"
+                      type="text"
+                      value={templateUrl}
+                      onChange={(e) => setTemplateUrl(e.target.value)}
+                      placeholder="git@github.com:user/repo.git または上から選択"
+                      className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                      disabled={!isConnected || isCloning}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="project-name"
+                      className="block text-sm font-medium text-gray-200 mb-2"
+                    >
+                      プロジェクト名
+                    </label>
+                    <input
+                      id="project-name"
+                      type="text"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="my-new-project"
+                      className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
+                      disabled={!isConnected || isCloning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center text-xs text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={createInitialCommit}
+                        onChange={(e) => setCreateInitialCommit(e.target.checked)}
+                        className="mr-2"
+                        disabled={!isConnected || isCloning}
+                      />
+                      初期コミットを作成
+                    </label>
+                    <label className="flex items-center text-xs text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={updatePackageJson}
+                        onChange={(e) => setUpdatePackageJson(e.target.checked)}
+                        className="mr-2"
+                        disabled={!isConnected || isCloning}
+                      />
+                      package.json を更新（Node.jsプロジェクトの場合）
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* 新規作成モード */}
+              {createMode === 'new' && (
                 <div>
                   <label
-                    htmlFor="repo-url"
+                    htmlFor="new-repo-name"
                     className="block text-sm font-medium text-gray-200 mb-2"
                   >
-                    GitリポジトリURL
+                    プロジェクト名
                   </label>
                   <input
-                    id="repo-url"
+                    id="new-repo-name"
                     type="text"
-                    value={repoUrl}
-                    onChange={(e) => handleUrlChange(e.target.value)}
-                    placeholder="https://github.com/user/repo.git または git@github.com:user/repo.git"
+                    value={repoName}
+                    onChange={(e) => setRepoName(e.target.value)}
+                    placeholder="プロジェクト名"
                     className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
                     disabled={!isConnected || isCloning}
                   />
                 </div>
               )}
-              <div>
-                <label
-                  htmlFor="repo-name"
-                  className="block text-sm font-medium text-gray-200 mb-2"
-                >
-                  プロジェクト名
-                </label>
-                <input
-                  id="repo-name"
-                  type="text"
-                  value={repoName}
-                  onChange={(e) => setRepoName(e.target.value)}
-                  placeholder="プロジェクト名"
-                  className="w-full px-4 py-3 border border-dark-border-light bg-dark-bg-tertiary text-white rounded-lg shadow-md focus:outline-none focus:ring-1 focus:ring-dark-accent-blue focus:border-dark-accent-blue hover:border-dark-border-focus text-sm transition-all duration-150 placeholder-dark-text-muted"
-                  disabled={!isConnected || isCloning}
-                />
-              </div>
+
               <button
                 type="submit"
                 disabled={
                   !isConnected ||
                   isCloning ||
-                  (isCreateMode
-                    ? !repoName.trim()
-                    : !repoUrl.trim() || !repoName.trim())
+                  (createMode === 'clone'
+                    ? !repoUrl.trim() || !repoName.trim()
+                    : createMode === 'template'
+                      ? !templateUrl.trim() || !projectName.trim()
+                      : !repoName.trim())
                 }
                 className="w-full bg-dark-accent-green text-white py-3 px-6 rounded-lg hover:bg-dark-accent-green-hover focus:outline-none focus:ring-1 focus:ring-dark-accent-green focus:ring-offset-2 focus:ring-offset-dark-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-all duration-150 flex items-center justify-center shadow-md"
               >
@@ -418,7 +705,11 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    {isCreateMode ? '作成中...' : 'クローン中...'}
+                    {createMode === 'clone'
+                      ? 'クローン中...'
+                      : createMode === 'template'
+                        ? 'テンプレートから作成中...'
+                        : '作成中...'}
                   </>
                 ) : (
                   <>
@@ -435,7 +726,11 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                         d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                       />
                     </svg>
-                    {isCreateMode ? 'リポジトリを作成' : 'リポジトリをクローン'}
+                    {createMode === 'clone'
+                      ? 'リポジトリをクローン'
+                      : createMode === 'template'
+                        ? 'テンプレートから作成'
+                        : 'リポジトリを作成'}
                   </>
                 )}
               </button>

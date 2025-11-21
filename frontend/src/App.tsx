@@ -16,6 +16,7 @@ import type {
   DiffConfig,
   AiProvider,
   EditorInfo,
+  ProjectTemplate,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
@@ -40,6 +41,7 @@ function App() {
     ClientToServerEvents
   > | null>(null);
   const [repositories, setRepositories] = useState<GitRepository[]>([]);
+  const [templates, setTemplates] = useState<ProjectTemplate[]>([]);
   // プロバイダー別CLIログ管理（メッセージ配列ベース）
   const [aiMessages, setAiMessages] = useState<Map<AiProvider, AiOutputLine[]>>(
     new Map()
@@ -189,6 +191,7 @@ function App() {
 
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [terminalMessages, setTerminalMessages] = useState<TerminalMessage[]>(
     []
   );
@@ -314,6 +317,30 @@ function App() {
       socketInstance.on('repos-list', (data) => {
         setRepositories(data.repos);
       });
+
+      // テンプレート関連のイベントリスナー
+      socketInstance.on('templates-list', (data) => {
+        setTemplates(data.templates);
+      });
+
+      socketInstance.on('template-saved', (data) => {
+        if (data.success) {
+          console.log(data.message);
+        } else {
+          console.error(data.message);
+        }
+      });
+
+      socketInstance.on('template-deleted', (data) => {
+        if (data.success) {
+          console.log(data.message);
+        } else {
+          console.error(data.message);
+        }
+      });
+
+      // テンプレート一覧を取得
+      socketInstance.emit('get-templates');
 
       // 利用可能なエディタリストの受信
       socketInstance.on('available-editors', (data) => {
@@ -1030,6 +1057,38 @@ function App() {
     }
   };
 
+  const handleCreateFromTemplate = (
+    templateUrl: string,
+    projectName: string,
+    createInitialCommit: boolean,
+    updatePackageJson: boolean
+  ) => {
+    if (socket) {
+      socket.emit('create-from-template', {
+        templateUrl,
+        projectName,
+        createInitialCommit,
+        updatePackageJson,
+      });
+    }
+  };
+
+  const handleSaveTemplate = (
+    name: string,
+    url: string,
+    description?: string
+  ) => {
+    if (socket) {
+      socket.emit('save-template', { name, url, description });
+    }
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    if (socket) {
+      socket.emit('delete-template', { templateId });
+    }
+  };
+
   const handleDeleteRepository = (path: string, name: string) => {
     if (socket) {
       socket.emit('delete-repo', { path, name });
@@ -1350,6 +1409,7 @@ function App() {
       socket.emit('execute-npm-script', {
         repositoryPath: currentRepo,
         scriptName,
+        terminalId: activeTerminalId || undefined,
       });
     }
   };
@@ -1448,8 +1508,12 @@ function App() {
                   <RepositoryManager
                     repositories={repositories}
                     currentRepo={currentRepo}
+                    templates={templates}
                     onCloneRepository={handleCloneRepository}
                     onCreateRepository={handleCreateRepository}
+                    onCreateFromTemplate={handleCreateFromTemplate}
+                    onSaveTemplate={handleSaveTemplate}
+                    onDeleteTemplate={handleDeleteTemplate}
                     onSwitchRepository={handleSwitchRepository}
                     isConnected={isConnected}
                   />
@@ -2012,6 +2076,7 @@ function App() {
                 onCreateShortcut={handleCreateShortcut}
                 onDeleteShortcut={handleDeleteShortcut}
                 onExecuteShortcut={handleExecuteShortcut}
+                onActiveTerminalChange={setActiveTerminalId}
               />
             </div>
           </section>

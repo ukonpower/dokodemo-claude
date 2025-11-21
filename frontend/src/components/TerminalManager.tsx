@@ -22,6 +22,7 @@ interface TerminalManagerProps {
   onCreateShortcut: (name: string, command: string) => void;
   onDeleteShortcut: (shortcutId: string) => void;
   onExecuteShortcut: (shortcutId: string, terminalId: string) => void;
+  onActiveTerminalChange?: (terminalId: string) => void;
 }
 
 const TerminalManager: React.FC<TerminalManagerProps> = ({
@@ -39,12 +40,20 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
   onCreateShortcut,
   onDeleteShortcut,
   onExecuteShortcut,
+  onActiveTerminalChange,
 }) => {
   const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [showCreateShortcut, setShowCreateShortcut] = useState(false);
   const [shortcutName, setShortcutName] = useState('');
   const [shortcutCommand, setShortcutCommand] = useState('');
   const [previousTerminalCount, setPreviousTerminalCount] = useState(0);
+
+  // activeTerminalIdが変更された時に親コンポーネントに通知
+  useEffect(() => {
+    if (onActiveTerminalChange) {
+      onActiveTerminalChange(activeTerminalId);
+    }
+  }, [activeTerminalId, onActiveTerminalChange]);
 
   // 最初のターミナルを自動的にアクティブにする
   useEffect(() => {

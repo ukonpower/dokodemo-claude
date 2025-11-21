@@ -113,6 +113,11 @@ export interface ServerToClientEvents {
     message: string;
     repo?: GitRepository;
   }) => void;
+  'template-created': (data: {
+    success: boolean;
+    message: string;
+    repo?: GitRepository;
+  }) => void;
   'repo-deleted': (data: {
     success: boolean;
     message: string;
@@ -310,11 +315,30 @@ export interface ServerToClientEvents {
     message?: string;
   }) => void;
   'code-servers-list': (data: { servers: CodeServer[] }) => void;
+
+  // テンプレート関連イベント
+  'templates-list': (data: { templates: ProjectTemplate[] }) => void;
+  'template-saved': (data: {
+    success: boolean;
+    message: string;
+    template?: ProjectTemplate;
+  }) => void;
+  'template-deleted': (data: {
+    success: boolean;
+    message: string;
+    templateId: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
+  'create-from-template': (data: {
+    templateUrl: string;
+    projectName: string;
+    createInitialCommit?: boolean;
+    updatePackageJson?: boolean;
+  }) => void;
   'delete-repo': (data: { path: string; name: string }) => void;
   'switch-repo': (data: {
     path: string;
@@ -454,6 +478,15 @@ export interface ClientToServerEvents {
   'get-code-server': () => void;
   'get-code-server-url': (data: { repositoryPath: string }) => void;
   'get-code-servers': () => void;
+
+  // テンプレート関連イベント
+  'get-templates': () => void;
+  'save-template': (data: {
+    name: string;
+    url: string;
+    description?: string;
+  }) => void;
+  'delete-template': (data: { templateId: string }) => void;
 }
 
 // AI CLI 操作関連の型定義
@@ -537,4 +570,13 @@ export interface CodeServer {
   url: string; // アクセス用URL (例: http://localhost:8080)
   password?: string; // 認証パスワード
   startedAt?: number;
+}
+
+// テンプレート関連の型定義
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  url: string;
+  description?: string;
+  createdAt: number;
 }

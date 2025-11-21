@@ -18,6 +18,7 @@ import { promises as fs } from 'fs';
 import type {
   GitRepository,
   GitBranch,
+  ProjectTemplate,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types/index.js';
@@ -51,6 +52,7 @@ const REPOS_DIR = path.isAbsolute(repositoriesDir)
   ? repositoriesDir
   : path.join(process.cwd(), repositoriesDir);
 const PROCESSES_DIR = path.join(process.cwd(), 'processes');
+const TEMPLATES_FILE = path.join(process.cwd(), 'templates.json');
 
 // プロセス管理インスタンス
 const processManager = new ProcessManager(PROCESSES_DIR);
@@ -502,6 +504,21 @@ processManager.on('reviewServerStarted', (data) => {
   io.emit('review-server-started', data);
 });
 
+// テンプレート管理のヘルパー関数
+async function loadTemplates(): Promise<ProjectTemplate[]> {
+  try {
+    const data = await fs.readFile(TEMPLATES_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    // ファイルが存在しない場合は空配列を返す
+    return [];
+  }
+}
+
+async function saveTemplates(templates: ProjectTemplate[]): Promise<void> {
+  await fs.writeFile(TEMPLATES_FILE, JSON.stringify(templates, null, 2));
+}
+
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
   // クライアントの初期化（アクティブリポジトリなし）
@@ -556,6 +573,89 @@ io.on('connection', (socket) => {
         success: false,
         message: `リポジトリ削除エラー`,
         path: repoPath,
+      });
+    }
+  });
+
+  // テンプレート一覧の取得
+  socket.on('get-templates', async () => {
+    try {
+      const templates = await loadTemplates();
+      socket.emit('templates-list', { templates });
+    } catch (error) {
+      console.error('テンプレート一覧の取得エラー:', error);
+      socket.emit('templates-list', { templates: [] });
+    }
+  });
+
+  // テンプレートの保存
+  socket.on('save-template', async (data) => {
+    const { name, url, description } = data;
+
+    try {
+      const templates = await loadTemplates();
+
+      const newTemplate: ProjectTemplate = {
+        id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name,
+        url,
+        description,
+        createdAt: Date.now(),
+      };
+
+      templates.push(newTemplate);
+      await saveTemplates(templates);
+
+      socket.emit('template-saved', {
+        success: true,
+        message: `テンプレート「${name}」を保存しました`,
+        template: newTemplate,
+      });
+
+      // 更新されたテンプレート一覧を送信
+      socket.emit('templates-list', { templates });
+    } catch (error) {
+      socket.emit('template-saved', {
+        success: false,
+        message: `テンプレート保存エラー: ${error}`,
+      });
+    }
+  });
+
+  // テンプレートの削除
+  socket.on('delete-template', async (data) => {
+    const { templateId } = data;
+
+    try {
+      const templates = await loadTemplates();
+      const templateIndex = templates.findIndex((t) => t.id === templateId);
+
+      if (templateIndex === -1) {
+        socket.emit('template-deleted', {
+          success: false,
+          message: 'テンプレートが見つかりません',
+          templateId,
+        });
+        return;
+      }
+
+      const deletedTemplate = templates[templateIndex];
+      templates.splice(templateIndex, 1);
+      await saveTemplates(templates);
+
+      socket.emit('template-deleted', {
+        success: true,
+        message: `テンプレート「${deletedTemplate.name}」を削除しました`,
+        templateId,
+      });
+
+      // 更新されたテンプレート一覧を送信
+      socket.emit('templates-list', { templates });
+    } catch (error) {
+      socket.emit('template-deleted', {
+        success: false,
+        message: `テンプレート削除エラー: ${error}`,
+        templateId,
       });
     }
   });
@@ -703,6 +803,193 @@ io.on('connection', (socket) => {
       socket.emit('repo-created', {
         success: false,
         message: `作成エラー`,
+      });
+    }
+  });
+
+  // テンプレートからリポジトリを作成
+  socket.on('create-from-template', async (data) => {
+    const {
+      templateUrl,
+      projectName,
+      createInitialCommit = true,
+      updatePackageJson = true,
+    } = data;
+    const repoPath = path.join(REPOS_DIR, projectName);
+
+    try {
+      // 既存のリポジトリチェック
+      const existingRepo = repositories.find((r) => r.name === projectName);
+      if (existingRepo) {
+        socket.emit('template-created', {
+          success: false,
+          message: `プロジェクト「${projectName}」は既に存在します`,
+        });
+        return;
+      }
+
+      // 新しいリポジトリをリストに追加（creating状態）
+      const newRepo: GitRepository = {
+        name: projectName,
+        url: templateUrl,
+        path: repoPath,
+        status: 'creating',
+      };
+      repositories.push(newRepo);
+      socket.emit('repos-list', { repos: repositories });
+
+      // ステップ1: テンプレートをクローン
+      const gitCloneProcess = spawn('git', ['clone', templateUrl, repoPath]);
+
+      // タイムアウト設定（10分）
+      const cloneTimeout = setTimeout(() => {
+        gitCloneProcess.kill('SIGTERM');
+        const repo = repositories.find((r) => r.name === projectName);
+        if (repo) {
+          repo.status = 'error';
+          socket.emit('template-created', {
+            success: false,
+            message: `テンプレートのクローンがタイムアウトしました`,
+          });
+          socket.emit('repos-list', { repos: repositories });
+        }
+      }, 600000); // 10分
+
+      gitCloneProcess.on('exit', async (code) => {
+        clearTimeout(cloneTimeout);
+        const repo = repositories.find((r) => r.name === projectName);
+
+        if (code !== 0) {
+          if (repo) {
+            repo.status = 'error';
+            socket.emit('template-created', {
+              success: false,
+              message: `テンプレートのクローンに失敗しました`,
+            });
+            socket.emit('repos-list', { repos: repositories });
+          }
+          return;
+        }
+
+        try {
+          // ステップ2: .gitディレクトリを削除（履歴リセット）
+          const gitDirPath = path.join(repoPath, '.git');
+          await fs.rm(gitDirPath, { recursive: true, force: true });
+
+          // ステップ3: package.jsonを更新（Node.jsプロジェクトの場合）
+          if (updatePackageJson) {
+            try {
+              const packageJsonPath = path.join(repoPath, 'package.json');
+              const packageJsonContent = await fs.readFile(
+                packageJsonPath,
+                'utf-8'
+              );
+              const packageJson = JSON.parse(packageJsonContent);
+
+              // プロジェクト名を更新
+              packageJson.name = projectName;
+              packageJson.version = '0.1.0';
+
+              await fs.writeFile(
+                packageJsonPath,
+                JSON.stringify(packageJson, null, 2) + '\n',
+                'utf-8'
+              );
+            } catch {
+              // package.jsonが存在しない場合は無視
+            }
+          }
+
+          // ステップ4: 新しいgitリポジトリとして初期化
+          const gitInitProcess = spawn('git', ['init'], { cwd: repoPath });
+
+          gitInitProcess.on('exit', async (initCode) => {
+            if (initCode !== 0) {
+              if (repo) {
+                repo.status = 'error';
+                socket.emit('template-created', {
+                  success: false,
+                  message: `Gitリポジトリの初期化に失敗しました`,
+                });
+                socket.emit('repos-list', { repos: repositories });
+              }
+              return;
+            }
+
+            // ステップ5: 初期コミットを作成（オプション）
+            if (createInitialCommit) {
+              const gitAddProcess = spawn('git', ['add', '.'], {
+                cwd: repoPath,
+              });
+
+              gitAddProcess.on('exit', async (addCode) => {
+                if (addCode !== 0) {
+                  if (repo) {
+                    repo.status = 'error';
+                    socket.emit('template-created', {
+                      success: false,
+                      message: `初期コミットの作成に失敗しました（git add）`,
+                    });
+                    socket.emit('repos-list', { repos: repositories });
+                  }
+                  return;
+                }
+
+                const commitMessage = `feat: プロジェクト初期化 (template: ${templateUrl})`;
+                const gitCommitProcess = spawn(
+                  'git',
+                  ['commit', '-m', commitMessage],
+                  { cwd: repoPath }
+                );
+
+                gitCommitProcess.on('exit', (commitCode) => {
+                  if (repo) {
+                    if (commitCode === 0) {
+                      repo.status = 'ready';
+                      socket.emit('template-created', {
+                        success: true,
+                        message: `テンプレートから「${projectName}」を作成しました`,
+                        repo,
+                      });
+                    } else {
+                      repo.status = 'error';
+                      socket.emit('template-created', {
+                        success: false,
+                        message: `初期コミットの作成に失敗しました（git commit）`,
+                      });
+                    }
+                    socket.emit('repos-list', { repos: repositories });
+                  }
+                });
+              });
+            } else {
+              // 初期コミットなしの場合
+              if (repo) {
+                repo.status = 'ready';
+                socket.emit('template-created', {
+                  success: true,
+                  message: `テンプレートから「${projectName}」を作成しました`,
+                  repo,
+                });
+                socket.emit('repos-list', { repos: repositories });
+              }
+            }
+          });
+        } catch (error) {
+          if (repo) {
+            repo.status = 'error';
+            socket.emit('template-created', {
+              success: false,
+              message: `テンプレート処理中にエラーが発生しました: ${error}`,
+            });
+            socket.emit('repos-list', { repos: repositories });
+          }
+        }
+      });
+    } catch (error) {
+      socket.emit('template-created', {
+        success: false,
+        message: `テンプレート作成エラー: ${error}`,
       });
     }
   });
