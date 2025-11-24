@@ -1872,6 +1872,7 @@ export class ProcessManager extends EventEmitter {
       { command: 'npm run dev' },
       { command: 'npm install' },
       { command: 'git status' },
+      { command: 'git reset --hard HEAD' },
     ];
 
     for (const shortcut of defaultShortcuts) {
