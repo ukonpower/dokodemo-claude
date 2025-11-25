@@ -648,6 +648,13 @@ function App() {
 
       socketInstance.on('terminal-created', (terminal) => {
         setTerminals((prev) => [...prev, terminal]);
+        // 最初のターミナル作成時にデフォルトショートカットが作成されるため、リストを再取得
+        const repo = currentRepoRef.current;
+        if (repo) {
+          socketInstance.emit('list-shortcuts', {
+            repositoryPath: repo,
+          });
+        }
       });
 
       socketInstance.on('terminal-output', (message) => {

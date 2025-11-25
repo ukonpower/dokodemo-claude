@@ -1868,15 +1868,15 @@ export class ProcessManager extends EventEmitter {
    */
   private async createDefaultShortcuts(repositoryPath: string): Promise<void> {
     const defaultShortcuts = [
-      { command: 'git pull' },
-      { command: 'npm run dev' },
-      { command: 'npm install' },
-      { command: 'git status' },
-      { command: 'git reset --hard HEAD' },
+      { name: 'Git Pull', command: 'git pull' },
+      { name: '開発サーバー起動', command: 'npm run dev' },
+      { name: 'パッケージインストール', command: 'npm install' },
+      { name: 'Git Status', command: 'git status' },
+      { name: '変更を破棄', command: 'git reset --hard HEAD' },
     ];
 
     for (const shortcut of defaultShortcuts) {
-      await this.createShortcut(undefined, shortcut.command, repositoryPath);
+      await this.createShortcut(shortcut.name, shortcut.command, repositoryPath);
     }
   }
 
