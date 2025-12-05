@@ -1066,14 +1066,6 @@ io.on('connection', (socket) => {
   socket.on('send-command', (data) => {
     const { command, sessionId, repositoryPath, provider = 'claude' } = data;
 
-    // デバッグ: 受け取ったコマンドを16進数で表示
-    console.log('[send-command] 受信したコマンド:', {
-      length: command.length,
-      raw: command,
-      hex: Buffer.from(command, 'utf-8').toString('hex'),
-      charCodes: Array.from(command).map((c) => c.charCodeAt(0)),
-    });
-
     let targetSessionId = sessionId;
 
     // sessionIdが指定されていない場合、repositoryPathから取得
