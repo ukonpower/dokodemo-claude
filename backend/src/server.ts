@@ -1066,6 +1066,14 @@ io.on('connection', (socket) => {
   socket.on('send-command', (data) => {
     const { command, sessionId, repositoryPath, provider = 'claude' } = data;
 
+    // デバッグ: 受け取ったコマンドを16進数で表示
+    console.log('[send-command] 受信したコマンド:', {
+      length: command.length,
+      raw: command,
+      hex: Buffer.from(command, 'utf-8').toString('hex'),
+      charCodes: Array.from(command).map((c) => c.charCodeAt(0)),
+    });
+
     let targetSessionId = sessionId;
 
     // sessionIdが指定されていない場合、repositoryPathから取得
@@ -1097,33 +1105,9 @@ io.on('connection', (socket) => {
     }
 
     // ProcessManagerを通じてコマンドを送信
-    let commandToSend = command;
-
-    // 特殊キーや単一文字の場合はそのまま送信（改行を追加しない）
-    if (
-      command.startsWith('\x1b[') || // 方向キー（ANSIエスケープシーケンス）
-      command === '\x1b' || // ESCキー
-      command === '\r' || // Enterキー
-      command === '\x03' || // Ctrl+C
-      command === '\x7f' || // Backspace
-      command === '\t' || // Tab
-      (command.length === 1 && !command.match(/[\r\n]/))
-    ) {
-      // 単一文字（改行以外）
-      // そのまま送信（改行を追加しない）
-      commandToSend = command;
-    } else {
-      // 複数文字のコマンドの場合のみエンターキーを追加
-      commandToSend = command + '\r';
-
-      // Claude CLIでは実行確定のためもう一度エンターキーが必要（複数文字コマンドの場合のみ）
-      // Codex CLIでは必要に応じて調整
-      if (provider === 'claude') {
-        setTimeout(() => {
-          processManager.sendToAiSession(targetSessionId, '\r');
-        }, 100); // 100ms後に実行確定
-      }
-    }
+    // xterm.jsからは既にユーザーが入力した通りのデータが送られてくるため、
+    // サーバー側で追加の改行処理は不要
+    const commandToSend = command;
 
     // まずAI セッションで試行
     let success = processManager.sendToAiSession(

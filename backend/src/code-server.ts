@@ -6,9 +6,9 @@ import type { CodeServer } from './types';
 let codeServerInstance: CodeServer | null = null;
 let codeServerProcess: ChildProcess | null = null;
 
-// code-serverのポート番号(開始ポート)
-const CODE_SERVER_PORT_START = 8080;
-const CODE_SERVER_PORT_MAX = 8090; // 最大ポート番号
+// code-serverのポート設定
+const CODE_SERVER_PORT_START = 8500; // 開始ポート
+const CODE_SERVER_PORT_MAX = 8510; // 最大ポート番号
 
 /**
  * 指定されたポートが使用可能かチェックする
@@ -58,7 +58,7 @@ export async function startCodeServer(): Promise<CodeServer> {
   }
 
   try {
-    // 使用可能なポートを探す
+    // 8500から順に使用可能なポートを探す
     const availablePort = await findAvailablePort(CODE_SERVER_PORT_START, CODE_SERVER_PORT_MAX);
     console.log(`[code-server] Found available port: ${availablePort}`);
 

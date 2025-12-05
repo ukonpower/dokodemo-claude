@@ -81,6 +81,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const isTwoFingerScroll = useRef<boolean>(false);
   const isScrollHandleDrag = useRef<boolean>(false);
   const scrollHandleStartY = useRef<number>(0);
+  const isComposing = useRef<boolean>(false);
+  const compositionEndTime = useRef<number>(0);
 
   // onKeyInputの最新値を保持（useEffectの依存関係に含めないため）
   useEffect(() => {
@@ -207,6 +209,18 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
 
+    // IME composition状態を追跡
+    const textarea = (terminal.current as TerminalWithTextarea).textarea;
+    if (textarea) {
+      textarea.addEventListener('compositionstart', () => {
+        isComposing.current = true;
+      });
+      textarea.addEventListener('compositionend', () => {
+        isComposing.current = false;
+        compositionEndTime.current = Date.now();
+      });
+    }
+
     // iOSタッチスクロール対応: CSS設定を追加
     const terminalElement = terminalRef.current.querySelector(
       '.xterm'
@@ -249,6 +263,19 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       // \x1b[I = Focus In, \x1b[O = Focus Out
       if (data === '\x1b[I' || data === '\x1b[O') {
         return; // これらのイベントは送信しない
+      }
+
+      // IME変換中のEnterキーは無視（日本語入力の変換確定を誤送信しない）
+      if (isComposing.current && data === '\r') {
+        return;
+      }
+
+      // IME変換確定直後（100ms以内）のESCキーを無視
+      // 一部のIMEでは変換確定時にESCキーが送られることがあるため
+      const timeSinceCompositionEnd = Date.now() - compositionEndTime.current;
+      if (timeSinceCompositionEnd < 100 && data === '\x1b') {
+        console.log('[TerminalOut] ESCキーを無視（IME変換確定直後）');
+        return;
       }
 
       // キー入力をコールバックに送信

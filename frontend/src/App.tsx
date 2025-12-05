@@ -189,6 +189,18 @@ function App() {
     }
   }, [currentRepo]);
 
+  // ページタイトルをリポジトリ名で更新
+  useEffect(() => {
+    if (currentRepo) {
+      // リポジトリパスから最後のディレクトリ名を取得
+      const repoName = currentRepo.split('/').filter(Boolean).pop() || 'Repository';
+      document.title = repoName;
+    } else {
+      // リポジトリが選択されていない場合は元のタイトルに戻す
+      document.title = 'Claude Code Web';
+    }
+  }, [currentRepo]);
+
   // ターミナル関連の状態
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [activeTerminalId, setActiveTerminalId] = useState<string>('');
@@ -1192,12 +1204,23 @@ function App() {
 
   const handleSendCommand = (command: string) => {
     if (socket) {
+      // コマンドを送信
       socket.emit('send-command', {
         command,
         sessionId: currentSessionId,
         repositoryPath: currentRepo,
         provider: currentProvider,
       });
+
+      // 即座に改行を送信してコマンドを実行
+      setTimeout(() => {
+        socket.emit('send-command', {
+          command: '\r',
+          sessionId: currentSessionId,
+          repositoryPath: currentRepo,
+          provider: currentProvider,
+        });
+      }, 10); // 10ms後に改行送信
     }
   };
 
