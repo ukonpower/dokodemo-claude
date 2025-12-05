@@ -19,6 +19,8 @@ import type {
   ProjectTemplate,
   ServerToClientEvents,
   ClientToServerEvents,
+  CommandType,
+  CommandConfig,
 } from './types';
 
 import RepositoryManager from './components/RepositoryManager';
@@ -1202,21 +1204,47 @@ function App() {
     }
   };
 
-  const handleSendCommand = (command: string) => {
-    if (socket) {
-      // コマンドを送信
-      socket.emit('send-command', {
-        command,
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
+  /**
+   * コマンドタイプごとの設定
+   * needsEnter: コマンド送信後に自動的に改行を送信するか
+   */
+  const commandConfigs: Record<CommandType, CommandConfig> = {
+    prompt: { needsEnter: true }, // ユーザープロンプトは改行を送信
+    clear: { needsEnter: true }, // /clearコマンドは改行を送信
+    commit: { needsEnter: true }, // /commitコマンドは改行を送信
+    raw: { needsEnter: false }, // 生のコマンド（方向キーなど）は改行不要
+  };
 
-      // 即座に改行を送信してコマンドを実行
+  /**
+   * AI CLIにコマンドを送信する統一ヘルパー関数
+   * @param command 送信するコマンド文字列
+   * @param type コマンドタイプ（改行送信の有無を決定）
+   * @param options オプション（sessionIdを上書き可能）
+   */
+  const sendCommandToAi = (
+    command: string,
+    type: CommandType = 'raw',
+    options?: { sessionId?: string }
+  ) => {
+    if (!socket) return;
+
+    const config = commandConfigs[type];
+    const targetSessionId = options?.sessionId || currentSessionId;
+
+    // コマンドを送信
+    socket.emit('send-command', {
+      command,
+      sessionId: targetSessionId,
+      repositoryPath: currentRepo,
+      provider: currentProvider,
+    });
+
+    // 設定に応じて改行を送信
+    if (config.needsEnter) {
       setTimeout(() => {
         socket.emit('send-command', {
           command: '\r',
-          sessionId: currentSessionId,
+          sessionId: targetSessionId,
           repositoryPath: currentRepo,
           provider: currentProvider,
         });
@@ -1224,35 +1252,28 @@ function App() {
     }
   };
 
+  const handleSendCommand = (command: string) => {
+    // プロンプト入力として送信（改行を自動送信）
+    sendCommandToAi(command, 'prompt');
+  };
+
   const handleSendArrowKey = (direction: 'up' | 'down' | 'left' | 'right') => {
-    if (socket) {
-      // 方向キーに対応するANSIエスケープシーケンス
-      const arrowKeys = {
-        up: '\x1b[A',
-        down: '\x1b[B',
-        right: '\x1b[C',
-        left: '\x1b[D',
-      };
-      socket.emit('send-command', {
-        command: arrowKeys[direction],
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // 方向キーに対応するANSIエスケープシーケンス
+    const arrowKeys = {
+      up: '\x1b[A',
+      down: '\x1b[B',
+      right: '\x1b[C',
+      left: '\x1b[D',
+    };
+    // 生のコマンドとして送信（改行不要）
+    sendCommandToAi(arrowKeys[direction], 'raw');
   };
 
   const handleSendTabKey = (shift: boolean = false) => {
-    if (socket) {
-      // TabとShift+Tabに対応するコード
-      const tabKey = shift ? '\x1b[Z' : '\t'; // Shift+TabはCSI Z、Tabは\t
-      socket.emit('send-command', {
-        command: tabKey,
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // TabとShift+Tabに対応するコード
+    const tabKey = shift ? '\x1b[Z' : '\t'; // Shift+TabはCSI Z、Tabは\t
+    // 生のコマンドとして送信（改行不要）
+    sendCommandToAi(tabKey, 'raw');
   };
 
   const handleSendInterrupt = () => {
@@ -1271,25 +1292,13 @@ function App() {
   };
 
   const handleSendEscape = () => {
-    if (socket) {
-      socket.emit('send-command', {
-        command: '\x1b', // ESC (ASCII 27)
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // ESCキーを生のコマンドとして送信（改行不要）
+    sendCommandToAi('\x1b', 'raw'); // ESC (ASCII 27)
   };
 
   const handleClearClaude = () => {
-    if (socket) {
-      socket.emit('send-command', {
-        command: '/clear',
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // /clearコマンドとして送信（改行を自動送信）
+    sendCommandToAi('/clear', 'clear');
   };
 
   // AI CLIの再起動ハンドラー
@@ -1305,16 +1314,10 @@ function App() {
 
   // AIOutputからのキー入力ハンドラー
   const handleAiKeyInput = (key: string) => {
-    if (socket) {
-      const providerSessionId =
-        aiSessionIds.get(currentProvider) || currentSessionId;
-      socket.emit('send-command', {
-        command: key,
-        sessionId: providerSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    const providerSessionId =
+      aiSessionIds.get(currentProvider) || currentSessionId;
+    // 生のキー入力として送信（改行不要）
+    sendCommandToAi(key, 'raw', { sessionId: providerSessionId });
   };
 
   // AI出力のリロードハンドラー（リサイズ + 履歴再取得）
@@ -1339,27 +1342,15 @@ function App() {
   const handleChangeModel = (
     model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan'
   ) => {
-    if (socket) {
-      // モデル名を適切な値に変換
-      const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-      socket.emit('send-command', {
-        command: `/model ${modelValue}`,
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // モデル名を適切な値に変換
+    const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
+    // /modelコマンドとして送信（改行を自動送信）
+    sendCommandToAi(`/model ${modelValue}`, 'prompt');
   };
 
   const handleSendCommit = () => {
-    if (socket) {
-      socket.emit('send-command', {
-        command: '/commit',
-        sessionId: currentSessionId,
-        repositoryPath: currentRepo,
-        provider: currentProvider,
-      });
-    }
+    // /commitコマンドとして送信（改行を自動送信）
+    sendCommandToAi('/commit', 'commit');
   };
 
   // ターミナル関連のハンドラ

@@ -1,6 +1,14 @@
 // AI プロバイダーの型定義
 export type AiProvider = 'claude' | 'codex';
 
+// コマンドタイプの型定義
+// needsEnter: コマンド送信後に改行を自動送信するかどうか
+export type CommandType = 'prompt' | 'clear' | 'commit' | 'raw';
+
+export interface CommandConfig {
+  needsEnter: boolean; // 改行を自動送信するか
+}
+
 // AI CLI関連の型定義
 export interface AiMessage {
   id: string;
