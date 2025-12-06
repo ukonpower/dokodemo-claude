@@ -1248,7 +1248,7 @@ function App() {
           repositoryPath: currentRepo,
           provider: currentProvider,
         });
-      }, 10); // 10ms後に改行送信
+      }, 300); // 300ms後に改行送信
     }
   };
 
