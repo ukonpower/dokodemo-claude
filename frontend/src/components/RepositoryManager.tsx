@@ -182,8 +182,9 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold text-white">Projects</h2>
-          {/* 検索入力 */}
-          {repositories.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* 検索入力 */}
+            {repositories.length > 0 && (
             <div className="relative flex-1 sm:max-w-md">
               <input
                 type="text"
@@ -229,6 +230,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
               )}
             </div>
           )}
+          </div>
         </div>
         {repositories.length === 0 ? (
           <div className="text-center py-8 sm:py-12">

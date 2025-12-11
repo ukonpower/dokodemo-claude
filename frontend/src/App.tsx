@@ -354,6 +354,15 @@ function App() {
         }
       });
 
+      // dokodemo-claude自身の更新イベント
+      socketInstance.on('self-pulled', (data) => {
+        if (data.success) {
+          alert(`✅ ${data.message}\n\n${data.output}\n\n更新を反映するには、ブラウザをリロードしてください。`);
+        } else {
+          alert(`❌ ${data.message}\n\n${data.output}`);
+        }
+      });
+
       // テンプレート一覧を取得
       socketInstance.emit('get-templates');
 
@@ -1141,6 +1150,15 @@ function App() {
     }
   };
 
+  // dokodemo-claude自身をgit pull
+  const handlePullSelf = () => {
+    if (socket) {
+      if (confirm('dokodemo-claude自身を最新版に更新します。よろしいですか？')) {
+        socket.emit('pull-self');
+      }
+    }
+  };
+
   const handleProviderChange = (provider: AiProvider) => {
     setCurrentProvider(provider);
 
@@ -1485,13 +1503,36 @@ function App() {
           <header className="bg-dark-bg-secondary shadow-sm border-b border-dark-border-DEFAULT">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <div className="min-w-0">
-                  <h1 className="text-lg sm:text-2xl font-bold text-white">
-                    dokodemo-claude
-                  </h1>
-                  <p className="text-xs sm:text-sm text-gray-300 mt-1">
-                    Claude Code CLI Web Interface
-                  </p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div>
+                    <h1 className="text-lg sm:text-2xl font-bold text-white">
+                      dokodemo-claude
+                    </h1>
+                    <p className="text-xs sm:text-sm text-gray-300 mt-1">
+                      Claude Code CLI Web Interface
+                    </p>
+                  </div>
+                  {/* dokodemo-claude自身を更新ボタン */}
+                  <button
+                    onClick={handlePullSelf}
+                    className="px-2 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center space-x-1 bg-dark-bg-tertiary text-dark-text-secondary border border-dark-border-light hover:bg-dark-bg-hover hover:text-white hover:border-dark-border-focus whitespace-nowrap self-start mt-1"
+                    title="dokodemo-claude自身を最新版に更新 (git pull)"
+                  >
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    <span>更新</span>
+                  </button>
                 </div>
                 <div className="flex items-center space-x-2 flex-shrink-0">
                   <div

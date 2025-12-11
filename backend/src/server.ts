@@ -2084,6 +2084,61 @@ io.on('connection', (socket) => {
     }
   });
 
+  // dokodemo-claude自身のgit pull
+  socket.on('pull-self', async () => {
+    try {
+      // プロジェクトルートディレクトリ（dokodemo-claude自身のディレクトリ）
+      const selfRepoPath = projectRoot;
+
+      // git pullを実行
+      const gitPullProcess = spawn('git', ['pull'], { cwd: selfRepoPath });
+      let output = '';
+      let errorOutput = '';
+
+      gitPullProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      gitPullProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      // タイムアウト設定（60秒）
+      const pullTimeout = setTimeout(() => {
+        gitPullProcess.kill('SIGTERM');
+        socket.emit('self-pulled', {
+          success: false,
+          message: 'git pullがタイムアウトしました',
+          output: output,
+        });
+      }, 60000); // 60秒
+
+      gitPullProcess.on('exit', (code) => {
+        clearTimeout(pullTimeout);
+
+        if (code === 0) {
+          socket.emit('self-pulled', {
+            success: true,
+            message: 'dokodemo-claudeを最新版に更新しました',
+            output: output || errorOutput,
+          });
+        } else {
+          socket.emit('self-pulled', {
+            success: false,
+            message: 'git pullに失敗しました',
+            output: errorOutput || output,
+          });
+        }
+      });
+    } catch (error) {
+      socket.emit('self-pulled', {
+        success: false,
+        message: `git pullエラー: ${error}`,
+        output: '',
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
     // クライアント切断時のクリーンアップ
     clientActiveRepositories.delete(socket.id);

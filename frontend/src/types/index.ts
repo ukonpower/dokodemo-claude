@@ -397,6 +397,13 @@ export interface ServerToClientEvents {
     message: string;
     templateId: string;
   }) => void;
+
+  // dokodemo-claude自身の更新関連イベント
+  'self-pulled': (data: {
+    success: boolean;
+    message: string;
+    output: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -548,4 +555,7 @@ export interface ClientToServerEvents {
     description?: string;
   }) => void;
   'delete-template': (data: { templateId: string }) => void;
+
+  // dokodemo-claude自身の更新関連イベント
+  'pull-self': () => void;
 }
