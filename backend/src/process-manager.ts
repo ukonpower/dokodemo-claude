@@ -580,17 +580,6 @@ export class ProcessManager extends EventEmitter {
     this.terminals.set(terminalId, terminal);
     await this.persistTerminals();
 
-    // 最初のターミナル作成時にデフォルトショートカットを作成
-    const existingTerminals = this.getTerminalsByRepository(repositoryPath);
-    if (existingTerminals.length === 1) {
-      // 最初のターミナルの場合
-      const existingShortcuts = this.getShortcutsByRepository(repositoryPath);
-      if (existingShortcuts.length === 0) {
-        // ショートカットがまだない場合
-        await this.createDefaultShortcuts(repositoryPath);
-      }
-    }
-
     this.emit('terminal-created', terminal);
     return terminal;
   }
@@ -1917,11 +1906,25 @@ export class ProcessManager extends EventEmitter {
 
   /**
    * 指定リポジトリのコマンドショートカット一覧を取得
+   * デフォルトショートカットは常にリストの先頭に追加される
    */
   getShortcutsByRepository(repositoryPath: string): CommandShortcut[] {
-    return Array.from(this.shortcuts.values())
+    // デフォルトショートカット（常に表示、削除不可）
+    const defaultShortcuts: CommandShortcut[] = [
+      { id: 'default-git-pull', command: 'git pull', repositoryPath, createdAt: 0, isDefault: true },
+      { id: 'default-dev-server', command: 'npm run dev', repositoryPath, createdAt: 1, isDefault: true },
+      { id: 'default-npm-install', command: 'npm install', repositoryPath, createdAt: 2, isDefault: true },
+      { id: 'default-git-status', command: 'git status', repositoryPath, createdAt: 3, isDefault: true },
+      { id: 'default-git-reset', command: 'git reset --hard HEAD', repositoryPath, createdAt: 4, isDefault: true },
+    ];
+
+    // ユーザーが作成したショートカットを取得
+    const userShortcuts = Array.from(this.shortcuts.values())
       .filter((shortcut) => shortcut.repositoryPath === repositoryPath)
       .sort((a, b) => a.createdAt - b.createdAt);
+
+    // デフォルトショートカットを先頭に、ユーザーショートカットを後ろに結合
+    return [...defaultShortcuts, ...userShortcuts];
   }
 
   /**

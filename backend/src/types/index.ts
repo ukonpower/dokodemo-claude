@@ -523,6 +523,7 @@ export interface CommandShortcut {
   command: string;
   repositoryPath: string;
   createdAt: number;
+  isDefault?: boolean; // デフォルトショートカットフラグ（削除不可）
 }
 
 // 自走モード設定の型定義

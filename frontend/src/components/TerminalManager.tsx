@@ -331,13 +331,16 @@ const TerminalManager: React.FC<TerminalManagerProps> = ({
                           </span>
                         )}
                       </button>
-                      <button
-                        onClick={() => onDeleteShortcut(shortcut.id)}
-                        className="px-2 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                        title="削除"
-                      >
-                        ×
-                      </button>
+                      {/* デフォルトショートカットは削除不可 */}
+                      {!shortcut.isDefault && (
+                        <button
+                          onClick={() => onDeleteShortcut(shortcut.id)}
+                          className="px-2 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                          title="削除"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
