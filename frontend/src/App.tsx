@@ -33,6 +33,7 @@ import NpmScripts from './components/NpmScripts';
 import AutoModeSettings from './components/AutoModeSettings';
 import ProviderSelector from './components/ProviderSelector';
 import { PopupBlockedModal } from './components/PopupBlockedModal';
+import RepositorySwitcher from './components/RepositorySwitcher';
 
 // メモリリーク対策のための最大値設定
 const MAX_TERMINAL_MESSAGES = 1000; // ターミナルメッセージの最大保持数
@@ -1584,6 +1585,13 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* リポジトリ切り替えメニュー（画面下部固定） */}
+          <RepositorySwitcher
+            repositories={repositories}
+            currentRepo={currentRepo}
+            onSwitchRepository={handleSwitchRepository}
+          />
         </div>
       </div>
     );
@@ -2354,6 +2362,13 @@ function App() {
         onOpenInNewTab={() => {
           window.open(blockedCodeServerUrl, '_blank');
         }}
+      />
+
+      {/* リポジトリ切り替えメニュー（画面下部固定） */}
+      <RepositorySwitcher
+        repositories={repositories}
+        currentRepo={currentRepo}
+        onSwitchRepository={handleSwitchRepository}
       />
     </div>
   );
