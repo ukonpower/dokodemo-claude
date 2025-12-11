@@ -29,16 +29,20 @@ const RepositorySwitcher: React.FC<RepositorySwitcherProps> = ({
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-dark-bg-secondary border-t border-dark-border-light shadow-lg z-50">
-      <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-dark-border-light scrollbar-track-transparent hover:scrollbar-thumb-dark-border-focus">
+      <div className="flex overflow-x-hidden">
         <div className="flex space-x-2 px-4 py-3 min-w-full">
           {sortedRepositories.map((repo, index) => {
             const isActive = currentRepo === repo.path;
             const isVisible = index < 3; // 最初の3つは常に表示
 
             return (
-              <button
+              <a
                 key={repo.path}
-                onClick={() => onSwitchRepository(repo.path)}
+                href={`?repo=${encodeURIComponent(repo.path)}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSwitchRepository(repo.path);
+                }}
                 className={`
                   flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                   flex items-center space-x-2 min-w-[150px] max-w-[200px]
@@ -79,7 +83,7 @@ const RepositorySwitcher: React.FC<RepositorySwitcherProps> = ({
                 {isActive && (
                   <div className="h-2 w-2 bg-white rounded-full flex-shrink-0"></div>
                 )}
-              </button>
+              </a>
             );
           })}
         </div>
