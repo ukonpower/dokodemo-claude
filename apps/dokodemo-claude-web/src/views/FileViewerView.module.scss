@@ -1,0 +1,99 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $dark-bg-primary;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
+  flex-shrink: 0;
+}
+
+.backButton {
+  padding: 0.25rem;
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.headerTitle {
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $dark-text-primary;
+}
+
+.headerRepoName {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  @include truncate;
+}
+
+// モバイルレイアウト
+.mobileContent {
+  flex: 1 1 0%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  @include md-up {
+    display: none;
+  }
+}
+
+.mobileTreeFull {
+  overflow-y: auto;
+  flex-shrink: 0;
+  flex: 1 1 0%;
+}
+
+.mobileTreeCompact {
+  overflow-y: auto;
+  flex-shrink: 0;
+  height: 10%;
+  border-bottom: 1px solid $dark-border;
+}
+
+.mobileFileContent {
+  height: 85%;
+  overflow: hidden;
+}
+
+.mobileFileContentFullScreen {
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+// デスクトップレイアウト
+.desktopContent {
+  flex: 1 1 0%;
+  overflow: hidden;
+  display: none;
+
+  @include md-up {
+    display: flex;
+  }
+}
+
+.desktopTree {
+  width: 16rem;
+  border-right: 1px solid $dark-border;
+  overflow-y: auto;
+  flex-shrink: 0;
+
+  @include lg-up {
+    width: 18rem;
+  }
+}
+
+.desktopFileContent {
+  flex: 1 1 0%;
+  overflow: hidden;
+}

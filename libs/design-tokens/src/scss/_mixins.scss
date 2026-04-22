@@ -1,0 +1,65 @@
+// ============================================
+// デザイントークン - ミックスイン
+// ============================================
+
+@use 'variables' as *;
+
+// --- メディアクエリ ---
+@mixin breakpoint-up($bp) {
+  @media screen and (min-width: $bp) {
+    @content;
+  }
+}
+
+@mixin breakpoint-down($bp) {
+  @media screen and (max-width: ($bp - 1px)) {
+    @content;
+  }
+}
+
+@mixin xs-up { @include breakpoint-up($breakpoint-xs) { @content; } }
+@mixin sm-up { @include breakpoint-up($breakpoint-sm) { @content; } }
+@mixin md-up { @include breakpoint-up($breakpoint-md) { @content; } }
+@mixin lg-up { @include breakpoint-up($breakpoint-lg) { @content; } }
+@mixin xl-up { @include breakpoint-up($breakpoint-xl) { @content; } }
+
+@mixin xs-down { @include breakpoint-down($breakpoint-xs) { @content; } }
+@mixin sm-down { @include breakpoint-down($breakpoint-sm) { @content; } }
+@mixin md-down { @include breakpoint-down($breakpoint-md) { @content; } }
+@mixin lg-down { @include breakpoint-down($breakpoint-lg) { @content; } }
+
+// --- レイアウト ---
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// --- スクロールバー非表示 ---
+@mixin scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// --- テキスト省略 ---
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin line-clamp($lines) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

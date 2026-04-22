@@ -1,0 +1,77 @@
+.container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #0e0e0e;
+  border-top: 1px solid $dark-border-light;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+
+  @media (max-width: 679px) {
+    bottom: auto;
+    top: 0;
+    border-top: none;
+    border-bottom: 1px solid $dark-border-light;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  :global(.swiper) {
+    padding: 0.375rem 0.75rem;
+  }
+
+  :global(.swiper-slide) {
+    width: auto !important;
+  }
+}
+
+.tab {
+  padding: 0.35rem 0.6rem;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  transition: all 200ms $transition-easing;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 168px;
+  max-width: 220px;
+  text-decoration: none;
+}
+
+.tabActive {
+  background-color: #1a1a1a;
+  color: white;
+  border: 1px solid #303030;
+}
+
+.tabInactive {
+  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border-light;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: white;
+    border-color: $dark-border-focus;
+  }
+}
+
+.tabHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.tabName {
+  @include truncate;
+  min-width: 0;
+  flex: 1;
+}
+
+.tabStatus {
+  display: inline-flex;
+  align-items: center;
+}

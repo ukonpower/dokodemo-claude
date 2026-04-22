@@ -1,0 +1,495 @@
+@use "sass:color";
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.arrowKeysWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arrowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+}
+
+.arrowKey {
+  @include flex-center;
+  width: 2rem;
+  height: 2rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  @include sm-up {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400;
+  }
+}
+
+.enterWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.enterButton {
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $gray-500;
+  color: $dark-text-primary;
+  padding: 0.375rem 1.25rem;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-weight: 600;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  touch-action: manipulation;
+  box-shadow: $shadow-lg;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  @include sm-up {
+    padding: 0.375rem 1.25rem;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400, 0 0 0 3px $gray-900;
+  }
+}
+
+// 行コンテナ（同じグループのボタンを横並びにする）
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+
+  & > * {
+    flex: 0 1 auto;
+  }
+}
+
+// 共通ボタン基底
+%btnBase {
+  @include flex-center;
+  height: 1.875rem;
+  padding: 0 0.625rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  @include sm-up {
+    height: 2rem;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400;
+  }
+}
+
+.escButton {
+  @extend %btnBase;
+  border-color: #8b4a4a;
+  color: #d4a5a5;
+
+  &:hover {
+    border-color: #a05c5c;
+    color: #e0b5b5;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px #8b4a4a;
+  }
+}
+
+.clearButton {
+  @extend %btnBase;
+  border-color: #8b6f4a;
+  color: #d4bea5;
+
+  &:hover {
+    border-color: #a0825c;
+    color: #e0ccb5;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px #8b6f4a;
+  }
+}
+
+.modeButton {
+  @extend %btnBase;
+  border-color: $accent-blue;
+
+  &:hover {
+    border-color: color.adjust($accent-blue, $lightness: -10%);
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-blue;
+  }
+}
+
+.modelWrapper {
+  position: relative;
+}
+
+.modelButton {
+  @extend %btnBase;
+  border-color: #6f5f8c;
+  color: #bdb0d0;
+
+  &:hover {
+    border-color: #8373a8;
+    color: #cdc0dc;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px #6f5f8c;
+  }
+}
+
+.modelMenu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 10;
+  min-width: 100px;
+  overflow: hidden;
+}
+
+.modelMenuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $dark-text-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.commitButton {
+  @extend %btnBase;
+  border-color: $accent-green;
+
+  &:hover {
+    border-color: $accent-green-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-green;
+  }
+}
+
+// 補助系行（折りたたみ）
+.auxSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.moreToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 11px;
+  font-family: $font-mono;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-secondary;
+  }
+
+  &:focus {
+    outline: none;
+    color: $dark-text-secondary;
+  }
+}
+
+.grayButton {
+  @extend %btnBase;
+  border-color: $gray-600;
+  color: $gray-400;
+
+  &:hover {
+    border-color: $gray-500;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $gray-500;
+  }
+}
+
+// カスタム行
+.customSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid $dark-border-light;
+}
+
+.customHeader {
+  font-size: 10px;
+  color: $dark-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.customButton {
+  @extend %btnBase;
+  border-color: $accent-cyan;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $accent-cyan-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-cyan;
+  }
+}
+
+.addButton {
+  @extend %btnBase;
+  border-style: dashed;
+  border-color: $dark-border-focus;
+  color: $dark-text-muted;
+  width: 2.25rem;
+  padding: 0;
+
+  @include sm-up {
+    width: 2.5rem;
+  }
+
+  &:hover {
+    color: $dark-text-primary;
+    border-color: $dark-text-muted;
+  }
+}
+
+// ダイアログ
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.dialog {
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.dialogTitle {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $dark-text-primary;
+  margin: 0;
+}
+
+.dialogField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.dialogLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+.dialogInput,
+.dialogTextarea {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent-blue;
+  }
+}
+
+.dialogTextarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.dialogButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.dialogDeleteButton {
+  margin-right: auto;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid $accent-red;
+  border-radius: $radius;
+  background: transparent;
+  color: $accent-red;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba($accent-red, 0.12);
+  }
+}
+
+.dialogCancelButton {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background: transparent;
+  color: $dark-text-secondary;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.dialogSubmitButton {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid $accent-blue;
+  border-radius: $radius;
+  background-color: $accent-blue;
+  color: white;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,373 @@
+.wrapper {
+  position: relative;
+}
+
+.triggerButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: $gray-300;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-100;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @include sm-up {
+    padding: 0.25rem 0.5rem;
+    font-size: $font-size-xs;
+  }
+}
+
+.branchIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.375rem;
+  color: $gray-500;
+
+  @include sm-up {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.25rem;
+  }
+}
+
+.branchName {
+  @include truncate;
+  max-width: 7rem;
+
+  @include sm-up {
+    max-width: 6rem;
+  }
+}
+
+.chevron {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.375rem;
+  color: $gray-500;
+  transition: transform $transition-fast $transition-easing;
+
+  @include sm-up {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-left: 0.25rem;
+  }
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: fixed;
+  width: 16rem;
+  background-color: $gray-800;
+  border: 1px solid $dark-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+}
+
+.dropdownList {
+  padding: 0.25rem 0;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.emptyMessage {
+  padding: 0.5rem 1rem;
+  font-size: $font-size-sm;
+  color: $gray-400;
+}
+
+.groupLabel {
+  padding: 0.5rem 1rem;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.groupLabelBorder {
+  padding: 0.5rem 1rem;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-top: 1px solid $dark-border;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+}
+
+.branchItem {
+  display: flex;
+  align-items: center;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $gray-700;
+  }
+}
+
+.branchItemCurrent {
+  color: $gray-100;
+  background-color: rgba($gray-700, 0.5);
+}
+
+.branchItemDefault {
+  color: $gray-200;
+}
+
+.branchButton {
+  flex: 1 1 0%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.branchButtonName {
+  @include truncate;
+}
+
+.checkIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.deleteButton {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-500;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: #f87171;
+  }
+}
+
+.deleteIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.remoteBranchButton {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-300;
+  display: flex;
+  align-items: center;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $gray-700;
+  }
+}
+
+.remoteIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.5rem;
+  color: $gray-500;
+}
+
+.remoteName {
+  @include truncate;
+}
+
+// Delete confirm modal
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  @include flex-center;
+  z-index: 50;
+}
+
+.modalContent {
+  background-color: $gray-800;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  border: 1px solid $dark-border-light;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modalIconCircle {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  @include flex-center;
+  margin-right: 0.75rem;
+}
+
+.modalIconCircleRed {
+  background-color: rgba(127, 29, 29, 0.5);
+}
+
+.modalIconCircleBlue {
+  background-color: rgba(30, 58, 138, 0.5);
+}
+
+.modalIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.modalIconRed {
+  color: #f87171;
+}
+
+.modalIconBlue {
+  color: #60a5fa;
+}
+
+.modalTitle {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.modalText {
+  color: $gray-300;
+  margin-bottom: 1rem;
+}
+
+.monoRed {
+  font-family: $font-mono;
+  color: #f87171;
+}
+
+.warningBox {
+  background-color: rgba(113, 63, 18, 0.3);
+  border: 1px solid rgba(161, 98, 7, 0.5);
+  border-radius: $radius-md;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.warningTitle {
+  font-size: $font-size-sm;
+  color: #facc15;
+  font-weight: 600;
+}
+
+.warningList {
+  font-size: $font-size-sm;
+  color: rgba(250, 204, 21, 0.8);
+  margin-top: 0.25rem;
+
+  & > * + * {
+    margin-top: 0.25rem;
+  }
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.checkboxLabelGroup {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  cursor: pointer;
+
+  &:hover .checkboxText {
+    color: $gray-200;
+  }
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkboxText {
+  margin-left: 0.5rem;
+  font-size: $font-size-sm;
+  color: $gray-300;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+
+  & > * + * {
+    margin-left: 0.75rem;
+  }
+}
+
+.cancelButton {
+  padding: 0.5rem 1rem;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-300;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+  }
+}
+
+.dangerButton {
+  padding: 0.5rem 1rem;
+  font-size: $font-size-sm;
+  border: none;
+  cursor: pointer;
+  background-color: $red-600;
+  color: white;
+  border-radius: $radius-md;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px $gray-800, 0 0 0 4px #ef4444;
+  }
+}

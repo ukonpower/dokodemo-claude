@@ -1,0 +1,439 @@
+.itemRoot {
+  display: flex;
+  flex-direction: column;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.grabCursor {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// === 通常表示モード ===
+.normalRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indexNumber {
+  color: $gray-500;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+  flex-shrink: 0;
+}
+
+.promptContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.promptText {
+  @include truncate;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+  line-height: 1.3;
+}
+
+.statusBadge {
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: Inter, sans-serif;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.removeButton {
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+  color: $gray-500;
+  background: none;
+  border: none;
+  padding: 4px;
+  line-height: 0;
+  border-radius: $radius;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+// === 閲覧モード ===
+.viewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.viewHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewBody {
+  & > * + * {
+    margin-top: 4px;
+  }
+}
+
+.viewPromptBox {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  white-space: pre-wrap;
+  min-height: 60px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.viewFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.viewTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewTag {
+  font-size: $font-size-xs;
+  padding: 2px 6px;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-muted;
+  font-family: $font-mono;
+  line-height: 1;
+}
+
+.viewActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.requeueButton {
+  padding: 4px 12px;
+  font-size: $font-size-xs;
+  background-color: rgba($blue-500, 0.2);
+  border: 1px solid $blue-500;
+  border-radius: $radius;
+  color: #60a5fa;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($blue-500, 0.3);
+  }
+}
+
+.closeButton {
+  padding: 4px 12px;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+// === 編集モード ===
+.editHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.editHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editIndex {
+  flex-shrink: 0;
+  width: 16px;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  text-align: center;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  resize: vertical;
+  min-height: 60px;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+  }
+}
+
+.editFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.optionsWrapper {
+  position: relative;
+}
+
+.optionsButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: $font-size-xs;
+  border-radius: $radius;
+  border: 1px solid;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+}
+
+.optionsButtonActive {
+  background-color: rgba($accent-blue, 0.2);
+  border-color: $accent-blue;
+  color: $accent-blue;
+}
+
+.optionsButtonInactive {
+  background-color: $dark-bg-secondary;
+  border-color: $dark-border-light;
+  color: $dark-text-muted;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.optionsIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.optionsBadge {
+  margin-left: 2px;
+  padding: 2px 4px;
+  font-size: 10px;
+  background-color: $accent-blue;
+  color: white;
+  border-radius: 9999px;
+  line-height: 1;
+}
+
+.optionsChevron {
+  width: 12px;
+  height: 12px;
+  transition: transform $transition-fast $transition-easing;
+}
+
+.optionsChevronOpen {
+  transform: rotate(180deg);
+}
+
+.optionsDropdown {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 4px;
+  width: 208px;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.optionsDropdownInner {
+  padding: 8px;
+
+  & > * + * {
+    margin-top: 4px;
+  }
+}
+
+.optionItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: $radius;
+  transition: background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  border-radius: $radius;
+  border: 1px solid;
+  @include flex-center;
+  transition: all $transition-fast $transition-easing;
+}
+
+.checkboxCheckedBlue {
+  background-color: $blue-500;
+  border-color: #60a5fa;
+}
+
+.checkboxCheckedGreen {
+  background-color: $green-600;
+  border-color: #4ade80;
+}
+
+.checkboxUnchecked {
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-light;
+}
+
+.checkIcon {
+  width: 8px;
+  height: 8px;
+  color: white;
+}
+
+.optionText {
+  flex: 1;
+  text-align: left;
+}
+
+.optionLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  font-family: $font-mono;
+}
+
+.optionDescription {
+  font-size: 10px;
+  color: $dark-text-muted;
+}
+
+.optionsSeparator {
+  border-top: 1px solid $dark-border-light;
+  margin: 4px 0;
+}
+
+.modelSection {
+  padding: 8px;
+}
+
+.modelLabel {
+  font-size: 10px;
+  color: $dark-text-muted;
+  margin-bottom: 4px;
+}
+
+.modelGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.modelButton {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: $radius;
+  border: 1px solid;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+}
+
+.modelButtonActive {
+  background-color: $accent-blue;
+  border-color: $accent-blue;
+  color: white;
+}
+
+.modelButtonInactive {
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-light;
+  color: $dark-text-muted;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cancelEditButton {
+  padding: 4px 10px;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.saveEditButton {
+  padding: 4px 10px;
+  font-size: $font-size-xs;
+  background-color: $accent-blue;
+  border: 1px solid $accent-blue;
+  border-radius: $radius;
+  color: white;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $accent-blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

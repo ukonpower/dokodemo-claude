@@ -1,0 +1,201 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: $gray-900;
+  color: white;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: $gray-800;
+  border-bottom: 1px solid $gray-700;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: $font-size-sm;
+  color: $gray-400;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $gray-700;
+  }
+}
+
+.backIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.filename {
+  flex: 1 1 0%;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: white;
+  @include truncate;
+}
+
+.wrapButton {
+  padding: 0.375rem;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+}
+
+.wrapButtonActive {
+  color: white;
+  background-color: $gray-700;
+}
+
+.wrapButtonInactive {
+  color: $gray-400;
+
+  &:hover {
+    color: white;
+    background-color: $gray-700;
+  }
+}
+
+.wrapIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.refreshButton {
+  padding: 0.375rem;
+  color: $gray-400;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $gray-700;
+  }
+}
+
+.refreshIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.contentArea {
+  flex: 1 1 0%;
+  overflow: auto;
+}
+
+.errorBox {
+  margin: 1rem;
+  background-color: rgba($accent-red, 0.2);
+  border: 1px solid rgba($accent-red, 0.5);
+  border-radius: $radius-lg;
+  padding: 0.75rem 1rem;
+  font-size: $font-size-sm;
+  color: #f87171;
+}
+
+.loadingCenter {
+  @include flex-center;
+  height: 100%;
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+  height: 2rem;
+  width: 2rem;
+  color: $gray-400;
+}
+
+.spinnerCircle {
+  opacity: 0.25;
+}
+
+.spinnerPath {
+  opacity: 0.75;
+}
+
+.emptyCenter {
+  @include flex-center;
+  height: 100%;
+  color: $gray-500;
+}
+
+.diffContainer {
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+}
+
+.diffLine {
+  display: flex;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba($gray-700, 0.3);
+  }
+}
+
+.bgHeader { background-color: $gray-800; }
+.bgHunk { background-color: rgba(30, 58, 138, 0.3); }
+.bgAddition { background-color: rgba(20, 83, 45, 0.3); }
+.bgDeletion { background-color: rgba(127, 29, 29, 0.3); }
+
+.textHeader { color: $gray-500; }
+.textHunk { color: #60a5fa; }
+.textAddition { color: #86efac; }
+.textDeletion { color: #fca5a5; }
+.textContext { color: $gray-400; }
+.textDefault { color: $gray-300; }
+
+.lineNumDefault { color: $gray-600; }
+.lineNumAddition { color: $green-600; }
+.lineNumDeletion { color: $red-600; }
+
+.lineNum {
+  width: 3rem;
+  padding: 0.125rem 0.5rem;
+  text-align: right;
+  user-select: none;
+  border-right: 1px solid $gray-700;
+}
+
+.signCol {
+  width: 1.5rem;
+  padding: 0.125rem 0.25rem;
+  text-align: center;
+  user-select: none;
+}
+
+.signAddition { color: #4ade80; }
+.signDeletion { color: #f87171; }
+.signContext { color: $gray-600; }
+
+.contentCol {
+  flex: 1 1 0%;
+  min-width: 0;
+  padding: 0.125rem 0.5rem;
+  white-space: pre;
+}
+
+.contentColWrap {
+  flex: 1 1 0%;
+  min-width: 0;
+  padding: 0.125rem 0.5rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

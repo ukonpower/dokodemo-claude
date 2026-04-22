@@ -1,0 +1,10 @@
+.diffViewWrapper {
+  min-height: 100vh;
+  background-color: $dark-bg-primary;
+  padding-bottom: 3rem;
+
+  @media (max-width: 679px) {
+    padding-bottom: 0;
+    padding-top: 3rem;
+  }
+}

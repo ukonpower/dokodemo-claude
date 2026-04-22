@@ -1,0 +1,228 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  @include flex-center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.modal {
+  background-color: $dark-bg-secondary;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  max-width: 32rem;
+  width: 100%;
+  border: 1px solid $dark-border-light;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $dark-border;
+  position: sticky;
+  top: 0;
+  background-color: $dark-bg-secondary;
+  z-index: 10;
+}
+
+.headerTitle {
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: white;
+}
+
+.closeButton {
+  padding: 0.25rem;
+  border-radius: $radius;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.closeIcon {
+  width: 1rem;
+  height: 1rem;
+  color: $gray-400;
+}
+
+.modeSelector {
+  padding: 1rem 1.25rem 0;
+}
+
+.modeTabs {
+  display: flex;
+  background-color: $dark-bg-primary;
+  border-radius: $radius-lg;
+  padding: 0.25rem;
+  border: 1px solid $dark-border-light;
+}
+
+.modeTab {
+  flex: 1 1 0%;
+  padding: 0.5rem 0.75rem;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  transition: all $transition-fast $transition-easing;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.modeTabActive {
+  background-color: $dark-bg-tertiary;
+  color: white;
+  box-shadow: $shadow-md;
+  border: 1px solid $dark-border-light;
+}
+
+.modeTabInactive {
+  color: $dark-text-secondary;
+
+  &:hover {
+    color: white;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.modeTabIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.form {
+  padding: 1rem 1.25rem;
+
+  & > * + * {
+    margin-top: 1rem;
+  }
+}
+
+.fieldGroup {
+  // wrapper
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: $gray-300;
+  margin-bottom: 0.375rem;
+}
+
+.textInput {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: white;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  transition: all $transition-fast $transition-easing;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent-blue;
+    border-color: $accent-blue;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.selectInput {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: white;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  transition: all $transition-fast $transition-easing;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent-blue;
+    border-color: $accent-blue;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+// Submit button
+.submitButton {
+  width: 100%;
+  background-color: $accent-green;
+  color: white;
+  padding: 0.625rem 1rem;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  transition: all $transition-fast $transition-easing;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: $accent-green-hover;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent-green;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.submitSpinner {
+  animation: spin 1s linear infinite;
+  margin-left: -0.25rem;
+  margin-right: 0.5rem;
+  height: 1rem;
+  width: 1rem;
+  color: white;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinnerCircle {
+  opacity: 0.25;
+}
+
+.spinnerPath {
+  opacity: 0.75;
+}

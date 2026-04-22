@@ -1,0 +1,35 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.label {
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+
+.ready {
+  background-color: rgba($dark-bg-tertiary, 0.9);
+  border-color: rgba($dark-border-focus, 0.8);
+  color: $gray-300;
+}
+
+.running {
+  background-color: rgba($accent-blue, 0.16);
+  border-color: rgba($accent-blue, 0.42);
+  color: #bfdbfe;
+}
+
+.done {
+  background-color: rgba(#166534, 0.4);
+  border-color: rgba(#22c55e, 0.35);
+  color: #bbf7d0;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "dokodemo-claude-plugins",
+  "owner": {
+    "name": "dokodemo-claude"
+  },
+  "metadata": {
+    "description": "dokodemo-claude に同梱されたプラグイン",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "dokodemo-claude-tools",
+      "source": "./dokodemo-claude-tools",
+      "description": "dokodemo-claude で利用する統合ツールセット（preview, workflow, git など）",
+      "version": "1.0.0",
+      "author": {
+        "name": "dokodemo-claude"
+      },
+      "keywords": [
+        "dokodemo-claude",
+        "preview",
+        "workflow",
+        "git"
+      ]
+    }
+  ]
+}

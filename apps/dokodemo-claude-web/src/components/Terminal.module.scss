@@ -1,0 +1,409 @@
+@use "sass:color";
+
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background-color: $dark-bg-tertiary;
+  padding: 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.headerInfo {
+  @include flex-between;
+}
+
+.terminalInfo {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  & > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+
+  &.active {
+    background-color: $accent-green;
+  }
+
+  &.exited {
+    background-color: $accent-red;
+  }
+
+  &.other {
+    // dark-accent-orange - using a fallback
+    background-color: #f97316;
+  }
+}
+
+.terminalName {
+  color: $gray-300;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  @include truncate;
+}
+
+.terminalCwd {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  @include truncate;
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.terminalPid {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.headerButtons {
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+.iconButton {
+  @include flex-center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: $dark-bg-secondary;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+  }
+}
+
+.terminalMain {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  background-color: $dark-bg-primary;
+  position: relative;
+}
+
+.keyboardControls {
+  background-color: $dark-bg-tertiary;
+  padding: 0.75rem;
+  border-top: 1px solid $dark-border;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.controlsInner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.arrowGroup {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.arrowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+}
+
+.arrowKey {
+  @include flex-center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+}
+
+.enterKey {
+  @include flex-center;
+  width: 3rem;
+  height: 76px;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-400;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-lg;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-300;
+  }
+}
+
+.divider {
+  height: 4rem;
+  width: 1px;
+  background-color: $gray-600;
+}
+
+.rightGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rightTopRow {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.funcKey {
+  @include flex-center;
+  width: 3rem;
+  height: 2.25rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &.escKey {
+    border-color: $accent-red;
+
+    &:hover {
+      border-color: $accent-red;
+    }
+  }
+}
+
+.ctrlCKey {
+  @include flex-center;
+  height: 2.25rem;
+  width: 100%;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-600;
+  border-radius: $radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $gray-400;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-500;
+  }
+}
+
+.inputArea {
+  background-color: $dark-bg-tertiary;
+  padding: 0.5rem 0.5rem;
+  border-top: 1px solid $dark-border;
+  flex-shrink: 0;
+
+  @include sm-up {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+.inputForm {
+  display: flex;
+
+  & > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+.textInput {
+  flex: 1 1 0%;
+  background-color: $dark-bg-secondary;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-lg;
+  border: 1px solid $dark-border-light;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent-blue;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+}
+
+.submitButton {
+  padding: 0.25rem 0.75rem;
+  background-color: $accent-blue;
+  color: white;
+  border-radius: $radius-lg;
+  border: none;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background-color: color.adjust($accent-blue, $lightness: -10%);
+  }
+}
+
+// Fullscreen overlay
+.fullscreenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: $dark-bg-primary;
+  display: flex;
+  flex-direction: column;
+  transition: all $transition-normal $transition-easing;
+}
+
+.fullscreenHeader {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  @include flex-between;
+}
+
+.fullscreenHeaderLeft {
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+.fullscreenLabel {
+  color: $gray-300;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+}
+
+.fullscreenCwd {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+}
+
+.fullscreenCloseButton {
+  @include flex-center;
+  width: 2rem;
+  height: 2rem;
+  background-color: $dark-bg-secondary;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  color: white;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+  }
+}
+
+.fullscreenTerminal {
+  flex: 1 1 0%;
+  min-height: 0;
+  position: relative;
+}
+
+.fullscreenScrollButton {
+  @include flex-center;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: white;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  gap: 0.25rem;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+}

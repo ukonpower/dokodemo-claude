@@ -1,0 +1,96 @@
+.emptyState {
+  @include flex-center;
+  min-height: 100%;
+}
+
+.emptyText {
+  color: #4b5563;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+}
+
+.root {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 100%;
+}
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2d2e32;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
+  color: $blue-500;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.processingText {
+  color: $gray-500;
+  font-size: 10px;
+  font-family: Inter, sans-serif;
+}
+
+.pausedText {
+  color: #eab308;
+  font-size: 10px;
+  font-family: Inter, sans-serif;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footerButton {
+  font-size: 10px;
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+}
+
+.cancelButton {
+  composes: footerButton;
+  color: #f97316;
+}
+
+.pauseButton {
+  composes: footerButton;
+  color: $gray-500;
+}
+
+.resumeButton {
+  composes: footerButton;
+  color: $gray-500;
+}
+
+.resetButton {
+  composes: footerButton;
+  color: $gray-500;
+}

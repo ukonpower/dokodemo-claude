@@ -1,0 +1,168 @@
+.root {
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius-lg;
+  border: 1px solid $dark-border-light;
+  padding: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerWithMargin {
+  composes: header;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+}
+
+.titleIcon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  color: #f97316;
+}
+
+.countBadge {
+  margin-left: 8px;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-secondary;
+  padding: 2px 8px;
+  border-radius: $radius;
+}
+
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: $dark-text-primary;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  transition: all $transition-fast $transition-easing;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.refreshIcon {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+}
+
+.emptyText {
+  color: $gray-400;
+  font-size: $font-size-sm;
+  margin-top: 8px;
+}
+
+.scrollArea {
+  max-height: 128px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $gray-600 $gray-800;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding-right: 8px;
+
+  @include sm-up {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include md-up {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @include lg-up {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.scriptButton {
+  position: relative;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  padding: 8px;
+  text-align: left;
+  transition: all $transition-normal $transition-easing;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: #f97316;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.scriptName {
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: white;
+  @include truncate;
+}
+
+.scriptCommand {
+  font-size: $font-size-xs;
+  color: $gray-400;
+  margin-top: 2px;
+  @include truncate;
+
+  .scriptButton:hover & {
+    color: #fed7aa;
+  }
+}
+
+.runIcon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity $transition-fast $transition-easing;
+
+  .scriptButton:hover & {
+    opacity: 1;
+  }
+}
+
+.runIconSvg {
+  width: 12px;
+  height: 12px;
+  color: #fdba74;
+}
+
+.helpText {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: 8px;
+}

@@ -1,0 +1,175 @@
+.container {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 100%;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerTitle {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+}
+
+.headerCount {
+  color: #6b7280;
+  font-size: 10px;
+  font-family: Inter, sans-serif;
+}
+
+.refreshButton {
+  @include flex-center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background-color: #1a1b1e;
+  border: 1px solid #3a3b40;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.refreshIcon {
+  color: #6b7280;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #f87171;
+  font-family: Inter, sans-serif;
+}
+
+.loadingCenter {
+  @include flex-center;
+  flex: 1;
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+  height: 1rem;
+  width: 1rem;
+  color: #6b7280;
+}
+
+.spinnerCircle {
+  opacity: 0.25;
+}
+
+.spinnerPath {
+  opacity: 0.75;
+}
+
+.emptyCenter {
+  @include flex-center;
+  flex: 1;
+}
+
+.emptyText {
+  color: #4b5563;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.fileButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.statusBadge {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: Inter, sans-serif;
+}
+
+.filePath {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  @include truncate;
+}
+
+.filePathDir {
+  color: #6b7280;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+}
+
+.filePathArrow {
+  color: #4b5563;
+  font-size: 11px;
+  margin: 0 4px;
+}
+
+.filePathName {
+  color: #d1d5db;
+  font-size: 11px;
+  font-family: Inter, sans-serif;
+}
+
+.statGroup {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.statAddition {
+  color: #4ade80;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+}
+
+.statDeletion {
+  color: #f87171;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+}

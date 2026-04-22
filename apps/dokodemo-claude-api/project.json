@@ -1,0 +1,37 @@
+{
+  "name": "dokodemo-claude-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/dokodemo-claude-api/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx tsx watch src/server.ts",
+        "cwd": "{workspaceRoot}/apps/dokodemo-claude-api"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc",
+        "cwd": "{workspaceRoot}/apps/dokodemo-claude-api"
+      }
+    },
+    "type-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "{workspaceRoot}/apps/dokodemo-claude-api"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx eslint .",
+        "cwd": "{workspaceRoot}/apps/dokodemo-claude-api"
+      }
+    }
+  }
+}

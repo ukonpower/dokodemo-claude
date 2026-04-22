@@ -1,0 +1,56 @@
+{
+  "name": "@dokodemo-workspace/source",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "npx concurrently -n api,web -c yellow,cyan \"npx nx serve dokodemo-claude-api\" \"npx nx serve dokodemo-claude-web\"",
+    "dev:dokodemo": "npx concurrently -n api,web -c yellow,cyan \"npx nx serve dokodemo-claude-api\" \"npx nx serve dokodemo-claude-web\"",
+    "build:all": "npx nx run-many --target=build",
+    "lint": "npx nx run-many --target=lint",
+    "type-check": "npx nx run-many --target=type-check",
+    "check-all": "npm run lint && npm run type-check",
+    "setup": "node scripts/check-system-deps.js && npm install && npm install --prefix apps/dokodemo-claude-api && npm install --prefix apps/dokodemo-claude-web && node scripts/setup-env.js"
+  },
+  "dependencies": {
+    "@types/prismjs": "^1.26.6",
+    "@types/web-push": "^3.6.4",
+    "prism-react-renderer": "^2.4.1",
+    "prismjs": "^1.30.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "react-router": "^7.12.0",
+    "remark-gfm": "^4.0.1",
+    "swiper": "^12.1.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@nx/eslint": "22.3.3",
+    "@nx/eslint-plugin": "22.3.3",
+    "@nx/js": "22.3.3",
+    "@nx/react": "^22.3.3",
+    "@nx/vite": "22.3.3",
+    "@nx/web": "^22.3.3",
+    "@nx/workspace": "22.3.3",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.2.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "nx": "22.3.3",
+    "sass": "^1.99.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.54.0",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-core": "^7.4.0",
+    "workbox-precaching": "^7.4.0"
+  },
+  "volta": {
+    "node": "22.17.0"
+  }
+}

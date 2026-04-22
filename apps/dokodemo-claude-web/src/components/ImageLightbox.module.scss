@@ -1,0 +1,217 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+}
+
+// === ヘッダー ===
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.counter {
+  color: white;
+  font-size: $font-size-sm;
+}
+
+.closeButton {
+  padding: 8px;
+  color: white;
+  border-radius: 9999px;
+  transition: background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.closeIcon {
+  width: 24px;
+  height: 24px;
+}
+
+// === メインコンテンツ ===
+.mainContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.navButton {
+  position: absolute;
+  z-index: 10;
+  padding: 8px;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  transition: background-color $transition-fast $transition-easing;
+  border: none;
+  cursor: pointer;
+
+  @include sm-up {
+    padding: 12px;
+  }
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.prevButton {
+  composes: navButton;
+  left: 8px;
+
+  @include sm-up {
+    left: 16px;
+  }
+}
+
+.nextButton {
+  composes: navButton;
+  right: 8px;
+
+  @include sm-up {
+    right: 16px;
+  }
+}
+
+.navIcon {
+  width: 24px;
+  height: 24px;
+
+  @include sm-up {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.imageWrapper {
+  max-width: 100%;
+  max-height: 100%;
+  padding: 0 48px;
+  transition: transform $transition-fast $transition-easing;
+
+  @include sm-up {
+    padding: 0 64px;
+  }
+}
+
+.mediaContent {
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  object-fit: contain;
+
+  @include sm-up {
+    max-height: calc(100vh - 240px);
+  }
+}
+
+// === メタデータパネル ===
+.metaPanel {
+  padding: 8px 16px;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.metaTitle {
+  color: white;
+  font-weight: 500;
+  font-size: $font-size-sm;
+
+  @include sm-up {
+    font-size: $font-size-base;
+  }
+}
+
+.metaDescription {
+  color: $gray-300;
+  font-size: $font-size-xs;
+  margin-top: 4px;
+
+  @include sm-up {
+    font-size: $font-size-sm;
+  }
+}
+
+.labelList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.labelTag {
+  font-size: $font-size-xs;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: #7c3aed;
+  color: #e9d5ff;
+}
+
+// === アクションバー ===
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.copyPathButton {
+  padding: 8px 16px;
+  font-size: $font-size-sm;
+  border-radius: $radius-lg;
+  font-weight: 500;
+  transition: background-color $transition-fast $transition-easing;
+  border: none;
+  cursor: pointer;
+}
+
+.copyPathDefault {
+  background-color: $blue-500;
+  color: white;
+
+  &:hover {
+    background-color: #2563eb;
+  }
+}
+
+.copyPathCopied {
+  background-color: $accent-green;
+  color: white;
+}
+
+.deleteFileButton {
+  padding: 8px 16px;
+  font-size: $font-size-sm;
+  border-radius: $radius-lg;
+  font-weight: 500;
+  background-color: $accent-red;
+  color: white;
+  transition: background-color $transition-fast $transition-easing;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $accent-red-hover;
+  }
+}

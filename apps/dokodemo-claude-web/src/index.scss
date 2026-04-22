@@ -1,0 +1,145 @@
+// ============================================
+// dokodemo-claude-web グローバルスタイル
+// ============================================
+
+// --- リセット / ベース ---
+*,
+*::after,
+*::before {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-color: $dark-border;
+}
+
+body {
+  background-color: black;
+  color: white;
+  font-family: $font-sans;
+  line-height: 1.5;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+select {
+  cursor: pointer;
+}
+
+input[type='checkbox'] {
+  cursor: pointer;
+}
+
+code,
+pre {
+  font-family: $font-mono;
+  white-space: pre;
+}
+
+// Safari iOS zoom prevention（モバイルのみ）
+@include md-down {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+// --- アイコンボタン共通スタイル ---
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: $radius;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  background: none;
+  padding: 0;
+  flex-shrink: 0;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.btn-icon-xs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: $radius;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  background: none;
+  padding: 0;
+  flex-shrink: 0;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+// --- XTerm.js 仮想スクロール設定 ---
+.xterm .xterm-viewport {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+
+  &::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+.xterm .xterm-scroll-area {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.xterm .xterm-rows {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  z-index: 1 !important;
+}
+
+.xterm .xterm-screen {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+// --- XTerm.js 下線スタイルの抑止 ---
+// Claude Code / codex などが SGR 4 (underline) / 21 (double) / 4:3 (wavy) /
+// 4:4 (dotted) / 4:5 (dashed) を装飾的に多用してくるため、xterm.js の
+// デフォルト CSS で各種下線が常時表示されてしまう。視認性のノイズになるため
+// 全パターンの下線を非表示にする。overline と strikethrough は対象外。
+.xterm .xterm-underline-1,
+.xterm .xterm-underline-2,
+.xterm .xterm-underline-3,
+.xterm .xterm-underline-4,
+.xterm .xterm-underline-5 {
+  text-decoration: none !important;
+}
+
+// overline と underline の複合クラスは overline 部分のみ残す
+.xterm .xterm-overline.xterm-underline-1,
+.xterm .xterm-overline.xterm-underline-2,
+.xterm .xterm-overline.xterm-underline-3,
+.xterm .xterm-overline.xterm-underline-4,
+.xterm .xterm-overline.xterm-underline-5 {
+  text-decoration: overline !important;
+}

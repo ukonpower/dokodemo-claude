@@ -1,0 +1,41 @@
+.root {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabBar {
+  display: flex;
+  flex-shrink: 0;
+
+  &.collapsed {
+    align-items: center;
+  }
+
+  &:not(.collapsed) {
+    align-items: flex-end;
+  }
+}
+
+.collapseToggle {
+  @include flex-center;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}

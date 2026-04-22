@@ -1,0 +1,14 @@
+{
+  "name": "dokodemo-claude-tools",
+  "version": "1.0.0",
+  "description": "dokodemo-claude の統合ツールセット（preview, workflow, git など）",
+  "author": {
+    "name": "dokodemo-claude"
+  },
+  "keywords": [
+    "dokodemo-claude",
+    "preview",
+    "workflow",
+    "git"
+  ]
+}

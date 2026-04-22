@@ -1,0 +1,308 @@
+.container {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 100%;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fileCount {
+  font-size: 10px;
+  font-weight: 500;
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+}
+
+.refreshButton {
+  @include flex-center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background-color: #1a1b1e;
+  border: 1px solid #3a3b40;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.refreshIcon {
+  color: #6b7280;
+}
+
+.errorBox {
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #f87171;
+  font-family: Inter, sans-serif;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.uploadBox {
+  @include flex-center;
+  width: 80px;
+  height: 80px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+}
+
+.uploadBoxDefault {
+  border: 1px dashed #3a3b40;
+  background-color: transparent;
+}
+
+.uploadBoxDragging {
+  border: 1px solid $blue-500;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.uploadBoxDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.progressContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.progressBar {
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #333;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: $blue-500;
+  border-radius: 2px;
+  transition: width 0.2s;
+}
+
+.progressText {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.plusIcon {
+  color: #6b7280;
+}
+
+.thumbnailCard {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  background-color: #111;
+  overflow: hidden;
+}
+
+.thumbnailButton {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border: none;
+  padding: 0;
+}
+
+.thumbnailButtonMedia {
+  cursor: pointer;
+}
+
+.thumbnailButtonOther {
+  cursor: default;
+}
+
+.mediaFill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoOverlay {
+  position: absolute;
+  inset: 0;
+  @include flex-center;
+  pointer-events: none;
+}
+
+.playButton {
+  width: 2rem;
+  height: 2rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  @include flex-center;
+}
+
+.playIcon {
+  width: 1rem;
+  height: 1rem;
+  color: white;
+  margin-left: 0.125rem;
+}
+
+.otherFileContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.otherFileIcon {
+  color: #6b7280;
+}
+
+.otherFileName {
+  font-size: 8px;
+  color: $gray-400;
+  @include truncate;
+  width: 100%;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.otherFileSize {
+  font-size: 8px;
+  color: $gray-500;
+}
+
+.hoverOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  transition: opacity $transition-fast $transition-easing;
+}
+
+.hoverOverlayMedia {
+  cursor: pointer;
+}
+
+.hoverOverlayActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hoverOverlayInactive {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.thumbnailCard:hover .hoverOverlayInactive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButtons {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+  z-index: 10;
+  transition: opacity $transition-fast $transition-easing;
+}
+
+.actionButtonsActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButtonsInactive {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.thumbnailCard:hover .actionButtonsInactive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButton {
+  width: 1.5rem;
+  height: 1.5rem;
+  @include flex-center;
+  border-radius: $radius;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.copyButton {
+  background-color: rgba($gray-700, 0.8);
+  color: $gray-300;
+
+  &:hover {
+    background-color: $gray-600;
+  }
+}
+
+.copyButtonSuccess {
+  background-color: $accent-green;
+  color: white;
+}
+
+.deleteButton {
+  background-color: rgba($accent-red, 0.8);
+  color: white;
+
+  &:hover {
+    background-color: #ef4444;
+  }
+}
+
+.actionIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.titleOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: opacity $transition-fast $transition-easing;
+  pointer-events: none;
+}
+
+.titleOverlayActive {
+  opacity: 1;
+}
+
+.titleOverlayInactive {
+  opacity: 0;
+}
+
+.thumbnailCard:hover .titleOverlayInactive {
+  opacity: 1;
+}
+
+.titleText {
+  font-size: 10px;
+  color: white;
+  @include truncate;
+}

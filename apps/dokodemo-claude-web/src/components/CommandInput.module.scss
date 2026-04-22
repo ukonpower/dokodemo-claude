@@ -1,0 +1,675 @@
+@use "sass:color";
+
+.root {
+  & > * + * {
+    margin-top: 0.375rem; // space-y-1.5
+  }
+}
+
+.workflowControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  @include lg-up {
+    display: inline-flex;
+    flex-direction: column;
+  }
+}
+
+.skillRow {
+  display: flex;
+  align-items: center;
+}
+
+.skillGroup {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: $dark-bg-secondary;
+  border-radius: $radius-lg;
+  padding: 0.125rem;
+  border: 1px solid $dark-border;
+  overflow-x: auto;
+
+  @include lg-up {
+    width: auto;
+  }
+}
+
+.skillButton {
+  flex: 1;
+  padding: 0.375rem 0.25rem;
+  white-space: nowrap;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: 500;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  text-align: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  @include lg-up {
+    flex: initial;
+  }
+
+  @include sm-up {
+    padding: 0.125rem 0.5rem;
+  }
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    box-shadow: $shadow-sm;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-secondary;
+    }
+  }
+}
+
+.skillDivider {
+  width: 1px;
+  height: 1rem;
+  background-color: $dark-border-light;
+  margin: 0 0.125rem;
+}
+
+.autoOptions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.125rem;
+}
+
+.autoTargetGroup {
+  display: flex;
+  align-items: center;
+  background-color: $dark-bg-secondary;
+  border-radius: $radius-lg;
+  padding: 0.125rem;
+  border: 1px solid $dark-border;
+}
+
+.autoTargetLabel {
+  font-size: 10px;
+  color: $dark-text-muted;
+  padding: 0 0.375rem;
+  user-select: none;
+}
+
+.autoTargetButton {
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: 500;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  @include sm-up {
+    padding: 0.125rem 0.375rem;
+  }
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    box-shadow: $shadow-sm;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-secondary;
+    }
+  }
+}
+
+.autoCheckButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-lg;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: 500;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  cursor: pointer;
+
+  @include sm-up {
+    padding: 0.125rem 0.375rem;
+  }
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    border: 1px solid $dark-border;
+    box-shadow: $shadow-sm;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+    border: 1px solid transparent;
+
+    &:hover {
+      color: $dark-text-secondary;
+    }
+  }
+}
+
+.checkIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: $radius;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+
+  &.checked {
+    background-color: $accent-blue;
+    border-color: $accent-blue;
+    color: white;
+  }
+
+  &:not(.checked) {
+    border-color: $dark-border;
+  }
+}
+
+.fileLinks {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+.fileLink {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: $radius;
+  font-size: 11px;
+  font-family: $font-mono;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-secondary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+  }
+}
+
+.fileLinkIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+
+.formWrapper {
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+  color: $dark-text-primary;
+  border-radius: $radius-lg;
+  resize: none;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  min-height: calc($font-size-sm * 1.5 * 3 + 0.625rem * 2 + 2px);
+  max-height: 300px;
+  overflow-y: auto;
+  transition: all $transition-fast $transition-easing;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent-blue;
+    border-color: $accent-blue;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+}
+
+.uploadOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba($dark-bg-secondary, 0.8);
+  border-radius: $radius-lg;
+}
+
+.uploadContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $dark-text-secondary;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  height: 1rem;
+  width: 1rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinnerCircle {
+  opacity: 0.25;
+}
+
+.spinnerPath {
+  opacity: 0.75;
+}
+
+.uploadText {
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+}
+
+.clearInputButton {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: $radius;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.clearInputIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.historyNav {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.mobileIndentNav {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0.125rem;
+
+  @include sm-up {
+    display: none;
+  }
+}
+
+.historyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: $radius;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.historyIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.sendSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sendOptionsBar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  padding: 0.25rem;
+  overflow-x: auto;
+
+  @include lg-up {
+    flex: initial;
+  }
+}
+
+.queueToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.queueIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.toggleTrack {
+  width: 1.5rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  position: relative;
+  transition: background-color $transition-normal $transition-easing;
+
+  &.on {
+    background-color: $accent-blue;
+  }
+
+  &.off {
+    background-color: $dark-bg-secondary;
+  }
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 0.125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background-color: white;
+  transition: all $transition-normal $transition-easing;
+
+  &.on {
+    left: 0.75rem;
+  }
+
+  &.off {
+    left: 0.125rem;
+  }
+}
+
+.optionDivider {
+  width: 1px;
+  height: 1rem;
+  background-color: $dark-border-light;
+}
+
+.optionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.optionCheckbox {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: $radius;
+  border-color: $dark-border-light;
+  background-color: $dark-bg-secondary;
+  accent-color: $accent-blue;
+}
+
+.modelDropdownWrapper {
+  position: relative;
+}
+
+.modelButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.modelDropdownIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  transition: transform $transition-fast $transition-easing;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.modelDropdown {
+  position: fixed;
+  width: 7rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.modelOption {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  text-align: left;
+  transition: background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &.selected {
+    background-color: $accent-blue;
+    color: white;
+  }
+
+  &:not(.selected) {
+    color: $dark-text-primary;
+
+    &:hover {
+      background-color: $dark-bg-hover;
+    }
+  }
+}
+
+.submitButton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  background-color: $accent-blue;
+  border: 1px solid $accent-blue;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: 500;
+  color: white;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: color.adjust($accent-blue, $lightness: -10%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px $accent-blue;
+  }
+}
+
+.submitIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+
+  @include sm-up {
+    margin-right: 0.25rem;
+  }
+}
+
+.submitText {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.simpleSendSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.simpleSendSpacer {
+  flex: 1;
+}
+
+.simpleSubmitIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-right: 0.25rem;
+}
