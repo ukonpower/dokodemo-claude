@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="./docs/icon.png" alt="dokodemo-claude icon" width="128" height="128">
+</p>
+
 # dokodemo-claude
 
 Claude Code / Codex などの AI CLI を Web ブラウザから操作するための、個人利用向けの最小限のインターフェース。
 
 スマホからでもどこからでも（dokodemo）、自宅 PC 上の Claude Code を使った作業を継続できることを想定したツール。
+
+![dokodemo-claude screenshot](./docs/screenshot-terminal.png)
 
 ## 主な機能
 
