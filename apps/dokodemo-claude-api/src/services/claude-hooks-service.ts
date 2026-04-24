@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import * as TOML from '@iarna/toml';
 import type { AiProvider } from '../types/index.js';
 
 interface HookHandler {
@@ -22,6 +23,8 @@ interface ClaudeSettings {
 interface CodexHooksFile {
   hooks: Record<string, HookMatcher[]>;
 }
+
+type TomlObject = Record<string, unknown>;
 
 class AiHooksService {
   private getClaudeSettingsPath(): string {
@@ -83,58 +86,98 @@ class AiHooksService {
     };
   }
 
+  // --- 共通ヘルパー ---
+
+  private async writeFileAtomic(filePath: string, content: string): Promise<void> {
+    const dir = path.dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+    await fs.writeFile(tmpPath, content, 'utf-8');
+    await fs.rename(tmpPath, filePath);
+  }
+
   // --- Claude settings.json ---
 
   private async loadClaudeSettings(): Promise<ClaudeSettings> {
+    let content: string;
     try {
-      const content = await fs.readFile(this.getClaudeSettingsPath(), 'utf-8');
+      content = await fs.readFile(this.getClaudeSettingsPath(), 'utf-8');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return {};
+      throw err;
+    }
+    try {
       return JSON.parse(content) as ClaudeSettings;
     } catch {
-      return {};
+      throw new Error(
+        '~/.claude/settings.json が壊れています（JSON パース失敗）。手動で修正してから再度お試しください。',
+      );
     }
   }
 
   private async saveClaudeSettings(settings: ClaudeSettings): Promise<void> {
-    const dir = path.dirname(this.getClaudeSettingsPath());
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(this.getClaudeSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8');
+    await this.writeFileAtomic(this.getClaudeSettingsPath(), JSON.stringify(settings, null, 2));
   }
 
   // --- Codex hooks.json ---
 
   private async loadCodexHooks(): Promise<CodexHooksFile> {
+    let content: string;
     try {
-      const content = await fs.readFile(this.getCodexHooksPath(), 'utf-8');
+      content = await fs.readFile(this.getCodexHooksPath(), 'utf-8');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { hooks: {} };
+      throw err;
+    }
+    try {
       return JSON.parse(content) as CodexHooksFile;
     } catch {
-      return { hooks: {} };
+      throw new Error(
+        '~/.codex/hooks.json が壊れています（JSON パース失敗）。手動で修正してから再度お試しください。',
+      );
     }
   }
 
   private async saveCodexHooks(hooksFile: CodexHooksFile): Promise<void> {
-    const dir = path.dirname(this.getCodexHooksPath());
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(this.getCodexHooksPath(), JSON.stringify(hooksFile, null, 2), 'utf-8');
+    await this.writeFileAtomic(this.getCodexHooksPath(), JSON.stringify(hooksFile, null, 2));
+  }
+
+  // --- Codex config.toml ---
+
+  private async loadCodexConfig(): Promise<TomlObject | null> {
+    let content: string;
+    try {
+      content = await fs.readFile(this.getCodexConfigPath(), 'utf-8');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw err;
+    }
+    try {
+      return TOML.parse(content) as TomlObject;
+    } catch {
+      throw new Error(
+        '~/.codex/config.toml が壊れています（TOML パース失敗）。手動で修正してから再度お試しください。',
+      );
+    }
   }
 
   private async ensureCodexHooksFeature(): Promise<void> {
-    const configPath = this.getCodexConfigPath();
-    let content: string;
-    try {
-      content = await fs.readFile(configPath, 'utf-8');
-    } catch {
-      content = '';
-    }
+    const parsed = (await this.loadCodexConfig()) ?? {};
+    const features = (parsed.features as TomlObject | undefined) ?? {};
+    if (features.codex_hooks === true) return;
+    features.codex_hooks = true;
+    parsed.features = features;
+    await this.writeFileAtomic(this.getCodexConfigPath(), TOML.stringify(parsed as TOML.JsonMap));
+  }
 
-    if (content.includes('codex_hooks')) return;
-
-    if (content.includes('[features]')) {
-      content = content.replace('[features]', '[features]\ncodex_hooks = true');
-    } else {
-      content += '\n[features]\ncodex_hooks = true\n';
-    }
-
-    await fs.writeFile(configPath, content, 'utf-8');
+  private async removeCodexHooksFeature(): Promise<void> {
+    const parsed = await this.loadCodexConfig();
+    if (!parsed) return;
+    const features = parsed.features as TomlObject | undefined;
+    if (!features || features.codex_hooks !== true) return;
+    delete features.codex_hooks;
+    if (Object.keys(features).length === 0) delete parsed.features;
+    await this.writeFileAtomic(this.getCodexConfigPath(), TOML.stringify(parsed as TOML.JsonMap));
   }
 
   // --- Public API ---
@@ -239,6 +282,7 @@ class AiHooksService {
       }
 
       await this.saveCodexHooks(hooksFile);
+      await this.removeCodexHooksFeature();
     }
   }
 }
