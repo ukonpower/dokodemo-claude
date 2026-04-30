@@ -401,6 +401,12 @@ export interface ServerToClientEvents {
       message?: string;
     };
   }) => void;
+  'branch-created': (data: {
+    success: boolean;
+    message: string;
+    branchName: string;
+    rid?: string; // リポジトリID（必須）
+  }) => void;
 
   // ワークツリー関連イベント
   'worktrees-list': (data: {
@@ -659,6 +665,11 @@ export interface ClientToServerEvents {
     rid: string; // リポジトリID（必須）
     branchName: string;
     deleteRemote?: boolean;
+  }) => void;
+  'create-branch': (data: {
+    rid: string; // リポジトリID（必須）
+    branchName: string;
+    baseBranch?: string;
   }) => void;
 
   // ワークツリー関連イベント

@@ -10,7 +10,9 @@ import {
   deleteRemoteBranch,
   getMainRepoPath,
   mergeWorktreeBranch,
+  createBranch,
 } from '../utils/git-utils.js';
+import { startBranchWatching } from '../services/branch-watcher.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
@@ -44,6 +46,8 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
     try {
       const branches = await getBranches(repositoryPath);
       socket.emit('branches-list', { branches, rid });
+      // HEAD監視を開始（既に監視中なら no-op）
+      startBranchWatching(repositoryPath, ctx.io);
     } catch {
       socket.emit('branches-list', { branches: [], rid });
     }
@@ -406,6 +410,40 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
       socket.emit('branch-deleted', {
         success: false,
         message: `ブランチ削除エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        branchName,
+        rid,
+      });
+    }
+  });
+
+  // ブランチの作成（git checkout -b）
+  socket.on('create-branch', async (data) => {
+    const {
+      rid: inputRid,
+      repositoryPath: rawPath,
+      branchName,
+      baseBranch,
+    } = data;
+    const repositoryPath = resolveRepositoryPath({
+      rid: inputRid,
+      repositoryPath: rawPath,
+    });
+    if (!repositoryPath) return;
+    const rid = repositoryIdManager.tryGetId(repositoryPath);
+
+    try {
+      const result = await createBranch(repositoryPath, branchName, baseBranch);
+      socket.emit('branch-created', { ...result, branchName, rid });
+
+      if (result.success) {
+        // 作成→自動切替なので branches-list を再取得して emit
+        const branches = await getBranches(repositoryPath);
+        socket.emit('branches-list', { branches, rid });
+      }
+    } catch (error) {
+      socket.emit('branch-created', {
+        success: false,
+        message: `ブランチ作成エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         branchName,
         rid,
       });

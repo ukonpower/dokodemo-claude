@@ -497,6 +497,8 @@ function App() {
       deletingWorktreePath={branchWorktree.deletingWorktreePath}
       onSwitchBranch={branchWorktree.switchBranch}
       onDeleteBranch={branchWorktree.deleteBranch}
+      onCreateBranch={branchWorktree.createBranch}
+      onRefreshBranches={branchWorktree.refreshBranches}
       onCreateWorktree={branchWorktree.createWorktree}
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}

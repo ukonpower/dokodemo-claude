@@ -111,6 +111,8 @@ interface ProjectViewProps {
   deletingWorktreePath: string | null;
   onSwitchBranch: (branchName: string) => void;
   onDeleteBranch: (branchName: string, deleteRemote?: boolean) => void;
+  onCreateBranch: (branchName: string, baseBranch?: string) => void;
+  onRefreshBranches: () => void;
   onCreateWorktree: (
     branchName: string,
     baseBranch?: string,
@@ -270,6 +272,8 @@ export function ProjectView({
   deletingWorktreePath,
   onSwitchBranch,
   onDeleteBranch,
+  onCreateBranch,
+  onRefreshBranches,
   onCreateWorktree,
   onDeleteWorktree,
   onMergeWorktree,
@@ -629,6 +633,8 @@ export function ProjectView({
                 currentBranch={currentBranch}
                 onSwitchBranch={onSwitchBranch}
                 onDeleteBranch={onDeleteBranch}
+                onCreateBranch={onCreateBranch}
+                onRefreshBranches={onRefreshBranches}
                 worktrees={worktrees}
                 isConnected={isConnected}
               />

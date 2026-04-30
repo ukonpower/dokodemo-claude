@@ -158,6 +158,53 @@ export async function switchBranch(
 }
 
 /**
+ * ブランチを作成して切り替え (`git checkout -b`)
+ */
+export async function createBranch(
+  repoPath: string,
+  branchName: string,
+  baseBranch?: string
+): Promise<{ success: boolean; message: string }> {
+  return new Promise((resolve) => {
+    const args = ['checkout', '-b', branchName];
+    if (baseBranch) {
+      args.push(baseBranch);
+    }
+
+    const gitProcess = spawn('git', args, {
+      cwd: repoPath,
+      env: cleanChildEnv(),
+    });
+    let errorOutput = '';
+
+    gitProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    gitProcess.on('exit', (code) => {
+      if (code === 0) {
+        resolve({
+          success: true,
+          message: `ブランチ「${branchName}」を作成して切り替えました`,
+        });
+      } else {
+        resolve({
+          success: false,
+          message: `ブランチ作成エラー: ${errorOutput.trim() || '不明なエラー'}`,
+        });
+      }
+    });
+
+    gitProcess.on('error', (err) => {
+      resolve({
+        success: false,
+        message: `ブランチ作成エラー: ${err.message}`,
+      });
+    });
+  });
+}
+
+/**
  * ワークツリー一覧を取得
  */
 export async function getWorktrees(repoPath: string): Promise<GitWorktree[]> {

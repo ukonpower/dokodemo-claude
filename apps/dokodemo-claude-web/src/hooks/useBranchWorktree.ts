@@ -47,6 +47,8 @@ export interface UseBranchWorktreeReturn {
   // ブランチアクション
   switchBranch: (branchName: string) => void;
   deleteBranch: (branchName: string, deleteRemote?: boolean) => void;
+  createBranch: (branchName: string, baseBranch?: string) => void;
+  refreshBranches: () => void;
 
   // ワークツリーアクション
   createWorktree: (
@@ -231,12 +233,30 @@ export function useBranchWorktree(
       }
     };
 
+    // ブランチ作成
+    const handleBranchCreated = (
+      data: Parameters<ServerToClientEvents['branch-created']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      if (!data.success && onBranchError) {
+        onBranchError({
+          id: `error-${Date.now()}`,
+          content: `\n[ERROR] ${data.message}\n`,
+          timestamp: Date.now(),
+          type: 'system',
+          provider: currentProvider,
+        });
+      }
+    };
+
     socket.on('branches-list', handleBranchesList);
     socket.on('branch-switched', handleBranchSwitched);
     socket.on('worktrees-list', handleWorktreesList);
     socket.on('worktree-created', handleWorktreeCreated);
     socket.on('worktree-deleted', handleWorktreeDeleted);
     socket.on('worktree-merged', handleWorktreeMerged);
+    socket.on('branch-created', handleBranchCreated);
 
     return () => {
       socket.off('branches-list', handleBranchesList);
@@ -245,6 +265,7 @@ export function useBranchWorktree(
       socket.off('worktree-created', handleWorktreeCreated);
       socket.off('worktree-deleted', handleWorktreeDeleted);
       socket.off('worktree-merged', handleWorktreeMerged);
+      socket.off('branch-created', handleBranchCreated);
     };
   }, [socket, currentProvider, onBranchError, onSwitchRepository]);
 
@@ -270,6 +291,23 @@ export function useBranchWorktree(
     },
     [socket, currentRepo]
   );
+
+  const createBranch = useCallback(
+    (branchName: string, baseBranch?: string) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      socket.emit('create-branch', { rid, branchName, baseBranch });
+    },
+    [socket, currentRepo]
+  );
+
+  const refreshBranches = useCallback(() => {
+    if (!socket || !currentRepo) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    socket.emit('list-branches', { rid });
+  }, [socket, currentRepo]);
 
   const createWorktree = useCallback(
     (branchName: string, baseBranch?: string, useExisting?: boolean) => {
@@ -357,6 +395,8 @@ export function useBranchWorktree(
     deletingWorktreePath,
     switchBranch,
     deleteBranch,
+    createBranch,
+    refreshBranches,
     createWorktree,
     deleteWorktree,
     mergeWorktree,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GitBranch, GitWorktree } from '../types';
+import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
 interface BranchSelectorProps {
@@ -8,6 +9,8 @@ interface BranchSelectorProps {
   currentBranch: string;
   onSwitchBranch: (branchName: string) => void;
   onDeleteBranch?: (branchName: string, deleteRemote: boolean) => void;
+  onCreateBranch: (branchName: string, baseBranch?: string) => void;
+  onRefreshBranches: () => void;
   worktrees?: GitWorktree[];
   isConnected: boolean;
 }
@@ -17,6 +20,8 @@ function BranchSelector({
   currentBranch,
   onSwitchBranch,
   onDeleteBranch,
+  onCreateBranch,
+  onRefreshBranches,
   worktrees = [],
   isConnected,
 }: BranchSelectorProps) {
@@ -25,6 +30,7 @@ function BranchSelector({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [targetBranch, setTargetBranch] = useState<string | null>(null);
   const [deleteRemoteToo, setDeleteRemoteToo] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -169,6 +175,50 @@ function BranchSelector({
             left: dropdownPosition.left,
           }}
         >
+          <div className={s.dropdownToolbar}>
+            <button
+              onClick={() => {
+                setShowCreateModal(true);
+                closeDropdown();
+              }}
+              className={s.toolbarButton}
+              title="ブランチを作成"
+            >
+              <svg
+                className={s.toolbarIcon}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>作成</span>
+            </button>
+            <button
+              onClick={onRefreshBranches}
+              className={s.toolbarIconButton}
+              title="ブランチ一覧を更新"
+            >
+              <svg
+                className={s.toolbarIcon}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          </div>
           <div className={s.dropdownList}>
             {branches.length === 0 ? (
               <div className={s.emptyMessage}>
@@ -341,6 +391,19 @@ function BranchSelector({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ブランチ作成モーダル */}
+      {showCreateModal && (
+        <BranchCreateModal
+          branches={branches}
+          currentBranch={currentBranch}
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(name, base) => {
+            onCreateBranch(name, base);
+            setShowCreateModal(false);
+          }}
+        />
       )}
     </div>
   );
