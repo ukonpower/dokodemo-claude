@@ -661,28 +661,57 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             const file = item.getAsFile();
             if (file && onPasteFile) {
               const filePath = await onPasteFile(file);
-              if (filePath && inputRef.current) {
-                const textarea = inputRef.current;
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const currentValue = command;
-                const newValue =
-                  currentValue.slice(0, start) +
-                  filePath +
-                  currentValue.slice(end);
-                setCommand(newValue);
-                setTimeout(() => {
-                  textarea.focus();
-                  textarea.selectionStart = textarea.selectionEnd =
-                    start + filePath.length;
-                }, 0);
+              if (filePath) {
+                insertAtSelection(filePath);
               }
             }
             return;
           }
         }
       },
-      [onPasteFile, command]
+      [onPasteFile, insertAtSelection]
+    );
+
+    // ドラッグオーバー中のスタイル制御用 state
+    const [isDragOver, setIsDragOver] = useState(false);
+
+    const handleDragOver = useCallback(
+      (e: React.DragEvent<HTMLTextAreaElement>) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        setIsDragOver(true);
+      },
+      []
+    );
+
+    const handleDragLeave = useCallback(
+      (e: React.DragEvent<HTMLTextAreaElement>) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        setIsDragOver(false);
+      },
+      []
+    );
+
+    const handleDrop = useCallback(
+      async (e: React.DragEvent<HTMLTextAreaElement>) => {
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        if (droppedFiles.length === 0) return;
+        e.preventDefault();
+        setIsDragOver(false);
+
+        if (!onPasteFile) return;
+
+        const paths: string[] = [];
+        for (const file of droppedFiles) {
+          const p = await onPasteFile(file);
+          if (p) paths.push(p);
+        }
+        if (paths.length === 0) return;
+
+        insertAtSelection(paths.join(' '));
+      },
+      [onPasteFile, insertAtSelection]
     );
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -973,6 +1002,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
             placeholder={
@@ -980,7 +1012,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 ? 'リポジトリを選択してください...'
                 : providerInfo.placeholder
             }
-            className={s.textarea}
+            className={`${s.textarea} ${isDragOver ? s.dragOver : ''}`}
             disabled={disabled || isUploadingFile}
           />
           {isUploadingFile && (

@@ -264,6 +264,12 @@
   &:hover {
     border-color: $dark-border-focus;
   }
+
+  &.dragOver {
+    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent-blue;
+    background-color: rgba($accent-blue, 0.05);
+  }
 }
 
 .uploadOverlay {
