@@ -19,6 +19,7 @@ interface WorktreeTabsProps {
   ) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
+  onSwitchRepository: (path: string) => void;
   isConnected: boolean;
   branches: GitBranch[];
   isDeletingWorktree?: boolean;
@@ -32,6 +33,7 @@ function WorktreeTabs({
   onCreateWorktree,
   onDeleteWorktree,
   onMergeWorktree,
+  onSwitchRepository,
   isConnected,
   branches,
   isDeletingWorktree = false,
@@ -185,6 +187,14 @@ function WorktreeTabs({
                 >
                   <a
                     href={`?repo=${encodeURIComponent(wt.path)}`}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
+                        return;
+                      }
+                      e.preventDefault();
+                      if (isActive) return;
+                      onSwitchRepository(wt.path);
+                    }}
                     className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isActive ? s.active : ''}`}
                   >
                     <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>{wt.branch}</span>

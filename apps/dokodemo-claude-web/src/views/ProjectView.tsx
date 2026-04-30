@@ -644,6 +644,7 @@ export function ProjectView({
                   onCreateWorktree={onCreateWorktree}
                   onDeleteWorktree={onDeleteWorktree}
                   onMergeWorktree={onMergeWorktree}
+                  onSwitchRepository={onSwitchRepository}
                   isConnected={isConnected}
                   branches={branches}
                   isDeletingWorktree={isDeletingWorktree}

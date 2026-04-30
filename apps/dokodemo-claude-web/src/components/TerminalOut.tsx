@@ -430,16 +430,20 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
   }, [isActive]);
 
-  // バッファからテキストを取得
+  // バッファからテキストを取得（isWrapped を考慮して論理行を連結）
   const getVisibleText = useCallback(() => {
     if (!terminal.current) return '';
     const buf = terminal.current.buffer.active;
-    const lines: string[] = [];
+    let result = '';
     for (let i = 0; i < buf.length; i++) {
       const line = buf.getLine(i);
-      if (line) lines.push(line.translateToString(true));
+      if (!line) continue;
+      if (i > 0 && !line.isWrapped) {
+        result += '\n';
+      }
+      result += line.translateToString(true);
     }
-    return lines.join('\n');
+    return result;
   }, []);
 
   // 長押しタイマーをキャンセル
