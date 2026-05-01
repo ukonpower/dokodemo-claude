@@ -21,7 +21,9 @@ export interface UseSocketReturn {
 
 /**
  * Socket.IO接続を管理するカスタムフック
- * 接続・再接続ロジックをカプセル化
+ *
+ * Socket.IOクライアント標準の自動再接続(reconnection: true)に再接続ロジックを委ねる。
+ * 独自の再接続実装は複数socketインスタンスの並列接続を引き起こすため避ける。
  */
 export function useSocket(): UseSocketReturn {
   const [socket, setSocket] = useState<Socket<
@@ -32,101 +34,85 @@ export function useSocket(): UseSocketReturn {
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
-  // 再接続タイムアウト参照
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
-
-  // ソケットインスタンス参照（イベントリスナー登録用）
+  // ソケットインスタンス参照（emit関数から参照するため）
   const socketRef = useRef<Socket<
     ServerToClientEvents,
     ClientToServerEvents
   > | null>(null);
 
   useEffect(() => {
-    const maxReconnectAttempts = 10;
-    const reconnectDelay = 2000; // 2秒
+    // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
+    const backendPort = import.meta.env.DC_API_PORT || '8001';
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
 
-    const createConnection = (): Socket<
-      ServerToClientEvents,
-      ClientToServerEvents
-    > => {
-      // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
-      const backendPort = import.meta.env.DC_API_PORT || '8001';
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
+    // transports は指定せず Socket.IO デフォルト（polling → WebSocket アップグレード）に任せる。
+    // 初回接続の安定性・速度のためにはこれが最も確実。
+    // 参考: https://socket.io/docs/v4/client-options/#transports
+    const socketInstance = io(socketUrl, {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
+    }) as Socket<ServerToClientEvents, ClientToServerEvents>;
 
-      // iOS Safariの検出
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(
-        navigator.userAgent
-      );
-      const isIOSSafari = isIOS && isSafari;
+    socketRef.current = socketInstance;
+    setSocket(socketInstance);
 
-      const socketInstance = io(socketUrl, {
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-        // iOS Safariでは初回接続が遅いため、タイムアウトを延長
-        timeout: isIOSSafari ? 15000 : 10000,
-        // iOS Safariではpollingを優先（より安定）
-        transports: isIOSSafari
-          ? ['polling', 'websocket']
-          : ['websocket', 'polling'],
-      }) as Socket<ServerToClientEvents, ClientToServerEvents>;
-
-      socketRef.current = socketInstance;
-      setSocket(socketInstance);
-
-      // 接続イベントのハンドラ
-      socketInstance.on('connect', () => {
-        setIsConnected(true);
-        setIsReconnecting(false);
-        setConnectionAttempts(0);
-      });
-
-      socketInstance.on('disconnect', (reason) => {
-        setIsConnected(false);
-
-        // 自動再接続の場合は手動再接続を試行
-        if (reason === 'io server disconnect') {
-          setIsReconnecting(true);
-          attemptReconnect();
-        }
-      });
-
-      socketInstance.on('connect_error', () => {
-        setIsConnected(false);
-        setIsReconnecting(true);
-        attemptReconnect();
-      });
-
-      return socketInstance;
+    // 接続成功
+    const handleConnect = () => {
+      setIsConnected(true);
+      setIsReconnecting(false);
+      setConnectionAttempts(0);
     };
 
-    const attemptReconnect = () => {
-      setConnectionAttempts((prevAttempts) => {
-        if (prevAttempts < maxReconnectAttempts) {
-          const delay = reconnectDelay * (prevAttempts + 1);
-          reconnectTimeoutRef.current = setTimeout(() => {
-            createConnection();
-          }, delay); // 指数バックオフ
-          return prevAttempts + 1;
-        } else {
-          setIsReconnecting(false);
-          return prevAttempts;
-        }
-      });
+    // 切断
+    const handleDisconnect = () => {
+      setIsConnected(false);
     };
 
-    const socketInstance = createConnection();
+    // 初回接続失敗（Socket.IO自身が自動再接続するので、ここで新しいsocketを作らない）
+    const handleConnectError = () => {
+      setIsConnected(false);
+      setIsReconnecting(true);
+    };
+
+    // 再接続試行中（Manager レベルのイベント）
+    const handleReconnectAttempt = (attempt: number) => {
+      setConnectionAttempts(attempt);
+      setIsReconnecting(true);
+    };
+
+    // 再接続成功（Manager レベルのイベント）
+    const handleReconnect = () => {
+      setIsConnected(true);
+      setIsReconnecting(false);
+      setConnectionAttempts(0);
+    };
+
+    // 再接続失敗（最大試行回数到達。reconnectionAttempts: Infinity のため通常は発火しない）
+    const handleReconnectFailed = () => {
+      setIsReconnecting(false);
+    };
+
+    socketInstance.on('connect', handleConnect);
+    socketInstance.on('disconnect', handleDisconnect);
+    socketInstance.on('connect_error', handleConnectError);
+    socketInstance.io.on('reconnect_attempt', handleReconnectAttempt);
+    socketInstance.io.on('reconnect', handleReconnect);
+    socketInstance.io.on('reconnect_failed', handleReconnectFailed);
 
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      socketInstance.off('connect', handleConnect);
+      socketInstance.off('disconnect', handleDisconnect);
+      socketInstance.off('connect_error', handleConnectError);
+      socketInstance.io.off('reconnect_attempt', handleReconnectAttempt);
+      socketInstance.io.off('reconnect', handleReconnect);
+      socketInstance.io.off('reconnect_failed', handleReconnectFailed);
       socketInstance.disconnect();
+      socketRef.current = null;
     };
   }, []);
 
