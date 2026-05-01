@@ -14,9 +14,10 @@ export async function buildIdMapping(
     try {
       const worktrees = await getWorktrees(repo.path);
       for (const wt of worktrees) {
-        if (!wt.isMain) {
-          allWorktrees.push({ path: wt.path, parentRepoPath: repo.path });
-        }
+        if (wt.isMain) continue;
+        // Cursor など外部ツールが登録した managed dir 外の worktree は除外
+        if (repositoryIdManager.tryGetId(wt.path) === undefined) continue;
+        allWorktrees.push({ path: wt.path, parentRepoPath: repo.path });
       }
     } catch {
       // worktree 取得に失敗したリポジトリは無視

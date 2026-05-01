@@ -28,6 +28,22 @@ const worktreeCache = new Map<
 const CACHE_TTL_MS = 1000; // 1秒間キャッシュ
 
 /**
+ * ワークツリーに wtid を付与する。
+ * managed dir 外（Cursor 等の外部ツールが登録した worktree）は除外する。
+ */
+function addWorktreeIds(
+  worktrees: GitWorktree[],
+): Array<GitWorktree & { wtid: string }> {
+  const result: Array<GitWorktree & { wtid: string }> = [];
+  for (const wt of worktrees) {
+    const wtid = repositoryIdManager.tryGetId(wt.path);
+    if (wtid === undefined) continue;
+    result.push({ ...wt, wtid });
+  }
+  return result;
+}
+
+/**
  * ブランチ・ワークツリー関連のSocket.IOイベントハンドラーを登録
  */
 export function registerBranchHandlers(ctx: HandlerContext): void {
@@ -106,13 +122,6 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
     });
     if (!repositoryPath) return;
 
-    // ワークツリーにwtidを追加するヘルパー関数
-    const addWorktreeIds = (worktrees: GitWorktree[]): Array<GitWorktree & { wtid: string }> =>
-      worktrees.map((wt) => ({
-        ...wt,
-        wtid: repositoryIdManager.getId(wt.path),
-      }));
-
     try {
       const mainRepoPath = getMainRepoPath(repositoryPath);
       const prid = repositoryIdManager.tryGetId(mainRepoPath);
@@ -184,13 +193,6 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
     if (!parentRepoPath) return;
 
     const worktreeData = { ...data, parentRepoPath };
-
-    // ワークツリーにwtidを追加するヘルパー関数
-    const addWorktreeIds = (worktrees: GitWorktree[]): Array<GitWorktree & { wtid: string }> =>
-      worktrees.map((wt) => ({
-        ...wt,
-        wtid: repositoryIdManager.getId(wt.path),
-      }));
 
     try {
       const result = await createWorktree(worktreeData);
@@ -296,13 +298,6 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
 
     const wtid = repositoryIdManager.tryGetId(worktreePath);
     const prid = repositoryIdManager.tryGetId(parentRepoPath);
-
-    // ワークツリーにwtidを追加するヘルパー関数
-    const addWorktreeIds = (worktrees: GitWorktree[]): Array<GitWorktree & { wtid: string }> =>
-      worktrees.map((wt) => ({
-        ...wt,
-        wtid: repositoryIdManager.getId(wt.path),
-      }));
 
     try {
       await processManager.cleanupRepositoryProcesses(worktreePath);
