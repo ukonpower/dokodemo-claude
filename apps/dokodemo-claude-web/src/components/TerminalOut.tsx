@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { Terminal } from '@xterm/xterm';
+import { Terminal, ILink, ILinkProvider } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import s from './TerminalOut.module.scss';
 
@@ -214,15 +213,111 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     // FitAddonを読み込み
     terminal.current.loadAddon(fitAddon.current);
 
-    // WebLinksAddonを読み込み（リンク処理を有効化）
-    const webLinksAddon = new WebLinksAddon((event, uri) => {
-      // iOS環境では修飾キー不要でタップのみでリンクを開く
-      // デスクトップ環境ではCtrl（macOSではCmd）キーが必要
-      if (isIOS || event.ctrlKey || event.metaKey) {
-        window.open(uri, '_blank', 'noopener,noreferrer');
-      }
-    });
-    terminal.current.loadAddon(webLinksAddon);
+    // 改行をまたぐ URL も検出できるカスタム link provider を登録する。
+    // xterm の WebLinksAddon は isWrapped フラグに依存するが、PTY 経由の出力では
+    // プログラムが手動で改行を入れて URL を折り返すケースがあり、その場合 isWrapped が
+    // 立たず最初の行しか URL として認識されない。ここでは isWrapped に加えて
+    // 「行末まで埋まっている」場合も折り返しと見なし、複数行を連結して URL を抽出する。
+    const linkProvider: ILinkProvider = {
+      provideLinks: (y, callback) => {
+        const term = terminal.current;
+        if (!term) {
+          callback(undefined);
+          return;
+        }
+
+        const buffer = term.buffer.active;
+        const cols = term.cols;
+        const URL_REGEX = /https?:\/\/[^\s<>"'`\u00A0]+/gi;
+        const TRAILING_PUNCT = /[.,;:!?)\]}>'"]+$/;
+        const MAX_BACK = 20;
+        const MAX_FWD = 20;
+
+        // 行が次の行に続いているかを判定（auto-wrap または行末まで埋まっている）
+        const continuesToNext = (idx: number): boolean => {
+          const next = buffer.getLine(idx + 1);
+          if (next?.isWrapped) return true;
+          const cur = buffer.getLine(idx);
+          if (!cur) return false;
+          return cur.translateToString(true).length >= cols - 1;
+        };
+
+        // y を含む論理行の範囲を決定
+        let startY = y;
+        while (
+          startY > 0 &&
+          startY > y - MAX_BACK &&
+          continuesToNext(startY - 1)
+        ) {
+          startY--;
+        }
+        let endY = y;
+        while (
+          endY < buffer.length - 1 &&
+          endY < y + MAX_FWD &&
+          continuesToNext(endY)
+        ) {
+          endY++;
+        }
+
+        // 行を連結し、各行の開始オフセットを記録
+        const lineStarts: number[] = [];
+        let fullText = '';
+        for (let i = startY; i <= endY; i++) {
+          lineStarts.push(fullText.length);
+          const line = buffer.getLine(i);
+          if (!line) continue;
+          fullText += line.translateToString(true);
+        }
+
+        const links: ILink[] = [];
+        URL_REGEX.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        while ((match = URL_REGEX.exec(fullText)) !== null) {
+          const matchStart = match.index;
+          let uri = match[0];
+          const trail = uri.match(TRAILING_PUNCT);
+          if (trail) uri = uri.slice(0, uri.length - trail[0].length);
+          if (uri.length === 0) continue;
+          const matchEnd = matchStart + uri.length;
+
+          // 開始行・終了行を特定
+          let sIdx = 0;
+          let eIdx = 0;
+          for (let i = 0; i < lineStarts.length; i++) {
+            if (lineStarts[i] <= matchStart) sIdx = i;
+            if (lineStarts[i] < matchEnd) eIdx = i;
+          }
+          const sBufferY = startY + sIdx;
+          const eBufferY = startY + eIdx;
+
+          // y を含まないリンクは返さない（他の y で返される）
+          if (sBufferY > y || eBufferY < y) continue;
+
+          const sCol = matchStart - lineStarts[sIdx];
+          const eCol = matchEnd - lineStarts[eIdx];
+
+          links.push({
+            range: {
+              start: { x: sCol + 1, y: sBufferY + 1 },
+              end: { x: eCol, y: eBufferY + 1 },
+            },
+            text: uri,
+            activate: (event: MouseEvent) => {
+              // iOS環境では修飾キー不要でタップのみでリンクを開く
+              // デスクトップ環境ではCtrl（macOSではCmd）キーが必要
+              if (isIOS || event.ctrlKey || event.metaKey) {
+                window.open(uri, '_blank', 'noopener,noreferrer');
+              }
+            },
+          });
+        }
+
+        callback(links.length ? links : undefined);
+      },
+    };
+    const linkProviderDisposable =
+      terminal.current.registerLinkProvider(linkProvider);
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
@@ -372,6 +467,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         resizeObserver.current.disconnect();
         resizeObserver.current = null;
       }
+      linkProviderDisposable.dispose();
       if (terminal.current) {
         terminal.current.dispose();
       }
