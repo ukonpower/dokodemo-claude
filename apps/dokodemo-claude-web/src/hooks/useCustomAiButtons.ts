@@ -1,29 +1,45 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 import type {
   CustomAiButton,
+  CustomAiButtonScope,
   ServerToClientEvents,
   ClientToServerEvents,
 } from '../types';
 
 export interface UseCustomAiButtonsReturn {
+  // 全ボタン（グローバル + 全リポジトリ固有）
+  allButtons: CustomAiButton[];
+  // 現在のリポジトリで表示すべきボタン（グローバル + 現在リポジトリ固有）
   buttons: CustomAiButton[];
-  createButton: (name: string, command: string) => void;
-  updateButton: (id: string, name: string, command: string) => void;
+  createButton: (
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
+  updateButton: (
+    id: string,
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
   deleteButton: (id: string) => void;
   reorderButtons: (orderedIds: string[]) => void;
 }
 
 export function useCustomAiButtons(
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null
+  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null,
+  currentRepositoryPath?: string
 ): UseCustomAiButtonsReturn {
-  const [buttons, setButtons] = useState<CustomAiButton[]>([]);
+  const [allButtons, setAllButtons] = useState<CustomAiButton[]>([]);
 
   useEffect(() => {
     if (!socket) return;
 
     const handleList = (data: { buttons: CustomAiButton[] }) => {
-      setButtons(data.buttons);
+      setAllButtons(data.buttons);
     };
 
     socket.on('custom-ai-buttons-list', handleList);
@@ -34,16 +50,49 @@ export function useCustomAiButtons(
     };
   }, [socket]);
 
+  const buttons = useMemo(
+    () =>
+      allButtons.filter(
+        (btn) =>
+          btn.scope === 'global' ||
+          (btn.scope === 'repository' &&
+            btn.repositoryPath === currentRepositoryPath)
+      ),
+    [allButtons, currentRepositoryPath]
+  );
+
   const createButton = useCallback(
-    (name: string, command: string) => {
-      socket?.emit('create-custom-ai-button', { name, command });
+    (
+      name: string,
+      command: string,
+      scope: CustomAiButtonScope,
+      repositoryPath?: string
+    ) => {
+      socket?.emit('create-custom-ai-button', {
+        name,
+        command,
+        scope,
+        repositoryPath,
+      });
     },
     [socket]
   );
 
   const updateButton = useCallback(
-    (id: string, name: string, command: string) => {
-      socket?.emit('update-custom-ai-button', { id, name, command });
+    (
+      id: string,
+      name: string,
+      command: string,
+      scope: CustomAiButtonScope,
+      repositoryPath?: string
+    ) => {
+      socket?.emit('update-custom-ai-button', {
+        id,
+        name,
+        command,
+        scope,
+        repositoryPath,
+      });
     },
     [socket]
   );
@@ -63,6 +112,7 @@ export function useCustomAiButtons(
   );
 
   return {
+    allButtons,
     buttons,
     createButton,
     updateButton,

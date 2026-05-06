@@ -1,6 +1,7 @@
 /**
  * カスタム送信ボタン関連ハンドラ
- * グローバル（全リポジトリ共通）設定のため io.emit で全クライアントにブロードキャストする
+ * 全クライアントに同じリストをブロードキャストし、表示時のフィルタは
+ * クライアント側で（ボタンの scope と現在のリポジトリパスに従って）行う。
  */
 
 import type { HandlerContext } from './types.js';
@@ -14,7 +15,12 @@ export function registerCustomAiButtonHandlers(ctx: HandlerContext): void {
   });
 
   socket.on('create-custom-ai-button', async (data) => {
-    const result = await mgr.create(data.name, data.command);
+    const result = await mgr.create(
+      data.name,
+      data.command,
+      data.scope,
+      data.repositoryPath
+    );
     if (result.ok) {
       io.emit('custom-ai-buttons-list', { buttons: mgr.list() });
       socket.emit('custom-ai-button-saved', {
@@ -31,7 +37,13 @@ export function registerCustomAiButtonHandlers(ctx: HandlerContext): void {
   });
 
   socket.on('update-custom-ai-button', async (data) => {
-    const result = await mgr.update(data.id, data.name, data.command);
+    const result = await mgr.update(
+      data.id,
+      data.name,
+      data.command,
+      data.scope,
+      data.repositoryPath
+    );
     if (result.ok) {
       io.emit('custom-ai-buttons-list', { buttons: mgr.list() });
       socket.emit('custom-ai-button-saved', {
