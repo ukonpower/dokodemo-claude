@@ -433,6 +433,42 @@
   resize: vertical;
 }
 
+.dialogCheckboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.dialogCheckbox {
+  margin-top: 0.15rem;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.dialogCheckboxLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dialogCheckboxLabelText {
+  color: $dark-text-primary;
+  font-weight: 500;
+}
+
+.dialogCheckboxLabelHelp {
+  color: $dark-text-muted;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
 .dialogButtons {
   display: flex;
   align-items: center;

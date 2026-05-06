@@ -95,8 +95,8 @@ function App() {
   // ファイル管理
   const fileManager = useFileManager(socket, repository.currentRepo);
 
-  // カスタム送信ボタン（グローバル）
-  const customAiButtons = useCustomAiButtons(socket);
+  // カスタム送信ボタン（global / repository スコープ両方）
+  const customAiButtons = useCustomAiButtons(socket, repository.currentRepo);
 
   // ファイルビュワー管理
   const fileViewer = useFileViewer(socket, repository.currentRepo);

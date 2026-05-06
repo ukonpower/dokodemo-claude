@@ -138,13 +138,19 @@ export interface CommandShortcut {
   isDefault?: boolean; // デフォルトショートカットフラグ（削除不可）
 }
 
-// AI CLI カスタム送信ボタン（全リポジトリ共通・prompt 固定）
+// AI CLI カスタム送信ボタン
+// scope === 'global' は全リポジトリ共通、'repository' は repositoryPath で
+// 指定されたリポジトリでのみ表示する
+export type CustomAiButtonScope = 'global' | 'repository';
+
 export interface CustomAiButton {
   id: string;
   name: string;
   command: string;
   createdAt: number;
   order: number;
+  scope: CustomAiButtonScope;
+  repositoryPath?: string; // scope === 'repository' のときに必須
 }
 
 // code-server関連の型定義
@@ -644,11 +650,18 @@ export interface ClientToServerEvents {
 
   // カスタム送信ボタン関連イベント
   'list-custom-ai-buttons': () => void;
-  'create-custom-ai-button': (data: { name: string; command: string }) => void;
+  'create-custom-ai-button': (data: {
+    name: string;
+    command: string;
+    scope: CustomAiButtonScope;
+    repositoryPath?: string;
+  }) => void;
   'update-custom-ai-button': (data: {
     id: string;
     name: string;
     command: string;
+    scope: CustomAiButtonScope;
+    repositoryPath?: string;
   }) => void;
   'delete-custom-ai-button': (data: { id: string }) => void;
   'reorder-custom-ai-buttons': (data: { orderedIds: string[] }) => void;

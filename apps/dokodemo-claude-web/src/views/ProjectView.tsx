@@ -20,6 +20,7 @@ import type {
   ClientToServerEvents,
   RepoProcessStatus,
   CustomAiButton,
+  CustomAiButtonScope,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import type { CommandSendSettings } from '../hooks/useAppSettings';
@@ -204,8 +205,19 @@ interface ProjectViewProps {
 
   // カスタム送信ボタン関連
   customAiButtons: CustomAiButton[];
-  onCreateCustomAiButton: (name: string, command: string) => void;
-  onUpdateCustomAiButton: (id: string, name: string, command: string) => void;
+  onCreateCustomAiButton: (
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
+  onUpdateCustomAiButton: (
+    id: string,
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
   onDeleteCustomAiButton: (id: string) => void;
 
   // ファイルビュワー
@@ -775,6 +787,7 @@ export function ProjectView({
                     providerInfo={{
                       clearTitle: 'Claude CLIをクリア (/clear)',
                     }}
+                    currentRepositoryPath={currentRepo}
                     customButtons={customAiButtons}
                     onExecuteCustomButton={handleSendCommand}
                     onCreateCustomButton={onCreateCustomAiButton}

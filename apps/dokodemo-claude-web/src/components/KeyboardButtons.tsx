@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { CustomAiButton } from '../types';
+import type { CustomAiButton, CustomAiButtonScope } from '../types';
 import s from './KeyboardButtons.module.scss';
 
 interface KeyboardButtonsProps {
@@ -21,10 +21,22 @@ interface KeyboardButtonsProps {
   };
 
   // カスタム送信ボタン
+  currentRepositoryPath?: string;
   customButtons: CustomAiButton[];
   onExecuteCustomButton: (command: string) => void;
-  onCreateCustomButton: (name: string, command: string) => void;
-  onUpdateCustomButton: (id: string, name: string, command: string) => void;
+  onCreateCustomButton: (
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
+  onUpdateCustomButton: (
+    id: string,
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
   onDeleteCustomButton: (id: string) => void;
 }
 
@@ -35,21 +47,39 @@ type DialogState =
 
 interface CustomButtonDialogProps {
   state: { mode: 'add' } | { mode: 'edit'; button: CustomAiButton };
-  onSubmit: (name: string, command: string) => void;
+  currentRepositoryPath?: string;
+  onSubmit: (
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
 
 function CustomButtonDialog({
   state,
+  currentRepositoryPath,
   onSubmit,
   onDelete,
   onClose,
 }: CustomButtonDialogProps) {
   const initialName = state.mode === 'edit' ? state.button.name : '';
   const initialCommand = state.mode === 'edit' ? state.button.command : '';
+  // 既存ボタンの編集時は既存scopeを採用、新規追加時はリポジトリ固有がデフォルト。
+  // ただし現在のリポジトリが未選択なら共通のみ選択可能。
+  const initialIsGlobal =
+    state.mode === 'edit'
+      ? state.button.scope === 'global'
+      : !currentRepositoryPath;
   const [name, setName] = useState(initialName);
   const [command, setCommand] = useState(initialCommand);
+  const [isGlobal, setIsGlobal] = useState(initialIsGlobal);
+
+  // リポジトリパスが取得できない場合は強制的に共通にする
+  const scopeToggleDisabled = !currentRepositoryPath;
+  const effectiveIsGlobal = scopeToggleDisabled ? true : isGlobal;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -63,7 +93,12 @@ function CustomButtonDialog({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onSubmit(name.trim(), command.trim());
+    const scope: CustomAiButtonScope = effectiveIsGlobal
+      ? 'global'
+      : 'repository';
+    const repoPath =
+      scope === 'repository' ? currentRepositoryPath : undefined;
+    onSubmit(name.trim(), command.trim(), scope, repoPath);
   };
 
   const handleDelete = () => {
@@ -114,6 +149,26 @@ function CustomButtonDialog({
             className={s.dialogTextarea}
           />
         </div>
+        <div className={s.dialogCheckboxField}>
+          <input
+            id="custom-btn-global"
+            type="checkbox"
+            className={s.dialogCheckbox}
+            checked={effectiveIsGlobal}
+            disabled={scopeToggleDisabled}
+            onChange={(e) => setIsGlobal(e.target.checked)}
+          />
+          <label className={s.dialogCheckboxLabel} htmlFor="custom-btn-global">
+            <span className={s.dialogCheckboxLabelText}>
+              全プロジェクトで共通
+            </span>
+            <span className={s.dialogCheckboxLabelHelp}>
+              {scopeToggleDisabled
+                ? 'リポジトリが選択されていないため、共通ボタンとして作成されます'
+                : 'オフにすると現在のリポジトリでのみ表示されます'}
+            </span>
+          </label>
+        </div>
         <div className={s.dialogButtons}>
           {state.mode === 'edit' && onDelete && (
             <button
@@ -160,6 +215,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onSendCommit,
   currentProvider = 'claude',
   providerInfo,
+  currentRepositoryPath,
   customButtons,
   onExecuteCustomButton,
   onCreateCustomButton,
@@ -176,12 +232,23 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
     onSendInterrupt ||
     (isClaude && (onSendAltT || onSendResume || onSendUsage));
 
-  const handleDialogSubmit = (name: string, command: string) => {
+  const handleDialogSubmit = (
+    name: string,
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
+  ) => {
     if (!dialogState) return;
     if (dialogState.mode === 'add') {
-      onCreateCustomButton(name, command);
+      onCreateCustomButton(name, command, scope, repositoryPath);
     } else {
-      onUpdateCustomButton(dialogState.button.id, name, command);
+      onUpdateCustomButton(
+        dialogState.button.id,
+        name,
+        command,
+        scope,
+        repositoryPath
+      );
     }
     setDialogState(null);
   };
@@ -305,22 +372,26 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
       <div className={s.customSection}>
         <div className={s.customHeader}>カスタム</div>
         <div className={s.row}>
-          {customButtons.map((btn) => (
-            <button
-              key={btn.id}
-              type="button"
-              onClick={() => onExecuteCustomButton(btn.command)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setDialogState({ mode: 'edit', button: btn });
-              }}
-              disabled={disabled}
-              className={s.customButton}
-              title={`${btn.command}\n（右クリックで編集）`}
-            >
-              {btn.name}
-            </button>
-          ))}
+          {customButtons.map((btn) => {
+            const scopeLabel =
+              btn.scope === 'global' ? '共通' : 'プロジェクト固有';
+            return (
+              <button
+                key={btn.id}
+                type="button"
+                onClick={() => onExecuteCustomButton(btn.command)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setDialogState({ mode: 'edit', button: btn });
+                }}
+                disabled={disabled}
+                className={s.customButton}
+                title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
+              >
+                {btn.name}
+              </button>
+            );
+          })}
           <button
             type="button"
             onClick={() => setDialogState({ mode: 'add' })}
@@ -337,6 +408,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         <CustomButtonDialog
           key={dialogState.mode === 'edit' ? `edit-${dialogState.button.id}` : 'add'}
           state={dialogState}
+          currentRepositoryPath={currentRepositoryPath}
           onSubmit={handleDialogSubmit}
           onDelete={dialogState.mode === 'edit' ? handleDialogDelete : undefined}
           onClose={() => setDialogState(null)}

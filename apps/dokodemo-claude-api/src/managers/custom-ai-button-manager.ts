@@ -1,10 +1,15 @@
 /**
  * カスタム送信ボタン管理マネージャー
- * AI CLI に送信するユーザー定義ボタンをグローバル（全リポジトリ共通）に管理
+ * AI CLI に送信するユーザー定義ボタンを管理する。
+ * 各ボタンは scope によって全リポジトリ共通（global）かリポジトリ固有（repository）か
+ * を切り替え可能。
  */
 
 import { EventEmitter } from 'events';
-import type { CustomAiButton } from '../types/index.js';
+import type {
+  CustomAiButton,
+  CustomAiButtonScope,
+} from '../types/index.js';
 import { PersistenceService } from '../services/persistence-service.js';
 import { Result, Ok, Err } from '../utils/result.js';
 import { CustomAiButtonError } from '../utils/errors.js';
@@ -32,8 +37,15 @@ export class CustomAiButtonManager extends EventEmitter {
 
     this.buttons.clear();
     for (const btn of result.value) {
-      this.buttons.set(btn.id, btn);
-      const idParts = btn.id.split('-');
+      // scope 未設定の旧データは global として扱う
+      const normalized: CustomAiButton = {
+        ...btn,
+        scope: btn.scope ?? 'global',
+        repositoryPath:
+          btn.scope === 'repository' ? btn.repositoryPath : undefined,
+      };
+      this.buttons.set(normalized.id, normalized);
+      const idParts = normalized.id.split('-');
       const idNumber = parseInt(idParts[1] ?? '0', 10);
       if (Number.isFinite(idNumber) && idNumber > this.counter) {
         this.counter = idNumber;
@@ -49,7 +61,9 @@ export class CustomAiButtonManager extends EventEmitter {
 
   async create(
     name: string,
-    command: string
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
   ): Promise<Result<CustomAiButton, CustomAiButtonError>> {
     const trimmedName = name.trim();
     const trimmedCommand = command.trim();
@@ -58,6 +72,13 @@ export class CustomAiButtonManager extends EventEmitter {
     }
     if (!trimmedCommand) {
       return Err(CustomAiButtonError.invalidInput('command is empty'));
+    }
+    if (scope === 'repository' && !repositoryPath) {
+      return Err(
+        CustomAiButtonError.invalidInput(
+          'repositoryPath is required for repository scope'
+        )
+      );
     }
 
     const id = `cbtn-${++this.counter}-${Date.now()}`;
@@ -68,6 +89,8 @@ export class CustomAiButtonManager extends EventEmitter {
       command: trimmedCommand,
       createdAt: Date.now(),
       order,
+      scope,
+      repositoryPath: scope === 'repository' ? repositoryPath : undefined,
     };
     this.buttons.set(id, button);
 
@@ -82,7 +105,9 @@ export class CustomAiButtonManager extends EventEmitter {
   async update(
     id: string,
     name: string,
-    command: string
+    command: string,
+    scope: CustomAiButtonScope,
+    repositoryPath?: string
   ): Promise<Result<CustomAiButton, CustomAiButtonError>> {
     const existing = this.buttons.get(id);
     if (!existing) {
@@ -96,11 +121,20 @@ export class CustomAiButtonManager extends EventEmitter {
     if (!trimmedCommand) {
       return Err(CustomAiButtonError.invalidInput('command is empty'));
     }
+    if (scope === 'repository' && !repositoryPath) {
+      return Err(
+        CustomAiButtonError.invalidInput(
+          'repositoryPath is required for repository scope'
+        )
+      );
+    }
 
     const updated: CustomAiButton = {
       ...existing,
       name: trimmedName,
       command: trimmedCommand,
+      scope,
+      repositoryPath: scope === 'repository' ? repositoryPath : undefined,
     };
     this.buttons.set(id, updated);
 
