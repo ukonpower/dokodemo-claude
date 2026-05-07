@@ -30,9 +30,11 @@ const filterTerminalResponses = (content: string): string => {
     // Cursor Position Report (CPR) 応答: ESC [ row ; col R
     .replace(new RegExp(`${ESC}\\[[\\d;]*R`, 'g'), '')
     // OSC (Operating System Command) シーケンス: ESC ] ... (BEL | ESC \)
-    // ターミナルの色設定など、表示不要な制御シーケンスを除去
+    // ターミナルの色設定など、表示不要な制御シーケンスを除去。
+    // ただし OSC 8 ハイパーリンク（ESC ] 8 ; ... ESC \）は xterm 内蔵の
+    // OscLinkProvider にクリック可能リンクとして処理させたいので除外しない。
     .replace(
-      new RegExp(`${ESC}\\][^${BEL}${ESC}]*(?:${BEL}|${ESC}\\\\)`, 'g'),
+      new RegExp(`${ESC}\\](?!8;)[^${BEL}${ESC}]*(?:${BEL}|${ESC}\\\\)`, 'g'),
       ''
     );
 

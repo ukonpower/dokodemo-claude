@@ -1,8 +1,23 @@
 import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { Terminal, ILink, ILinkProvider } from '@xterm/xterm';
+import { Terminal, IDisposable, ILink } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import s from './TerminalOut.module.scss';
+
+// URL とみなす連続文字。空白・引用符・括弧類のほか、Box drawing 罫線や CJK 範囲も
+// 終端扱いにすることで、罫線に囲まれた URL や日本語が続く URL でも URL 部分だけ
+// 綺麗に切り出せる。
+// U+2500-U+257F: Box drawing（罫線）
+// U+3000-U+303F: CJK 記号と句読点（全角空白含む）
+// U+3040-U+30FF: ひらがな/カタカナ
+// U+3400-U+9FFF: CJK 統合漢字
+// U+FF00-U+FFEF: 全角英数・記号
+const URL_REGEX =
+  /https?:\/\/[^\s<>"'`\u2500-\u257f\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]+/g;
+const TRAILING_PUNCTUATION = /[.,;:!?)\]}>'"`]+$/;
+// 論理行連結のヒューリスティック判定で使う、URL を構成しうる ASCII 文字
+const URL_TAIL_CHAR = /[A-Za-z0-9/?#&%=._~+\-:@]$/;
+const URL_HEAD_CHAR = /^[A-Za-z0-9/?#&%=._~+\-:@]/;
 
 /**
  * TerminalOutコンポーネントのProps
@@ -81,6 +96,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
+  const linkProviderDisposable = useRef<IDisposable | null>(null);
   const resizeObserver = useRef<ResizeObserver | null>(null);
   const onKeyInputRef = useRef<typeof onKeyInput>(onKeyInput);
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -213,111 +229,113 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     // FitAddonを読み込み
     terminal.current.loadAddon(fitAddon.current);
 
-    // 改行をまたぐ URL も検出できるカスタム link provider を登録する。
-    // xterm の WebLinksAddon は isWrapped フラグに依存するが、PTY 経由の出力では
-    // プログラムが手動で改行を入れて URL を折り返すケースがあり、その場合 isWrapped が
-    // 立たず最初の行しか URL として認識されない。ここでは isWrapped に加えて
-    // 「行末まで埋まっている」場合も折り返しと見なし、複数行を連結して URL を抽出する。
-    const linkProvider: ILinkProvider = {
-      provideLinks: (y, callback) => {
+    // 折り返し（isWrapped）と PTY 由来の \r\n 改行の双方を考慮したカスタム
+    // リンクプロバイダを登録。xterm の auto-wrap でしか isWrapped は立たないため、
+    // 「行末まで埋まっていて末尾/先頭が URL 風文字」のケースをヒューリスティックで
+    // 連結することで、Claude Code 等が打つ明示改行で URL が切れる問題を救う。
+    linkProviderDisposable.current = terminal.current.registerLinkProvider({
+      provideLinks: (bufferLineNumber, callback) => {
         const term = terminal.current;
         if (!term) {
           callback(undefined);
           return;
         }
-
-        const buffer = term.buffer.active;
+        const buf = term.buffer.active;
         const cols = term.cols;
-        const URL_REGEX = /https?:\/\/[^\s<>"'`\u00A0]+/gi;
-        const TRAILING_PUNCT = /[.,;:!?)\]}>'"]+$/;
-        const MAX_BACK = 20;
-        const MAX_FWD = 20;
 
-        // 行が次の行に続いているかを判定（auto-wrap または行末まで埋まっている）
         const continuesToNext = (idx: number): boolean => {
-          const next = buffer.getLine(idx + 1);
-          if (next?.isWrapped) return true;
-          const cur = buffer.getLine(idx);
+          const next = buf.getLine(idx + 1);
+          if (!next) return false;
+          if (next.isWrapped) return true;
+          const cur = buf.getLine(idx);
           if (!cur) return false;
-          return cur.translateToString(true).length >= cols - 1;
+          const curT = cur.translateToString(true);
+          if (curT.length === 0) return false;
+          if (curT.length < cols - 2) return false;
+          if (!URL_TAIL_CHAR.test(curT)) return false;
+          const nextT = next.translateToString(true);
+          if (nextT.length === 0) return false;
+          if (!URL_HEAD_CHAR.test(nextT)) return false;
+          return true;
         };
 
-        // y を含む論理行の範囲を決定
-        let startY = y;
+        const MAX_BACK = 20;
+        const MAX_FWD = 20;
+        const targetY = bufferLineNumber - 1; // 0-based
+
+        // 論理行の先頭行を遡って探す
+        let startY = targetY;
         while (
           startY > 0 &&
-          startY > y - MAX_BACK &&
+          startY > targetY - MAX_BACK &&
           continuesToNext(startY - 1)
         ) {
           startY--;
         }
-        let endY = y;
+
+        // 論理行の終端を前方に探す
+        let endY = targetY;
         while (
-          endY < buffer.length - 1 &&
-          endY < y + MAX_FWD &&
+          endY < buf.length - 1 &&
+          endY < targetY + MAX_FWD &&
           continuesToNext(endY)
         ) {
           endY++;
         }
 
-        // 行を連結し、各行の開始オフセットを記録
-        const lineStarts: number[] = [];
-        let fullText = '';
-        for (let i = startY; i <= endY; i++) {
-          lineStarts.push(fullText.length);
-          const line = buffer.getLine(i);
-          if (!line) continue;
-          fullText += line.translateToString(true);
+        // [startY, endY] の範囲を行ごとに cols 幅で収集（offset 計算を一定にするため）
+        const rows: { y: number; text: string }[] = [];
+        for (let y = startY; y <= endY; y++) {
+          const line = buf.getLine(y);
+          if (!line) break;
+          let text = line.translateToString(false);
+          if (text.length < cols) text = text.padEnd(cols, ' ');
+          else if (text.length > cols) text = text.slice(0, cols);
+          rows.push({ y, text });
         }
+
+        if (rows.length === 0) {
+          callback(undefined);
+          return;
+        }
+
+        const fullText = rows.map((r) => r.text).join('');
+
+        const offsetToPos = (offset: number) => {
+          const lineIdx = Math.floor(offset / cols);
+          const x = offset % cols;
+          return { y: rows[lineIdx].y + 1, x: x + 1 }; // xterm は 1-based
+        };
 
         const links: ILink[] = [];
         URL_REGEX.lastIndex = 0;
         let match: RegExpExecArray | null;
         while ((match = URL_REGEX.exec(fullText)) !== null) {
-          const matchStart = match.index;
-          let uri = match[0];
-          const trail = uri.match(TRAILING_PUNCT);
-          if (trail) uri = uri.slice(0, uri.length - trail[0].length);
-          if (uri.length === 0) continue;
-          const matchEnd = matchStart + uri.length;
+          const raw = match[0].replace(TRAILING_PUNCTUATION, '');
+          if (!raw) continue;
+          const startOffset = match.index;
+          const endOffset = startOffset + raw.length - 1;
+          const start = offsetToPos(startOffset);
+          const end = offsetToPos(endOffset);
 
-          // 開始行・終了行を特定
-          let sIdx = 0;
-          let eIdx = 0;
-          for (let i = 0; i < lineStarts.length; i++) {
-            if (lineStarts[i] <= matchStart) sIdx = i;
-            if (lineStarts[i] < matchEnd) eIdx = i;
-          }
-          const sBufferY = startY + sIdx;
-          const eBufferY = startY + eIdx;
+          // この行に該当するリンクのみ返す（xterm はホバーされた行に対して呼ぶ）
+          if (bufferLineNumber < start.y || bufferLineNumber > end.y) continue;
 
-          // y を含まないリンクは返さない（他の y で返される）
-          if (sBufferY > y || eBufferY < y) continue;
-
-          const sCol = matchStart - lineStarts[sIdx];
-          const eCol = matchEnd - lineStarts[eIdx];
-
+          const url = raw;
           links.push({
-            range: {
-              start: { x: sCol + 1, y: sBufferY + 1 },
-              end: { x: eCol, y: eBufferY + 1 },
-            },
-            text: uri,
-            activate: (event: MouseEvent) => {
-              // iOS環境では修飾キー不要でタップのみでリンクを開く
-              // デスクトップ環境ではCtrl（macOSではCmd）キーが必要
+            text: url,
+            range: { start, end },
+            activate: (event) => {
               if (isIOS || event.ctrlKey || event.metaKey) {
-                window.open(uri, '_blank', 'noopener,noreferrer');
+                window.open(url, '_blank', 'noopener,noreferrer');
               }
             },
           });
         }
 
-        callback(links.length ? links : undefined);
+        callback(links.length > 0 ? links : undefined);
       },
-    };
-    const linkProviderDisposable =
-      terminal.current.registerLinkProvider(linkProvider);
+    });
 
     // ターミナルをDOMに接続
     terminal.current.open(terminalRef.current);
@@ -467,7 +485,10 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         resizeObserver.current.disconnect();
         resizeObserver.current = null;
       }
-      linkProviderDisposable.dispose();
+      if (linkProviderDisposable.current) {
+        linkProviderDisposable.current.dispose();
+        linkProviderDisposable.current = null;
+      }
       if (terminal.current) {
         terminal.current.dispose();
       }
