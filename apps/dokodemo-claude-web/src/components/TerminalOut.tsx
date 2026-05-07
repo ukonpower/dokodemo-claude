@@ -14,6 +14,10 @@ import s from './TerminalOut.module.scss';
 // U+FF00-U+FFEF: 全角英数・記号
 const URL_REGEX =
   /https?:\/\/[^\s<>"'`\u2500-\u257f\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]+/g;
+// \u884c\u672b\u306b\u300chttps?://\u2026 \u304c EOL \u307e\u3067\u4f38\u3073\u3066\u3044\u308b\u300d\u72b6\u614b\u304b\u3092\u5224\u5b9a\u3059\u308b\u6b63\u898f\u8868\u73fe\u3002
+// \u8a72\u5f53\u884c\u304c URL \u6539\u884c\u306e START \u884c\u3067\u3042\u308b\u3053\u3068\u3092\u793a\u3059\u5f37\u3044\u624b\u304c\u304b\u308a\u306b\u306a\u308b\u3002
+const URL_LINE_TAIL =
+  /https?:\/\/[^\s<>"'`\u2500-\u257f\u3000-\u303f\u3040-\u30ff\u3400-\u9fff\uff00-\uffef]*$/;
 const TRAILING_PUNCTUATION = /[.,;:!?)\]}>'"`]+$/;
 // 論理行連結のヒューリスティック判定で使う、URL を構成しうる ASCII 文字
 const URL_TAIL_CHAR = /[A-Za-z0-9/?#&%=._~+\-:@]$/;
@@ -231,8 +235,13 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // 折り返し（isWrapped）と PTY 由来の \r\n 改行の双方を考慮したカスタム
     // リンクプロバイダを登録。xterm の auto-wrap でしか isWrapped は立たないため、
-    // 「行末まで埋まっていて末尾/先頭が URL 風文字」のケースをヒューリスティックで
-    // 連結することで、Claude Code 等が打つ明示改行で URL が切れる問題を救う。
+    // 「行末まで URL が伸びている／継続行は（インデント除去後）空白なしの URL 風文字のみ」を
+    // 手がかりに論理行を連結することで、Claude Code 等が narrower wrap で打つ明示改行
+    // （しかも継続行に "  " のぶら下がりインデントが付く）でも URL が切れずに全行
+    // クリック可能になるようにする。
+    const MAX_BACK = 20;
+    const MAX_FWD = 20;
+
     linkProviderDisposable.current = terminal.current.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
         const term = terminal.current;
@@ -243,6 +252,15 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         const buf = term.buffer.active;
         const cols = term.cols;
 
+        // idx 行が次の行へ URL として継続するかを判定する。
+        // 継続行（next）の先頭インデントは除去してから判定する（Claude Code の
+        // ぶら下がりインデント対策）。
+        // 連結条件:
+        //   (a) xterm auto-wrap (next.isWrapped)、または
+        //   (b) cur が cols まで埋まっている auto-wrap、または
+        //   (c) cur 行末が「https?://…」で終わる START 行、または
+        //   (d) cur が（先頭インデント除去後）空白を含まない MIDDLE 行で、遡った先に
+        //       START 行が存在する
         const continuesToNext = (idx: number): boolean => {
           const next = buf.getLine(idx + 1);
           if (!next) return false;
@@ -251,16 +269,39 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           if (!cur) return false;
           const curT = cur.translateToString(true);
           if (curT.length === 0) return false;
-          if (curT.length < cols - 2) return false;
-          if (!URL_TAIL_CHAR.test(curT)) return false;
           const nextT = next.translateToString(true);
           if (nextT.length === 0) return false;
-          if (!URL_HEAD_CHAR.test(nextT)) return false;
-          return true;
+          if (!URL_TAIL_CHAR.test(curT)) return false;
+          // 継続行の先頭インデントは除去して URL 連続性を判定する
+          const nextStripped = nextT.replace(/^\s+/, '');
+          if (nextStripped.length === 0) return false;
+          if (!URL_HEAD_CHAR.test(nextStripped)) return false;
+
+          // (b) auto-wrap が isWrapped を立てない一部ケース
+          if (curT.length >= cols - 2) return true;
+
+          // (c) START 行: 行末まで https?://… が伸びている
+          if (URL_LINE_TAIL.test(curT)) return true;
+
+          // (d) MIDDLE 行: 先頭インデント除去後に空白が一切なく、遡って START 行に到達できる
+          const curStripped = curT.replace(/^\s+/, '');
+          if (/\s/.test(curStripped)) return false;
+          for (
+            let prev = idx - 1;
+            prev >= Math.max(0, idx - MAX_BACK);
+            prev--
+          ) {
+            const prevLine = buf.getLine(prev);
+            if (!prevLine) return false;
+            const prevT = prevLine.translateToString(true);
+            if (prevT.length === 0) return false;
+            if (URL_LINE_TAIL.test(prevT)) return true;
+            const prevStripped = prevT.replace(/^\s+/, '');
+            if (/\s/.test(prevStripped)) return false;
+          }
+          return false;
         };
 
-        const MAX_BACK = 20;
-        const MAX_FWD = 20;
         const targetY = bufferLineNumber - 1; // 0-based
 
         // 論理行の先頭行を遡って探す
@@ -283,15 +324,33 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           endY++;
         }
 
-        // [startY, endY] の範囲を行ごとに cols 幅で収集（offset 計算を一定にするため）
-        const rows: { y: number; text: string }[] = [];
+        // [startY, endY] の範囲を、各行の末尾空白を除去して連結する。
+        // cols 幅でパディングしてしまうと URL 連続文字の間に空白が入って
+        // URL_REGEX が分断されるため、パディングなしで結合する。
+        // 加えて継続行（startY 以外）は先頭インデントも除去して URL を再構成する。
+        // offset→座標は各行の (開始 offset, 取り除いた先頭文字数=xOffset) を保持して
+        // マップする。
+        const rows: {
+          y: number;
+          text: string;
+          offset: number;
+          xOffset: number;
+        }[] = [];
+        let fullText = '';
         for (let y = startY; y <= endY; y++) {
           const line = buf.getLine(y);
           if (!line) break;
-          let text = line.translateToString(false);
-          if (text.length < cols) text = text.padEnd(cols, ' ');
-          else if (text.length > cols) text = text.slice(0, cols);
-          rows.push({ y, text });
+          let text = line.translateToString(false).replace(/\s+$/, '');
+          let xOffset = 0;
+          if (y > startY) {
+            const m = text.match(/^\s+/);
+            if (m) {
+              xOffset = m[0].length;
+              text = text.slice(xOffset);
+            }
+          }
+          rows.push({ y, text, offset: fullText.length, xOffset });
+          fullText += text;
         }
 
         if (rows.length === 0) {
@@ -299,12 +358,16 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           return;
         }
 
-        const fullText = rows.map((r) => r.text).join('');
-
         const offsetToPos = (offset: number) => {
-          const lineIdx = Math.floor(offset / cols);
-          const x = offset % cols;
-          return { y: rows[lineIdx].y + 1, x: x + 1 }; // xterm は 1-based
+          for (let i = rows.length - 1; i >= 0; i--) {
+            if (offset >= rows[i].offset) {
+              return {
+                y: rows[i].y + 1,
+                x: rows[i].xOffset + (offset - rows[i].offset) + 1,
+              };
+            }
+          }
+          return { y: rows[0].y + 1, x: rows[0].xOffset + 1 };
         };
 
         const links: ILink[] = [];
@@ -325,10 +388,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           links.push({
             text: url,
             range: { start, end },
-            activate: (event) => {
-              if (isIOS || event.ctrlKey || event.metaKey) {
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }
+            activate: () => {
+              window.open(url, '_blank', 'noopener,noreferrer');
             },
           });
         }
