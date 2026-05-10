@@ -13,9 +13,11 @@ description: Merge current branch into main branch (preserve both changes on con
 
 ## Critical
 
+- **必ず通常マージ（`git merge`）を使う。** `git rebase` や `git pull --rebase` などリベース系の操作は絶対に使わない。
 - **絶対に `-X ours` や `-X theirs` を使わない。** どちらかのブランチを一括優先するマージ戦略は禁止。
+- **コンフリクト解決に git コマンドを使わない。** `git checkout --ours/--theirs`、`git restore --ours/--theirs`、`git mergetool` なども禁止。解決は **必ず Edit ツールでファイルを手動編集**して行う。
 - **絶対にどちらかの変更を捨てない。** コンフリクトが発生したら、必ず両方の変更内容を詳細に読み、両方が生きるように手動で統合する。
-- **安全にマージできない場合は、マージを中止してユーザーに判断を委ねる。** 勝手に片方を選ぶくらいなら、中止する方が100倍良い。
+- **明らかな競合（自動統合が危険なケース）は、マージを中止せずユーザーに指示を仰ぐ。** `git merge --abort` はせず、コンフリクト状態を保持したまま、競合内容を要約して報告し、ユーザーの判断を待つ。
 
 ## Your task
 
@@ -74,18 +76,17 @@ Merge the current working branch with the main branch.
          - 統合した結果、意味的に正しいかどうか自信が持てない
 
    c. **1つでも「危険」なコンフリクトがある場合**：
-      ```bash
-      git merge --abort
-      ```
-      - マージを即座に中止する
+      - **`git merge --abort` はしない。** コンフリクト状態を保持したまま、ユーザーに判断を委ねる。
+      - 安全に統合できる他のファイルは、先に Edit ツールで解決しておいてもよい（ただし `git add` / `git commit` はしない）。
       - ユーザーに以下を報告する：
         - どのファイルにコンフリクトがあったか
-        - 各コンフリクトの具体的な内容（両方の変更を要約）
+        - 各コンフリクトの具体的な内容（両方の変更を要約、`<<<<<<<` 〜 `>>>>>>>` の中身を抜粋）
         - なぜ自動統合が危険だと判断したか
-      - ユーザーの指示を待つ（絶対に自分で解決を続行しない）
+        - どう解決すべきかの選択肢があれば提示する
+      - ユーザーの指示を待つ（絶対に自分で勝手に解決を続行しない、`git merge --abort` も勝手に実行しない）
 
    d. **全てのコンフリクトが安全に統合できた場合**：
-      - 各ファイルを Edit ツールで修正（conflict markers を除去し、両方の変更を統合）
+      - 各ファイルを **Edit ツールで修正**（conflict markers を除去し、両方の変更を統合）。`git checkout --ours/--theirs` などの git コマンドは絶対に使わない。
       - `git add <resolved-files>`
       - `git commit` でマージコミットを完了
 
@@ -134,12 +135,12 @@ Merge the current working branch with the main branch.
 - 一方が import を追加、他方が別の import を追加 → 両方の import を含める
 - 一方が新しい関数を追加、他方が既存の別の関数を修正 → 両方を反映
 
-**統合が危険なケース（マージ中止）：**
-- 同じ変数のデフォルト値を一方は `true`、他方は `false` に変更 → 中止
-- 一方が関数を削除、他方がその関数を修正 → 中止
-- 同じ API エンドポイントのレスポンス形式を異なる方向に変更 → 中止
-- 同じ CSS プロパティを異なる値に変更 → 中止
+**統合が危険なケース（マージは中止せず、ユーザーに指示を仰ぐ）：**
+- 同じ変数のデフォルト値を一方は `true`、他方は `false` に変更 → ユーザー確認
+- 一方が関数を削除、他方がその関数を修正 → ユーザー確認
+- 同じ API エンドポイントのレスポンス形式を異なる方向に変更 → ユーザー確認
+- 同じ CSS プロパティを異なる値に変更 → ユーザー確認
 
-**原則: 迷ったらマージを中止する。変更を失うリスクより、ユーザーに確認するコストの方がはるかに小さい。**
+**原則: 迷ったらコンフリクト状態を保持したままユーザーに確認する。`git merge --abort` は勝手に実行しない。変更を失うリスクより、ユーザーに確認するコストの方がはるかに小さい。**
 
 After successful merge, both the current branch and main branch will be updated with all changes. The merge is performed directly in the main worktree with `--no-ff` to ensure a merge commit is created, preserving the branch history.
