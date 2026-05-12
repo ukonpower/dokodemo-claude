@@ -2,7 +2,6 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import type { Express, RequestHandler } from 'express';
-import cors from 'cors';
 import { Server as TusServer } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import type { HandlerContext, TypedServer } from './types.js';
@@ -59,12 +58,28 @@ export const deleteFileHandler: RequestHandler = async (req, res) => {
   }
 };
 
+// CORS許可オリジン（カンマ区切り）
+// 未設定または "*" の場合は全オリジン許可（@tus/serverのデフォルト動作）
+function getAllowedOrigins(): string[] | undefined {
+  const raw = process.env.DC_CORS_ORIGIN;
+  if (!raw || raw.trim() === '' || raw.trim() === '*') return undefined;
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 function createTusServer(io: TypedServer): TusServer {
   return new TusServer({
     path: '/api/tus',
     relativeLocation: true,
     datastore: new FileStore({ directory: fileManager.getTusStorePath() }),
     maxSize: MAX_FILE_SIZE,
+    // CORS設定: @tus/server自身にCORS処理を任せる
+    // （express側のcorsミドルウェアと併用するとプリフライトでtus固有ヘッダーが
+    // Access-Control-Allow-Headersから漏れてCORSエラーになるため）
+    allowedCredentials: true,
+    allowedOrigins: getAllowedOrigins(),
     onUploadFinish: async (_req, upload) => {
       const metadata = upload.metadata ?? {};
       const rid = metadata.rid;
@@ -119,8 +134,9 @@ function createTusServer(io: TypedServer): TusServer {
 export function registerFileRoutes(app: Express, io: TypedServer): void {
   const tusServer = createTusServer(io);
   const tusHandler = tusServer.handle.bind(tusServer);
-  app.all('/api/tus', cors({ origin: true, credentials: true }), tusHandler as RequestHandler);
-  app.all('/api/tus/*', cors({ origin: true, credentials: true }), tusHandler as RequestHandler);
+  // cors()ミドルウェアは経由させない（tusサーバー自身がCORSヘッダーを返す）
+  app.all('/api/tus', tusHandler as RequestHandler);
+  app.all('/api/tus/*', tusHandler as RequestHandler);
 
   app.get('/api/media/:rid', getFilesHandler as RequestHandler);
   app.get('/api/media/:rid/:filename', getFileHandler as RequestHandler);
