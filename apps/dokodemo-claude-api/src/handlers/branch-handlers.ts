@@ -96,6 +96,23 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         });
 
         socket.emit('branches-list', { branches, rid });
+
+        // ワークツリータブのブランチ名を同期するため worktrees-list を再 emit
+        const mainRepoPath = getMainRepoPath(repositoryPath);
+        const prid = repositoryIdManager.tryGetId(mainRepoPath);
+        worktreeCache.delete(mainRepoPath);
+        const worktrees = await getWorktrees(mainRepoPath);
+        if (worktrees.length > 0) {
+          worktreeCache.set(mainRepoPath, {
+            worktrees,
+            timestamp: Date.now(),
+          });
+        }
+        socket.emit('worktrees-list', {
+          worktrees: addWorktreeIds(worktrees),
+          prid,
+          parentRepoPath: mainRepoPath,
+        });
       } else {
         socket.emit('branch-switched', {
           success: false,
@@ -435,6 +452,23 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         // 作成→自動切替なので branches-list を再取得して emit
         const branches = await getBranches(repositoryPath);
         socket.emit('branches-list', { branches, rid });
+
+        // ワークツリータブのブランチ名を同期するため worktrees-list を再 emit
+        const mainRepoPath = getMainRepoPath(repositoryPath);
+        const prid = repositoryIdManager.tryGetId(mainRepoPath);
+        worktreeCache.delete(mainRepoPath);
+        const worktrees = await getWorktrees(mainRepoPath);
+        if (worktrees.length > 0) {
+          worktreeCache.set(mainRepoPath, {
+            worktrees,
+            timestamp: Date.now(),
+          });
+        }
+        socket.emit('worktrees-list', {
+          worktrees: addWorktreeIds(worktrees),
+          prid,
+          parentRepoPath: mainRepoPath,
+        });
       }
     } catch (error) {
       socket.emit('branch-created', {
