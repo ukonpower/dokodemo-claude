@@ -499,6 +499,10 @@ function App() {
       onDeleteBranch={branchWorktree.deleteBranch}
       onCreateBranch={branchWorktree.createBranch}
       onRefreshBranches={branchWorktree.refreshBranches}
+      onPullBranch={branchWorktree.pullBranch}
+      isPulling={branchWorktree.isPulling}
+      pullError={branchWorktree.pullError}
+      onClearPullError={() => branchWorktree.setPullError(null)}
       onCreateWorktree={branchWorktree.createWorktree}
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}

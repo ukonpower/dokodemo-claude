@@ -11,6 +11,10 @@ interface BranchSelectorProps {
   onDeleteBranch?: (branchName: string, deleteRemote: boolean) => void;
   onCreateBranch: (branchName: string, baseBranch?: string) => void;
   onRefreshBranches: () => void;
+  onPullBranch: () => void;
+  isPulling: boolean;
+  pullError: { message: string; output?: string } | null;
+  onClearPullError: () => void;
   worktrees?: GitWorktree[];
   isConnected: boolean;
 }
@@ -22,6 +26,10 @@ function BranchSelector({
   onDeleteBranch,
   onCreateBranch,
   onRefreshBranches,
+  onPullBranch,
+  isPulling,
+  pullError,
+  onClearPullError,
   worktrees = [],
   isConnected,
 }: BranchSelectorProps) {
@@ -198,6 +206,30 @@ function BranchSelector({
                 />
               </svg>
               <span>作成</span>
+            </button>
+            <button
+              onClick={() => {
+                onPullBranch();
+                closeDropdown();
+              }}
+              disabled={isPulling}
+              className={s.toolbarButton}
+              title="現在のブランチを pull (--ff-only)"
+            >
+              <svg
+                className={s.toolbarIcon}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"
+                />
+              </svg>
+              <span>{isPulling ? 'Pull中…' : 'Pull'}</span>
             </button>
             <button
               onClick={onRefreshBranches}
@@ -404,6 +436,44 @@ function BranchSelector({
             setShowCreateModal(false);
           }}
         />
+      )}
+
+      {/* Pull エラーモーダル */}
+      {pullError && (
+        <div className={s.modalOverlay}>
+          <div className={s.modalContent}>
+            <div className={s.modalHeader}>
+              <div className={`${s.modalIconCircle} ${s.modalIconCircleRed}`}>
+                <svg
+                  className={`${s.modalIcon} ${s.modalIconRed}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <h3 className={s.modalTitle}>Pull に失敗しました</h3>
+            </div>
+
+            <p className={s.modalText}>{pullError.message}</p>
+
+            {pullError.output && (
+              <pre className={s.pullErrorOutput}>{pullError.output}</pre>
+            )}
+
+            <div className={s.modalFooter}>
+              <button onClick={onClearPullError} className={s.cancelButton}>
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -11,6 +11,7 @@ import {
   getMainRepoPath,
   mergeWorktreeBranch,
   createBranch,
+  pullBranch,
 } from '../utils/git-utils.js';
 import { startBranchWatching } from '../services/branch-watcher.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
@@ -440,6 +441,41 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         success: false,
         message: `ブランチ作成エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         branchName,
+        rid,
+      });
+    }
+  });
+
+  // 現在ブランチの pull (--ff-only)
+  socket.on('pull-branch', async (data) => {
+    const { rid: inputRid, repositoryPath: rawPath } = data;
+    const repositoryPath = resolveRepositoryPath({
+      rid: inputRid,
+      repositoryPath: rawPath,
+    });
+    if (!repositoryPath) return;
+    const rid = repositoryIdManager.tryGetId(repositoryPath);
+
+    try {
+      const result = await pullBranch(repositoryPath);
+
+      socket.emit('branch-pulled', {
+        success: result.success,
+        message: result.message,
+        output: result.output,
+        rid,
+      });
+
+      if (result.success) {
+        // HEAD ファイル自体が変わらない可能性があるため、明示的に再 emit
+        const branches = await getBranches(repositoryPath);
+        socket.emit('branches-list', { branches, rid });
+      }
+    } catch (error) {
+      socket.emit('branch-pulled', {
+        success: false,
+        message: `pull エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        output: '',
         rid,
       });
     }

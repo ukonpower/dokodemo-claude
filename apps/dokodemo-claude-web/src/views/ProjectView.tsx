@@ -114,6 +114,10 @@ interface ProjectViewProps {
   onDeleteBranch: (branchName: string, deleteRemote?: boolean) => void;
   onCreateBranch: (branchName: string, baseBranch?: string) => void;
   onRefreshBranches: () => void;
+  onPullBranch: () => void;
+  isPulling: boolean;
+  pullError: { message: string; output?: string } | null;
+  onClearPullError: () => void;
   onCreateWorktree: (
     branchName: string,
     baseBranch?: string,
@@ -286,6 +290,10 @@ export function ProjectView({
   onDeleteBranch,
   onCreateBranch,
   onRefreshBranches,
+  onPullBranch,
+  isPulling,
+  pullError,
+  onClearPullError,
   onCreateWorktree,
   onDeleteWorktree,
   onMergeWorktree,
@@ -647,6 +655,10 @@ export function ProjectView({
                 onDeleteBranch={onDeleteBranch}
                 onCreateBranch={onCreateBranch}
                 onRefreshBranches={onRefreshBranches}
+                onPullBranch={onPullBranch}
+                isPulling={isPulling}
+                pullError={pullError}
+                onClearPullError={onClearPullError}
                 worktrees={worktrees}
                 isConnected={isConnected}
               />

@@ -483,6 +483,14 @@ export interface ServerToClientEvents {
     output: string;
   }) => void;
 
+  // ブランチ pull 結果通知
+  'branch-pulled': (data: {
+    success: boolean;
+    message: string;
+    output: string;
+    rid?: string;
+  }) => void;
+
   // プロンプトキュー関連イベント
   'prompt-queue-updated': (data: {
     rid?: string; // リポジトリID（必須）
@@ -733,6 +741,12 @@ export interface ClientToServerEvents {
 
   // dokodemo-claude自身の更新関連イベント
   'pull-self': () => void;
+
+  // 現在ブランチの pull
+  'pull-branch': (data: {
+    rid?: string;
+    repositoryPath?: string;
+  }) => void;
 
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {

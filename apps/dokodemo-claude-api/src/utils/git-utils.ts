@@ -158,6 +158,67 @@ export async function switchBranch(
 }
 
 /**
+ * 現在のブランチを pull (--ff-only)
+ * fast-forward 不可の場合は git 自身が失敗で抜けるため、
+ * 作業ツリーが中途半端なマージ状態になることはない。
+ */
+export async function pullBranch(
+  repoPath: string
+): Promise<{ success: boolean; message: string; output: string }> {
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', ['pull', '--ff-only'], {
+      cwd: repoPath,
+      env: cleanChildEnv(),
+    });
+    let stdout = '';
+    let stderr = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    gitProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    const timeout = setTimeout(() => {
+      gitProcess.kill('SIGTERM');
+      resolve({
+        success: false,
+        message: 'git pull がタイムアウトしました',
+        output: stdout + stderr,
+      });
+    }, 60000);
+
+    gitProcess.on('exit', (code) => {
+      clearTimeout(timeout);
+      if (code === 0) {
+        resolve({
+          success: true,
+          message: 'pull が完了しました',
+          output: stdout || stderr,
+        });
+      } else {
+        resolve({
+          success: false,
+          message: 'pull に失敗しました',
+          output: stderr || stdout,
+        });
+      }
+    });
+
+    gitProcess.on('error', (err) => {
+      clearTimeout(timeout);
+      resolve({
+        success: false,
+        message: `pull エラー: ${err.message}`,
+        output: '',
+      });
+    });
+  });
+}
+
+/**
  * ブランチを作成して切り替え (`git checkout -b`)
  */
 export async function createBranch(

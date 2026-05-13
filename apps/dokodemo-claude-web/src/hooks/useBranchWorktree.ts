@@ -44,11 +44,19 @@ export interface UseBranchWorktreeReturn {
   isDeletingWorktree: boolean;
   deletingWorktreePath: string | null;
 
+  // pull 状態
+  isPulling: boolean;
+  pullError: {
+    message: string;
+    output?: string;
+  } | null;
+
   // ブランチアクション
   switchBranch: (branchName: string) => void;
   deleteBranch: (branchName: string, deleteRemote?: boolean) => void;
   createBranch: (branchName: string, baseBranch?: string) => void;
   refreshBranches: () => void;
+  pullBranch: () => void;
 
   // ワークツリーアクション
   createWorktree: (
@@ -66,6 +74,12 @@ export interface UseBranchWorktreeReturn {
       message: string;
       conflictFiles?: string[];
       errorDetails?: string;
+    } | null
+  ) => void;
+  setPullError: (
+    error: {
+      message: string;
+      output?: string;
     } | null
   ) => void;
 
@@ -99,6 +113,13 @@ export function useBranchWorktree(
   const [deletingWorktreePath, setDeletingWorktreePath] = useState<
     string | null
   >(null);
+
+  // pull 状態
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullError, setPullError] = useState<{
+    message: string;
+    output?: string;
+  } | null>(null);
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -250,6 +271,18 @@ export function useBranchWorktree(
       }
     };
 
+    // ブランチ pull 結果
+    const handleBranchPulled = (
+      data: Parameters<ServerToClientEvents['branch-pulled']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setIsPulling(false);
+      if (!data.success) {
+        setPullError({ message: data.message, output: data.output });
+      }
+    };
+
     socket.on('branches-list', handleBranchesList);
     socket.on('branch-switched', handleBranchSwitched);
     socket.on('worktrees-list', handleWorktreesList);
@@ -257,6 +290,7 @@ export function useBranchWorktree(
     socket.on('worktree-deleted', handleWorktreeDeleted);
     socket.on('worktree-merged', handleWorktreeMerged);
     socket.on('branch-created', handleBranchCreated);
+    socket.on('branch-pulled', handleBranchPulled);
 
     return () => {
       socket.off('branches-list', handleBranchesList);
@@ -266,6 +300,7 @@ export function useBranchWorktree(
       socket.off('worktree-deleted', handleWorktreeDeleted);
       socket.off('worktree-merged', handleWorktreeMerged);
       socket.off('branch-created', handleBranchCreated);
+      socket.off('branch-pulled', handleBranchPulled);
     };
   }, [socket, currentProvider, onBranchError, onSwitchRepository]);
 
@@ -307,6 +342,15 @@ export function useBranchWorktree(
     const rid = repositoryIdMap.getRid(currentRepo);
     if (!rid) return;
     socket.emit('list-branches', { rid });
+  }, [socket, currentRepo]);
+
+  const pullBranch = useCallback(() => {
+    if (!socket || !currentRepo) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    setIsPulling(true);
+    setPullError(null);
+    socket.emit('pull-branch', { rid });
   }, [socket, currentRepo]);
 
   const createWorktree = useCallback(
@@ -378,6 +422,8 @@ export function useBranchWorktree(
     setCurrentBranch('');
     setWorktrees([]);
     setParentRepoPath('');
+    setIsPulling(false);
+    setPullError(null);
   }, []);
 
   // リポジトリ切り替え時に状態をリセット
@@ -393,15 +439,19 @@ export function useBranchWorktree(
     mergeError,
     isDeletingWorktree,
     deletingWorktreePath,
+    isPulling,
+    pullError,
     switchBranch,
     deleteBranch,
     createBranch,
     refreshBranches,
+    pullBranch,
     createWorktree,
     deleteWorktree,
     mergeWorktree,
     switchWorktree,
     setMergeError,
+    setPullError,
     clearState,
   };
 }
