@@ -276,6 +276,11 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
           const nextStripped = nextT.replace(/^\s+/, '');
           if (nextStripped.length === 0) return false;
           if (!URL_HEAD_CHAR.test(nextStripped)) return false;
+          // 次行（先頭インデント除去後）に空白が含まれる場合、URL 継続行では
+          // なく別項目の行と見なして連結を打ち切る。"- Network:  http://..."
+          // のように先頭が URL_HEAD_CHAR（"-"）でも URL の続きではない行を弾く。
+          // narrower wrap の URL 継続行は URL 文字のみで空白を含まない前提。
+          if (/\s/.test(nextStripped)) return false;
 
           // (b) auto-wrap が isWrapped を立てない一部ケース
           if (curT.length >= cols - 2) return true;
