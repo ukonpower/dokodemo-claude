@@ -1,5 +1,12 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
-import { RefreshCw, Plus, File as FileIcon } from 'lucide-react';
+import {
+  RefreshCw,
+  Plus,
+  File as FileIcon,
+  Copy as CopyIcon,
+  Check,
+  Trash2,
+} from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
@@ -13,6 +20,8 @@ interface FileManagerProps {
   files: UploadedFileInfo[];
   onRefresh: () => void;
   onDelete: (filename: string) => void;
+  readOnly?: boolean;
+  emptyMessage?: string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -26,6 +35,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   files,
   onRefresh,
   onDelete,
+  readOnly = false,
+  emptyMessage,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -205,36 +216,42 @@ const FileManager: React.FC<FileManagerProps> = ({
       )}
 
       <div ref={gridRef} className={s.grid}>
-        {/* アップロードボックス */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`${s.uploadBox} ${
-            isDragging ? s.uploadBoxDragging : s.uploadBoxDefault
-          } ${isUploading ? s.uploadBoxDisabled : ''}`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className={s.hiddenInput}
-          />
-          {isUploading ? (
-            <div className={s.progressContainer}>
-              <div className={s.progressBar}>
-                <div className={s.progressFill} style={{ width: `${uploadProgress ?? 0}%` }} />
+        {/* アップロードボックス（readOnly のときは非表示） */}
+        {!readOnly && (
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`${s.uploadBox} ${
+              isDragging ? s.uploadBoxDragging : s.uploadBoxDefault
+            } ${isUploading ? s.uploadBoxDisabled : ''}`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className={s.hiddenInput}
+            />
+            {isUploading ? (
+              <div className={s.progressContainer}>
+                <div className={s.progressBar}>
+                  <div className={s.progressFill} style={{ width: `${uploadProgress ?? 0}%` }} />
+                </div>
+                <span className={s.progressText}>
+                  {uploadProgress ?? 0}%
+                </span>
               </div>
-              <span className={s.progressText}>
-                {uploadProgress ?? 0}%
-              </span>
-            </div>
-          ) : (
-            <Plus size={16} className={s.plusIcon} />
-          )}
-        </div>
+            ) : (
+              <Plus size={16} className={s.plusIcon} />
+            )}
+          </div>
+        )}
+
+        {readOnly && files.length === 0 && emptyMessage && (
+          <div className={s.emptyHint}>{emptyMessage}</div>
+        )}
 
         {/* ファイルサムネイル */}
         {files.map((file) => {
@@ -307,25 +324,21 @@ const FileManager: React.FC<FileManagerProps> = ({
                   copiedText === file.path ? s.copyButtonSuccess : s.copyButton
                 }`}
                 title="パスをコピー"
+                aria-label="パスをコピー"
               >
                 {copiedText === file.path ? (
-                  <svg className={s.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className={s.actionIcon} strokeWidth={2.5} />
                 ) : (
-                  <svg className={s.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                  <CopyIcon className={s.actionIcon} strokeWidth={2} />
                 )}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(file.filename); }}
                 className={`${s.actionButton} ${s.deleteButton}`}
                 title="削除"
+                aria-label="削除"
               >
-                <svg className={s.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <Trash2 className={s.actionIcon} strokeWidth={2} />
               </button>
             </div>
 

@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Copy as CopyIcon,
+  Check,
+  Trash2,
+} from 'lucide-react';
 import s from './ImageLightbox.module.scss';
 
 export interface LightboxItem {
@@ -169,20 +177,9 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
           onClick={onClose}
           className={s.closeButton}
           aria-label="閉じる"
+          title="閉じる (Esc)"
         >
-          <svg
-            className={s.closeIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <X size={20} strokeWidth={2.25} />
         </button>
       </div>
 
@@ -199,19 +196,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
             className={s.prevButton}
             aria-label="前の画像"
           >
-            <svg
-              className={s.navIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ChevronLeft className={s.navIcon} strokeWidth={2.25} />
           </button>
         )}
 
@@ -246,19 +231,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
             className={s.nextButton}
             aria-label="次の画像"
           >
-            <svg
-              className={s.navIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            <ChevronRight className={s.navIcon} strokeWidth={2.25} />
           </button>
         )}
       </div>
@@ -301,14 +274,26 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
               : s.copyPathDefault
           }`}
         >
-          {copiedPath === currentItem.copyPath ? 'Copied!' : 'Copy Path'}
+          {copiedPath === currentItem.copyPath ? (
+            <>
+              <Check size={14} strokeWidth={2.5} />
+              <span>Copied</span>
+            </>
+          ) : (
+            <>
+              <CopyIcon size={14} strokeWidth={2} />
+              <span>Copy Path</span>
+            </>
+          )}
         </button>
         {onDelete && (
           <button
             onClick={handleDelete}
             className={s.deleteFileButton}
+            aria-label="削除"
+            title="削除"
           >
-            Delete
+            <Trash2 size={14} strokeWidth={2} />
           </button>
         )}
       </div>

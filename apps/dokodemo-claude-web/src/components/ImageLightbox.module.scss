@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 10000;
   background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .headerLeft {
@@ -23,27 +23,39 @@
 }
 
 .counter {
-  color: white;
+  color: rgba(255, 255, 255, 0.85);
   font-size: $font-size-sm;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
+  border-radius: $radius-full;
+  background-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .closeButton {
-  padding: 8px;
+  @include flex-center;
+  width: 36px;
+  height: 36px;
   color: white;
-  border-radius: 9999px;
-  transition: background-color $transition-fast $transition-easing;
-  background: none;
-  border: none;
+  border-radius: $radius-full;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.32);
   }
-}
 
-.closeIcon {
-  width: 24px;
-  height: 24px;
+  &:active {
+    transform: scale(0.94);
+  }
 }
 
 // === メインコンテンツ ===
@@ -171,47 +183,72 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: rgba(0, 0, 0, 0.5);
+  gap: 8px;
+  padding: 14px 16px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .copyPathButton {
-  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
   font-size: $font-size-sm;
-  border-radius: $radius-lg;
   font-weight: 500;
-  transition: background-color $transition-fast $transition-easing;
-  border: none;
+  letter-spacing: 0.01em;
+  border-radius: $radius-full;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
+
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 .copyPathDefault {
-  background-color: $blue-500;
-  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
 
   &:hover {
-    background-color: #2563eb;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.32);
   }
 }
 
 .copyPathCopied {
-  background-color: $accent-green;
-  color: white;
+  background-color: rgba($accent-green, 0.2);
+  color: $accent-green;
+  border-color: rgba($accent-green, 0.5);
 }
 
 .deleteFileButton {
-  padding: 8px 16px;
-  font-size: $font-size-sm;
-  border-radius: $radius-lg;
-  font-weight: 500;
-  background-color: $accent-red;
-  color: white;
-  transition: background-color $transition-fast $transition-easing;
-  border: none;
+  @include flex-center;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-full;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
   cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $accent-red-hover;
+    background-color: rgba($accent-red, 0.18);
+    border-color: rgba($accent-red, 0.5);
+    color: #fca5a5;
+  }
+
+  &:active {
+    transform: scale(0.94);
   }
 }
