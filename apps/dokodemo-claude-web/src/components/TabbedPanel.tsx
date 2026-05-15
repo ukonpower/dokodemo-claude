@@ -261,6 +261,8 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               files={previewFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
+              readOnly
+              emptyMessage="Claude がアップロードした画像がここに表示されます"
             />
           )}
           {activeTab === 'git' && (
