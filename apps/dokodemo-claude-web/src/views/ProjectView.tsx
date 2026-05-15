@@ -70,6 +70,7 @@ interface ProjectViewProps {
   onSendEscape: () => void;
   onSendClear: () => void;
   onSendCommit: () => void;
+  onSendPreview: () => void;
   onSendResume: () => void;
   onSendUsage: () => void;
   onSendMode: () => void;
@@ -253,6 +254,7 @@ export function ProjectView({
   onSendEscape,
   onSendClear,
   onSendCommit,
+  onSendPreview,
   onSendResume,
   onSendUsage,
   onSendMode,
@@ -791,6 +793,7 @@ export function ProjectView({
                     onClearAi={onSendClear}
                     onSendResume={onSendResume}
                     onSendUsage={onSendUsage}
+                    onSendPreview={onSendPreview}
                     onSendMode={onSendMode}
                     onSendAltT={onSendAltT}
                     onChangeModel={onChangeModel}
@@ -835,7 +838,7 @@ export function ProjectView({
                   <TabbedPanel
                     currentRepo={currentRepo}
                     rid={currentRid}
-                    files={files.filter(f => (f.source || 'user') === 'user')}
+                    files={files}
                     onRefreshFiles={onRefreshFiles}
                     onDeleteFile={onDeleteFile}
                     diffSummary={diffSummary}

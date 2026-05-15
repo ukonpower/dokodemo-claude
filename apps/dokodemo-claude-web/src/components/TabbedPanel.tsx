@@ -1,5 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Paperclip, GitBranch, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  Paperclip,
+  GitBranch,
+  ChevronDown,
+  ChevronRight,
+  Image as ImageIcon,
+} from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
   UploadedFileInfo,
@@ -8,7 +14,7 @@ import type {
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
 
-type TabId = 'files' | 'git';
+type TabId = 'files' | 'preview' | 'git';
 
 const STORAGE_KEY_PREFIX = 'dokodemo-tabbed-panel-active';
 const COLLAPSED_KEY_PREFIX = 'dokodemo-tabbed-panel-collapsed';
@@ -36,6 +42,12 @@ const TABS: TabDef[] = [
     label: 'ファイル',
     activeColor: '#a78bfa',
     icon: <Paperclip size={ICON_SIZE} />,
+  },
+  {
+    id: 'preview',
+    label: 'Preview',
+    activeColor: '#fbbf24',
+    icon: <ImageIcon size={ICON_SIZE} />,
   },
   {
     id: 'git',
@@ -79,7 +91,15 @@ function getStoredTab(repo: string): TabId {
 const INACTIVE_COLOR = '#6b7280';
 
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
-  const { currentRepo } = props;
+  const { currentRepo, files } = props;
+  const userFiles = useMemo(
+    () => files.filter((f) => f.source === 'user'),
+    [files]
+  );
+  const previewFiles = useMemo(
+    () => files.filter((f) => f.source === 'claude'),
+    [files]
+  );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     getStoredTab(currentRepo)
   );
@@ -230,7 +250,15 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
           {activeTab === 'files' && (
             <FileManager
               rid={props.rid}
-              files={props.files}
+              files={userFiles}
+              onRefresh={props.onRefreshFiles}
+              onDelete={props.onDeleteFile}
+            />
+          )}
+          {activeTab === 'preview' && (
+            <FileManager
+              rid={props.rid}
+              files={previewFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
             />

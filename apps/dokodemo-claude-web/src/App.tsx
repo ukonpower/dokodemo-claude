@@ -461,6 +461,7 @@ function App() {
       onSendEscape={aiCli.sendEscape}
       onSendClear={aiCli.sendClear}
       onSendCommit={aiCli.sendCommit}
+      onSendPreview={aiCli.sendPreview}
       onSendResume={aiCli.sendResume}
       onSendUsage={aiCli.sendUsage}
       onSendMode={aiCli.sendMode}
