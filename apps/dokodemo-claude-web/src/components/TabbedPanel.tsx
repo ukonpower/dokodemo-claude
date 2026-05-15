@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Paperclip,
   GitBranch,
@@ -14,7 +14,7 @@ import type {
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
 
-type TabId = 'files' | 'git';
+type TabId = 'files' | 'preview' | 'git';
 
 const STORAGE_KEY_PREFIX = 'dokodemo-tabbed-panel-active';
 const COLLAPSED_KEY_PREFIX = 'dokodemo-tabbed-panel-collapsed';
@@ -44,6 +44,12 @@ const TABS: TabDef[] = [
     icon: <Paperclip size={ICON_SIZE} />,
   },
   {
+    id: 'preview',
+    label: 'Preview',
+    activeColor: '#fbbf24',
+    icon: <ImageIcon size={ICON_SIZE} />,
+  },
+  {
     id: 'git',
     label: 'Git',
     activeColor: '#4ade80',
@@ -67,9 +73,6 @@ interface TabbedPanelProps {
   diffSummaryError: string | null;
   onRefreshDiffSummary: () => void;
   onDiffFileClick: (filename: string) => void;
-
-  // ショートカット: プレビュースキル送信
-  onSendPreview?: () => void;
 }
 
 function getStoredTab(repo: string): TabId {
@@ -88,7 +91,15 @@ function getStoredTab(repo: string): TabId {
 const INACTIVE_COLOR = '#6b7280';
 
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
-  const { currentRepo } = props;
+  const { currentRepo, files } = props;
+  const userFiles = useMemo(
+    () => files.filter((f) => f.source === 'user'),
+    [files]
+  );
+  const previewFiles = useMemo(
+    () => files.filter((f) => f.source === 'claude'),
+    [files]
+  );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     getStoredTab(currentRepo)
   );
@@ -231,19 +242,6 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             </button>
           );
         })}
-        {/* 右寄せのショートカットボタン */}
-        <div className={s.shortcutSpacer} />
-        {props.onSendPreview && (
-          <button
-            type="button"
-            onClick={props.onSendPreview}
-            className={s.shortcutButton}
-            title="/dokodemo-claude-tools:dokodemo-preview を送信"
-          >
-            <ImageIcon size={12} />
-            <span>Preview</span>
-          </button>
-        )}
       </div>
 
       {/* タブコンテンツ */}
@@ -252,7 +250,15 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
           {activeTab === 'files' && (
             <FileManager
               rid={props.rid}
-              files={props.files}
+              files={userFiles}
+              onRefresh={props.onRefreshFiles}
+              onDelete={props.onDeleteFile}
+            />
+          )}
+          {activeTab === 'preview' && (
+            <FileManager
+              rid={props.rid}
+              files={previewFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
             />

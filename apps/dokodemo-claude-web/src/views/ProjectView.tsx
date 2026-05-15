@@ -793,6 +793,7 @@ export function ProjectView({
                     onClearAi={onSendClear}
                     onSendResume={onSendResume}
                     onSendUsage={onSendUsage}
+                    onSendPreview={onSendPreview}
                     onSendMode={onSendMode}
                     onSendAltT={onSendAltT}
                     onChangeModel={onChangeModel}
@@ -845,7 +846,6 @@ export function ProjectView({
                     diffSummaryError={diffSummaryError}
                     onRefreshDiffSummary={onRefreshDiffSummary}
                     onDiffFileClick={onDiffFileClick}
-                    onSendPreview={onSendPreview}
                   />
                 </div>
               )}

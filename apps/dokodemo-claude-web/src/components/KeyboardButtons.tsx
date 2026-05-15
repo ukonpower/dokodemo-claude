@@ -11,6 +11,7 @@ interface KeyboardButtonsProps {
   onClearAi?: () => void;
   onSendResume?: () => void;
   onSendUsage?: () => void;
+  onSendPreview?: () => void;
   onSendMode?: () => void;
   onSendAltT?: () => void;
   onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
@@ -209,6 +210,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onClearAi,
   onSendResume,
   onSendUsage,
+  onSendPreview,
   onSendMode,
   onSendAltT,
   onChangeModel,
@@ -230,7 +232,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   const hasAuxButtons =
     onSendInterrupt ||
-    (isClaude && (onSendAltT || onSendResume || onSendUsage));
+    (isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview));
 
   const handleDialogSubmit = (
     name: string,
@@ -360,6 +362,11 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               {isClaude && onSendUsage && (
                 <button type="button" onClick={onSendUsage} disabled={disabled} className={s.grayButton} title="使用状況を表示 (/usage)">
                   Usage
+                </button>
+              )}
+              {isClaude && onSendPreview && (
+                <button type="button" onClick={onSendPreview} disabled={disabled} className={s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
+                  Preview
                 </button>
               )}
 
