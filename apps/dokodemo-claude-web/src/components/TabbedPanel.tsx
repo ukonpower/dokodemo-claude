@@ -1,5 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Paperclip, GitBranch, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Paperclip,
+  GitBranch,
+  ChevronDown,
+  ChevronRight,
+  Image as ImageIcon,
+} from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
   UploadedFileInfo,
@@ -61,6 +67,9 @@ interface TabbedPanelProps {
   diffSummaryError: string | null;
   onRefreshDiffSummary: () => void;
   onDiffFileClick: (filename: string) => void;
+
+  // ショートカット: プレビュースキル送信
+  onSendPreview?: () => void;
 }
 
 function getStoredTab(repo: string): TabId {
@@ -222,6 +231,19 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             </button>
           );
         })}
+        {/* 右寄せのショートカットボタン */}
+        <div className={s.shortcutSpacer} />
+        {props.onSendPreview && (
+          <button
+            type="button"
+            onClick={props.onSendPreview}
+            className={s.shortcutButton}
+            title="/dokodemo-claude-tools:dokodemo-preview を送信"
+          >
+            <ImageIcon size={12} />
+            <span>Preview</span>
+          </button>
+        )}
       </div>
 
       {/* タブコンテンツ */}

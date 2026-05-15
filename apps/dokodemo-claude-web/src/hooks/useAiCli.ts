@@ -31,6 +31,7 @@ export interface UseAiCliReturn {
   sendEscape: () => void;
   sendClear: () => void;
   sendCommit: () => void;
+  sendPreview: () => void;
   sendResume: () => void;
   sendUsage: () => void;
   sendMode: () => void;
@@ -393,6 +394,10 @@ export function useAiCli(
     sendCommandToAi('/dokodemo-claude-tools:commit-push', 'commit');
   }, [sendCommandToAi]);
 
+  const sendPreview = useCallback(() => {
+    sendCommandToAi('/dokodemo-claude-tools:dokodemo-preview', 'prompt');
+  }, [sendCommandToAi]);
+
   const sendResume = useCallback(() => {
     sendCommandToAi('/resume', 'prompt');
   }, [sendCommandToAi]);
@@ -536,6 +541,7 @@ export function useAiCli(
     sendEscape,
     sendClear,
     sendCommit,
+    sendPreview,
     sendResume,
     sendUsage,
     sendMode,

@@ -39,3 +39,36 @@
   overflow-y: auto;
   min-height: 0;
 }
+
+.shortcutSpacer {
+  flex: 1;
+}
+
+.shortcutButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  margin: 0 4px;
+  background-color: #2c2d31;
+  border: 1px solid #3a3b40;
+  border-radius: 4px;
+  color: #c084fc;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: #36373c;
+    color: #d8b4fe;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}

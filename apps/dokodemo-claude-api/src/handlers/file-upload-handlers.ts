@@ -1,12 +1,17 @@
 import path from 'path';
 import { promises as fs } from 'fs';
+import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
+import express from 'express';
 import type { Express, RequestHandler } from 'express';
 import { Server as TusServer } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import type { HandlerContext, TypedServer } from './types.js';
 import { fileManager, MAX_FILE_SIZE } from '../services/file-manager.js';
 import type { FileSource } from '../types/index.js';
+
+// プレビューAPI: raw binary POST受け取り時の上限
+const PREVIEW_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 /**
  * GET /api/media/:rid
@@ -129,6 +134,100 @@ function createTusServer(io: TypedServer): TusServer {
 }
 
 /**
+ * POST /api/preview/:rid
+ * Claude Code等のCLIから画像（または任意ファイル）をシンプルにアップロードするための
+ * raw binary 受け取りエンドポイント。
+ *
+ * - Content-Type: image/png 等の MIME を指定（filetype として保存される）
+ * - Body: ファイルバイナリ
+ * - クエリパラメータ:
+ *   - filename: 元のファイル名（省略時は uuid + 拡張子）
+ *   - source: 'claude' | 'user'（省略時 'claude'）
+ *   - title: UI表示用タイトル
+ *   - description: 補足説明
+ */
+export function createPreviewUploadHandler(io: TypedServer): RequestHandler {
+  return async (req, res) => {
+    try {
+      const { rid } = req.params;
+      if (!rid) {
+        res.status(400).json({ success: false, message: 'rid が必要です' });
+        return;
+      }
+
+      const body = req.body as Buffer | undefined;
+      if (!Buffer.isBuffer(body) || body.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'ファイルバイナリがリクエストボディに含まれていません',
+        });
+        return;
+      }
+
+      const sourceParam = (req.query.source as string | undefined) ?? 'claude';
+      const source: FileSource =
+        sourceParam === 'user' || sourceParam === 'claude'
+          ? sourceParam
+          : 'claude';
+      const title = (req.query.title as string | undefined) || undefined;
+      const description =
+        (req.query.description as string | undefined) || undefined;
+      const mimetype = req.headers['content-type'] || 'application/octet-stream';
+
+      const originalname =
+        (req.query.filename as string | undefined) ||
+        `${Date.now()}.${mimetype.split('/')[1] || 'bin'}`;
+
+      const ext = path.extname(originalname).toLowerCase();
+      const filename = `${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
+
+      const tmpPath = path.join(
+        os.tmpdir(),
+        `dokodemo-preview-${uuidv4()}${ext}`
+      );
+      await fs.writeFile(tmpPath, body);
+
+      const result = await fileManager.saveFile(
+        rid,
+        {
+          tmpPath,
+          filename,
+          originalname,
+          mimetype: mimetype.split(';')[0].trim(),
+          size: body.length,
+        },
+        { source, title, description }
+      );
+
+      if (!result.success) {
+        await fs.unlink(tmpPath).catch(() => {});
+        res.status(400).json(result);
+        return;
+      }
+
+      io.emit('file-uploaded', {
+        rid,
+        success: true,
+        message: 'ファイルがアップロードされました',
+        file: result.file,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        file: result.file,
+      });
+    } catch (error) {
+      console.error('プレビューアップロードエラー:', error);
+      res.status(500).json({
+        success: false,
+        message: 'プレビューアップロードに失敗しました',
+      });
+    }
+  };
+}
+
+/**
  * ExpressアプリにREST APIルートとtusサーバーを登録
  */
 export function registerFileRoutes(app: Express, io: TypedServer): void {
@@ -143,6 +242,13 @@ export function registerFileRoutes(app: Express, io: TypedServer): void {
   app.delete(
     '/api/media/:rid/:filename',
     deleteFileHandler as RequestHandler
+  );
+
+  // プレビュー用raw POST APIを登録（任意Content-Type受け取り）
+  app.post(
+    '/api/preview/:rid',
+    express.raw({ type: '*/*', limit: PREVIEW_MAX_FILE_SIZE }),
+    createPreviewUploadHandler(io)
   );
 }
 
