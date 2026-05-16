@@ -227,6 +227,32 @@
   border-color: rgba($accent-green, 0.5);
 }
 
+.downloadButton {
+  @include flex-center;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-full;
+  color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.32);
+    color: white;
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
 .deleteFileButton {
   @include flex-center;
   width: 34px;

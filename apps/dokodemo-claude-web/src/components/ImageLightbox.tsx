@@ -6,6 +6,7 @@ import {
   Copy as CopyIcon,
   Check,
   Trash2,
+  Download,
 } from 'lucide-react';
 import s from './ImageLightbox.module.scss';
 
@@ -133,6 +134,24 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
     setTouchStart(null);
     setTouchEnd(null);
   };
+
+  const handleDownload = useCallback(async () => {
+    if (!currentItem) return;
+    try {
+      const response = await fetch(currentItem.imageUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = currentItem.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(currentItem.imageUrl, '_blank');
+    }
+  }, [currentItem]);
 
   const handleDelete = useCallback(() => {
     if (currentItem && onDelete && window.confirm('このファイルを削除しますか？')) {
@@ -285,6 +304,14 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
               <span>Copy Path</span>
             </>
           )}
+        </button>
+        <button
+          onClick={handleDownload}
+          className={s.downloadButton}
+          aria-label="ダウンロード"
+          title="ダウンロード"
+        >
+          <Download size={14} strokeWidth={2} />
         </button>
         {onDelete && (
           <button
