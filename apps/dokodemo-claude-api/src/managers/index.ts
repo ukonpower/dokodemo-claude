@@ -39,7 +39,6 @@ export {
 export {
   AISessionManager,
   type ActiveAiSession,
-  type CreateSessionOptions,
-  type EnsureSessionOptions,
+  type CreateInstanceOptions,
   type AISessionManagerConfig,
 } from './ai-session-manager.js';

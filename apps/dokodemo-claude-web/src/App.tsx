@@ -54,11 +54,8 @@ function App() {
 
   // AI CLI管理
   const aiCli = useAiCli(socket, repository.currentRepo, onAiOutputReceived);
-  const {
-    currentProvider,
-    aiTerminalSize,
-    syncProvider,
-  } = aiCli;
+  const { aiTerminalSize, primaryInstance, activeInstance } = aiCli;
+  const primaryProvider = primaryInstance?.provider;
 
   // ターミナル管理
   const terminal = useTerminal(socket, repository.currentRepo);
@@ -66,27 +63,25 @@ function App() {
   // ブランチエラー時のコールバック
   const onBranchError = useCallback(
     (errorMessage: AiOutputLine) => {
-      // エラーメッセージをAI CLIに追加するロジックは
-      // 既存のロジックに合わせてダミー実装
       console.error('Branch error:', errorMessage.content);
     },
     []
   );
 
-  // ブランチ・ワークツリー管理
+  // ブランチ・ワークツリー管理（プライマリの provider を渡す）
   const branchWorktree = useBranchWorktree(
     socket,
     repository.currentRepo,
-    currentProvider,
+    primaryProvider ?? 'claude',
     repository.switchRepository,
     onBranchError
   );
 
-  // プロンプトキュー管理
+  // プロンプトキュー管理（プライマリの provider に同期）
   const promptQueue = usePromptQueue(
     socket,
     repository.currentRepo,
-    currentProvider
+    primaryProvider
   );
 
   // Git差分管理
@@ -107,42 +102,34 @@ function App() {
   // npmスクリプト関連
   const [npmScripts, setNpmScripts] = useState<Record<string, string>>({});
 
-  const currentRepoStatus = repository.repoProcessStatuses.find(
-    (status) => status.repositoryPath === repository.currentRepo
-  );
-
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
-  const currentProviderRef = useRef(aiCli.currentProvider);
+  const primaryProviderRef = useRef<typeof primaryProvider>(primaryProvider);
+  const activeInstanceIdRef = useRef(activeInstance?.instanceId);
 
   useEffect(() => {
     currentRepoRef.current = repository.currentRepo;
   }, [repository.currentRepo]);
   useEffect(() => {
-    currentProviderRef.current = currentProvider;
-  }, [currentProvider]);
-
+    primaryProviderRef.current = primaryProvider;
+  }, [primaryProvider]);
   useEffect(() => {
-    if (currentRepoStatus?.selectedProvider) {
-      syncProvider(currentRepoStatus.selectedProvider);
-    }
-  }, [currentRepoStatus?.selectedProvider, syncProvider]);
+    activeInstanceIdRef.current = activeInstance?.instanceId;
+  }, [activeInstance]);
 
+  // active instance が決まったら履歴を取得
   useEffect(() => {
-    if (!socket || !repository.currentRepo) return;
+    if (!socket || !activeInstance) return;
+    socket.emit('get-ai-history', { instanceId: activeInstance.instanceId });
+  }, [socket, activeInstance]);
 
+  // プライマリの provider が決まったらキューを取得
+  useEffect(() => {
+    if (!socket || !repository.currentRepo || !primaryProvider) return;
     const rid = repositoryIdMap.getRid(repository.currentRepo);
     if (!rid) return;
-
-    socket.emit('get-ai-history', {
-      rid,
-      provider: currentProvider,
-    });
-    socket.emit('get-prompt-queue', {
-      rid,
-      provider: currentProvider,
-    });
-  }, [socket, repository.currentRepo, currentProvider]);
+    socket.emit('get-prompt-queue', { rid, provider: primaryProvider });
+  }, [socket, repository.currentRepo, primaryProvider]);
 
   // Socket接続時の初期化処理
   useEffect(() => {
@@ -174,19 +161,20 @@ function App() {
     ) => {
       repositoryIdMap.update(data);
 
-      // 現在のリポジトリに対して各種情報を取得
       const currentPath = currentRepoRef.current;
-      const provider = currentProviderRef.current;
       if (currentPath) {
         const rid = repositoryIdMap.getRid(currentPath);
         if (rid) {
-          socket.emit('get-ai-history', { rid, provider });
+          socket.emit('list-ai-instances', { rid });
           socket.emit('list-worktrees', { rid });
           socket.emit('list-terminals', { rid });
           socket.emit('list-shortcuts', { rid });
           socket.emit('list-branches', { rid });
           socket.emit('get-npm-scripts', { rid });
-          socket.emit('get-prompt-queue', { rid, provider });
+          const provider = primaryProviderRef.current;
+          if (provider) {
+            socket.emit('get-prompt-queue', { rid, provider });
+          }
           socket.emit('get-files', { rid });
         }
       }
@@ -232,14 +220,14 @@ function App() {
     const handleRepoSwitched = (
       data: Parameters<ServerToClientEvents['repo-switched']>[0]
     ) => {
-      const provider = data.provider ?? currentProviderRef.current;
-      if (data.provider) {
-        syncProvider(data.provider);
-      }
-
       if (data.success && data.rid) {
-        socket.emit('get-ai-history', { rid: data.rid, provider });
-        socket.emit('get-prompt-queue', { rid: data.rid, provider });
+        socket.emit('list-ai-instances', { rid: data.rid });
+        if (data.primaryProvider) {
+          socket.emit('get-prompt-queue', {
+            rid: data.rid,
+            provider: data.primaryProvider,
+          });
+        }
         socket.emit('list-worktrees', { rid: data.rid });
         socket.emit('list-terminals', { rid: data.rid });
         socket.emit('list-shortcuts', { rid: data.rid });
@@ -248,7 +236,6 @@ function App() {
         socket.emit('get-files', { rid: data.rid });
         socket.emit('get-git-diff-summary', { rid: data.rid });
         socket.emit('get-repos-process-status');
-        // リモートURLを取得
         // @ts-expect-error get-remote-url is not in ClientToServerEvents
         socket.emit('get-remote-url', { rid: data.rid });
       }
@@ -267,7 +254,7 @@ function App() {
       socket.off('self-pulled', handleSelfPulled);
       socket.off('repo-switched', handleRepoSwitched);
     };
-  }, [socket, syncProvider]);
+  }, [socket]);
 
   // npmスクリプト実行ハンドラ
   const handleExecuteNpmScript = useCallback(
@@ -448,11 +435,16 @@ function App() {
       currentRepo={repository.currentRepo}
       lastAccessTimes={repository.lastAccessTimes}
       repoProcessStatuses={repository.repoProcessStatuses}
-      currentSessionId={aiCli.currentSessionId}
+      aiInstances={aiCli.aiInstances}
+      activeInstance={aiCli.activeInstance}
+      primaryInstance={aiCli.primaryInstance}
       currentAiMessages={aiCli.currentAiMessages}
-      currentProvider={aiCli.currentProvider}
       isLoadingRepoData={repository.isLoadingRepoData}
       terminalFontSize={appSettings.terminalFontSize}
+      // タブ操作
+      onActivateInstance={aiCli.activateInstance}
+      onCreateInstance={aiCli.createInstance}
+      onCloseInstance={aiCli.closeInstance}
       // AI CLI関連
       onSendCommand={aiCli.sendCommand}
       onSendArrowKey={aiCli.sendArrowKey}
@@ -466,7 +458,7 @@ function App() {
       onSendUsage={aiCli.sendUsage}
       onSendMode={aiCli.sendMode}
       onChangeModel={aiCli.changeModel}
-      onChangeProvider={aiCli.changeProvider}
+      onChangePrimaryProvider={aiCli.changePrimaryProvider}
       onRestartCli={aiCli.restartCli}
       onClearHistory={aiCli.clearHistory}
       onKeyInput={aiCli.handleKeyInput}

@@ -1,24 +1,31 @@
 /**
- * AISessionManager - AI CLI セッションの管理
+ * AISessionManager - AI CLI セッションのマルチインスタンス管理
  *
- * 責務:
- * - AI セッションのライフサイクル管理 (create, attach, detach, terminate)
- * - 出力履歴の管理
- * - セッションへの入力・シグナル送信
+ * 1 リポジトリに対し複数の AiInstance（タブ）を保持し、各 instance に
+ * 1 つの ActiveAiSession (PTY) を結びつける。
+ *
+ * - プライマリ : リポジトリオープン時に自動生成、閉じられない（provider 切替時は kill→spawn して instanceId 維持）
+ * - サブ       : ユーザ操作で作成、閉じられる、provider 固定
  */
 
 import * as pty from 'node-pty';
 import { EventEmitter } from 'events';
-import { AiProvider, AiOutputLine, PermissionMode } from '../types/index.js';
+import {
+  AiProvider,
+  AiOutputLine,
+  AiInstance,
+  PermissionMode,
+} from '../types/index.js';
 import { RingBuffer } from '../utils/ring-buffer.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
-import { ProcessRegistry, createSessionKey } from './process-registry.js';
+import { ProcessRegistry } from './process-registry.js';
 
 /**
- * アクティブな AI セッション
+ * アクティブな AI セッション（PTY 接続）
  */
 export interface ActiveAiSession {
-  id: string;
+  id: string; // sessionId
+  instanceId: string;
   repositoryPath: string;
   repositoryName: string;
   pid: number;
@@ -31,27 +38,16 @@ export interface ActiveAiSession {
   outputHistory: AiOutputLine[];
 }
 
-/**
- * セッション作成オプション
- */
-export interface CreateSessionOptions {
+export interface CreateInstanceOptions {
   repositoryPath: string;
   repositoryName: string;
   provider: AiProvider;
+  isPrimary: boolean;
+  displayName?: string;
   initialSize?: { cols: number; rows: number };
   permissionMode?: PermissionMode;
 }
 
-/**
- * セッション確保オプション
- */
-export interface EnsureSessionOptions extends CreateSessionOptions {
-  forceRestart?: boolean;
-}
-
-/**
- * AISessionManager 設定
- */
 export interface AISessionManagerConfig {
   maxOutputLines: number;
   gracefulTerminationTimeoutMs: number;
@@ -62,22 +58,21 @@ const DEFAULT_CONFIG: AISessionManagerConfig = {
   gracefulTerminationTimeoutMs: 2000,
 };
 
-/**
- * AISessionManager クラス
- */
 export class AISessionManager extends EventEmitter {
   private readonly registry: ProcessRegistry;
   private readonly config: AISessionManagerConfig;
 
-  // アクティブなセッション管理（プロセスへの参照を保持）
-  private activeSessions = new Map<string, ActiveAiSession>(); // sessionKey → session
-  private idIndex = new Map<string, string>(); // sessionId → sessionKey
+  // instanceId → AiInstance
+  private instances = new Map<string, AiInstance>();
+  // instanceId → ActiveAiSession
+  private activeSessions = new Map<string, ActiveAiSession>();
+  // sessionId → instanceId
+  private sessionIdIndex = new Map<string, string>();
+  // instanceId → RingBuffer
+  private outputBuffers = new Map<string, RingBuffer<AiOutputLine>>();
 
-  // RingBuffer: セッションごとの出力履歴バッファ（GC圧力軽減用）
-  private outputBuffers = new Map<string, RingBuffer<AiOutputLine>>(); // sessionKey → buffer
-
-  // セッションカウンター（ProcessRegistry から委譲される可能性あり）
   private sessionCounter = 0;
+  private instanceCounter = 0;
 
   constructor(
     registry: ProcessRegistry,
@@ -88,9 +83,6 @@ export class AISessionManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  /**
-   * プロバイダーのCLIコマンドと引数を取得
-   */
   private getProviderCommand(provider: AiProvider, permissionMode?: PermissionMode): {
     command: string;
     args: string[];
@@ -108,62 +100,67 @@ export class AISessionManager extends EventEmitter {
       }
       case 'codex': {
         const codexCommand = process.env.CODEX_CLI_COMMAND || 'codex';
-        return {
-          command: codexCommand,
-          args: ['--full-auto'],
-        };
+        return { command: codexCommand, args: ['--full-auto'] };
       }
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
   }
 
-  /**
-   * 新しいセッションIDを生成
-   */
   private generateSessionId(provider: AiProvider): string {
     return `${provider}-${++this.sessionCounter}-${Date.now()}`;
   }
 
-  /**
-   * 新しい AI CLI セッションを作成
-   */
-  async create(options: CreateSessionOptions): Promise<ActiveAiSession> {
-    const { repositoryPath, repositoryName, provider, initialSize, permissionMode } = options;
-    const sessionId = this.generateSessionId(provider);
-    const sessionKey = createSessionKey(repositoryPath, provider);
-    const { command, args } = this.getProviderCommand(provider, permissionMode);
+  private generateInstanceId(isPrimary: boolean): string {
+    const prefix = isPrimary ? 'primary' : 'sub';
+    return `${prefix}-${++this.instanceCounter}-${Date.now()}`;
+  }
 
-    // PTYを使用してAI CLIを対話モードで起動
+  /**
+   * 内部用: PTY を起動して ActiveAiSession を作る
+   */
+  private spawnSession(
+    instance: AiInstance,
+    repositoryName: string,
+    options: {
+      initialSize?: { cols: number; rows: number };
+      permissionMode?: PermissionMode;
+    }
+  ): ActiveAiSession {
+    const { command, args } = this.getProviderCommand(
+      instance.provider,
+      options.permissionMode
+    );
+    const sessionId = this.generateSessionId(instance.provider);
+
     const aiProcess = pty.spawn(command, args, {
       name: 'xterm-color',
-      cols: initialSize?.cols ?? 120,
-      rows: initialSize?.rows ?? 30,
-      cwd: repositoryPath,
+      cols: options.initialSize?.cols ?? 120,
+      rows: options.initialSize?.rows ?? 30,
+      cwd: instance.repositoryPath,
       env: cleanChildEnv({
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
         FORCE_COLOR: '1',
-        // ネストされたClaude Codeセッションエラーを防ぐために除外
         CLAUDECODE: undefined,
       }),
     });
 
     const session: ActiveAiSession = {
       id: sessionId,
-      repositoryPath,
+      instanceId: instance.instanceId,
+      repositoryPath: instance.repositoryPath,
       repositoryName,
       pid: aiProcess.pid,
       isActive: true,
       isPty: true,
       process: aiProcess,
-      provider,
+      provider: instance.provider,
       createdAt: Date.now(),
       lastAccessedAt: Date.now(),
       outputHistory: [],
     };
 
-    // プロセス監視（同一イベントループティック内のデータを集約して送信）
     let pendingOutput = '';
     let flushScheduled = false;
 
@@ -185,6 +182,7 @@ export class AISessionManager extends EventEmitter {
           );
 
           this.emit('ai-output', {
+            instanceId: session.instanceId,
             sessionId: session.id,
             repositoryPath: session.repositoryPath,
             provider: session.provider,
@@ -198,6 +196,7 @@ export class AISessionManager extends EventEmitter {
       session.isActive = false;
 
       this.emit('ai-exit', {
+        instanceId: session.instanceId,
         sessionId: session.id,
         repositoryPath: session.repositoryPath,
         exitCode,
@@ -205,18 +204,24 @@ export class AISessionManager extends EventEmitter {
         provider: session.provider,
       });
 
-      // セッションをクリーンアップ
-      this.activeSessions.delete(sessionKey);
-      this.idIndex.delete(session.id);
-      this.outputBuffers.delete(sessionKey);
+      // セッションだけクリーンアップ。instance レコードは残す（再起動可能性あり）
+      this.activeSessions.delete(instance.instanceId);
+      this.sessionIdIndex.delete(session.id);
       this.registry.removeAiSession(session.id);
+
+      const inst = this.instances.get(instance.instanceId);
+      if (inst) {
+        inst.sessionId = undefined;
+        this.emit('ai-instance-updated', {
+          instanceId: inst.instanceId,
+          instance: { ...inst },
+        });
+      }
     });
 
-    // 各種マップに登録
-    this.activeSessions.set(sessionKey, session);
-    this.idIndex.set(session.id, sessionKey);
+    this.activeSessions.set(instance.instanceId, session);
+    this.sessionIdIndex.set(session.id, instance.instanceId);
 
-    // レジストリに登録
     this.registry.registerAiSession({
       sessionId: session.id,
       repositoryPath: session.repositoryPath,
@@ -227,82 +232,268 @@ export class AISessionManager extends EventEmitter {
       lastAccessedAt: session.lastAccessedAt,
     });
 
-    this.emit('ai-session-created', {
-      sessionId: session.id,
-      repositoryPath: session.repositoryPath,
-      repositoryName: session.repositoryName,
-      provider: session.provider,
-    });
-
     return session;
   }
 
   /**
-   * リポジトリの AI CLI セッションを取得（なければ作成）
+   * 新規インスタンスを作成（PTY も起動）
    */
-  async getOrCreate(options: CreateSessionOptions): Promise<ActiveAiSession> {
-    const sessionKey = createSessionKey(
-      options.repositoryPath,
-      options.provider
-    );
+  async createInstance(
+    options: CreateInstanceOptions
+  ): Promise<{ instance: AiInstance; session: ActiveAiSession }> {
+    const instanceId = this.generateInstanceId(options.isPrimary);
+    const order = this.getNextOrder(options.repositoryPath, options.isPrimary);
 
-    // 既存のアクティブセッションを検索
-    const existingSession = this.activeSessions.get(sessionKey);
-    if (existingSession && existingSession.isActive) {
-      existingSession.lastAccessedAt = Date.now();
-      // 既存セッションのサイズを更新
-      if (options.initialSize && existingSession.process?.resize) {
-        existingSession.process.resize(
-          options.initialSize.cols,
-          options.initialSize.rows
-        );
-      }
-      return existingSession;
-    }
+    const instance: AiInstance = {
+      instanceId,
+      repositoryPath: options.repositoryPath,
+      provider: options.provider,
+      isPrimary: options.isPrimary,
+      displayName: options.displayName,
+      order,
+      createdAt: Date.now(),
+      sessionId: undefined,
+    };
 
-    // 新しいセッションを作成
-    return await this.create(options);
+    this.instances.set(instanceId, instance);
+
+    const session = this.spawnSession(instance, options.repositoryName, {
+      initialSize: options.initialSize,
+      permissionMode: options.permissionMode,
+    });
+
+    instance.sessionId = session.id;
+
+    this.emit('ai-instance-created', {
+      instanceId,
+      instance: { ...instance },
+    });
+    this.emit('ai-session-created', {
+      instanceId,
+      sessionId: session.id,
+      repositoryPath: instance.repositoryPath,
+      provider: instance.provider,
+    });
+
+    return { instance, session };
   }
 
   /**
-   * AI CLI セッションの確保（強制再起動オプション付き）
+   * プライマリインスタンスを確保（無ければ作成）
+   * provider が異なる場合は switchPrimaryProvider と組み合わせて呼び出し側で対応
    */
-  async ensure(options: EnsureSessionOptions): Promise<ActiveAiSession> {
-    const sessionKey = createSessionKey(
-      options.repositoryPath,
-      options.provider
-    );
-
-    // 強制再起動が指定されている場合は既存セッションを終了
-    if (options.forceRestart) {
-      const existingSession = this.activeSessions.get(sessionKey);
-      if (existingSession) {
-        await this.terminate(existingSession.id);
+  async ensurePrimaryInstance(
+    repositoryPath: string,
+    repositoryName: string,
+    provider: AiProvider,
+    options?: {
+      initialSize?: { cols: number; rows: number };
+      permissionMode?: PermissionMode;
+    }
+  ): Promise<{ instance: AiInstance; session: ActiveAiSession }> {
+    const primary = this.getPrimaryInstance(repositoryPath);
+    if (primary) {
+      // セッションが死んでいれば spawn し直す
+      let session = this.activeSessions.get(primary.instanceId);
+      if (!session || !session.isActive) {
+        session = this.spawnSession(primary, repositoryName, options ?? {});
+        primary.sessionId = session.id;
+        this.emit('ai-instance-updated', {
+          instanceId: primary.instanceId,
+          instance: { ...primary },
+        });
+      } else if (options?.initialSize) {
+        try {
+          session.process.resize(
+            options.initialSize.cols,
+            options.initialSize.rows
+          );
+        } catch {
+          // ignore
+        }
       }
+
+      // provider 切替が必要な場合は呼び出し側で switchPrimaryProvider を呼ぶ
+      return { instance: primary, session };
     }
 
-    // セッションを取得または作成
-    return await this.getOrCreate(options);
+    return await this.createInstance({
+      repositoryPath,
+      repositoryName,
+      provider,
+      isPrimary: true,
+      initialSize: options?.initialSize,
+      permissionMode: options?.permissionMode,
+    });
   }
 
   /**
-   * AI CLI セッションへの入力送信
+   * プライマリの provider を切り替える
+   * 既存セッションを kill して同じ instanceId のまま新規 spawn
    */
-  sendInput(sessionId: string, input: string): boolean {
-    const sessionKey = this.idIndex.get(sessionId);
-    if (!sessionKey) {
-      return false;
+  async switchPrimaryProvider(
+    repositoryPath: string,
+    newProvider: AiProvider,
+    repositoryName: string,
+    options?: {
+      initialSize?: { cols: number; rows: number };
+      permissionMode?: PermissionMode;
+    }
+  ): Promise<{ instance: AiInstance; session: ActiveAiSession }> {
+    const primary = this.getPrimaryInstance(repositoryPath);
+    if (!primary) {
+      return await this.ensurePrimaryInstance(
+        repositoryPath,
+        repositoryName,
+        newProvider,
+        options
+      );
     }
 
-    const session = this.activeSessions.get(sessionKey);
-    if (!session || !session.isActive) {
-      return false;
+    if (primary.provider === newProvider) {
+      const existing = this.activeSessions.get(primary.instanceId);
+      if (existing && existing.isActive) {
+        return { instance: primary, session: existing };
+      }
     }
 
-    // PTY接続がない場合
-    if (!session.isPty || !session.process) {
+    // 既存セッションを終了
+    await this.terminateSession(primary.instanceId);
+
+    // provider 更新
+    primary.provider = newProvider;
+    primary.sessionId = undefined;
+
+    // 出力履歴をクリア（provider が変わるので過去のは保持しない）
+    this.outputBuffers.delete(primary.instanceId);
+
+    // 新規 spawn
+    const session = this.spawnSession(primary, repositoryName, options ?? {});
+    primary.sessionId = session.id;
+
+    this.emit('ai-instance-updated', {
+      instanceId: primary.instanceId,
+      instance: { ...primary },
+    });
+
+    return { instance: primary, session };
+  }
+
+  /**
+   * インスタンスの再起動（同一 instanceId、PTY だけ作り直す）
+   */
+  async restartInstance(
+    instanceId: string,
+    repositoryName: string,
+    options?: {
+      initialSize?: { cols: number; rows: number };
+      permissionMode?: PermissionMode;
+    }
+  ): Promise<{ instance: AiInstance; session: ActiveAiSession } | null> {
+    const instance = this.instances.get(instanceId);
+    if (!instance) return null;
+
+    await this.terminateSession(instanceId);
+    this.outputBuffers.delete(instanceId);
+
+    const session = this.spawnSession(instance, repositoryName, options ?? {});
+    instance.sessionId = session.id;
+
+    this.emit('ai-instance-updated', {
+      instanceId: instance.instanceId,
+      instance: { ...instance },
+    });
+
+    return { instance, session };
+  }
+
+  /**
+   * インスタンスを閉じる（プライマリは閉じられない）
+   */
+  async closeInstance(instanceId: string): Promise<boolean> {
+    const instance = this.instances.get(instanceId);
+    if (!instance) return false;
+    if (instance.isPrimary) {
+      throw new Error('プライマリインスタンスは閉じられません');
+    }
+
+    await this.terminateSession(instanceId);
+
+    this.instances.delete(instanceId);
+    this.outputBuffers.delete(instanceId);
+
+    this.emit('ai-instance-closed', {
+      instanceId,
+      repositoryPath: instance.repositoryPath,
+    });
+
+    return true;
+  }
+
+  /**
+   * 表示名を更新
+   */
+  renameInstance(instanceId: string, displayName: string): AiInstance | null {
+    const instance = this.instances.get(instanceId);
+    if (!instance) return null;
+
+    instance.displayName = displayName;
+
+    this.emit('ai-instance-updated', {
+      instanceId,
+      instance: { ...instance },
+    });
+
+    return instance;
+  }
+
+  /**
+   * PTY を kill するヘルパー（instances Map には触らない）
+   */
+  private async terminateSession(instanceId: string): Promise<boolean> {
+    const session = this.activeSessions.get(instanceId);
+    if (!session) return false;
+
+    try {
+      const exitPromise = new Promise<void>((resolve) => {
+        session.process.onExit(() => resolve());
+      });
+
+      session.process.kill('SIGTERM');
+
+      const killTimeout = setTimeout(() => {
+        if (this.activeSessions.has(instanceId)) {
+          try {
+            session.process.kill('SIGKILL');
+          } catch {
+            // ignore
+          }
+        }
+      }, this.config.gracefulTerminationTimeoutMs);
+
+      await Promise.race([
+        exitPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+      ]);
+
+      clearTimeout(killTimeout);
+
+      this.activeSessions.delete(instanceId);
+      this.sessionIdIndex.delete(session.id);
+      this.registry.removeAiSession(session.id);
+
+      return true;
+    } catch {
       return false;
     }
+  }
+
+  /**
+   * 入力送信（instanceId 経由）
+   */
+  sendInput(instanceId: string, input: string): boolean {
+    const session = this.activeSessions.get(instanceId);
+    if (!session || !session.isActive || !session.process) return false;
 
     try {
       session.process.write(input);
@@ -314,45 +505,27 @@ export class AISessionManager extends EventEmitter {
   }
 
   /**
-   * AI CLI セッションへのシグナル送信
+   * 入力送信（sessionId 経由 — キュー Adapter 用）
    */
-  sendSignal(sessionId: string, signal: string): boolean {
-    const sessionKey = this.idIndex.get(sessionId);
-    if (!sessionKey) {
-      return false;
-    }
-
-    const session = this.activeSessions.get(sessionKey);
-    if (!session || !session.isActive) {
-      return false;
-    }
-
-    if (!session.isPty || !session.process) {
-      return false;
-    }
-
-    try {
-      session.process.write(signal);
-      session.lastAccessedAt = Date.now();
-      return true;
-    } catch {
-      return false;
-    }
+  sendInputBySessionId(sessionId: string, input: string): boolean {
+    const instanceId = this.sessionIdIndex.get(sessionId);
+    if (!instanceId) return false;
+    return this.sendInput(instanceId, input);
   }
 
   /**
-   * AI セッションのリサイズ
+   * シグナル送信
    */
-  resize(
-    repositoryPath: string,
-    provider: AiProvider,
-    cols: number,
-    rows: number
-  ): boolean {
-    const session = this.getByRepository(repositoryPath, provider);
-    if (!session || !session.isActive || !session.process?.resize) {
-      return false;
-    }
+  sendSignal(instanceId: string, signal: string): boolean {
+    return this.sendInput(instanceId, signal);
+  }
+
+  /**
+   * リサイズ
+   */
+  resizeInstance(instanceId: string, cols: number, rows: number): boolean {
+    const session = this.activeSessions.get(instanceId);
+    if (!session || !session.isActive || !session.process?.resize) return false;
 
     try {
       session.process.resize(cols, rows);
@@ -362,79 +535,10 @@ export class AISessionManager extends EventEmitter {
     }
   }
 
-  /**
-   * AI セッションを終了
-   */
-  async terminate(sessionId: string): Promise<boolean> {
-    const sessionKey = this.idIndex.get(sessionId);
-    if (!sessionKey) {
-      return false;
-    }
-
-    const session = this.activeSessions.get(sessionKey);
-    if (!session) {
-      return false;
-    }
-
-    try {
-      // プロセス終了を待つPromiseを作成
-      const exitPromise = new Promise<void>((resolve) => {
-        session.process.onExit(() => {
-          resolve();
-        });
-      });
-
-      // SIGTERMを送信
-      session.process.kill('SIGTERM');
-
-      // タイムアウト後にSIGKILLを送信
-      const killTimeout = setTimeout(() => {
-        if (this.activeSessions.has(sessionKey)) {
-          session.process.kill('SIGKILL');
-        }
-      }, this.config.gracefulTerminationTimeoutMs);
-
-      // プロセスの終了を待つ（最大3秒）
-      await Promise.race([
-        exitPromise,
-        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-      ]);
-
-      clearTimeout(killTimeout);
-
-      // Mapから削除
-      this.activeSessions.delete(sessionKey);
-      this.idIndex.delete(session.id);
-      this.outputBuffers.delete(sessionKey);
-      this.registry.removeAiSession(session.id);
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * リポジトリの AI セッションを終了
-   */
-  async terminateByRepository(
-    repositoryPath: string,
-    provider: AiProvider
-  ): Promise<boolean> {
-    const session = this.getByRepository(repositoryPath, provider);
-    if (!session) {
-      return false;
-    }
-    return await this.terminate(session.id);
-  }
-
   // ====================
   // 出力履歴管理
   // ====================
 
-  /**
-   * 出力履歴に新しい行を追加
-   */
   private addToOutputHistory(
     session: ActiveAiSession,
     content: string,
@@ -448,107 +552,125 @@ export class AISessionManager extends EventEmitter {
       provider: session.provider,
     };
 
-    // RingBufferを取得または作成
-    const sessionKey = createSessionKey(
-      session.repositoryPath,
-      session.provider
-    );
-    let buffer = this.outputBuffers.get(sessionKey);
+    let buffer = this.outputBuffers.get(session.instanceId);
     if (!buffer) {
       buffer = new RingBuffer<AiOutputLine>(this.config.maxOutputLines);
-      this.outputBuffers.set(sessionKey, buffer);
+      this.outputBuffers.set(session.instanceId, buffer);
     }
-
-    // RingBufferに追加
     buffer.push(outputLine);
-
-    // セッションのoutputHistoryを更新
     session.outputHistory = buffer.toArray();
 
     return outputLine;
   }
 
-  /**
-   * 出力履歴を取得
-   */
-  getOutputHistory(
-    repositoryPath: string,
-    provider: AiProvider
-  ): AiOutputLine[] {
-    const session = this.getByRepository(repositoryPath, provider);
-    if (session) {
-      return session.outputHistory.slice(-this.config.maxOutputLines);
-    }
+  getOutputHistory(instanceId: string): AiOutputLine[] {
+    const buffer = this.outputBuffers.get(instanceId);
+    if (buffer) return buffer.toArray();
     return [];
   }
 
-  /**
-   * 出力履歴をクリア
-   */
-  clearOutputHistory(repositoryPath: string, provider: AiProvider): boolean {
-    const session = this.getByRepository(repositoryPath, provider);
+  clearOutputHistory(instanceId: string): boolean {
+    const buffer = this.outputBuffers.get(instanceId);
+    if (buffer) {
+      buffer.clear();
+    }
+    const session = this.activeSessions.get(instanceId);
     if (session) {
       session.outputHistory = [];
-      const sessionKey = createSessionKey(repositoryPath, provider);
-      const buffer = this.outputBuffers.get(sessionKey);
-      if (buffer) {
-        buffer.clear();
-      }
-      return true;
     }
-    return false;
+    return true;
   }
 
   // ====================
-  // セッション取得
+  // インスタンス取得
   // ====================
 
-  /**
-   * セッションIDで取得
-   */
-  getById(sessionId: string): ActiveAiSession | undefined {
-    const sessionKey = this.idIndex.get(sessionId);
-    if (!sessionKey) return undefined;
-    const session = this.activeSessions.get(sessionKey);
-    return session?.isActive ? session : undefined;
+  getInstance(instanceId: string): AiInstance | undefined {
+    const instance = this.instances.get(instanceId);
+    return instance ? { ...instance } : undefined;
   }
 
-  /**
-   * リポジトリとプロバイダーで取得
-   */
-  getByRepository(
-    repositoryPath: string,
-    provider: AiProvider
-  ): ActiveAiSession | undefined {
-    const sessionKey = createSessionKey(repositoryPath, provider);
-    const session = this.activeSessions.get(sessionKey);
-    return session?.isActive ? session : undefined;
+  getInstancesByRepo(repositoryPath: string): AiInstance[] {
+    return Array.from(this.instances.values())
+      .filter((i) => i.repositoryPath === repositoryPath)
+      .sort((a, b) => a.order - b.order)
+      .map((i) => ({ ...i }));
   }
 
-  /**
-   * すべてのアクティブセッションを取得
-   */
-  getAll(): ActiveAiSession[] {
-    return Array.from(this.activeSessions.values()).filter((s) => s.isActive);
+  getPrimaryInstance(repositoryPath: string): AiInstance | undefined {
+    for (const instance of this.instances.values()) {
+      if (instance.repositoryPath === repositoryPath && instance.isPrimary) {
+        return instance;
+      }
+    }
+    return undefined;
   }
 
-  /**
-   * セッションIDが有効かチェック
-   */
+  getSession(instanceId: string): ActiveAiSession | undefined {
+    return this.activeSessions.get(instanceId);
+  }
+
+  getSessionById(sessionId: string): ActiveAiSession | undefined {
+    const instanceId = this.sessionIdIndex.get(sessionId);
+    if (!instanceId) return undefined;
+    return this.activeSessions.get(instanceId);
+  }
+
+  getInstanceBySessionId(sessionId: string): AiInstance | undefined {
+    const instanceId = this.sessionIdIndex.get(sessionId);
+    if (!instanceId) return undefined;
+    return this.getInstance(instanceId);
+  }
+
   isValidSessionId(sessionId: string): boolean {
-    const sessionKey = this.idIndex.get(sessionId);
-    if (!sessionKey) return false;
-    const session = this.activeSessions.get(sessionKey);
-    return session?.isActive === true;
+    return this.sessionIdIndex.has(sessionId);
+  }
+
+  // ====================
+  // ユーティリティ
+  // ====================
+
+  private getNextOrder(repositoryPath: string, isPrimary: boolean): number {
+    if (isPrimary) return 0; // プライマリは常に先頭
+    const subs = Array.from(this.instances.values()).filter(
+      (i) => i.repositoryPath === repositoryPath && !i.isPrimary
+    );
+    return subs.length === 0
+      ? 1
+      : Math.max(...subs.map((i) => i.order)) + 1;
   }
 
   /**
-   * リポジトリにセッションが存在するかチェック
+   * リポジトリ全インスタンスを終了
    */
-  hasSessionForRepository(
-    repositoryPath: string,
-    provider: AiProvider
-  ): boolean {
-    return this.getByRepository(repositoryPath, provider) !== undefined;
+  async closeAllInstancesByRepo(repositoryPath: string): Promise<number> {
+    const targets = this.getInstancesByRepo(repositoryPath);
+    let closed = 0;
+
+    for (const inst of targets) {
+      await this.terminateSession(inst.instanceId);
+      this.instances.delete(inst.instanceId);
+      this.outputBuffers.delete(inst.instanceId);
+      this.emit('ai-instance-closed', {
+        instanceId: inst.instanceId,
+        repositoryPath: inst.repositoryPath,
+      });
+      closed++;
+    }
+
+    return closed;
+  }
+
+  /**
+   * シャットダウン: 全 PTY を kill
+   */
+  async shutdown(): Promise<void> {
+    const tasks: Promise<unknown>[] = [];
+    for (const instanceId of this.activeSessions.keys()) {
+      tasks.push(this.terminateSession(instanceId));
+    }
+    await Promise.all(tasks);
+    this.instances.clear();
+    this.outputBuffers.clear();
   }
 }

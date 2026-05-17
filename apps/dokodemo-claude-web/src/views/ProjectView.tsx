@@ -9,6 +9,7 @@ import type {
   TerminalMessage,
   TerminalOutputLine,
   AiOutputLine,
+  AiInstance,
   CommandShortcut,
   AiProvider,
   EditorInfo,
@@ -38,6 +39,7 @@ import WorktreeOperations from '../components/WorktreeOperations';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import TabbedPanel from '../components/TabbedPanel';
+import AiInstanceTabs from '../components/AiInstanceTabs';
 import s from './ProjectView.module.scss';
 
 interface ProjectViewProps {
@@ -54,15 +56,21 @@ interface ProjectViewProps {
   currentRepo: string;
   lastAccessTimes: Record<string, number>;
   repoProcessStatuses: RepoProcessStatus[];
-  currentSessionId: string;
 
   // AI CLI関連
+  aiInstances: AiInstance[];
+  activeInstance: AiInstance | undefined;
+  primaryInstance: AiInstance | undefined;
   currentAiMessages: AiOutputLine[];
-  currentProvider: AiProvider;
   isLoadingRepoData: boolean;
   terminalFontSize: number;
 
-  // AIアクション
+  // タブ操作
+  onActivateInstance: (instanceId: string) => void;
+  onCreateInstance: (provider: AiProvider) => void;
+  onCloseInstance: (instanceId: string) => void;
+
+  // AIアクション（active instance に対する操作）
   onSendCommand: (command: string) => void;
   onSendArrowKey: (direction: 'up' | 'down' | 'left' | 'right') => void;
   onSendAltT: () => void;
@@ -75,7 +83,7 @@ interface ProjectViewProps {
   onSendUsage: () => void;
   onSendMode: () => void;
   onChangeModel: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
-  onChangeProvider: (provider: AiProvider) => void;
+  onChangePrimaryProvider: (provider: AiProvider) => void;
   onRestartCli: () => void;
   onClearHistory: () => void;
   onKeyInput: (key: string) => void;
@@ -242,11 +250,15 @@ export function ProjectView({
   currentRepo,
   lastAccessTimes,
   repoProcessStatuses,
-  currentSessionId,
+  aiInstances,
+  activeInstance,
+  primaryInstance,
   currentAiMessages,
-  currentProvider,
   isLoadingRepoData,
   terminalFontSize,
+  onActivateInstance,
+  onCreateInstance,
+  onCloseInstance,
   onSendCommand,
   onSendArrowKey,
   onSendAltT,
@@ -259,7 +271,7 @@ export function ProjectView({
   onSendUsage,
   onSendMode,
   onChangeModel,
-  onChangeProvider,
+  onChangePrimaryProvider,
   onRestartCli,
   onClearHistory,
   onKeyInput,
@@ -631,9 +643,9 @@ export function ProjectView({
                       ? `再接続中 (${connectionAttempts})`
                       : '未接続'}
                 </span>
-                {currentSessionId && (
+                {primaryInstance?.sessionId && (
                   <span className={s.sessionId}>
-                    #{currentSessionId.split('-')[1]}
+                    #{primaryInstance.sessionId.split('-')[1]}
                   </span>
                 )}
               </div>
@@ -686,30 +698,22 @@ export function ProjectView({
             )}
           </div>
 
-          {/* Claude CLI セクション */}
+          {/* AI CLI セクション */}
           <section className={s.cliSection}>
-            <div className={s.sectionHeader}>
-              <h2 className={s.sectionTitle}>
-                <svg
-                  className={s.sectionTitleIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                Claude CLI
-              </h2>
+            <div className={s.cliTabBar}>
+              <AiInstanceTabs
+                instances={aiInstances}
+                activeInstanceId={activeInstance?.instanceId ?? ''}
+                isConnected={isConnected}
+                onActivate={onActivateInstance}
+                onCreate={onCreateInstance}
+                onClose={onCloseInstance}
+              />
               <button
                 onClick={onRestartCli}
-                disabled={!currentRepo || !isConnected}
+                disabled={!currentRepo || !isConnected || !activeInstance}
                 className={`btn-icon-xs ${s.restartCliButton}`}
-                title="AI CLIセッションを再起動"
+                title="AI CLI セッションを再起動"
               >
                 <svg
                   fill="none"
@@ -732,15 +736,19 @@ export function ProjectView({
                   <div className={s.cliOutputWrapper}>
                     <AiOutput
                       ref={aiOutputRef}
-                      key={`${currentRepo}:${currentProvider}`}
+                      key={activeInstance?.instanceId ?? 'no-instance'}
                       messages={currentAiMessages}
-                      currentProvider={currentProvider}
+                      currentProvider={activeInstance?.provider ?? 'claude'}
                       isLoading={isLoadingRepoData}
                       onKeyInput={onKeyInput}
                       onResize={onResize}
                       onReload={onReload}
                       onClearHistory={onClearHistory}
-                      onProviderChange={onChangeProvider}
+                      onProviderChange={
+                        activeInstance?.isPrimary
+                          ? onChangePrimaryProvider
+                          : undefined
+                      }
                       fontSize={terminalFontSize}
                     />
                   </div>
@@ -751,9 +759,9 @@ export function ProjectView({
                       onSendCommand={handleSendCommand}
                       onSendEscape={onSendEscape}
                       onAddToQueue={handleAddToQueue}
-                      currentProvider={currentProvider}
+                      currentProvider={activeInstance?.provider ?? 'claude'}
                       currentRepository={currentRepo}
-                      disabled={!isConnected || !currentRepo}
+                      disabled={!isConnected || !currentRepo || !activeInstance}
                       autoFocus={false}
                       sendSettings={sendSettings}
                       onSendSettingsChange={onSendSettingsChange}
@@ -762,8 +770,8 @@ export function ProjectView({
                       onOpenWorkflowFile={onOpenWorkflowFile}
                     />
                   </div>
-                  {/* キューリスト（デスクトップ: テキスト入力の下に表示） */}
-                  {promptQueue.length > 0 && (
+                  {/* キューリスト（プライマリがアクティブな時のみ表示） */}
+                  {activeInstance?.isPrimary && promptQueue.length > 0 && (
                     <div className={s.desktopQueue}>
                       <PromptQueue
                         queue={promptQueue}
@@ -785,7 +793,7 @@ export function ProjectView({
 
                 <div className={s.sideCol}>
                   <KeyboardButtons
-                    disabled={!isConnected || !currentRepo}
+                    disabled={!isConnected || !currentRepo || !activeInstance}
                     onSendArrowKey={onSendArrowKey}
                     onSendEnter={() => textInputRef.current?.submit()}
                     onSendInterrupt={onSendInterrupt}
@@ -798,9 +806,9 @@ export function ProjectView({
                     onSendAltT={onSendAltT}
                     onChangeModel={onChangeModel}
                     onSendCommit={onSendCommit}
-                    currentProvider={currentProvider}
+                    currentProvider={activeInstance?.provider ?? 'claude'}
                     providerInfo={{
-                      clearTitle: 'Claude CLIをクリア (/clear)',
+                      clearTitle: 'CLI をクリア (/clear)',
                     }}
                     currentRepositoryPath={currentRepo}
                     customButtons={customAiButtons}
@@ -811,8 +819,8 @@ export function ProjectView({
                   />
                 </div>
 
-                {/* キューリスト（モバイル: 操作ボタンの下に表示） */}
-                {promptQueue.length > 0 && (
+                {/* キューリスト（モバイル: 操作ボタンの下に表示、プライマリ時のみ） */}
+                {activeInstance?.isPrimary && promptQueue.length > 0 && (
                   <div className={s.mobileQueue}>
                     <PromptQueue
                       queue={promptQueue}

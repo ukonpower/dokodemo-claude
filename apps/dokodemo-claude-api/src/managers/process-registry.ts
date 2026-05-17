@@ -60,11 +60,12 @@ export function parseSessionKey(
 
 /**
  * ProcessRegistry - プロセス状態の集中管理クラス
+ *
+ * マルチインスタンス対応のため AI セッションは sessionId キーで管理する
  */
 export class ProcessRegistry {
-  // AI セッション管理
-  private aiSessions = new Map<string, AiSessionRecord>(); // sessionKey → record
-  private aiSessionIdIndex = new Map<string, string>(); // sessionId → sessionKey (O(1)検索用)
+  // AI セッション管理（sessionId → record）
+  private aiSessions = new Map<string, AiSessionRecord>();
 
   // ターミナル管理
   private terminals = new Map<string, TerminalRecord>(); // terminalId → record
@@ -92,84 +93,54 @@ export class ProcessRegistry {
   // AI セッション操作
   // ====================
 
-  /**
-   * AI セッションを登録
-   */
   registerAiSession(record: AiSessionRecord): void {
-    const sessionKey = createSessionKey(record.repositoryPath, record.provider);
-    this.aiSessions.set(sessionKey, record);
-    this.aiSessionIdIndex.set(record.sessionId, sessionKey);
+    this.aiSessions.set(record.sessionId, record);
   }
 
-  /**
-   * AI セッションを更新
-   */
   updateAiSession(
     sessionId: string,
     updates: Partial<Omit<AiSessionRecord, 'sessionId'>>
   ): boolean {
-    const sessionKey = this.aiSessionIdIndex.get(sessionId);
-    if (!sessionKey) return false;
-
-    const record = this.aiSessions.get(sessionKey);
+    const record = this.aiSessions.get(sessionId);
     if (!record) return false;
-
     Object.assign(record, updates, { lastAccessedAt: Date.now() });
     return true;
   }
 
-  /**
-   * AI セッションを削除
-   */
   removeAiSession(sessionId: string): boolean {
-    const sessionKey = this.aiSessionIdIndex.get(sessionId);
-    if (!sessionKey) return false;
-
-    this.aiSessions.delete(sessionKey);
-    this.aiSessionIdIndex.delete(sessionId);
-    return true;
+    return this.aiSessions.delete(sessionId);
   }
 
-  /**
-   * セッションIDで AI セッションを取得
-   */
   getAiSessionById(sessionId: string): AiSessionRecord | undefined {
-    const sessionKey = this.aiSessionIdIndex.get(sessionId);
-    if (!sessionKey) return undefined;
-    return this.aiSessions.get(sessionKey);
+    return this.aiSessions.get(sessionId);
   }
 
   /**
-   * リポジトリパスとプロバイダーで AI セッションを取得
+   * リポジトリパスとプロバイダーで「最初に見つかった」AI セッションを返す
+   * マルチインスタンス対応後はこのメソッドは曖昧なため非推奨
    */
   getAiSessionByRepo(
     repositoryPath: string,
     provider: AiProvider
   ): AiSessionRecord | undefined {
-    const sessionKey = createSessionKey(repositoryPath, provider);
-    return this.aiSessions.get(sessionKey);
+    for (const record of this.aiSessions.values()) {
+      if (record.repositoryPath === repositoryPath && record.provider === provider) {
+        return record;
+      }
+    }
+    return undefined;
   }
 
-  /**
-   * 全ての AI セッションを取得
-   */
   getAllAiSessions(): AiSessionRecord[] {
     return Array.from(this.aiSessions.values());
   }
 
-  /**
-   * セッションIDが有効かどうかを確認
-   */
   isValidAiSessionId(sessionId: string): boolean {
-    return this.aiSessionIdIndex.has(sessionId);
+    return this.aiSessions.has(sessionId);
   }
 
-  /**
-   * リポジトリパスで AI セッションが存在するかを確認
-   */
   hasAiSessionForRepo(repositoryPath: string, provider: AiProvider): boolean {
-    const sessionKey = createSessionKey(repositoryPath, provider);
-    return this.aiSessions.has(sessionKey);
+    return this.getAiSessionByRepo(repositoryPath, provider) !== undefined;
   }
 
   // ====================
@@ -304,7 +275,6 @@ export class ProcessRegistry {
    */
   clear(): void {
     this.aiSessions.clear();
-    this.aiSessionIdIndex.clear();
     this.terminals.clear();
     this.terminalsByRepo.clear();
     this.sessionCounter = 0;

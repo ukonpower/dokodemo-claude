@@ -236,7 +236,7 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                 const statusText = getStatusText(repo.status);
                 const hasActiveProcesses =
                   !!status &&
-                  (status.aiSessions > 0 || status.terminals > 0);
+                  (status.aiInstancesTotal > 0 || status.terminals > 0);
                 const isMenuOpen = openMenuPath === repo.path;
 
                 return (

@@ -482,13 +482,13 @@ async function handleAiHookEvent(
       return;
     }
 
-    // session_id からリポジトリパスを解決（優先）
-    let repositoryPath: string | null = null;
-    if (session_id) {
-      repositoryPath = processManager.getRepositoryPathBySessionId(session_id, hookProvider);
-    }
+    // session_id から instance / repositoryPath を解決
+    let instance = session_id
+      ? processManager.aiSessionManager.getInstanceBySessionId(session_id)
+      : undefined;
+    let repositoryPath: string | null = instance?.repositoryPath ?? null;
 
-    // フォールバック: cwd からリポジトリルートを探索
+    // フォールバック: cwd からリポジトリルートを探索（インスタンス特定不可の hook）
     if (!repositoryPath) {
       const workingDir = cwd || (metadata?.cwd as string | undefined);
       if (!workingDir) {
@@ -496,6 +496,14 @@ async function handleAiHookEvent(
         return;
       }
       repositoryPath = await findRepositoryRoot(workingDir);
+
+      // 解決できた場合はプライマリインスタンスを引っ張ってフォールバック扱い
+      if (repositoryPath) {
+        const primary = processManager.aiSessionManager.getPrimaryInstance(repositoryPath);
+        if (primary && primary.provider === hookProvider) {
+          instance = primary;
+        }
+      }
     }
 
     if (!repositoryPath || (!repositoryPath.startsWith(REPOS_DIR) && !repositoryPath.startsWith(WORKTREES_DIR))) {
@@ -503,13 +511,17 @@ async function handleAiHookEvent(
       return;
     }
 
-    processManager.setAiExecutionStatus(
-      repositoryPath,
-      hookProvider,
-      event === 'Stop' ? 'completed' : 'running'
-    );
+    if (instance) {
+      processManager.setAiExecutionStatus(
+        instance.instanceId,
+        event === 'Stop' ? 'completed' : 'running'
+      );
+    }
 
     const repositoryName = path.basename(repositoryPath);
+    const instanceLabel = instance?.displayName
+      ? ` - ${instance.displayName}`
+      : '';
 
     let lastUserCommand: string | undefined;
     let lastOutput: string | undefined;
@@ -518,8 +530,8 @@ async function handleAiHookEvent(
       const summary = await extractSummaryFromTranscript(transcript_path);
       lastUserCommand = summary.lastUserCommand;
       lastOutput = summary.lastOutput;
-    } else {
-      const outputHistory = processManager.getAiOutputHistory(repositoryPath, hookProvider);
+    } else if (instance) {
+      const outputHistory = processManager.aiSessionManager.getOutputHistory(instance.instanceId);
       const summary = extractConversationSummary(outputHistory);
       lastUserCommand = summary.lastUserCommand;
       lastOutput = summary.lastOutput;
@@ -531,7 +543,7 @@ async function handleAiHookEvent(
     if (wpService && shouldNotify) {
       const label = NOTIFICATION_EVENT_LABELS[event];
       const emoji = NOTIFICATION_EVENT_EMOJIS[event];
-      const title = `${emoji} ${repositoryName ? `[${repositoryName}] ` : ''}${label}`;
+      const title = `${emoji} ${repositoryName ? `[${repositoryName}${instanceLabel}] ` : ''}${label}`;
 
       const bodyParts: string[] = [];
       if (lastUserCommand) bodyParts.push(`🔧 ${lastUserCommand.slice(0, 150)}`);
@@ -554,16 +566,13 @@ async function handleAiHookEvent(
         });
     }
 
-    // Stopイベントの場合のみ、プロンプトキューの処理を行う
-    if (event === 'Stop') {
-      // hookを受信したプロバイダーのキューをトリガー
-      await processManager.triggerQueueFromHook(repositoryPath, hookProvider);
-      hookStats.processed++;
-      hookStats.lastProcessed = new Date();
-    } else {
-      hookStats.processed++;
-      hookStats.lastProcessed = new Date();
+    // Stop イベントは「プライマリのインスタンス」のみキューを進める
+    if (event === 'Stop' && instance?.isPrimary) {
+      await processManager.triggerQueueFromHook(repositoryPath, instance.provider);
     }
+
+    hookStats.processed++;
+    hookStats.lastProcessed = new Date();
   } catch (error) {
     hookStats.errors++;
     console.error(`❌ Hook処理エラー:`, error);
@@ -839,8 +848,8 @@ processManager.on('ai-output', (data) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
 
   emitToRepositoryClients(data.repositoryPath, 'ai-output-line', {
-    sessionId: data.sessionId,
     rid,
+    instanceId: data.instanceId,
     provider: data.provider,
     outputLine: data.outputLine,
   });
@@ -853,8 +862,8 @@ processManager.on('ai-exit', (data) => {
   const exitMessage = `\n=== ${providerName} 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`;
 
   emitToRepositoryClients(data.repositoryPath, 'ai-output-line', {
-    sessionId: data.sessionId,
     rid,
+    instanceId: data.instanceId,
     provider: data.provider,
     outputLine: {
       id: `exit-${data.sessionId}-${Date.now()}`,
@@ -864,6 +873,22 @@ processManager.on('ai-exit', (data) => {
       provider: data.provider,
     },
   });
+});
+
+// AI インスタンス系イベント: 全クライアントに broadcast（タブ構成共有）
+processManager.on('ai-instance-created', (data) => {
+  const rid = repositoryIdManager.tryGetId(data.instance.repositoryPath) || '';
+  io.emit('ai-instance-created', { rid, instance: data.instance });
+});
+
+processManager.on('ai-instance-updated', (data) => {
+  const rid = repositoryIdManager.tryGetId(data.instance.repositoryPath) || '';
+  io.emit('ai-instance-updated', { rid, instance: data.instance });
+});
+
+processManager.on('ai-instance-closed', (data: { instanceId: string; repositoryPath: string }) => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  io.emit('ai-instance-closed', { rid, instanceId: data.instanceId });
 });
 
 processManager.on('prompt-queue-updated', (data) => {
@@ -885,11 +910,12 @@ processManager.on('prompt-queue-processing-started', (data) => {
 
 processManager.on('prompt-queue-processing-completed', (data) => {
   if (!data.success) {
-    processManager.setAiExecutionStatus(
-      data.repositoryPath,
-      data.provider,
-      'idle'
+    const primary = processManager.aiSessionManager.getPrimaryInstance(
+      data.repositoryPath
     );
+    if (primary) {
+      processManager.setAiExecutionStatus(primary.instanceId, 'idle');
+    }
   }
   const rid = repositoryIdManager.tryGetId(data.repositoryPath);
   emitToRepositoryClients(
@@ -910,9 +936,9 @@ processManager.on('selected-provider-changed', () => {
 processManager.on('ai-session-created', (session) => {
   const rid = repositoryIdManager.tryGetId(session.repositoryPath) || '';
   emitToRepositoryClients(session.repositoryPath, 'ai-session-created', {
-    sessionId: session.sessionId,
     rid,
-    repositoryName: session.repositoryName,
+    instanceId: session.instanceId,
+    sessionId: session.sessionId,
     provider: session.provider,
   });
 });
