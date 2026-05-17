@@ -1,4 +1,5 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
@@ -46,6 +47,10 @@ function AiInstanceTabs({
   onClose,
 }: AiInstanceTabsProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -66,6 +71,23 @@ function AiInstanceTabs({
     return map;
   }, [sorted]);
 
+  const closeMenu = useCallback(() => {
+    setShowAddMenu(false);
+    setMenuPosition(null);
+  }, []);
+
+  const openMenu = useCallback(() => {
+    const rect = addButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuPosition({ top: rect.bottom + 4, left: rect.left });
+    setShowAddMenu(true);
+  }, []);
+
+  const toggleMenu = useCallback(() => {
+    if (showAddMenu) closeMenu();
+    else openMenu();
+  }, [showAddMenu, closeMenu, openMenu]);
+
   useEffect(() => {
     if (!showAddMenu) return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,17 +98,17 @@ function AiInstanceTabs({
         addButtonRef.current &&
         !addButtonRef.current.contains(target)
       ) {
-        setShowAddMenu(false);
+        closeMenu();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showAddMenu]);
+  }, [showAddMenu, closeMenu]);
 
   const handleSelectProvider = (provider: AiProvider) => {
-    setShowAddMenu(false);
+    closeMenu();
     onCreate(provider);
   };
 
@@ -144,7 +166,7 @@ function AiInstanceTabs({
             <button
               ref={addButtonRef}
               type="button"
-              onClick={() => setShowAddMenu((v) => !v)}
+              onClick={toggleMenu}
               disabled={!isConnected}
               className={s.addBtn}
               title="新しい AI インスタンスを追加"
@@ -158,27 +180,39 @@ function AiInstanceTabs({
                 />
               </svg>
             </button>
-            {showAddMenu && (
-              <div ref={menuRef} className={s.addMenu}>
-                <button
-                  onClick={() => handleSelectProvider('claude')}
-                  className={`${s.addMenuItem} ${s.claude}`}
-                >
-                  <span className={s.providerDot} />
-                  Claude
-                </button>
-                <button
-                  onClick={() => handleSelectProvider('codex')}
-                  className={`${s.addMenuItem} ${s.codex}`}
-                >
-                  <span className={s.providerDot} />
-                  Codex
-                </button>
-              </div>
-            )}
           </div>
         </SwiperSlide>
       </Swiper>
+
+      {showAddMenu &&
+        menuPosition &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className={s.addMenu}
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+            }}
+          >
+            <button
+              onClick={() => handleSelectProvider('claude')}
+              className={`${s.addMenuItem} ${s.claude}`}
+            >
+              <span className={s.providerDot} />
+              Claude
+            </button>
+            <button
+              onClick={() => handleSelectProvider('codex')}
+              className={`${s.addMenuItem} ${s.codex}`}
+            >
+              <span className={s.providerDot} />
+              Codex
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

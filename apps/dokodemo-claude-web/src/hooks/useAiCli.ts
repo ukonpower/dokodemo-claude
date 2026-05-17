@@ -117,6 +117,8 @@ export function useAiCli(
   const currentRepoRef = useRef(currentRepo);
   const activeInstanceIdRef = useRef(activeInstanceId);
   const aiTerminalSizeRef = useRef(aiTerminalSize);
+  // 自分が createInstance を呼んだ回数。ai-instance-created の都度 1 ずつ消費し、自動アクティブ化する
+  const pendingActivateCountRef = useRef(0);
   const onOutputReceivedRef = useRef(onOutputReceived);
 
   useEffect(() => {
@@ -168,7 +170,12 @@ export function useAiCli(
         }
         return [...prev, data.instance];
       });
-      // 新規作成は自動でアクティブにしない（broadcast の場合、別ユーザの操作の可能性があるため）
+      // 自分が作成リクエストを送ったぶんだけ、新規インスタンスを自動アクティブ化する
+      // （他クライアントの broadcast で勝手にタブ切替されないようカウンタで制御）
+      if (pendingActivateCountRef.current > 0) {
+        pendingActivateCountRef.current -= 1;
+        setActiveInstanceId(data.instance.instanceId);
+      }
     };
 
     const handleInstanceUpdated = (
@@ -481,6 +488,7 @@ export function useAiCli(
       if (!socket || !currentRepoRef.current) return;
       const rid = getCurrentRid();
       if (!rid) return;
+      pendingActivateCountRef.current += 1;
       socket.emit('create-ai-instance', {
         rid,
         provider,
@@ -512,6 +520,7 @@ export function useAiCli(
     setAiInstances([]);
     setActiveInstanceId('');
     setMessagesByInstance(new Map());
+    pendingActivateCountRef.current = 0;
   }, []);
 
   useEffect(() => {

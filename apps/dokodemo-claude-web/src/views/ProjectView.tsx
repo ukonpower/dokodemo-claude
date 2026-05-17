@@ -761,6 +761,7 @@ export function ProjectView({
                       onAddToQueue={handleAddToQueue}
                       currentProvider={activeInstance?.provider ?? 'claude'}
                       currentRepository={currentRepo}
+                      isPrimary={activeInstance?.isPrimary ?? false}
                       disabled={!isConnected || !currentRepo || !activeInstance}
                       autoFocus={false}
                       sendSettings={sendSettings}

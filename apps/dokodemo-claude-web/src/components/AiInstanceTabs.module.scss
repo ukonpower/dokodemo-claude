@@ -46,11 +46,11 @@
     border-bottom-color: $blue-500;
 
     &.claude {
-      border-bottom-color: #a78bfa; // purple-400
+      border-bottom-color: #fb923c; // orange-400
     }
 
     &.codex {
-      border-bottom-color: #34d399; // emerald-400
+      border-bottom-color: #38bdf8; // sky-400
     }
   }
 }
@@ -64,11 +64,11 @@
   flex-shrink: 0;
 
   .tab.claude & {
-    background-color: #a78bfa;
+    background-color: #fb923c;
   }
 
   .tab.codex & {
-    background-color: #34d399;
+    background-color: #38bdf8;
   }
 }
 
@@ -143,10 +143,6 @@
 }
 
 .addMenu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 0.25rem;
   background-color: $gray-800;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
@@ -174,10 +170,10 @@
   }
 
   &.claude .providerDot {
-    background-color: #a78bfa;
+    background-color: #fb923c;
   }
 
   &.codex .providerDot {
-    background-color: #34d399;
+    background-color: #38bdf8;
   }
 }

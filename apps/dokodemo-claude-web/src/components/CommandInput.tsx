@@ -90,6 +90,8 @@ interface TextInputProps {
   currentProvider?: AiProvider;
   /** 現在のリポジトリパス（履歴管理用） */
   currentRepository?: string;
+  /** プライマリインスタンスかどうか（false の場合はキュー/Auto ワークフロー非表示） */
+  isPrimary?: boolean;
   /** 入力無効化フラグ */
   disabled?: boolean;
   /** 自動フォーカスを有効化するか */
@@ -161,6 +163,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       onAddToQueue,
       currentProvider = 'claude',
       currentRepository = '',
+      isPrimary = true,
       disabled = false,
       autoFocus = true,
       sendSettings,
@@ -253,11 +256,15 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [tempCommand, setTempCommand] = useState<string>(''); // 履歴を遡る前の一時入力
 
     // sendSettingsの値を使用（propsが渡されていない場合はローカルstate）
-    const addToQueue = sendSettings?.addToQueue ?? false;
+    // 非プライマリではキュー機能を使えないため、addToQueue を強制的に false 扱いにする
+    const addToQueue = isPrimary ? (sendSettings?.addToQueue ?? false) : false;
     const sendClearBefore = sendSettings?.sendClear ?? false;
     const sendCommitAfter = sendSettings?.sendCommit ?? false;
     const model = sendSettings?.model ?? '';
-    const workflowSkill = sendSettings?.workflowSkill ?? '';
+    const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
+    // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
+    const workflowSkill =
+      !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
@@ -915,20 +922,24 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     {skill.label}
                   </button>
                 ))}
-                <div className={s.skillDivider} />
-                <button
-                  type="button"
-                  onClick={() => handleSettingChange('workflowSkill', workflowSkill === 'auto' ? '' : 'auto')}
-                  disabled={disabled}
-                  className={`${s.skillButton} ${workflowSkill === 'auto' ? s.active : ''}`}
-                >
-                  Auto
-                </button>
+                {isPrimary && (
+                  <>
+                    <div className={s.skillDivider} />
+                    <button
+                      type="button"
+                      onClick={() => handleSettingChange('workflowSkill', workflowSkill === 'auto' ? '' : 'auto')}
+                      disabled={disabled}
+                      className={`${s.skillButton} ${workflowSkill === 'auto' ? s.active : ''}`}
+                    >
+                      Auto
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Autoオプション（Auto選択時のみ展開） */}
-            {workflowSkill === 'auto' && (
+            {/* Autoオプション（Auto選択時のみ展開、プライマリ限定） */}
+            {isPrimary && workflowSkill === 'auto' && (
               <div className={s.autoOptions}>
                 <div className={s.autoTargetGroup}>
                   <span className={s.autoTargetLabel}>到達</span>
@@ -1142,8 +1153,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         </form>
 
-        {/* 送信セクション */}
-        {onAddToQueue && (
+        {/* 送信セクション（プライマリのみキューUIあり） */}
+        {onAddToQueue && isPrimary && (
           <div className={s.sendSection}>
             <div className={s.sendOptionsBar}>
               {/* キュートグル */}
@@ -1319,8 +1330,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         )}
 
-        {/* キュー機能がない場合のシンプルな送信セクション */}
-        {!onAddToQueue && (
+        {/* キュー機能がない場合 or 非プライマリのシンプルな送信セクション */}
+        {(!onAddToQueue || !isPrimary) && (
           <div className={s.simpleSendSection}>
             <div className={s.simpleSendSpacer} />
             <button
