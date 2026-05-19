@@ -35,6 +35,21 @@ export interface AiMessage {
   provider: AiProvider;
 }
 
+// AI インスタンスの型定義
+// 1 リポジトリに対し複数のタブとして並列起動できる
+// プライマリ: リポジトリオープン時に自動生成され、閉じられない（provider 切替は可能）
+// サブ     : ユーザが + ボタンで作成、閉じられる、provider 固定
+export interface AiInstance {
+  instanceId: string;
+  repositoryPath: string;
+  provider: AiProvider;
+  isPrimary: boolean;
+  displayName?: string;
+  order: number;
+  createdAt: number;
+  sessionId?: string;
+}
+
 // Git操作関連の型定義
 export interface GitRepository {
   url: string;
@@ -124,11 +139,20 @@ export interface ServerToClientEvents {
   'repos-process-status': (data: { statuses: RepoProcessStatus[] }) => void;
   'ai-output': (data: AiMessage) => void;
   'ai-output-line': (data: {
-    sessionId: string;
-    rid: string; // リポジトリID（通信最適化用）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     outputLine: AiOutputLine;
   }) => void;
+
+  // AI インスタンス一覧（全クライアントに broadcast、タブ構成をクライアント間共有）
+  'ai-instances-list': (data: {
+    rid: string;
+    instances: AiInstance[];
+  }) => void;
+  'ai-instance-created': (data: { rid: string; instance: AiInstance }) => void;
+  'ai-instance-closed': (data: { rid: string; instanceId: string }) => void;
+  'ai-instance-updated': (data: { rid: string; instance: AiInstance }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -155,37 +179,35 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
     currentPath: string;
-    rid?: string; // リポジトリID（通信最適化用）
-    sessionId?: string;
-    provider?: AiProvider;
+    rid?: string;
+    primaryInstanceId?: string;
+    primaryProvider?: AiProvider;
   }) => void;
 
-  // AI セッション関連イベント
+  // AI セッション関連イベント（instanceId ベース）
   'ai-session-created': (data: {
+    rid: string;
+    instanceId: string;
     sessionId: string;
-    rid: string; // リポジトリID（必須）
-    repositoryName: string;
-    provider: AiProvider;
-  }) => void;
-  'ai-session-id-updated': (data: {
-    sessionId: string;
-    rid: string; // リポジトリID（必須）
     provider: AiProvider;
   }) => void;
   'ai-restarted': (data: {
     success: boolean;
     message: string;
-    rid: string; // リポジトリID（必須）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     sessionId?: string;
   }) => void;
   'ai-output-history': (data: {
-    rid: string; // リポジトリID（必須）
-    history: AiOutputLine[];
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
+    history: AiOutputLine[];
   }) => void;
   'ai-output-cleared': (data: {
-    rid: string; // リポジトリID（必須）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     success: boolean;
   }) => void;
@@ -471,39 +493,30 @@ export interface ClientToServerEvents {
   'delete-repo': (data: { path: string; name: string }) => void;
   'switch-repo': (data: {
     path: string;
-    provider?: AiProvider;
+    provider?: AiProvider; // プライマリの provider を切替えたい場合に指定
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
   }) => void;
   'list-repos': () => void;
   'update-repo-access': (data: { path: string }) => void;
-  'send-command': (data: {
-    command: string;
-    sessionId?: string;
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath?: string;
-    provider?: AiProvider;
-  }) => void;
-  'ai-interrupt': (data?: {
-    sessionId?: string;
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath?: string;
-    provider?: AiProvider;
-  }) => void;
-  'get-ai-history': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+
+  // AI インスタンス操作（instanceId ベース）
+  'list-ai-instances': (data: { rid: string }) => void;
+  'create-ai-instance': (data: {
+    rid: string;
     provider: AiProvider;
+    initialSize?: { cols: number; rows: number };
+    permissionMode?: PermissionMode;
   }) => void;
-  'clear-ai-output': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
-    provider: AiProvider;
-  }) => void;
+  'close-ai-instance': (data: { instanceId: string }) => void;
+  'rename-ai-instance': (data: { instanceId: string; displayName: string }) => void;
+
+  'send-command': (data: { command: string; instanceId: string }) => void;
+  'ai-interrupt': (data: { instanceId: string }) => void;
+  'get-ai-history': (data: { instanceId: string }) => void;
+  'clear-ai-output': (data: { instanceId: string }) => void;
   'restart-ai-cli': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
-    provider: AiProvider;
+    instanceId: string;
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
   }) => void;
@@ -528,9 +541,7 @@ export interface ClientToServerEvents {
   }) => void;
   'terminal-signal': (data: { terminalId: string; signal: string }) => void;
   'ai-resize': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
-    provider: AiProvider;
+    instanceId: string;
     cols: number;
     rows: number;
   }) => void;
@@ -665,8 +676,7 @@ export interface ClientToServerEvents {
 
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     prompt: string;
     sendClearBefore?: boolean;
@@ -675,14 +685,12 @@ export interface ClientToServerEvents {
     model?: string;
   }) => void;
   'remove-from-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     itemId: string;
   }) => void;
   'update-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     itemId: string;
     prompt: string;
@@ -692,51 +700,42 @@ export interface ClientToServerEvents {
     model?: string;
   }) => void;
   'get-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
   'clear-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
   'pause-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
   'resume-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
   'reorder-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     queue: PromptQueueItem[];
   }) => void;
   'requeue-prompt-item': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     itemId: string;
   }) => void;
   'force-send-prompt-queue-item': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
     itemId: string;
   }) => void;
   'reset-prompt-queue': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
   'cancel-current-queue-item': (data: {
-    rid?: string; // リポジトリID（通信最適化用）
-    repositoryPath: string;
+    rid: string;
     provider: AiProvider;
   }) => void;
 
@@ -778,14 +777,6 @@ export interface AiSession {
   workingDirectory: string;
   isPty: boolean;
   provider: AiProvider;
-}
-
-// 後方互換性のためにClaudeSessionを維持
-export interface ClaudeSession {
-  process: unknown; // pty.IPty | ChildProcess
-  isActive: boolean;
-  workingDirectory: string;
-  isPty: boolean;
 }
 
 // コマンドショートカット関連の型定義
@@ -848,14 +839,16 @@ export interface PromptQueueState {
 }
 
 // リポジトリごとのプロセス状態
+// マルチインスタンス化後はプライマリの状態のみを集約して返す
 export interface RepoProcessStatus {
   rid: string;
   repositoryPath: string;
-  aiSessions: number;
+  aiInstancesTotal: number; // プライマリ + サブのインスタンス数
   terminals: number;
   promptQueuePending: number;
-  aiExecutionStatuses: Record<AiProvider, AiExecutionStatus>;
   selectedProvider: AiProvider;
+  primaryProvider?: AiProvider; // プライマリインスタンスの provider
+  primaryStatus?: AiExecutionStatus; // プライマリインスタンスの実行状態
   displayAiStatus: RepoDisplayAiStatus;
   displayProvider: AiProvider;
 }

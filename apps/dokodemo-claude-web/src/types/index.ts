@@ -45,6 +45,18 @@ export interface AiMessage {
   provider: AiProvider;
 }
 
+// AI インスタンスの型定義
+export interface AiInstance {
+  instanceId: string;
+  repositoryPath: string;
+  provider: AiProvider;
+  isPrimary: boolean;
+  displayName?: string;
+  order: number;
+  createdAt: number;
+  sessionId?: string;
+}
+
 export interface GitRepository {
   url: string;
   path: string;
@@ -191,11 +203,12 @@ export interface PromptQueueState {
 export interface RepoProcessStatus {
   rid: string;
   repositoryPath: string;
-  aiSessions: number;
+  aiInstancesTotal: number;
   terminals: number;
   promptQueuePending: number;
-  aiExecutionStatuses: Record<AiProvider, AiExecutionStatus>;
   selectedProvider: AiProvider;
+  primaryProvider?: AiProvider;
+  primaryStatus?: AiExecutionStatus;
   displayAiStatus: RepoDisplayAiStatus;
   displayProvider: AiProvider;
 }
@@ -267,11 +280,20 @@ export interface ServerToClientEvents {
   'clone-status': (data: { status: string; message: string }) => void;
   'ai-output': (data: AiMessage) => void;
   'ai-output-line': (data: {
-    sessionId: string;
-    rid: string; // リポジトリID（通信最適化用）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     outputLine: AiOutputLine;
   }) => void;
+
+  // AI インスタンス一覧（全クライアントに broadcast）
+  'ai-instances-list': (data: {
+    rid: string;
+    instances: AiInstance[];
+  }) => void;
+  'ai-instance-created': (data: { rid: string; instance: AiInstance }) => void;
+  'ai-instance-closed': (data: { rid: string; instanceId: string }) => void;
+  'ai-instance-updated': (data: { rid: string; instance: AiInstance }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -301,37 +323,35 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
     currentPath: string;
-    rid?: string; // リポジトリID（通信最適化用）
-    sessionId?: string;
-    provider?: AiProvider;
+    rid?: string;
+    primaryInstanceId?: string;
+    primaryProvider?: AiProvider;
   }) => void;
 
-  // AI セッション関連イベント
+  // AI セッション関連イベント（instanceId ベース）
   'ai-session-created': (data: {
+    rid: string;
+    instanceId: string;
     sessionId: string;
-    rid: string; // リポジトリID（必須）
-    repositoryName: string;
-    provider: AiProvider;
-  }) => void;
-  'ai-session-id-updated': (data: {
-    sessionId: string;
-    rid: string; // リポジトリID（必須）
     provider: AiProvider;
   }) => void;
   'ai-restarted': (data: {
     success: boolean;
     message: string;
-    rid: string; // リポジトリID（必須）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     sessionId?: string;
   }) => void;
   'ai-output-history': (data: {
-    rid: string; // リポジトリID（必須）
-    history: AiOutputLine[];
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
+    history: AiOutputLine[];
   }) => void;
   'ai-output-cleared': (data: {
-    rid: string; // リポジトリID（必須）
+    rid: string;
+    instanceId: string;
     provider: AiProvider;
     success: boolean;
   }) => void;
@@ -584,34 +604,30 @@ export interface ClientToServerEvents {
   'delete-repo': (data: { path: string; name: string }) => void;
   'switch-repo': (data: {
     path: string;
-    provider?: AiProvider;
+    provider?: AiProvider; // プライマリの provider 切替時に指定
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
   }) => void;
   'list-repos': () => void;
   'update-repo-access': (data: { path: string }) => void;
-  'send-command': (data: {
-    command: string;
-    sessionId?: string;
-    rid: string; // リポジトリID（必須）
-    provider?: AiProvider;
-  }) => void;
-  'ai-interrupt': (data?: {
-    sessionId?: string;
-    rid?: string; // リポジトリID
-    provider?: AiProvider;
-  }) => void;
-  'get-ai-history': (data: {
-    rid: string; // リポジトリID（必須）
+
+  // AI インスタンス操作
+  'list-ai-instances': (data: { rid: string }) => void;
+  'create-ai-instance': (data: {
+    rid: string;
     provider: AiProvider;
+    initialSize?: { cols: number; rows: number };
+    permissionMode?: PermissionMode;
   }) => void;
-  'clear-ai-output': (data: {
-    rid: string; // リポジトリID（必須）
-    provider: AiProvider;
-  }) => void;
+  'close-ai-instance': (data: { instanceId: string }) => void;
+  'rename-ai-instance': (data: { instanceId: string; displayName: string }) => void;
+
+  'send-command': (data: { command: string; instanceId: string }) => void;
+  'ai-interrupt': (data: { instanceId: string }) => void;
+  'get-ai-history': (data: { instanceId: string }) => void;
+  'clear-ai-output': (data: { instanceId: string }) => void;
   'restart-ai-cli': (data: {
-    rid: string; // リポジトリID（必須）
-    provider: AiProvider;
+    instanceId: string;
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
   }) => void;
@@ -635,8 +651,7 @@ export interface ClientToServerEvents {
   }) => void;
   'terminal-signal': (data: { terminalId: string; signal: string }) => void;
   'ai-resize': (data: {
-    rid: string; // リポジトリID（必須）
-    provider: AiProvider;
+    instanceId: string;
     cols: number;
     rows: number;
   }) => void;

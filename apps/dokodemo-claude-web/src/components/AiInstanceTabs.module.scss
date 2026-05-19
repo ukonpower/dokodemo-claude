@@ -1,0 +1,179 @@
+.root {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.swiper {
+  flex: 1;
+  min-width: 0;
+}
+
+.slideAuto {
+  width: auto;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: $gray-400;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+  white-space: nowrap;
+  max-width: 12rem;
+
+  &:hover:not(.active) {
+    background-color: $gray-800;
+    color: $gray-200;
+  }
+
+  &.active {
+    color: white;
+    background-color: $gray-800;
+    border-bottom-color: $blue-500;
+
+    &.claude {
+      border-bottom-color: #fb923c; // orange-400
+    }
+
+    &.codex {
+      border-bottom-color: #38bdf8; // sky-400
+    }
+  }
+}
+
+.providerDot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: $gray-500;
+  flex-shrink: 0;
+
+  .tab.claude & {
+    background-color: #fb923c;
+  }
+
+  .tab.codex & {
+    background-color: #38bdf8;
+  }
+}
+
+.label {
+  @include truncate;
+  max-width: 8rem;
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  color: $gray-500;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: rgba(white, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+.addWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: none;
+  color: $gray-500;
+  cursor: pointer;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-200;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+.addMenu {
+  background-color: $gray-800;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: 0.25rem 0;
+  z-index: 9999;
+  min-width: 9rem;
+}
+
+.addMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  color: $gray-200;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $gray-700;
+  }
+
+  &.claude .providerDot {
+    background-color: #fb923c;
+  }
+
+  &.codex .providerDot {
+    background-color: #38bdf8;
+  }
+}
