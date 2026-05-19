@@ -22,9 +22,11 @@ import type {
   RepoProcessStatus,
   CustomAiButton,
   CustomAiButtonScope,
+  WorktreeSyncEntry,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import type { CommandSendSettings } from '../hooks/useAppSettings';
+import type { WorktreeSyncConfigState } from '../hooks/useBranchWorktree';
 
 import AiOutput, { AiOutputRef } from '../components/AiOutput';
 import TextInput, { TextInputRef } from '../components/CommandInput';
@@ -129,9 +131,13 @@ interface ProjectViewProps {
   onClearPullError: () => void;
   onCreateWorktree: (
     branchName: string,
-    baseBranch?: string,
-    useExisting?: boolean
+    baseBranch: string | undefined,
+    useExisting: boolean,
+    syncEntries: WorktreeSyncEntry[]
   ) => void;
+  worktreeSyncConfig: WorktreeSyncConfigState | null;
+  onRequestWorktreeSyncConfig: () => void;
+  onSaveWorktreeSyncConfig: (entries: WorktreeSyncEntry[]) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
   onClearMergeError: () => void;
@@ -309,6 +315,9 @@ export function ProjectView({
   pullError,
   onClearPullError,
   onCreateWorktree,
+  worktreeSyncConfig,
+  onRequestWorktreeSyncConfig,
+  onSaveWorktreeSyncConfig,
   onDeleteWorktree,
   onMergeWorktree,
   onClearMergeError,
@@ -693,6 +702,9 @@ export function ProjectView({
                   branches={branches}
                   isDeletingWorktree={isDeletingWorktree}
                   compact={true}
+                  syncConfig={worktreeSyncConfig}
+                  onRequestSyncConfig={onRequestWorktreeSyncConfig}
+                  onSaveSyncConfig={onSaveWorktreeSyncConfig}
                 />
               </>
             )}

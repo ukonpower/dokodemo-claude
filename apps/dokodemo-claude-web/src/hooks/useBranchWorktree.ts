@@ -7,8 +7,21 @@ import type {
   AiProvider,
   ServerToClientEvents,
   ClientToServerEvents,
+  WorktreeSyncEntry,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
+
+/**
+ * worktree 作成時のファイル同期設定（リポジトリ単位の保存値 + .gitignore 由来の候補）
+ */
+export interface WorktreeSyncConfigState {
+  parentRepoPath: string;
+  entries: WorktreeSyncEntry[];
+  suggestions: string[];
+  // 直近の保存試行のタイムスタンプ・結果
+  lastSavedAt?: number;
+  lastSaveError?: string;
+}
 
 /**
  * 新しいworktree構造かどうかをチェック
@@ -62,11 +75,17 @@ export interface UseBranchWorktreeReturn {
   createWorktree: (
     branchName: string,
     baseBranch?: string,
-    useExisting?: boolean
+    useExisting?: boolean,
+    syncEntries?: WorktreeSyncEntry[]
   ) => void;
   deleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   mergeWorktree: (worktreePath: string) => void;
   switchWorktree: (worktreePath: string) => void;
+
+  // ワークツリー同期設定
+  worktreeSyncConfig: WorktreeSyncConfigState | null;
+  requestWorktreeSyncConfig: () => void;
+  saveWorktreeSyncConfig: (entries: WorktreeSyncEntry[]) => void;
 
   // UI制御
   setMergeError: (
@@ -120,6 +139,10 @@ export function useBranchWorktree(
     message: string;
     output?: string;
   } | null>(null);
+
+  // ワークツリー同期設定
+  const [worktreeSyncConfig, setWorktreeSyncConfig] =
+    useState<WorktreeSyncConfigState | null>(null);
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -283,6 +306,40 @@ export function useBranchWorktree(
       }
     };
 
+    // ワークツリー同期設定（取得）
+    const handleWorktreeSyncConfig = (
+      data: Parameters<ServerToClientEvents['worktree-sync-config']>[0]
+    ) => {
+      const parentPath = parentRepoPathRef.current || currentRepoRef.current;
+      if (!parentPath) return;
+      if (data.parentRepoPath !== parentPath) return;
+      setWorktreeSyncConfig({
+        parentRepoPath: data.parentRepoPath,
+        entries: data.entries,
+        suggestions: data.suggestions,
+      });
+    };
+
+    // ワークツリー同期設定（保存）
+    const handleWorktreeSyncConfigSaved = (
+      data: Parameters<ServerToClientEvents['worktree-sync-config-saved']>[0]
+    ) => {
+      setWorktreeSyncConfig((prev) => {
+        if (!prev) return prev;
+        if (
+          data.parentRepoPath &&
+          data.parentRepoPath !== prev.parentRepoPath
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          lastSavedAt: data.success ? Date.now() : prev.lastSavedAt,
+          lastSaveError: data.success ? undefined : data.message,
+        };
+      });
+    };
+
     socket.on('branches-list', handleBranchesList);
     socket.on('branch-switched', handleBranchSwitched);
     socket.on('worktrees-list', handleWorktreesList);
@@ -291,6 +348,8 @@ export function useBranchWorktree(
     socket.on('worktree-merged', handleWorktreeMerged);
     socket.on('branch-created', handleBranchCreated);
     socket.on('branch-pulled', handleBranchPulled);
+    socket.on('worktree-sync-config', handleWorktreeSyncConfig);
+    socket.on('worktree-sync-config-saved', handleWorktreeSyncConfigSaved);
 
     return () => {
       socket.off('branches-list', handleBranchesList);
@@ -301,6 +360,8 @@ export function useBranchWorktree(
       socket.off('worktree-merged', handleWorktreeMerged);
       socket.off('branch-created', handleBranchCreated);
       socket.off('branch-pulled', handleBranchPulled);
+      socket.off('worktree-sync-config', handleWorktreeSyncConfig);
+      socket.off('worktree-sync-config-saved', handleWorktreeSyncConfigSaved);
     };
   }, [socket, currentProvider, onBranchError, onSwitchRepository]);
 
@@ -354,7 +415,12 @@ export function useBranchWorktree(
   }, [socket, currentRepo]);
 
   const createWorktree = useCallback(
-    (branchName: string, baseBranch?: string, useExisting?: boolean) => {
+    (
+      branchName: string,
+      baseBranch?: string,
+      useExisting?: boolean,
+      syncEntries?: WorktreeSyncEntry[]
+    ) => {
       if (socket && parentRepoPath) {
         const prid = repositoryIdMap.getRid(parentRepoPath);
         socket.emit('create-worktree', {
@@ -363,10 +429,37 @@ export function useBranchWorktree(
           branchName,
           baseBranch,
           useExistingBranch: useExisting,
+          syncEntries,
         });
       }
     },
     [socket, parentRepoPath]
+  );
+
+  const requestWorktreeSyncConfig = useCallback(() => {
+    if (!socket) return;
+    const repoPath = parentRepoPath || currentRepo;
+    if (!repoPath) return;
+    const prid = repositoryIdMap.getRid(repoPath);
+    socket.emit('get-worktree-sync-config', {
+      prid,
+      parentRepoPath: repoPath,
+    });
+  }, [socket, parentRepoPath, currentRepo]);
+
+  const saveWorktreeSyncConfig = useCallback(
+    (entries: WorktreeSyncEntry[]) => {
+      if (!socket) return;
+      const repoPath = parentRepoPath || currentRepo;
+      if (!repoPath) return;
+      const prid = repositoryIdMap.getRid(repoPath);
+      socket.emit('save-worktree-sync-config', {
+        prid,
+        parentRepoPath: repoPath,
+        entries,
+      });
+    },
+    [socket, parentRepoPath, currentRepo]
   );
 
   const deleteWorktree = useCallback(
@@ -424,6 +517,7 @@ export function useBranchWorktree(
     setParentRepoPath('');
     setIsPulling(false);
     setPullError(null);
+    setWorktreeSyncConfig(null);
   }, []);
 
   // リポジトリ切り替え時に状態をリセット
@@ -453,5 +547,8 @@ export function useBranchWorktree(
     setMergeError,
     setPullError,
     clearState,
+    worktreeSyncConfig,
+    requestWorktreeSyncConfig,
+    saveWorktreeSyncConfig,
   };
 }

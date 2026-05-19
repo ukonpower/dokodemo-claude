@@ -4,6 +4,7 @@
 
 export { ShortcutManager, type TerminalWriter } from './shortcut-manager.js';
 export { CustomAiButtonManager } from './custom-ai-button-manager.js';
+export { WorktreeSyncManager } from './worktree-sync-manager.js';
 export {
   TerminalManager,
   type TerminalOutputLine,

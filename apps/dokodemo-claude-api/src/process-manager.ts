@@ -21,6 +21,7 @@ import {
   ProcessRegistry,
   ProcessMonitor,
   CustomAiButtonManager,
+  WorktreeSyncManager,
   AISessionManager,
   type ActiveAiSession,
   type ActiveTerminal,
@@ -48,6 +49,7 @@ export class ProcessManager extends EventEmitter {
   public readonly terminalManager: TerminalManager;
   public readonly promptQueueManager: PromptQueueManager;
   public readonly customAiButtonManager: CustomAiButtonManager;
+  public readonly worktreeSyncManager: WorktreeSyncManager;
 
   public readonly processRegistry: ProcessRegistry;
   public readonly processMonitor: ProcessMonitor;
@@ -116,6 +118,9 @@ export class ProcessManager extends EventEmitter {
     this.customAiButtonManager = new CustomAiButtonManager(
       this.persistenceService
     );
+
+    // WorktreeSyncManager: 親リポジトリごとに worktree 作成時の同期設定を保持
+    this.worktreeSyncManager = new WorktreeSyncManager(this.persistenceService);
 
     // PromptQueueManager: プライマリインスタンスのセッションを返すアダプター
     this.promptQueueManager = new PromptQueueManager(this.persistenceService, {
@@ -293,6 +298,7 @@ export class ProcessManager extends EventEmitter {
     await this.shortcutManager.initialize();
     await this.promptQueueManager.initialize();
     await this.customAiButtonManager.initialize();
+    await this.worktreeSyncManager.initialize();
 
     this.startProcessMonitoring();
   }
