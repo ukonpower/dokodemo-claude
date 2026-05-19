@@ -133,7 +133,6 @@ function AiInstanceTabs({
                 className={`${s.tab} ${isActive ? s.active : ''} ${providerClass}`}
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}`}
               >
-                <span className={s.providerDot} />
                 <span className={s.label}>{label}</span>
                 {!inst.isPrimary && (
                   <button
@@ -200,14 +199,12 @@ function AiInstanceTabs({
               onClick={() => handleSelectProvider('claude')}
               className={`${s.addMenuItem} ${s.claude}`}
             >
-              <span className={s.providerDot} />
               Claude
             </button>
             <button
               onClick={() => handleSelectProvider('codex')}
               className={`${s.addMenuItem} ${s.codex}`}
             >
-              <span className={s.providerDot} />
               Codex
             </button>
           </div>,
