@@ -13,7 +13,9 @@
   border: 1px solid $dark-border-light;
   padding: 1.5rem;
   width: 100%;
-  max-width: 28rem;
+  max-width: 32rem;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modalHeader {
@@ -171,4 +173,165 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+.syncSection {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.syncHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.syncTitle {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $gray-200;
+}
+
+.syncSaveButton {
+  font-size: $font-size-xs;
+  color: $gray-300;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background-color: transparent;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncSaveButtonSaved {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.syncHint {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-bottom: 0.5rem;
+}
+
+.syncList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.syncRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: $radius;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.syncPath {
+  flex: 1;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-200;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.syncPathMuted {
+  color: $gray-500;
+}
+
+.syncSelect {
+  flex-shrink: 0;
+  padding: 0.2rem 0.4rem;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: white;
+  font-size: $font-size-xs;
+}
+
+.syncRemoveButton {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-500;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: #f87171;
+    background-color: rgba(248, 113, 113, 0.1);
+  }
+}
+
+.syncAddRow {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.syncAddInput {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: white;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-500;
+  }
+}
+
+.syncAddButton {
+  padding: 0.3rem 0.6rem;
+  font-size: $font-size-xs;
+  color: $gray-200;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background-color: transparent;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncEmpty {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-style: italic;
+  padding: 0.25rem 0.4rem;
 }

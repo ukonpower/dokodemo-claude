@@ -4,7 +4,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
-import type { GitWorktree, GitBranch } from '../types';
+import type { GitWorktree, GitBranch, WorktreeSyncEntry } from '../types';
+import type { WorktreeSyncConfigState } from '../hooks/useBranchWorktree';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
 
@@ -14,8 +15,9 @@ interface WorktreeTabsProps {
   parentRepoPath: string;
   onCreateWorktree: (
     branchName: string,
-    baseBranch?: string,
-    useExisting?: boolean
+    baseBranch: string | undefined,
+    useExisting: boolean,
+    syncEntries: WorktreeSyncEntry[]
   ) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
@@ -24,6 +26,9 @@ interface WorktreeTabsProps {
   branches: GitBranch[];
   isDeletingWorktree?: boolean;
   compact?: boolean;
+  syncConfig: WorktreeSyncConfigState | null;
+  onRequestSyncConfig: () => void;
+  onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
 }
 
 function WorktreeTabs({
@@ -38,6 +43,9 @@ function WorktreeTabs({
   branches,
   isDeletingWorktree = false,
   compact = false,
+  syncConfig,
+  onRequestSyncConfig,
+  onSaveSyncConfig,
 }: WorktreeTabsProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
@@ -155,6 +163,9 @@ function WorktreeTabs({
           <WorktreeCreateModal
             parentRepoPath={parentRepoPath}
             branches={branches}
+            syncConfig={syncConfig}
+            onRequestSyncConfig={onRequestSyncConfig}
+            onSaveSyncConfig={onSaveSyncConfig}
             onClose={() => setShowCreateModal(false)}
             onCreate={onCreateWorktree}
           />
@@ -324,6 +335,9 @@ function WorktreeTabs({
         <WorktreeCreateModal
           parentRepoPath={parentRepoPath}
           branches={branches}
+          syncConfig={syncConfig}
+          onRequestSyncConfig={onRequestSyncConfig}
+          onSaveSyncConfig={onSaveSyncConfig}
           onClose={() => setShowCreateModal(false)}
           onCreate={onCreateWorktree}
         />

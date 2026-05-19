@@ -497,6 +497,9 @@ function App() {
       pullError={branchWorktree.pullError}
       onClearPullError={() => branchWorktree.setPullError(null)}
       onCreateWorktree={branchWorktree.createWorktree}
+      worktreeSyncConfig={branchWorktree.worktreeSyncConfig}
+      onRequestWorktreeSyncConfig={branchWorktree.requestWorktreeSyncConfig}
+      onSaveWorktreeSyncConfig={branchWorktree.saveWorktreeSyncConfig}
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}
       onClearMergeError={() => branchWorktree.setMergeError(null)}

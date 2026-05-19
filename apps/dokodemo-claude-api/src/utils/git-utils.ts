@@ -5,8 +5,10 @@ import type {
   GitBranch,
   GitWorktree,
   WorktreeCreateRequest,
+  WorktreeSyncResult,
 } from '../types/index.js';
 import { cleanChildEnv } from './clean-env.js';
+import { applySyncEntries } from './worktree-sync.js';
 
 /**
  * 指定されたディレクトリからリポジトリルート（.gitがあるディレクトリ）を探す
@@ -332,8 +334,19 @@ export async function getWorktrees(repoPath: string): Promise<GitWorktree[]> {
  */
 export async function createWorktree(
   data: WorktreeCreateRequest
-): Promise<{ success: boolean; message: string; worktree?: GitWorktree }> {
-  const { parentRepoPath, branchName, baseBranch, useExistingBranch } = data;
+): Promise<{
+  success: boolean;
+  message: string;
+  worktree?: GitWorktree;
+  syncResults?: WorktreeSyncResult[];
+}> {
+  const {
+    parentRepoPath,
+    branchName,
+    baseBranch,
+    useExistingBranch,
+    syncEntries,
+  } = data;
   const worktreePath = getWorktreePath(parentRepoPath, branchName);
 
   // ディレクトリが既に存在するかチェック
@@ -384,10 +397,28 @@ export async function createWorktree(
       if (code === 0) {
         const worktrees = await getWorktrees(parentRepoPath);
         const newWorktree = worktrees.find((w) => w.path === worktreePath);
+
+        // 同期エントリが指定されていれば、worktree 側へコピー/リンクを実行
+        let syncResults: WorktreeSyncResult[] | undefined;
+        if (syncEntries && syncEntries.length > 0 && newWorktree) {
+          syncResults = await applySyncEntries(
+            parentRepoPath,
+            newWorktree.path,
+            syncEntries
+          );
+        }
+
+        const failedSync = syncResults?.filter((r) => !r.success) ?? [];
+        const message =
+          failedSync.length > 0
+            ? `ワークツリー「${branchName}」を作成しましたが、一部のファイル同期に失敗しました: ${failedSync.map((r) => r.path).join(', ')}`
+            : `ワークツリー「${branchName}」を作成しました`;
+
         resolve({
           success: true,
-          message: `ワークツリー「${branchName}」を作成しました`,
+          message,
           worktree: newWorktree,
+          syncResults,
         });
       } else {
         resolve({

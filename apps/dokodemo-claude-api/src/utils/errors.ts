@@ -149,6 +149,24 @@ export class QueueError extends AppError {
 }
 
 /**
+ * ワークツリー同期設定関連エラー
+ */
+export class WorktreeSyncError extends AppError {
+  readonly code = 'WORKTREE_SYNC_ERROR';
+
+  static invalidInput(reason: string): WorktreeSyncError {
+    return new WorktreeSyncError(`入力が不正です: ${reason}`);
+  }
+
+  static persistFailed(cause?: unknown): WorktreeSyncError {
+    return new WorktreeSyncError(
+      `ワークツリー同期設定の永続化に失敗しました`,
+      cause
+    );
+  }
+}
+
+/**
  * 永続化関連エラー
  */
 export class PersistenceError extends AppError {

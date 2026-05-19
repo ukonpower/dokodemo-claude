@@ -89,6 +89,25 @@ export interface WorktreeCreateRequest {
   branchName: string;
   baseBranch?: string;
   useExistingBranch?: boolean;
+  // 新規 worktree 作成時に、親リポジトリ側から取り込むファイル/ディレクトリ
+  syncEntries?: WorktreeSyncEntry[];
+}
+
+// ワークツリー作成時の同期方式
+export type WorktreeSyncMode = 'copy' | 'link';
+
+// ワークツリーへ同期するエントリ 1 件
+export interface WorktreeSyncEntry {
+  path: string; // 親リポジトリルートからの相対パス
+  mode: WorktreeSyncMode;
+}
+
+// ワークツリー作成時の同期処理結果（1 件分）
+export interface WorktreeSyncResult {
+  path: string;
+  mode: WorktreeSyncMode;
+  success: boolean;
+  error?: string;
 }
 
 export interface Repository {
@@ -444,6 +463,7 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
     worktree?: GitWorktree & { wtid?: string };
+    syncResults?: WorktreeSyncResult[];
   }) => void;
   'worktree-deleted': (data: {
     success: boolean;
@@ -460,6 +480,20 @@ export interface ServerToClientEvents {
       conflictFiles?: string[];
       errorDetails?: string;
     };
+  }) => void;
+
+  // ワークツリー同期設定（リポジトリ単位の保存設定 + .gitignore からの候補）
+  'worktree-sync-config': (data: {
+    prid?: string;
+    parentRepoPath: string;
+    entries: WorktreeSyncEntry[];
+    suggestions: string[];
+  }) => void;
+  'worktree-sync-config-saved': (data: {
+    success: boolean;
+    message: string;
+    prid?: string;
+    parentRepoPath?: string;
   }) => void;
 
   // npmスクリプト関連イベント
@@ -730,6 +764,17 @@ export interface ClientToServerEvents {
     worktreePath: string;
     prid?: string; // 親リポジトリID（通信最適化用）
     parentRepoPath: string;
+  }) => void;
+
+  // ワークツリー同期設定の取得/保存
+  'get-worktree-sync-config': (data: {
+    prid?: string;
+    parentRepoPath?: string;
+  }) => void;
+  'save-worktree-sync-config': (data: {
+    prid?: string;
+    parentRepoPath?: string;
+    entries: WorktreeSyncEntry[];
   }) => void;
 
   // npmスクリプト関連イベント
