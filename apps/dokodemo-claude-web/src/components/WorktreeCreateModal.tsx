@@ -49,7 +49,7 @@ function buildRows(
 
   for (const suggestion of suggestions) {
     if (seen.has(suggestion)) continue;
-    rows.push({ path: suggestion, mode: 'skip', fromSuggestion: true });
+    rows.push({ path: suggestion, mode: 'copy', fromSuggestion: true });
     seen.add(suggestion);
   }
 
