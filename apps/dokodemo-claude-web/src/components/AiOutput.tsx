@@ -429,7 +429,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
           <div className={s.headerInner}>
             <div className={s.headerLeft}>
               <div className={s.statusGroup}>
-                <div className={s.statusDot}></div>
                 <span className={s.headerLabel}>
                   {providerInfo.headerLabel}
                 </span>
@@ -566,7 +565,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             {/* 全画面ヘッダー */}
             <div className={s.fullscreenHeader}>
               <div className={s.fullscreenHeaderLeft}>
-                <div className={s.statusDot}></div>
                 <span className={s.fullscreenLabel}>
                   {providerInfo.headerLabel} - 全画面表示
                 </span>

@@ -727,6 +727,50 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       [onPasteFile, insertAtSelection]
     );
 
+    // ファイルアップロード用 input の ref
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // ファイル選択ボタン押下時：ネイティブの file picker を開く
+    const handleUploadClick = useCallback(() => {
+      fileInputRef.current?.click();
+    }, []);
+
+    // 末尾にパス文字列を追記（必要に応じてスペース区切り）
+    const appendPathsToEnd = useCallback((paths: string[]) => {
+      if (paths.length === 0) return;
+      const joined = paths.join(' ');
+      setCommand((prev) => {
+        if (!prev) return joined;
+        const needsSeparator = !/\s$/.test(prev);
+        return needsSeparator ? `${prev} ${joined}` : `${prev}${joined}`;
+      });
+      // 追記後にフォーカスを戻し、末尾にカーソルを置く
+      setTimeout(() => {
+        const node = inputRef.current;
+        if (!node) return;
+        node.focus();
+        const end = node.value.length;
+        node.setSelectionRange(end, end);
+      }, 0);
+    }, []);
+
+    // ファイル選択時：アップロードして末尾にパスを追記
+    const handleFileSelected = useCallback(
+      async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selected = Array.from(e.target.files ?? []);
+        e.target.value = '';
+        if (selected.length === 0 || !onPasteFile) return;
+
+        const paths: string[] = [];
+        for (const file of selected) {
+          const p = await onPasteFile(file);
+          if (p) paths.push(p);
+        }
+        appendPathsToEnd(paths);
+      },
+      [onPasteFile, appendPathsToEnd]
+    );
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       // IME 変換中は一切フック処理しない
       if (
@@ -1013,84 +1057,116 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
         {/* テキスト入力エリア */}
         <form onSubmit={handleSubmit} className={s.formWrapper}>
-          <textarea
-            ref={inputRef}
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onCompositionStart={handleCompositionStart}
-            onCompositionEnd={handleCompositionEnd}
-            placeholder={
-              isInputDisabled
-                ? 'リポジトリを選択してください...'
-                : providerInfo.placeholder
-            }
-            className={`${s.textarea} ${isDragOver ? s.dragOver : ''}`}
-            disabled={isInputDisabled || isUploadingFile}
-          />
-          {isUploadingFile && (
-            <div className={s.uploadOverlay}>
-              <div className={s.uploadContent}>
+          <div className={s.textareaWrapper}>
+            <textarea
+              ref={inputRef}
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+              placeholder={
+                isInputDisabled
+                  ? 'リポジトリを選択してください...'
+                  : providerInfo.placeholder
+              }
+              className={`${s.textarea} ${isDragOver ? s.dragOver : ''}`}
+              disabled={isInputDisabled || isUploadingFile}
+            />
+            {isUploadingFile && (
+              <div className={s.uploadOverlay}>
+                <div className={s.uploadContent}>
+                  <svg
+                    className={s.spinner}
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className={s.spinnerCircle}
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className={s.spinnerPath}
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span className={s.uploadText}>ファイルをアップロード中...</span>
+                </div>
+              </div>
+            )}
+            {/* 入力クリアボタン（右上） */}
+            {command && (
+              <button
+                type="button"
+                onClick={handleClearInput}
+                disabled={isInputDisabled}
+                className={s.clearInputButton}
+                title="入力内容をクリア"
+              >
                 <svg
-                  className={s.spinner}
-                  xmlns="http://www.w3.org/2000/svg"
+                  className={s.clearInputIcon}
                   fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <circle
-                    className={s.spinnerCircle}
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
                   <path
-                    className={s.spinnerPath}
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
-                <span className={s.uploadText}>ファイルをアップロード中...</span>
-              </div>
-            </div>
-          )}
-          {/* 入力クリアボタン（右上） */}
-          {command && (
+              </button>
+            )}
+          </div>
+          {/* 履歴ナビ（テキストエリア右側に縦並び） */}
+          <div className={s.historySide}>
             <button
               type="button"
-              onClick={handleClearInput}
-              disabled={isInputDisabled}
-              className={s.clearInputButton}
-              title="入力内容をクリア"
+              onClick={navigateHistoryUp}
+              disabled={isInputDisabled || loadHistory().length === 0}
+              className={s.historyButton}
+              title="前の履歴"
+              aria-label="前の履歴"
             >
-              <svg
-                className={s.clearInputIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
-          )}
-          {/* モバイル用インデント/アウトデントボタン（左下） */}
-          <div className={s.mobileIndentNav}>
+            <button
+              type="button"
+              onClick={navigateHistoryDown}
+              disabled={isInputDisabled || historyIndex === -1}
+              className={s.historyButton}
+              title="次の履歴"
+              aria-label="次の履歴"
+            >
+              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        </form>
+
+        {/* テキストエリア下のツールバー（インデント / ファイルアップロード） */}
+        <div className={s.inputToolbar}>
+          <div className={s.toolbarLeft}>
             <button
               type="button"
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => handleTabKey('outdent')}
               disabled={isInputDisabled}
-              className={s.historyButton}
+              className={`${s.historyButton} ${s.mobileOnly}`}
               title="アウトデント (Shift+Tab)"
               aria-label="アウトデント"
             >
@@ -1113,7 +1189,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => handleTabKey('indent')}
               disabled={isInputDisabled}
-              className={s.historyButton}
+              className={`${s.historyButton} ${s.mobileOnly}`}
               title="インデント (Tab)"
               aria-label="インデント"
             >
@@ -1132,32 +1208,42 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               </svg>
             </button>
           </div>
-          {/* 履歴ナビゲーションボタン（右下） */}
-          <div className={s.historyNav}>
-            <button
-              type="button"
-              onClick={navigateHistoryUp}
-              disabled={isInputDisabled || loadHistory().length === 0}
-              className={s.historyButton}
-              title="前の履歴"
-            >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={navigateHistoryDown}
-              disabled={isInputDisabled || historyIndex === -1}
-              className={s.historyButton}
-              title="次の履歴"
-            >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+          <div className={s.toolbarRight}>
+            {onPasteFile && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelected}
+                  className={s.hiddenFileInput}
+                />
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  disabled={disabled || isUploadingFile}
+                  className={s.historyButton}
+                  title="ファイルをアップロード（末尾にパスを追加）"
+                  aria-label="ファイルをアップロード"
+                >
+                  <svg
+                    className={s.historyIcon}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
-        </form>
+        </div>
 
         {/* 送信セクション（プライマリのみキューUIあり） */}
         {onAddToQueue && isPrimary && (

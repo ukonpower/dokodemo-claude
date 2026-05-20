@@ -61,23 +61,6 @@
   }
 }
 
-.providerDot {
-  display: inline-block;
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 9999px;
-  background-color: $gray-500;
-  flex-shrink: 0;
-
-  .tab.claude & {
-    background-color: #fb923c;
-  }
-
-  .tab.codex & {
-    background-color: #38bdf8;
-  }
-}
-
 .label {
   @include truncate;
   max-width: 7rem;
@@ -183,11 +166,4 @@
     background-color: $gray-700;
   }
 
-  &.claude .providerDot {
-    background-color: #fb923c;
-  }
-
-  &.codex .providerDot {
-    background-color: #38bdf8;
-  }
 }
