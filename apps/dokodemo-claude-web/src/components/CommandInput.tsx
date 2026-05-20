@@ -92,8 +92,10 @@ interface TextInputProps {
   currentRepository?: string;
   /** プライマリインスタンスかどうか（false の場合はキュー/Auto ワークフロー非表示） */
   isPrimary?: boolean;
-  /** 入力無効化フラグ */
+  /** 送信操作の無効化フラグ（ネットワーク切断時など、送信できない状態） */
   disabled?: boolean;
+  /** 入力欄自体の無効化フラグ（リポジトリ未選択など、入力する意味がない状態） */
+  inputDisabled?: boolean;
   /** 自動フォーカスを有効化するか */
   autoFocus?: boolean;
   /** 送信設定の状態 */
@@ -165,6 +167,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       currentRepository = '',
       isPrimary = true,
       disabled = false,
+      inputDisabled,
       autoFocus = true,
       sendSettings,
       onSendSettingsChange,
@@ -174,6 +177,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     },
     ref
   ) => {
+    // 入力欄の無効化条件。未指定なら disabled をそのまま使う。
+    const isInputDisabled = inputDisabled ?? disabled;
+
     // プロバイダー・リポジトリ別のローカルストレージキーを生成
     const getStorageKey = useCallback(() => {
       // リポジトリパスをBase64エンコードしてキーに含める（特殊文字対策）
@@ -899,13 +905,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // フォーカスを自動で設定
     useEffect(() => {
-      if (!autoFocus || disabled) {
+      if (!autoFocus || isInputDisabled) {
         return;
       }
       if (inputRef.current) {
         inputRef.current.focus();
       }
-    }, [autoFocus, disabled]);
+    }, [autoFocus, isInputDisabled]);
 
     // refでフォーカス・送信メソッドを公開
     useImperativeHandle(ref, () => ({
@@ -1064,12 +1070,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
               placeholder={
-                disabled
+                isInputDisabled
                   ? 'リポジトリを選択してください...'
                   : providerInfo.placeholder
               }
               className={`${s.textarea} ${isDragOver ? s.dragOver : ''}`}
-              disabled={disabled || isUploadingFile}
+              disabled={isInputDisabled || isUploadingFile}
             />
             {isUploadingFile && (
               <div className={s.uploadOverlay}>
@@ -1103,7 +1109,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               <button
                 type="button"
                 onClick={handleClearInput}
-                disabled={disabled}
+                disabled={isInputDisabled}
                 className={s.clearInputButton}
                 title="入力内容をクリア"
               >
@@ -1128,7 +1134,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             <button
               type="button"
               onClick={navigateHistoryUp}
-              disabled={disabled || loadHistory().length === 0}
+              disabled={isInputDisabled || loadHistory().length === 0}
               className={s.historyButton}
               title="前の履歴"
               aria-label="前の履歴"
@@ -1140,7 +1146,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             <button
               type="button"
               onClick={navigateHistoryDown}
-              disabled={disabled || historyIndex === -1}
+              disabled={isInputDisabled || historyIndex === -1}
               className={s.historyButton}
               title="次の履歴"
               aria-label="次の履歴"
@@ -1159,7 +1165,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => handleTabKey('outdent')}
-              disabled={disabled}
+              disabled={isInputDisabled}
               className={`${s.historyButton} ${s.mobileOnly}`}
               title="アウトデント (Shift+Tab)"
               aria-label="アウトデント"
@@ -1182,7 +1188,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onPointerDown={(e) => e.preventDefault()}
               onClick={() => handleTabKey('indent')}
-              disabled={disabled}
+              disabled={isInputDisabled}
               className={`${s.historyButton} ${s.mobileOnly}`}
               title="インデント (Tab)"
               aria-label="インデント"

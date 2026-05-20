@@ -775,6 +775,7 @@ export function ProjectView({
                       currentRepository={currentRepo}
                       isPrimary={activeInstance?.isPrimary ?? false}
                       disabled={!isConnected || !currentRepo || !activeInstance}
+                      inputDisabled={!currentRepo || !activeInstance}
                       autoFocus={false}
                       sendSettings={sendSettings}
                       onSendSettingsChange={onSendSettingsChange}
