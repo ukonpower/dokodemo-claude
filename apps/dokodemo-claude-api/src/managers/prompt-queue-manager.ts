@@ -44,6 +44,11 @@ export interface QueueAiSessionAdapter {
    * セッションの状態を取得
    */
   getSessionStatus(sessionId: string): { isActive: boolean } | null;
+
+  /**
+   * プライマリAIが処理中か（UserPromptSubmit → running, Stop → completed/idle）
+   */
+  isPrimaryAiBusy(repositoryPath: string, provider: AiProvider): boolean;
 }
 
 export class PromptQueueManager extends EventEmitter {
@@ -143,8 +148,12 @@ export class PromptQueueManager extends EventEmitter {
       // キュー更新イベントを発火
       this.emitQueueUpdated(repositoryPath, provider, state);
 
-      // 処理中でない場合は即座に処理開始
-      if (!state.isProcessing && !state.isPaused) {
+      // 処理中でなく、一時停止中でなく、プライマリAIも busy でなければ即座に処理開始
+      // （直送プロンプトで AI が処理中のときは Stop hook 着弾後に triggerFromHook が処理を進める）
+      const aiBusy =
+        this.aiSessionAdapter?.isPrimaryAiBusy(repositoryPath, provider) ??
+        false;
+      if (!state.isProcessing && !state.isPaused && !aiBusy) {
         this.processNextItem(repositoryPath, provider);
       }
 

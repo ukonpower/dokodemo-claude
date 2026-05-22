@@ -328,6 +328,7 @@ export function useAiCli(
       socket.emit('send-command', {
         command,
         instanceId: activeInstanceIdRef.current,
+        type,
       });
 
       if (config.needsEnter) {
@@ -335,6 +336,7 @@ export function useAiCli(
           socket.emit('send-command', {
             command: '\r',
             instanceId: activeInstanceIdRef.current,
+            type: 'raw',
           });
         }, 300);
       }

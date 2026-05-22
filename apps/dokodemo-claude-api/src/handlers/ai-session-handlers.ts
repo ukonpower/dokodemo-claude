@@ -226,13 +226,23 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
 
   // コマンド送信
   socket.on('send-command', (data) => {
-    const { command, instanceId } = data;
+    const { command, instanceId, type } = data;
     const instance =
       processManager.aiSessionManager.getInstance(instanceId);
     if (!instance) {
       console.warn('[send-command] instance not found:', instanceId);
       return;
     }
+
+    // プライマリへの実プロンプト系送信は UserPromptSubmit hook の到着を待たず
+    // 先回りで running に遷移させ、直送中のキュー OFF→ON race を防ぐ
+    if (
+      instance.isPrimary &&
+      (type === 'prompt' || type === 'clear' || type === 'commit')
+    ) {
+      processManager.setAiExecutionStatus(instanceId, 'running');
+    }
+
     const success = processManager.sendToInstance(instanceId, command);
     if (!success) {
       emitSystemMessage(socket, `CLIセッションエラー: 入力に失敗しました\n`, {
