@@ -176,6 +176,13 @@ export class ProcessManager extends EventEmitter {
         const session = this.aiSessionManager.getSessionById(sessionId);
         return session ? { isActive: session.isActive } : null;
       },
+      isPrimaryAiBusy: (repositoryPath: string, provider: AiProvider) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary || primary.provider !== provider) return false;
+        return this.getAiExecutionStatus(primary.instanceId) === 'running';
+      },
     });
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
       this.emit('prompt-queue-updated', data)

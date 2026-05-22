@@ -546,7 +546,11 @@ export interface ClientToServerEvents {
   'close-ai-instance': (data: { instanceId: string }) => void;
   'rename-ai-instance': (data: { instanceId: string; displayName: string }) => void;
 
-  'send-command': (data: { command: string; instanceId: string }) => void;
+  'send-command': (data: {
+    command: string;
+    instanceId: string;
+    type?: 'prompt' | 'clear' | 'commit' | 'raw';
+  }) => void;
   'ai-interrupt': (data: { instanceId: string }) => void;
   'get-ai-history': (data: { instanceId: string }) => void;
   'clear-ai-output': (data: { instanceId: string }) => void;
