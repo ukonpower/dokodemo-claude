@@ -690,8 +690,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     const handleDragOver = useCallback(
       (e: React.DragEvent<HTMLTextAreaElement>) => {
-        if (!e.dataTransfer.types.includes('Files')) return;
         e.preventDefault();
+        if (!e.dataTransfer.types.includes('Files')) return;
         setIsDragOver(true);
       },
       []
@@ -699,7 +699,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     const handleDragLeave = useCallback(
       (e: React.DragEvent<HTMLTextAreaElement>) => {
-        if (!e.dataTransfer.types.includes('Files')) return;
         e.preventDefault();
         setIsDragOver(false);
       },
@@ -708,11 +707,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     const handleDrop = useCallback(
       async (e: React.DragEvent<HTMLTextAreaElement>) => {
-        const droppedFiles = Array.from(e.dataTransfer.files);
-        if (droppedFiles.length === 0) return;
         e.preventDefault();
         setIsDragOver(false);
 
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        if (droppedFiles.length === 0) return;
         if (!onPasteFile) return;
 
         const paths: string[] = [];

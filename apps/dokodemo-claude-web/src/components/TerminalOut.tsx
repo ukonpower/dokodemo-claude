@@ -792,6 +792,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
         style={{
           background: '#0a0a0a', // dark-bg-primary
           overflow: 'auto', // スクロールを有効化
