@@ -66,7 +66,6 @@ function loadSettingsForRepoInternal(repoPath: string): CommandSendSettings {
     addToQueue: false,
     sendClear: false,
     sendCommit: false,
-    model: 'Sonnet',
   };
 }
 
