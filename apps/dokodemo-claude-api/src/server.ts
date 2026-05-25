@@ -450,15 +450,9 @@ const hookStats = {
   lastProcessed: null as Date | null,
 };
 
-// Web Push 通知対象イベントのラベル定義。
+// Web Push 通知対象イベントの絵文字定義。
 // ここに載っていないイベントは通知しない（UserPromptSubmit など内部ステータス遷移専用のイベントが
 // 誤って通知されるのを防ぐためのホワイトリスト）。
-const NOTIFICATION_EVENT_LABELS: Record<string, string> = {
-  Stop: '処理完了',
-  AskUserQuestion: '質問待ち',
-  PlanApprovalWaiting: 'プラン承認待ち',
-  PermissionRequest: '権限確認待ち',
-};
 const NOTIFICATION_EVENT_EMOJIS: Record<string, string> = {
   Stop: '✅',
   AskUserQuestion: '❓',
@@ -539,16 +533,17 @@ async function handleAiHookEvent(
 
     // Web Push通知を送信（ホワイトリストに載っているイベントのみ）
     const wpService = getWebPushService();
-    const shouldNotify = event in NOTIFICATION_EVENT_LABELS;
+    const shouldNotify = event in NOTIFICATION_EVENT_EMOJIS;
     if (wpService && shouldNotify) {
-      const label = NOTIFICATION_EVENT_LABELS[event];
       const emoji = NOTIFICATION_EVENT_EMOJIS[event];
-      const title = `${emoji} ${repositoryName ? `[${repositoryName}${instanceLabel}] ` : ''}${label}`;
+      const title = repositoryName
+        ? `${emoji} [${repositoryName}${instanceLabel}]`
+        : emoji;
 
       const bodyParts: string[] = [];
       if (lastUserCommand) bodyParts.push(`🔧 ${lastUserCommand.slice(0, 150)}`);
       if (lastOutput) bodyParts.push(`💬 ${lastOutput.slice(0, 150)}`);
-      const notificationBody = bodyParts.length > 0 ? bodyParts.join('\n\n') : label;
+      const notificationBody = bodyParts.join('\n\n');
 
       const notificationUrl = repositoryPath
         ? `/?repo=${encodeURIComponent(repositoryPath)}`
