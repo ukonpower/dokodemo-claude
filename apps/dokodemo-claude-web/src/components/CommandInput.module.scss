@@ -462,6 +462,8 @@
   background: none;
   border: none;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
 
   &.active {
     background-color: $dark-bg-hover;
@@ -480,13 +482,15 @@
 .queueIcon {
   width: 0.75rem;
   height: 0.75rem;
+  flex-shrink: 0;
 }
 
 .toggleTrack {
+  position: relative;
   width: 1.5rem;
   height: 0.875rem;
   border-radius: 9999px;
-  position: relative;
+  flex-shrink: 0;
   transition: background-color $transition-normal $transition-easing;
 
   &.on {
@@ -520,6 +524,7 @@
   width: 1px;
   height: 1rem;
   background-color: $dark-border-light;
+  flex-shrink: 0;
 }
 
 .optionButton {
@@ -534,6 +539,8 @@
   background: none;
   border: none;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
 
   &.active {
     background-color: $dark-bg-hover;
@@ -560,6 +567,7 @@
 
 .modelDropdownWrapper {
   position: relative;
+  flex-shrink: 0;
 }
 
 .modelButton {
@@ -574,6 +582,7 @@
   background: none;
   border: none;
   cursor: pointer;
+  white-space: nowrap;
 
   &.active {
     background-color: $dark-bg-hover;
