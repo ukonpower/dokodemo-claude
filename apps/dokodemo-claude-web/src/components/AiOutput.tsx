@@ -53,6 +53,8 @@ interface AiOutputProps {
   onProviderChange?: (provider: AiProvider) => void;
   /** カスタムフォントサイズ */
   fontSize?: number;
+  /** ターミナル上にファイルがドロップされた際のコールバック */
+  onFileDrop?: (files: File[]) => void;
 }
 
 /**
@@ -78,6 +80,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       onClearHistory,
       onProviderChange,
       fontSize,
+      onFileDrop,
     },
     ref
   ) => {
@@ -509,6 +512,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             disableStdin={false}
             cursorBlink={false}
             fontSize={fontSize}
+            onFileDrop={onFileDrop}
           />
 
           {/* 右下のスクロールボタン */}
@@ -586,6 +590,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
                 disableStdin={false}
                 cursorBlink={false}
                 fontSize={fontSize}
+                onFileDrop={onFileDrop}
               />
               {/* 全画面時のスクロールボタン */}
               <div className={s.fullscreenScrollWrapper}>

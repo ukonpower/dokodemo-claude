@@ -398,6 +398,11 @@ export function ProjectView({
     [onSendCommand]
   );
 
+  // AI ターミナル上にドロップされたファイルをテキストエリアへルーティング
+  const handleAiTerminalFileDrop = useCallback((files: File[]) => {
+    void textInputRef.current?.insertFiles(files);
+  }, []);
+
   const handleAddToQueue = useCallback(
     (
       command: string,
@@ -762,6 +767,7 @@ export function ProjectView({
                           : undefined
                       }
                       fontSize={terminalFontSize}
+                      onFileDrop={handleAiTerminalFileDrop}
                     />
                   </div>
 

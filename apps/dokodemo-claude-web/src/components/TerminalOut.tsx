@@ -78,6 +78,13 @@ interface TerminalOutProps {
    * タブ切り替え時の再描画に使用
    */
   isActive?: boolean;
+
+  /**
+   * ファイルがターミナル上にドロップされた際のコールバック
+   * 指定されている場合、ドロップされたファイルは xterm に入力されず
+   * このコールバックに渡される
+   */
+  onFileDrop?: (files: File[]) => void;
 }
 
 /**
@@ -96,6 +103,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   disableStdin = false,
   scrollOnUserInput = false,
   isActive,
+  onFileDrop,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
@@ -129,6 +137,41 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   useEffect(() => {
     onKeyInputRef.current = onKeyInput;
   }, [onKeyInput]);
+
+  // ファイルドラッグ&ドロップを capture フェーズで横取りする。
+  // xterm.js の helper textarea がドロップを受け取って onData として
+  // 送信してしまうのを防ぐため、必ず capture: true で登録する必要がある。
+  useEffect(() => {
+    const el = terminalRef.current;
+    if (!el) return;
+
+    const isFileDrag = (e: DragEvent) =>
+      !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (isFileDrag(e)) {
+        e.stopPropagation();
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      if (!isFileDrag(e)) return;
+      e.stopPropagation();
+      const files = e.dataTransfer ? Array.from(e.dataTransfer.files) : [];
+      if (files.length > 0) {
+        onFileDrop?.(files);
+      }
+    };
+
+    el.addEventListener('dragover', handleDragOver, true);
+    el.addEventListener('drop', handleDrop, true);
+    return () => {
+      el.removeEventListener('dragover', handleDragOver, true);
+      el.removeEventListener('drop', handleDrop, true);
+    };
+  }, [onFileDrop]);
 
   // textareaへのアクセス用の型拡張
   type TerminalWithTextarea = Terminal & {
@@ -792,8 +835,6 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => e.preventDefault()}
         style={{
           background: '#0a0a0a', // dark-bg-primary
           overflow: 'auto', // スクロールを有効化
