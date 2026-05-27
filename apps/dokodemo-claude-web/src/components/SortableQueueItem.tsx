@@ -7,12 +7,15 @@ import s from './SortableQueueItem.module.scss';
 
 // モデルの表示名マッピング
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  '': '未指定',
   default: 'Default',
-  '': 'Default',
   Opus: 'Opus',
   Sonnet: 'Sonnet',
   OpusPlan: 'OpusPlan',
 };
+
+// モデル選択肢の表示順
+const MODEL_OPTIONS = ['', 'default', 'Opus', 'Sonnet', 'OpusPlan'] as const;
 
 // 編集モードコンポーネントのProps
 interface EditModeContentProps {
@@ -81,7 +84,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
   const activeOptionsCount =
     (editSendClearBefore ? 1 : 0) +
     (editIsAutoCommit ? 1 : 0) +
-    (editModel && editModel !== 'default' ? 1 : 0);
+    (editModel ? 1 : 0);
 
   return (
     <>
@@ -254,24 +257,20 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     モデル
                   </div>
                   <div className={s.modelGrid}>
-                    {['default', 'Opus', 'Sonnet', 'OpusPlan'].map(
-                      (modelOption) => (
-                        <button
-                          key={modelOption}
-                          type="button"
-                          onClick={() => setEditModel(modelOption)}
-                          className={`${s.modelButton} ${
-                            editModel === modelOption ||
-                            (modelOption === 'default' &&
-                              (!editModel || editModel === ''))
-                              ? s.modelButtonActive
-                              : s.modelButtonInactive
-                          }`}
-                        >
-                          {MODEL_DISPLAY_NAMES[modelOption]}
-                        </button>
-                      )
-                    )}
+                    {MODEL_OPTIONS.map((modelOption) => (
+                      <button
+                        key={modelOption || 'unset'}
+                        type="button"
+                        onClick={() => setEditModel(modelOption)}
+                        className={`${s.modelButton} ${
+                          editModel === modelOption
+                            ? s.modelButtonActive
+                            : s.modelButtonInactive
+                        }`}
+                      >
+                        {MODEL_DISPLAY_NAMES[modelOption]}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

@@ -139,11 +139,15 @@ const WORKFLOW_SKILLS = [
 
 // モデルの表示名マッピング
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  '': '未指定',
   default: 'Default',
   Opus: 'Opus',
   Sonnet: 'Sonnet',
   OpusPlan: 'OpusPlan',
 };
+
+// モデル選択肢の表示順
+const MODEL_OPTIONS = ['', 'default', 'Opus', 'Sonnet', 'OpusPlan'] as const;
 
 /**
  * TextInputの公開メソッド
@@ -1335,10 +1339,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                         setIsModelDropdownOpen(!isModelDropdownOpen)
                       }
                       disabled={disabled}
-                      className={`${s.modelButton} ${model && model !== 'default' ? s.active : ''}`}
+                      className={`${s.modelButton} ${model ? s.active : ''}`}
                       title="モデル選択"
                     >
-                      {MODEL_DISPLAY_NAMES[model] || 'Default'}
+                      {MODEL_DISPLAY_NAMES[model] ?? '未指定'}
                       <svg
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
                         fill="none"
@@ -1363,26 +1367,21 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                           transform: 'translateY(-100%)',
                         }}
                       >
-                        {['default', 'Opus', 'Sonnet', 'OpusPlan'].map(
-                          (modelOption) => (
-                            <button
-                              key={modelOption}
-                              type="button"
-                              onClick={() => {
-                                handleSettingChange('model', modelOption);
-                                setIsModelDropdownOpen(false);
-                              }}
-                              className={`${s.modelOption} ${
-                                model === modelOption ||
-                                (modelOption === 'default' && !model)
-                                  ? s.selected
-                                  : ''
-                              }`}
-                            >
-                              {MODEL_DISPLAY_NAMES[modelOption]}
-                            </button>
-                          )
-                        )}
+                        {MODEL_OPTIONS.map((modelOption) => (
+                          <button
+                            key={modelOption || 'unset'}
+                            type="button"
+                            onClick={() => {
+                              handleSettingChange('model', modelOption);
+                              setIsModelDropdownOpen(false);
+                            }}
+                            className={`${s.modelOption} ${
+                              model === modelOption ? s.selected : ''
+                            }`}
+                          >
+                            {MODEL_DISPLAY_NAMES[modelOption]}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
