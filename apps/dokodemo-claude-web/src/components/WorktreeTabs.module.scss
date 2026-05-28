@@ -195,19 +195,7 @@
 }
 
 .tabBranchName {
-  @include truncate;
-
-  &.compact {
-    max-width: 6rem;
-
-    @include sm-up {
-      max-width: 5rem;
-    }
-  }
-
-  &.normal {
-    max-width: 10rem;
-  }
+  white-space: nowrap;
 }
 
 .activeDot {
