@@ -155,6 +155,7 @@ const MODEL_OPTIONS = ['', 'default', 'Opus', 'Sonnet', 'OpusPlan'] as const;
 export interface TextInputRef {
   focus: () => void;
   submit: () => void;
+  insertFiles: (files: File[]) => Promise<void>;
 }
 
 /**
@@ -709,17 +710,15 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       []
     );
 
-    const handleDrop = useCallback(
-      async (e: React.DragEvent<HTMLTextAreaElement>) => {
-        e.preventDefault();
-        setIsDragOver(false);
-
-        const droppedFiles = Array.from(e.dataTransfer.files);
-        if (droppedFiles.length === 0) return;
+    const insertFilesAsPaths = useCallback(
+      async (files: File[]) => {
+        if (files.length === 0) return;
         if (!onPasteFile) return;
 
+        inputRef.current?.focus();
+
         const paths: string[] = [];
-        for (const file of droppedFiles) {
+        for (const file of files) {
           const p = await onPasteFile(file);
           if (p) paths.push(p);
         }
@@ -728,6 +727,17 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         insertAtSelection(paths.join(' '));
       },
       [onPasteFile, insertAtSelection]
+    );
+
+    const handleDrop = useCallback(
+      async (e: React.DragEvent<HTMLTextAreaElement>) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        await insertFilesAsPaths(droppedFiles);
+      },
+      [insertFilesAsPaths]
     );
 
     // ファイルアップロード用 input の ref
@@ -925,6 +935,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       },
       submit: () => {
         sendCommand();
+      },
+      insertFiles: async (files: File[]) => {
+        await insertFilesAsPaths(files);
       },
     }));
 
