@@ -26,7 +26,10 @@ import type {
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import type { CommandSendSettings } from '../hooks/useAppSettings';
-import type { WorktreeSyncConfigState } from '../hooks/useBranchWorktree';
+import type {
+  WorktreeSyncConfigState,
+  WorktreeSyncCandidatesState,
+} from '../hooks/useBranchWorktree';
 
 import AiOutput, { AiOutputRef } from '../components/AiOutput';
 import TextInput, { TextInputRef } from '../components/CommandInput';
@@ -138,6 +141,8 @@ interface ProjectViewProps {
   worktreeSyncConfig: WorktreeSyncConfigState | null;
   onRequestWorktreeSyncConfig: () => void;
   onSaveWorktreeSyncConfig: (entries: WorktreeSyncEntry[]) => void;
+  worktreeSyncCandidates: WorktreeSyncCandidatesState | null;
+  onRequestWorktreeSyncCandidates: (dirPath: string) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
   onClearMergeError: () => void;
@@ -318,6 +323,8 @@ export function ProjectView({
   worktreeSyncConfig,
   onRequestWorktreeSyncConfig,
   onSaveWorktreeSyncConfig,
+  worktreeSyncCandidates,
+  onRequestWorktreeSyncCandidates,
   onDeleteWorktree,
   onMergeWorktree,
   onClearMergeError,
@@ -710,6 +717,8 @@ export function ProjectView({
                   syncConfig={worktreeSyncConfig}
                   onRequestSyncConfig={onRequestWorktreeSyncConfig}
                   onSaveSyncConfig={onSaveWorktreeSyncConfig}
+                  syncCandidates={worktreeSyncCandidates}
+                  onRequestSyncCandidates={onRequestWorktreeSyncCandidates}
                 />
               </>
             )}

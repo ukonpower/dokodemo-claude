@@ -1,7 +1,6 @@
 /**
  * ワークツリー同期処理
- * - 親リポジトリの .gitignore からコピー/リンク候補を抽出
- * - 設定エントリに従って worktree へコピーまたはシンボリックリンクを作成
+ * 設定エントリに従って worktree へコピーまたはシンボリックリンクを作成する。
  */
 
 import path from 'path';
@@ -10,94 +9,6 @@ import type {
   WorktreeSyncEntry,
   WorktreeSyncResult,
 } from '../types/index.js';
-
-// 通常コピー/リンクの対象にしないことが多い大規模ディレクトリ
-const EXCLUDED_NAMES = new Set([
-  'node_modules',
-  'dist',
-  'build',
-  '.next',
-  '.nuxt',
-  '.turbo',
-  '.cache',
-  '.parcel-cache',
-  '.pnpm-store',
-  '.yarn',
-  'coverage',
-  'out',
-  'tmp',
-  'target',
-  '.vite',
-  '.expo',
-  '.swc',
-  '__pycache__',
-  '.tox',
-  'venv',
-  '.venv',
-  '.gradle',
-  '.terraform',
-  '.idea',
-  '.DS_Store',
-]);
-
-function isLikelyPattern(line: string): boolean {
-  return /[*?[\]]/.test(line);
-}
-
-function normalizeIgnoreLine(rawLine: string): string | null {
-  const line = rawLine.trim();
-  if (!line) return null;
-  if (line.startsWith('#')) return null;
-  if (line.startsWith('!')) return null; // 否定パターンはスキップ
-  if (isLikelyPattern(line)) return null;
-  // 先頭の / と末尾の / を除去（gitignore 表記）
-  let normalized = line.replace(/^\//, '').replace(/\/$/, '');
-  if (!normalized) return null;
-  // 親参照を含むパスは弾く
-  if (normalized.startsWith('..') || normalized.includes('/../')) return null;
-  // ネストされたパスは取り扱わない（最上位のみ提案）
-  if (normalized.includes('/')) return null;
-  return normalized;
-}
-
-/**
- * 親リポジトリの .gitignore からエントリを読み、巨大ディレクトリを除外したうえで
- * 「親リポジトリ内で実在する」もののみを候補として返す。
- */
-export async function getSyncSuggestions(
-  parentRepoPath: string
-): Promise<string[]> {
-  let ignoreContent = '';
-  try {
-    ignoreContent = await fs.readFile(
-      path.join(parentRepoPath, '.gitignore'),
-      'utf-8'
-    );
-  } catch {
-    return [];
-  }
-
-  const candidates = new Set<string>();
-  for (const rawLine of ignoreContent.split(/\r?\n/)) {
-    const normalized = normalizeIgnoreLine(rawLine);
-    if (!normalized) continue;
-    if (EXCLUDED_NAMES.has(normalized)) continue;
-    candidates.add(normalized);
-  }
-
-  const existing: string[] = [];
-  for (const name of candidates) {
-    const fullPath = path.join(parentRepoPath, name);
-    try {
-      await fs.access(fullPath);
-      existing.push(name);
-    } catch {
-      // 実在しないものは候補にしない
-    }
-  }
-  existing.sort((a, b) => a.localeCompare(b));
-  return existing;
-}
 
 async function copyRecursive(src: string, dest: string): Promise<void> {
   const stat = await fs.lstat(src);
