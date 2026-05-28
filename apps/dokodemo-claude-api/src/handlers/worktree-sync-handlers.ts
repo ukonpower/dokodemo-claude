@@ -7,7 +7,6 @@ import type { HandlerContext } from './types.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { getMainRepoPath } from '../utils/git-utils.js';
-import { getSyncSuggestions } from '../utils/worktree-sync.js';
 
 export function registerWorktreeSyncHandlers(ctx: HandlerContext): void {
   const { socket, processManager } = ctx;
@@ -23,13 +22,11 @@ export function registerWorktreeSyncHandlers(ctx: HandlerContext): void {
     const parentRepoPath = getMainRepoPath(repoPath);
     const prid = repositoryIdManager.tryGetId(parentRepoPath);
     const entries = mgr.get(parentRepoPath);
-    const suggestions = await getSyncSuggestions(parentRepoPath);
 
     socket.emit('worktree-sync-config', {
       prid,
       parentRepoPath,
       entries,
-      suggestions,
     });
   });
 
@@ -66,12 +63,10 @@ export function registerWorktreeSyncHandlers(ctx: HandlerContext): void {
       parentRepoPath,
     });
     // 保存後の最新状態を返す
-    const suggestions = await getSyncSuggestions(parentRepoPath);
     socket.emit('worktree-sync-config', {
       prid,
       parentRepoPath,
       entries: result.value,
-      suggestions,
     });
   });
 }

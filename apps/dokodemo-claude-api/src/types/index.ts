@@ -340,12 +340,11 @@ export interface ServerToClientEvents {
     };
   }) => void;
 
-  // ワークツリー同期設定（リポジトリ単位の保存設定 + .gitignore からの候補）
+  // ワークツリー同期設定（リポジトリ単位の保存設定）
   'worktree-sync-config': (data: {
     prid?: string;
     parentRepoPath: string;
     entries: WorktreeSyncEntry[];
-    suggestions: string[]; // 候補として提示するパス（相対パス、実在のみ）
   }) => void;
   'worktree-sync-config-saved': (data: {
     success: boolean;

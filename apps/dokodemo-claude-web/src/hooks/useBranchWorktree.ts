@@ -12,12 +12,11 @@ import type {
 import { repositoryIdMap } from '../utils/repository-id-map';
 
 /**
- * worktree 作成時のファイル同期設定（リポジトリ単位の保存値 + .gitignore 由来の候補）
+ * worktree 作成時のファイル同期設定（リポジトリ単位の保存値）
  */
 export interface WorktreeSyncConfigState {
   parentRepoPath: string;
   entries: WorktreeSyncEntry[];
-  suggestions: string[];
   // 直近の保存試行のタイムスタンプ・結果
   lastSavedAt?: number;
   lastSaveError?: string;
@@ -316,7 +315,6 @@ export function useBranchWorktree(
       setWorktreeSyncConfig({
         parentRepoPath: data.parentRepoPath,
         entries: data.entries,
-        suggestions: data.suggestions,
       });
     };
 

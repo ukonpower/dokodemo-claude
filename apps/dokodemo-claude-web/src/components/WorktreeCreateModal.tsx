@@ -22,46 +22,6 @@ interface WorktreeCreateModalProps {
   ) => void;
 }
 
-// 「skip（含めない）」を含むローカル状態
-type SyncRowMode = WorktreeSyncMode | 'skip';
-
-interface SyncRow {
-  path: string;
-  mode: SyncRowMode;
-  fromSuggestion: boolean;
-}
-
-function buildRows(
-  suggestions: string[],
-  savedEntries: WorktreeSyncEntry[]
-): SyncRow[] {
-  const rows: SyncRow[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of savedEntries) {
-    rows.push({
-      path: entry.path,
-      mode: entry.mode,
-      fromSuggestion: suggestions.includes(entry.path),
-    });
-    seen.add(entry.path);
-  }
-
-  for (const suggestion of suggestions) {
-    if (seen.has(suggestion)) continue;
-    rows.push({ path: suggestion, mode: 'copy', fromSuggestion: true });
-    seen.add(suggestion);
-  }
-
-  return rows;
-}
-
-function rowsToEntries(rows: SyncRow[]): WorktreeSyncEntry[] {
-  return rows
-    .filter((r) => r.mode !== 'skip')
-    .map((r) => ({ path: r.path, mode: r.mode as WorktreeSyncMode }));
-}
-
 function WorktreeCreateModal({
   parentRepoPath,
   branches,
@@ -76,7 +36,7 @@ function WorktreeCreateModal({
   const [useExistingBranch, setUseExistingBranch] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newPath, setNewPath] = useState('');
-  const [rows, setRows] = useState<SyncRow[]>([]);
+  const [rows, setRows] = useState<WorktreeSyncEntry[]>([]);
   const [hasInitializedRows, setHasInitializedRows] = useState(false);
   const [savingSince, setSavingSince] = useState<number | null>(null);
   const lastSeenSavedAt = useRef<number | undefined>(syncConfig?.lastSavedAt);
@@ -91,7 +51,7 @@ function WorktreeCreateModal({
     if (!syncConfig) return;
     if (syncConfig.parentRepoPath !== parentRepoPath) return;
     if (hasInitializedRows) return;
-    setRows(buildRows(syncConfig.suggestions, syncConfig.entries));
+    setRows(syncConfig.entries.map((e) => ({ ...e })));
     setHasInitializedRows(true);
   }, [syncConfig, parentRepoPath, hasInitializedRows]);
 
@@ -116,7 +76,7 @@ function WorktreeCreateModal({
       branchName.trim(),
       baseBranch.trim() || undefined,
       useExistingBranch,
-      rowsToEntries(rows)
+      rows
     );
     onClose();
   };
@@ -139,7 +99,7 @@ function WorktreeCreateModal({
     setBranchName(selectedBranch);
   };
 
-  const updateRowMode = (path: string, mode: SyncRowMode) => {
+  const updateRowMode = (path: string, mode: WorktreeSyncMode) => {
     setRows((prev) => prev.map((r) => (r.path === path ? { ...r, mode } : r)));
   };
 
@@ -155,16 +115,13 @@ function WorktreeCreateModal({
       setNewPath('');
       return;
     }
-    setRows((prev) => [
-      ...prev,
-      { path: trimmed, mode: 'copy', fromSuggestion: false },
-    ]);
+    setRows((prev) => [...prev, { path: trimmed, mode: 'copy' }]);
     setNewPath('');
   };
 
   const handleSaveAsDefault = () => {
     setSavingSince(Date.now());
-    onSaveSyncConfig(rowsToEntries(rows));
+    onSaveSyncConfig(rows);
   };
 
   const summary = useMemo(() => {
@@ -174,8 +131,7 @@ function WorktreeCreateModal({
   }, [rows]);
 
   const loaded =
-    hasInitializedRows ||
-    (syncConfig?.parentRepoPath === parentRepoPath && rows.length === 0);
+    hasInitializedRows || syncConfig?.parentRepoPath === parentRepoPath;
 
   return (
     <div className={s.modalOverlay}>
@@ -303,61 +259,57 @@ function WorktreeCreateModal({
               </button>
             </div>
             <p className={s.syncHint}>
-              .gitignore から抽出した候補と手動追加のパスを
-              「コピー / リンク / 含めない」から選択。作成直後に worktree
-              へ反映されます。
+              worktree 作成時に親リポジトリからコピー / リンクするパスを
+              指定します。下の入力欄から追加できます。
             </p>
 
             {!loaded && <p className={s.syncEmpty}>読み込み中…</p>}
             {loaded && rows.length === 0 && (
               <p className={s.syncEmpty}>
-                候補なし。下の入力欄から追加できます。
+                同期対象なし。下の入力欄から追加できます。
               </p>
             )}
 
             <div className={s.syncList}>
               {rows.map((row) => (
                 <div key={row.path} className={s.syncRow}>
-                  <span
-                    className={`${s.syncPath} ${row.mode === 'skip' ? s.syncPathMuted : ''}`}
-                    title={row.path}
-                  >
+                  <span className={s.syncPath} title={row.path}>
                     {row.path}
                   </span>
                   <select
                     value={row.mode}
                     onChange={(e) =>
-                      updateRowMode(row.path, e.target.value as SyncRowMode)
+                      updateRowMode(
+                        row.path,
+                        e.target.value as WorktreeSyncMode
+                      )
                     }
                     className={s.syncSelect}
                   >
-                    <option value="skip">含めない</option>
                     <option value="copy">コピー</option>
                     <option value="link">リンク</option>
                   </select>
-                  {!row.fromSuggestion && (
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.path)}
-                      className={s.syncRemoveButton}
-                      title="この行を削除"
+                  <button
+                    type="button"
+                    onClick={() => removeRow(row.path)}
+                    className={s.syncRemoveButton}
+                    title="この行を削除"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <svg
-                        width="14"
-                        height="14"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 </div>
               ))}
             </div>
