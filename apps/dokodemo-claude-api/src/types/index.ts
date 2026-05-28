@@ -353,6 +353,14 @@ export interface ServerToClientEvents {
     parentRepoPath?: string;
   }) => void;
 
+  // ワークツリー同期対象候補（指定ディレクトリ直下のファイル/ディレクトリ一覧）
+  'worktree-sync-candidates': (data: {
+    prid?: string;
+    parentRepoPath: string;
+    dirPath: string; // 親リポジトリルートからの相対パス（'' でルート直下）
+    entries: { name: string; type: 'file' | 'directory' }[];
+  }) => void;
+
   // npmスクリプト関連イベント
   'npm-scripts-list': (data: {
     scripts: Record<string, string>;
@@ -676,6 +684,13 @@ export interface ClientToServerEvents {
     prid?: string;
     parentRepoPath?: string;
     entries: WorktreeSyncEntry[];
+  }) => void;
+
+  // ワークツリー同期対象候補の取得（親リポジトリ内の指定ディレクトリ直下を列挙）
+  'list-worktree-sync-candidates': (data: {
+    prid?: string;
+    parentRepoPath?: string;
+    dirPath?: string;
   }) => void;
 
   // npmスクリプト関連イベント

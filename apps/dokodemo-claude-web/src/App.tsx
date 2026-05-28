@@ -500,6 +500,10 @@ function App() {
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}
       onRequestWorktreeSyncConfig={branchWorktree.requestWorktreeSyncConfig}
       onSaveWorktreeSyncConfig={branchWorktree.saveWorktreeSyncConfig}
+      worktreeSyncCandidates={branchWorktree.worktreeSyncCandidates}
+      onRequestWorktreeSyncCandidates={
+        branchWorktree.requestWorktreeSyncCandidates
+      }
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}
       onClearMergeError={() => branchWorktree.setMergeError(null)}

@@ -292,10 +292,17 @@
   display: flex;
   gap: 0.4rem;
   margin-top: 0.5rem;
+  align-items: flex-start;
+}
+
+.syncAddInputWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .syncAddInput {
-  flex: 1;
+  width: 100%;
   padding: 0.3rem 0.5rem;
   background-color: $gray-900;
   border: 1px solid $dark-border-light;
@@ -308,6 +315,72 @@
     outline: none;
     border-color: $blue-500;
   }
+}
+
+.suggestList {
+  // 親モーダルの overflow に切り取られないよう document.body にポータル描画し、
+  // top/left/width/maxHeight は JS から inline style で渡す
+  position: fixed;
+  z-index: 100; // modalOverlay の z-index: 50 より上
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  padding: 0.2rem;
+  margin: 0;
+  list-style: none;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  // スマホ向けにタップしやすいデフォルトサイズ
+  padding: 0.55rem 0.6rem;
+  font-size: $font-size-sm;
+  font-family: $font-mono;
+  color: $gray-200;
+  border-radius: $radius;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+
+  @include sm-up {
+    padding: 0.3rem 0.45rem;
+    font-size: $font-size-xs;
+    gap: 0.4rem;
+  }
+}
+
+.suggestItemActive {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.suggestItemDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.suggestIcon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.suggestName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestBadge {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-family: $font-sans;
 }
 
 .syncAddButton {

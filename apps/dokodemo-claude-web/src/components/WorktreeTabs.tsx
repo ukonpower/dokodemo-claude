@@ -5,7 +5,10 @@ import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { GitWorktree, GitBranch, WorktreeSyncEntry } from '../types';
-import type { WorktreeSyncConfigState } from '../hooks/useBranchWorktree';
+import type {
+  WorktreeSyncConfigState,
+  WorktreeSyncCandidatesState,
+} from '../hooks/useBranchWorktree';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
 
@@ -29,6 +32,8 @@ interface WorktreeTabsProps {
   syncConfig: WorktreeSyncConfigState | null;
   onRequestSyncConfig: () => void;
   onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
+  syncCandidates: WorktreeSyncCandidatesState | null;
+  onRequestSyncCandidates: (dirPath: string) => void;
 }
 
 function WorktreeTabs({
@@ -46,6 +51,8 @@ function WorktreeTabs({
   syncConfig,
   onRequestSyncConfig,
   onSaveSyncConfig,
+  syncCandidates,
+  onRequestSyncCandidates,
 }: WorktreeTabsProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
@@ -166,6 +173,8 @@ function WorktreeTabs({
             syncConfig={syncConfig}
             onRequestSyncConfig={onRequestSyncConfig}
             onSaveSyncConfig={onSaveSyncConfig}
+            syncCandidates={syncCandidates}
+            onRequestSyncCandidates={onRequestSyncCandidates}
             onClose={() => setShowCreateModal(false)}
             onCreate={onCreateWorktree}
           />
@@ -338,6 +347,8 @@ function WorktreeTabs({
           syncConfig={syncConfig}
           onRequestSyncConfig={onRequestSyncConfig}
           onSaveSyncConfig={onSaveSyncConfig}
+          syncCandidates={syncCandidates}
+          onRequestSyncCandidates={onRequestSyncCandidates}
           onClose={() => setShowCreateModal(false)}
           onCreate={onCreateWorktree}
         />
