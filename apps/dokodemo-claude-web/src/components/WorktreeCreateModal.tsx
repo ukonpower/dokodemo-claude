@@ -21,6 +21,7 @@ import s from './WorktreeCreateModal.module.scss';
 interface WorktreeCreateModalProps {
   parentRepoPath: string;
   branches: GitBranch[];
+  onRefreshBranches: () => void;
   syncConfig: WorktreeSyncConfigState | null;
   onRequestSyncConfig: () => void;
   onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
@@ -49,6 +50,7 @@ function splitPath(input: string): { dirPath: string; filter: string } {
 function WorktreeCreateModal({
   parentRepoPath,
   branches,
+  onRefreshBranches,
   syncConfig,
   onRequestSyncConfig,
   onSaveSyncConfig,
@@ -66,6 +68,46 @@ function WorktreeCreateModal({
   const [hasInitializedRows, setHasInitializedRows] = useState(false);
   const [savingSince, setSavingSince] = useState<number | null>(null);
   const lastSeenSavedAt = useRef<number | undefined>(syncConfig?.lastSavedAt);
+
+  // ブランチ再取得の状態
+  const [isRefreshingBranches, setIsRefreshingBranches] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialBranchesRef = useRef(branches);
+  const isAwaitingRefreshRef = useRef(false);
+
+  const startRefresh = useCallback(() => {
+    isAwaitingRefreshRef.current = true;
+    setIsRefreshingBranches(true);
+    onRefreshBranches();
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    // 一定時間内に応答がなくてもスピナーは解除（UI を固めない）
+    refreshTimerRef.current = setTimeout(() => {
+      isAwaitingRefreshRef.current = false;
+      setIsRefreshingBranches(false);
+    }, 3000);
+  }, [onRefreshBranches]);
+
+  // モーダル表示直後に必ず一度ブランチを再取得
+  // worktree 切り替え直後など branches がクリアされた状態で開かれても
+  // ドロップダウンが空にならないようにする
+  useEffect(() => {
+    startRefresh();
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [startRefresh]);
+
+  // ブランチ配列の参照が変わったら（= 新しい一覧が届いたら）スピナー解除
+  useEffect(() => {
+    if (!isAwaitingRefreshRef.current) return;
+    if (branches === initialBranchesRef.current) return;
+    isAwaitingRefreshRef.current = false;
+    setIsRefreshingBranches(false);
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, [branches]);
 
   // 候補ドロップダウンの状態
   const [isSuggestOpen, setIsSuggestOpen] = useState(false);
@@ -328,16 +370,46 @@ function WorktreeCreateModal({
           </div>
 
           <div className={s.fieldGroup}>
-            <label className={s.fieldLabel}>
-              ブランチ名 <span className={s.requiredMark}>*</span>
-            </label>
+            <div className={s.fieldLabelRow}>
+              <label className={s.fieldLabel}>
+                ブランチ名 <span className={s.requiredMark}>*</span>
+              </label>
+              {useExistingBranch && (
+                <button
+                  type="button"
+                  onClick={startRefresh}
+                  disabled={isRefreshingBranches}
+                  className={s.refreshButton}
+                  title="ブランチ一覧を再読み込み"
+                >
+                  <svg
+                    className={`${s.refreshIcon} ${isRefreshingBranches ? s.spinning : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  {isRefreshingBranches ? '更新中…' : '再読み込み'}
+                </button>
+              )}
+            </div>
             {useExistingBranch ? (
               <select
                 value={branchName}
                 onChange={(e) => handleExistingBranchSelect(e.target.value)}
                 className={s.selectInput}
               >
-                <option value="">ブランチを選択...</option>
+                <option value="">
+                  {branches.length === 0 && isRefreshingBranches
+                    ? '読み込み中…'
+                    : 'ブランチを選択...'}
+                </option>
                 {branches.map((branch) => (
                   <option key={branch.name} value={branch.name}>
                     {branch.name}
@@ -363,7 +435,31 @@ function WorktreeCreateModal({
 
           {!useExistingBranch && (
             <div className={s.fieldGroup}>
-              <label className={s.fieldLabel}>元になるブランチ</label>
+              <div className={s.fieldLabelRow}>
+                <label className={s.fieldLabel}>元になるブランチ</label>
+                <button
+                  type="button"
+                  onClick={startRefresh}
+                  disabled={isRefreshingBranches}
+                  className={s.refreshButton}
+                  title="ブランチ一覧を再読み込み"
+                >
+                  <svg
+                    className={`${s.refreshIcon} ${isRefreshingBranches ? s.spinning : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  {isRefreshingBranches ? '更新中…' : '再読み込み'}
+                </button>
+              </div>
               <select
                 value={baseBranch}
                 onChange={(e) => setBaseBranch(e.target.value)}
@@ -379,7 +475,11 @@ function WorktreeCreateModal({
                 ))}
               </select>
               <p className={s.fieldHint}>
-                省略した場合は現在のHEADから新しいブランチを作成します
+                {branches.length === 0 && isRefreshingBranches
+                  ? 'ブランチ一覧を読み込み中…'
+                  : branches.length === 0
+                    ? 'ブランチ一覧が取得できませんでした。再読み込みボタンを押してください'
+                    : '省略した場合は現在のHEADから新しいブランチを作成します'}
               </p>
             </div>
           )}

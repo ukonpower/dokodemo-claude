@@ -27,6 +27,7 @@ interface WorktreeTabsProps {
   onSwitchRepository: (path: string) => void;
   isConnected: boolean;
   branches: GitBranch[];
+  onRefreshBranches: () => void;
   isDeletingWorktree?: boolean;
   compact?: boolean;
   syncConfig: WorktreeSyncConfigState | null;
@@ -46,6 +47,7 @@ function WorktreeTabs({
   onSwitchRepository,
   isConnected,
   branches,
+  onRefreshBranches,
   isDeletingWorktree = false,
   compact = false,
   syncConfig,
@@ -170,6 +172,7 @@ function WorktreeTabs({
           <WorktreeCreateModal
             parentRepoPath={parentRepoPath}
             branches={branches}
+            onRefreshBranches={onRefreshBranches}
             syncConfig={syncConfig}
             onRequestSyncConfig={onRequestSyncConfig}
             onSaveSyncConfig={onSaveSyncConfig}
@@ -344,6 +347,7 @@ function WorktreeTabs({
         <WorktreeCreateModal
           parentRepoPath={parentRepoPath}
           branches={branches}
+          onRefreshBranches={onRefreshBranches}
           syncConfig={syncConfig}
           onRequestSyncConfig={onRequestSyncConfig}
           onSaveSyncConfig={onSaveSyncConfig}

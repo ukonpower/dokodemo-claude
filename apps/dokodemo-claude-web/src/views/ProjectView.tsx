@@ -712,6 +712,7 @@ export function ProjectView({
                   onSwitchRepository={onSwitchRepository}
                   isConnected={isConnected}
                   branches={branches}
+                  onRefreshBranches={onRefreshBranches}
                   isDeletingWorktree={isDeletingWorktree}
                   compact={true}
                   syncConfig={worktreeSyncConfig}
