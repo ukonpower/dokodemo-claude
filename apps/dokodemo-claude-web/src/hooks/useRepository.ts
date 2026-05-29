@@ -106,6 +106,10 @@ export function useRepository(
     currentRepoRef.current = currentRepo;
   }, [currentRepo]);
 
+  // 連続切替時の最新意図を追跡する ref。repo-switched 応答が古いものか判定して
+  // 巻き戻し（画面チラつき）を防ぐための照合キーに使う。
+  const latestSwitchTargetRef = useRef(currentRepo);
+
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoadingRepoDataRef = useRef(isLoadingRepoData);
   useEffect(() => {
@@ -225,6 +229,12 @@ export function useRepository(
       data: Parameters<ServerToClientEvents['repo-switched']>[0]
     ) => {
       if (data.success) {
+        // 連続切替時、ユーザーの最新意図と一致しない応答は無視する。
+        // これを行わないと古い応答で currentRepo が巻き戻り、各フックの clearState が
+        // 多重発火して画面がチラつく。最終応答だけが isSwitchingRepo を解除する。
+        if (data.currentPath !== latestSwitchTargetRef.current) {
+          return;
+        }
         setCurrentRepo(data.currentPath);
         const url = new URL(window.location.href);
         url.searchParams.set('repo', data.currentPath);
@@ -283,6 +293,9 @@ export function useRepository(
   const switchRepository = useCallback(
     (path: string, options?: { skipPushState?: boolean }) => {
       if (!socket) return;
+
+      // 最新の切替意図を記録（古い repo-switched 応答を弾く照合キー）
+      latestSwitchTargetRef.current = path;
 
       // React state を更新（ページリロードなし）
       setCurrentRepo(path);
