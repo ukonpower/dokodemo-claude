@@ -6,6 +6,7 @@ export { ShortcutManager, type TerminalWriter } from './shortcut-manager.js';
 export { CustomAiButtonManager } from './custom-ai-button-manager.js';
 export { WorktreeSyncManager } from './worktree-sync-manager.js';
 export { WorktreeSortOrderManager } from './worktree-sort-order-manager.js';
+export { WorktreeMemoManager } from './worktree-memo-manager.js';
 export {
   TerminalManager,
   type TerminalOutputLine,

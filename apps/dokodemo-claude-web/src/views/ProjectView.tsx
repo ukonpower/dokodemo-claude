@@ -149,6 +149,7 @@ interface ProjectViewProps {
   onReorderWorktrees: (orderedBranchPaths: string[]) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
+  onSaveWorktreeMemo: (worktreePath: string, memo: string) => void;
   onClearMergeError: () => void;
 
   // プロンプトキュー関連
@@ -335,6 +336,7 @@ export function ProjectView({
   onRequestWorktreeSyncCandidates,
   onDeleteWorktree,
   onMergeWorktree,
+  onSaveWorktreeMemo,
   onClearMergeError,
   promptQueue,
   isQueueProcessing,
@@ -736,6 +738,22 @@ export function ProjectView({
               </>
             )}
           </div>
+
+          {/* ワークツリー操作セクション */}
+          {(() => {
+            const normalizedCurrentRepo = currentRepo.replace(/\/+$/, '');
+            const matchedWorktree = worktrees.find(
+              (w) => w.path.replace(/\/+$/, '') === normalizedCurrentRepo
+            );
+            return (
+              <WorktreeOperations
+                currentWorktree={matchedWorktree}
+                onSaveMemo={onSaveWorktreeMemo}
+                mergeError={mergeError}
+                onClearMergeError={onClearMergeError}
+              />
+            );
+          })()}
 
           {/* AI CLI セクション */}
           <section className={s.cliSection}>
@@ -1232,25 +1250,6 @@ export function ProjectView({
         socket={socket}
         currentRepo={currentRepo}
       />
-
-      {/* ワークツリー操作セクション */}
-      {(() => {
-        const normalizedCurrentRepo = currentRepo.replace(/\/+$/, '');
-        const matchedWorktree = worktrees.find(
-          (w) => w.path.replace(/\/+$/, '') === normalizedCurrentRepo
-        );
-        return (
-          <WorktreeOperations
-            currentWorktree={matchedWorktree}
-            onDeleteWorktree={onDeleteWorktree}
-            onMergeWorktree={onMergeWorktree}
-            isConnected={isConnected}
-            mergeError={mergeError}
-            onClearMergeError={onClearMergeError}
-            isDeletingWorktree={isDeletingWorktree}
-          />
-        );
-      })()}
 
       {/* リポジトリ切り替えメニュー */}
       <RepositorySwitcher

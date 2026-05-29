@@ -280,6 +280,13 @@
   white-space: nowrap;
 }
 
+.memoIndicator {
+  margin-left: 0.25rem;
+  font-size: 0.7em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .activeDot {
   background-color: $blue-500;
   border-radius: 9999px;

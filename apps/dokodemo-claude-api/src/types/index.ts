@@ -76,6 +76,7 @@ export interface GitWorktree {
   head: string; // 現在のHEAD（commit hash）
   isMain: boolean; // メインワークツリーかどうか
   parentRepoPath: string; // 親リポジトリのパス
+  memo?: string; // ワークツリーのメモ（本文のみ。URLは表示時に自動リンク化）
 }
 
 export interface WorktreeCreateRequest {
@@ -359,6 +360,13 @@ export interface ServerToClientEvents {
     message?: string;
     prid?: string;
     parentRepoPath?: string;
+  }) => void;
+
+  // ワークツリーのメモの保存結果
+  'worktree-memo-saved': (data: {
+    success: boolean;
+    message?: string;
+    rid?: string;
   }) => void;
 
   // ワークツリー同期対象候補（指定ディレクトリ直下のファイル/ディレクトリ一覧）
@@ -700,6 +708,9 @@ export interface ClientToServerEvents {
     parentRepoPath?: string;
     orderedPaths: string[];
   }) => void;
+
+  // ワークツリーのメモの保存（rid は worktree の wtid）
+  'save-worktree-memo': (data: { rid: string; memo: string }) => void;
 
   // ワークツリー同期対象候補の取得（親リポジトリ内の指定ディレクトリ直下を列挙）
   'list-worktree-sync-candidates': (data: {

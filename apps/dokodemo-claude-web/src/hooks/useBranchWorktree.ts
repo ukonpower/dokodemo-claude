@@ -92,6 +92,7 @@ export interface UseBranchWorktreeReturn {
   mergeWorktree: (worktreePath: string) => void;
   switchWorktree: (worktreePath: string) => void;
   reorderWorktrees: (orderedBranchPaths: string[]) => void;
+  saveWorktreeMemo: (worktreePath: string, memo: string) => void;
 
   // ワークツリー同期設定
   worktreeSyncConfig: WorktreeSyncConfigState | null;
@@ -603,6 +604,17 @@ export function useBranchWorktree(
     [socket, parentRepoPath]
   );
 
+  // ワークツリーのメモを保存（サーバーへ emit、結果は worktrees-list で反映される）
+  const saveWorktreeMemo = useCallback(
+    (worktreePath: string, memo: string) => {
+      const wt = worktrees.find((w) => w.path === worktreePath);
+      const rid = wt ? repositoryIdMap.getRid(wt.path) : undefined;
+      if (!socket || !rid) return;
+      socket.emit('save-worktree-memo', { rid, memo });
+    },
+    [socket, worktrees]
+  );
+
   // 状態クリア
   const clearState = useCallback(() => {
     setBranches([]);
@@ -643,6 +655,7 @@ export function useBranchWorktree(
     mergeWorktree,
     switchWorktree,
     reorderWorktrees,
+    saveWorktreeMemo,
     setMergeError,
     setPullError,
     clearWorktreeCreateError,

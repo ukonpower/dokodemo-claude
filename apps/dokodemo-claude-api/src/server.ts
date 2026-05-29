@@ -39,6 +39,7 @@ import {
 import {
   addWorktreeIds,
   setWorktreeSortOrderManager,
+  setWorktreeMemoManager,
 } from './handlers/branch-handlers.js';
 import { emitIdMappingUpdated } from './handlers/id-mapping-helpers.js';
 import { registerTerminalRoutes } from './handlers/terminal-handlers.js';
@@ -180,6 +181,8 @@ initRepositoryIdManager(REPOS_DIR, WORKTREES_DIR);
 const processManager = new ProcessManager(PROCESSES_DIR);
 // ワークツリータブの並び順を addWorktreeIds が適用できるよう注入
 setWorktreeSortOrderManager(processManager.worktreeSortOrderManager);
+// ワークツリーのメモを addWorktreeIds が同梱できるよう注入
+setWorktreeMemoManager(processManager.worktreeMemoManager);
 
 const persistenceService = new PersistenceService(PROCESSES_DIR);
 
@@ -923,6 +926,9 @@ app.delete('/api/worktree/:rid', async (req, res) => {
       return;
     }
 
+    // 削除したワークツリーのメモも掃除する
+    await processManager.worktreeMemoManager.remove(worktreePath);
+
     const prid = repositoryIdManager.tryGetId(parentRepoPath);
     await emitIdMappingUpdated(io, repositories);
     const worktrees = (await getWorktrees(parentRepoPath)).filter(
@@ -937,6 +943,67 @@ app.delete('/api/worktree/:rid', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('[REST API] ワークツリー削除エラー:', error);
+    res.status(500).json({ success: false, message: String(error) });
+  }
+});
+
+// ワークツリーのメモを取得（:rid は worktree の wtid）
+app.get('/api/worktree/:rid/memo', (req, res) => {
+  const worktreePath = repositoryIdManager.getPath(req.params.rid);
+  if (!worktreePath) {
+    res
+      .status(404)
+      .json({ success: false, message: 'ワークツリーが見つかりません' });
+    return;
+  }
+  res.json({
+    success: true,
+    rid: req.params.rid,
+    memo: processManager.worktreeMemoManager.get(worktreePath) ?? '',
+  });
+});
+
+// ワークツリーのメモを更新（:rid は worktree の wtid、body は { memo: string }）
+app.put('/api/worktree/:rid/memo', async (req, res) => {
+  try {
+    const worktreePath = repositoryIdManager.getPath(req.params.rid);
+    if (!worktreePath) {
+      res
+        .status(404)
+        .json({ success: false, message: 'ワークツリーが見つかりません' });
+      return;
+    }
+
+    const { memo } = req.body ?? {};
+    if (typeof memo !== 'string') {
+      res
+        .status(400)
+        .json({ success: false, message: 'memo は文字列で指定してください' });
+      return;
+    }
+
+    const result = await processManager.worktreeMemoManager.save(
+      worktreePath,
+      memo
+    );
+    if (!result.ok) {
+      res.status(500).json({ success: false, message: result.error.message });
+      return;
+    }
+
+    // Web UI へブロードキャスト（REST には要求元 socket がないため io.emit）
+    const parentRepoPath = getMainRepoPath(worktreePath);
+    const prid = repositoryIdManager.tryGetId(parentRepoPath);
+    const worktrees = await getWorktrees(parentRepoPath);
+    io.emit('worktrees-list', {
+      worktrees: addWorktreeIds(worktrees, parentRepoPath),
+      prid,
+      parentRepoPath,
+    });
+
+    res.json({ success: true, rid: req.params.rid, memo: result.value });
+  } catch (error) {
+    console.error('[REST API] ワークツリーメモ更新エラー:', error);
     res.status(500).json({ success: false, message: String(error) });
   }
 });

@@ -22,6 +22,7 @@ interface MarketplaceListItem {
   name: string;
   source?: string;
   url?: string;
+  path?: string; // directory ソースの登録パス
   installLocation?: string;
 }
 
@@ -77,33 +78,74 @@ class PluginManagerService {
     }
   }
 
-  /** 同梱 marketplace が登録済か */
-  async isMarketplaceRegistered(): Promise<boolean> {
+  /** 同梱 marketplace の登録情報を取得（未登録なら null） */
+  private async getRegisteredMarketplace(): Promise<MarketplaceListItem | null> {
     const r = await this.runClaude(['plugin', 'marketplace', 'list', '--json']);
-    if (r.code !== 0) return false;
+    if (r.code !== 0) return null;
     try {
       const list = JSON.parse(r.stdout) as MarketplaceListItem[];
+      if (!Array.isArray(list)) return null;
       return (
-        Array.isArray(list) &&
-        list.some((m) => m.name === BUNDLED_PLUGIN.marketplaceName)
+        list.find((m) => m.name === BUNDLED_PLUGIN.marketplaceName) ?? null
       );
     } catch {
-      return false;
+      return null;
     }
   }
 
-  /** 同梱 marketplace を登録（未登録時のみ） */
+  /**
+   * 同梱 marketplace を現在の projectRoot に正しく向ける。
+   * - 未登録: 追加する
+   * - 登録済みだがパスがズレている: 貼り直す（古い checkout を指したままにしない）
+   * - 登録済みでパスも一致: update でディレクトリのキャッシュを最新化する
+   */
   private async ensureMarketplaceRegistered(projectRoot: string): Promise<void> {
-    if (await this.isMarketplaceRegistered()) return;
     const localPath = this.getBundledMarketplacePath(projectRoot);
+    const existing = await this.getRegisteredMarketplace();
+
+    if (!existing) {
+      await this.addMarketplace(localPath);
+      return;
+    }
+
+    const registeredPath = existing.path ?? existing.installLocation;
+    const pointsToCurrent =
+      !!registeredPath &&
+      path.resolve(registeredPath) === path.resolve(localPath);
+
+    if (!pointsToCurrent) {
+      // 古いパスを指しているので貼り直す（既存プラグインは外してから）
+      await this.runClaude(['plugin', 'uninstall', BUNDLED_PLUGIN.id]);
+      await this.runClaude([
+        'plugin',
+        'marketplace',
+        'remove',
+        BUNDLED_PLUGIN.marketplaceName,
+      ]);
+      await this.addMarketplace(localPath);
+      return;
+    }
+
+    // パスは正しい。directory ソースはキャッシュされるため update で最新化する
+    await this.runClaude([
+      'plugin',
+      'marketplace',
+      'update',
+      BUNDLED_PLUGIN.marketplaceName,
+    ]);
+  }
+
+  /** marketplace を追加（パス指定） */
+  private async addMarketplace(localPath: string): Promise<void> {
     const r = await this.runClaude(['plugin', 'marketplace', 'add', localPath]);
     if (r.code !== 0) {
-      const msg = stripAnsi(r.stderr || r.stdout) || 'marketplace 追加に失敗しました';
+      const msg =
+        stripAnsi(r.stderr || r.stdout) || 'marketplace 追加に失敗しました';
       throw new Error(`marketplace 追加に失敗: ${msg}`);
     }
   }
 
-  /** プラグインをインストール */
+  /** プラグインをインストール（marketplace を現在の projectRoot に合わせてから） */
   async install(projectRoot: string): Promise<void> {
     await this.ensureMarketplaceRegistered(projectRoot);
     const r = await this.runClaude([

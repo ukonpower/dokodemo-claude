@@ -510,6 +510,7 @@ function App() {
       }
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}
+      onSaveWorktreeMemo={branchWorktree.saveWorktreeMemo}
       onClearMergeError={() => branchWorktree.setMergeError(null)}
       // プロンプトキュー関連
       promptQueue={promptQueue.promptQueue}

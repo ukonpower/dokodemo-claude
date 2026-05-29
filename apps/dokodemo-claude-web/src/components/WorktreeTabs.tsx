@@ -84,6 +84,7 @@ function SortableWorktreeTab({
       <a
         href={`?repo=${encodeURIComponent(wt.path)}`}
         draggable={false}
+        title={wt.memo ? `${wt.branch}\n${wt.memo}` : wt.branch}
         onClick={(e) => {
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
             return;
@@ -97,6 +98,11 @@ function SortableWorktreeTab({
         <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
           {wt.branch}
         </span>
+        {wt.memo && (
+          <span className={s.memoIndicator} aria-label="メモあり">
+            📝
+          </span>
+        )}
         {isActive && (
           <span
             className={`${s.activeDot} ${compact ? s.compact : s.normal}`}
