@@ -849,12 +849,16 @@ app.post('/api/worktree/:rid', async (req, res) => {
       return;
     }
 
+    // syncEntries 未指定時は親リポジトリの既定設定（GUI で保存したもの）を使う
+    const effectiveSyncEntries =
+      syncEntries ?? processManager.worktreeSyncManager.get(parentRepoPath);
+
     const result = await createWorktree({
       parentRepoPath,
       branchName,
       baseBranch,
       useExistingBranch,
-      syncEntries,
+      syncEntries: effectiveSyncEntries,
     });
 
     if (!result.success) {

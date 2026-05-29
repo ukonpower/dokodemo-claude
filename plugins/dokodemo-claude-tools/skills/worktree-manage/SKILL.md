@@ -94,7 +94,7 @@ RID_ENC=$(jq -rn --arg r "$RID" '$r|@uri')
 | `branchName` | 必須 | 作成するブランチ名（= ワークツリー名） |
 | `baseBranch` | 任意 | 新規ブランチの分岐元（省略時は現在の HEAD） |
 | `useExistingBranch` | 任意 | 既存ブランチをチェックアウトする場合 `true` |
-| `syncEntries` | 任意 | 親から取り込むファイル。例 `[{"path":".env","mode":"copy"}]`（`mode` は `copy` or `link`） |
+| `syncEntries` | 任意 | 親から取り込むファイル。例 `[{"path":".env","mode":"copy"}]`（`mode` は `copy` or `link`）。**未指定時は GUI で保存した既定設定が自動適用される**。明示的に「同期なし」にしたい場合は `[]` を渡す |
 
 ```bash
 curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
