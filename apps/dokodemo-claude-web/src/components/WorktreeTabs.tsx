@@ -190,8 +190,29 @@ function WorktreeTabs({
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // ドラッグが発生したかどうか（直後のタブ click を握り潰すために使用）
-  const draggingOccurredRef = useRef(false);
+  // 直後に合成される click を1回だけ握り潰すためのクリーンアップ参照
+  const suppressClickCleanupRef = useRef<(() => void) | null>(null);
+
+  // ドラッグ完了直後に呼ぶ: 次の click を window capture で1回だけ無効化
+  const suppressNextClick = () => {
+    suppressClickCleanupRef.current?.(); // 多重armを防ぐ
+    const onClickCapture = (e: MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      remove();
+    };
+    const remove = () => {
+      window.removeEventListener('click', onClickCapture, true);
+      suppressClickCleanupRef.current = null;
+    };
+    window.addEventListener('click', onClickCapture, true);
+    // click が発火しなかった場合に備え、次マクロタスクで確実に解除
+    window.setTimeout(remove, 0);
+    suppressClickCleanupRef.current = remove;
+  };
+
+  // アンマウント時にリスナーが残らないよう保険で解除
+  useEffect(() => () => suppressClickCleanupRef.current?.(), []);
 
   // ドラッグ&ドロップ用センサー（8px動かすまではクリック扱い）
   const sensors = useSensors(
@@ -340,13 +361,9 @@ function WorktreeTabs({
   const mainWorktree = worktrees.find((wt) => wt.isMain);
   const branchWorktrees = worktrees.filter((wt) => !wt.isMain);
 
-  // ドラッグ開始（このあと発火するタブ click を握り潰す目印）
-  const handleDragStart = () => {
-    draggingOccurredRef.current = true;
-  };
-
   // ドラッグ終了時に並び替えを反映
   const handleDragEnd = (event: DragEndEvent) => {
+    suppressNextClick(); // ドラッグ後に合成される click を1回だけ握り潰す
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const paths = branchWorktrees.map((wt) => wt.path);
@@ -406,28 +423,14 @@ function WorktreeTabs({
           sensors={sensors}
           collisionDetection={closestCenter}
           modifiers={[restrictToHorizontalAxis]}
-          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          onDragCancel={suppressNextClick}
         >
           <SortableContext
             items={branchWorktrees.map((wt) => wt.path)}
             strategy={horizontalListSortingStrategy}
           >
-            <div
-              className={s.tabsScroll}
-              // ドラッグ操作の起点。次のドラッグ前にフラグをリセット
-              onPointerDownCapture={() => {
-                draggingOccurredRef.current = false;
-              }}
-              // ドラッグ直後にどのタブで発火しても click を握り潰す
-              onClickCapture={(e) => {
-                if (draggingOccurredRef.current) {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  draggingOccurredRef.current = false;
-                }
-              }}
-            >
+            <div className={s.tabsScroll}>
               {/* ブランチワークツリータブ */}
               {branchWorktrees.map((wt) => (
                 <SortableWorktreeTab
