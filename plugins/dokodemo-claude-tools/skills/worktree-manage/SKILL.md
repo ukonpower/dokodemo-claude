@@ -1,6 +1,6 @@
 ---
 name: worktree-manage
-description: This skill should be used when the user asks to "create/list/delete a worktree", "ワークツリーを作成/一覧/削除", "ワークツリー作って", "ワークツリー一覧", "ワークツリー消して", "ワークツリーに説明/メモを付けて/書いて", "worktree-manage", or when Claude Code needs to create, list, delete, or annotate (add a description / メモ to) git worktrees through the dokodemo-claude backend API.
+description: This skill should be used when the user asks to "create/list/delete a worktree", "ワークツリーを作成/一覧/削除", "ワークツリー作って", "ワークツリー一覧", "ワークツリー消して", "ワークツリーに説明/メモを付けて/書いて", "これらのタスクをそれぞれワークツリーを立てて実装して", "タスクごとにワークツリーを作って実装", "複数の作業をワークツリーに分けて", "worktree-manage", or when Claude Code needs to create, list, delete, or annotate (add a description / メモ to) git worktrees through the dokodemo-claude backend API — including when the user asks to implement multiple tasks each in its own worktree (this skill is responsible for creating those worktrees via the API, not raw `git worktree`).
 ---
 
 # worktree-manage
@@ -12,6 +12,16 @@ dokodemo-claude のバックエンド API 経由で git ワークツリーを作
 > メモ API（`PUT /api/worktree/:rid/memo`）に入れること。** `git config branch.<name>.description` に
 > 書いても dokodemo-claude の API レスポンスにも Web UI のタブにも一切反映されない。Web UI のタブに
 > 表示される「説明 = メモ」はこのメモ API 経由のものだけ。
+
+## 使いどころ
+
+- 「ワークツリーを作って／一覧／削除して」などの直接的な依頼。
+- **「これらのタスクをそれぞれワークツリーを立てて実装して」** のように複数タスクを分離環境で進める依頼。
+  この場合は **タスクごとに本スキルの作成 API でワークツリーを 1 つずつ作る**（生 `git worktree` は使わない）。
+  ブランチ名はタスク内容から `feature/xxx` 等を付け、必要なら作成後にメモ（説明）も設定する。
+- 作った全ワークツリーで同じコマンド（例: `npm run dev`）をターミナル実行したい場合は、
+  本スキルの一覧で wtid を集めてから **`terminal-control` スキル**でワークツリーごとに送信する。
+  AI（claude/codex）キューへ一斉にプロンプト投入したい場合は **`worktree-prompt` スキル**。
 
 ## Prerequisites
 
