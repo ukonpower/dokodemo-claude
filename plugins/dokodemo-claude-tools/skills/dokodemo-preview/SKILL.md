@@ -8,58 +8,41 @@ description: This skill should be used when the user asks to "dokodemo-preview",
 dokodemo-claude のプレビュー領域に画像 / 動画 / その他ファイルをアップロードする。
 アップロードした瞬間に Web UI のアコーディオン（ファイルタブ）へリアルタイム反映される。
 
+操作は **`dokodemo-claude-tools` プラグインの MCP サーバ `api` が提供するツール**で行う
+（curl は使わない）。ツールのフル名は `mcp__plugin_dokodemo-claude-tools_api__<ツール名>`。
+
 ## 前提
 
-- dokodemo-claude-api が起動していること（既定ポート: `8001` / `.env` の `DC_API_PORT` で変更）
+- dokodemo-claude-api が起動していること
 - 対象リポジトリの `rid`（Repository ID）が取得できること
-- アップロードは **raw binary POST**。`multer` 形式ではない
+- 最大サイズ: 50MB
 
-## エンドポイント
+## ツール一覧
 
-```
-POST http://localhost:${DC_API_PORT}/api/preview/{rid}
-Content-Type: <ファイルのMIME>           # 例: image/png
-?filename=<元のファイル名>                # 任意（拡張子の判定に使われる）
-&source=claude                           # 任意（既定 'claude'）。'user' or 'claude'
-&title=<UI表示タイトル>                  # 任意
-&description=<補足説明>                  # 任意
-
-Body: ファイルのバイナリそのもの
-```
-
-最大サイズ: 50MB。
+| 操作 | ツール | 主な引数 |
+|------|--------|----------|
+| rid 取得 | `repository_id` | `path` |
+| アップロード | `preview_upload` | `rid`, `filePath`, `filename?`, `contentType?`, `source?`, `title?`, `description?` |
 
 ## 1. rid を取得
 
-```bash
-RID=$(curl -ks "http://localhost:${DC_API_PORT:-8001}/api/repository-id?path=$(pwd)" | jq -r '.rid')
-```
-
-すでに `$DOKODEMO_RID` がセットされていればそれを使う。
+`repository_id` に現在の作業ディレクトリの絶対パスを渡し、レスポンスの `rid` を控える。
+すでに `$DOKODEMO_RID` 等で rid が分かっていればそれを使ってよい。
 取得に失敗する場合はユーザーに UI 上の現在のリポジトリ ID を確認する。
 
-## 2. 画像をアップロード
+## 2. ファイルをアップロード（`preview_upload`）
 
-最小:
+| パラメータ | 必須 | 説明 |
+|-----------|------|------|
+| `rid` | 必須 | アップロード先リポジトリの rid |
+| `filePath` | 必須 | アップロードするファイルの**絶対パス**（サーバがその場で読み込んで送信する） |
+| `filename` | 任意 | UI 表示用の元ファイル名（省略時は `filePath` のファイル名） |
+| `contentType` | 任意 | MIME タイプ。省略時は拡張子から自動推定（例 `.png` → `image/png`） |
+| `source` | 任意 | `claude`（既定）または `user` |
+| `title` | 任意 | UI 表示タイトル |
+| `description` | 任意 | 補足説明 |
 
-```bash
-curl -X POST \
-  "http://localhost:${DC_API_PORT:-8001}/api/preview/${RID}?filename=screenshot.png" \
-  -H "Content-Type: image/png" \
-  --data-binary @./screenshot.png
-```
-
-タイトル/説明付き（URLエンコード必須）:
-
-```bash
-TITLE=$(jq -rn --arg v "E2E結果" '$v|@uri')
-DESC=$(jq -rn --arg v "npm test 実行後のスクリーンショット" '$v|@uri')
-
-curl -X POST \
-  "http://localhost:${DC_API_PORT:-8001}/api/preview/${RID}?filename=test-result.png&source=claude&title=${TITLE}&description=${DESC}" \
-  -H "Content-Type: image/png" \
-  --data-binary @./test-result.png
-```
+タイトル・説明・日本語の扱いはツール側で処理されるので、URL エンコード等は不要。
 
 ## 3. 応答
 
@@ -70,9 +53,7 @@ curl -X POST \
   "file": {
     "id": "1706520000000_abc12345",
     "filename": "1706520000000_abc12345.png",
-    "path": "/abs/path/to/uploads/<rid>/1706520000000_abc12345.png",
     "rid": "<rid>",
-    "uploadedAt": 1706520000000,
     "size": 12345,
     "mimeType": "image/png",
     "source": "claude",
@@ -83,51 +64,26 @@ curl -X POST \
 }
 ```
 
-成功時の HTTP ステータスは `201`。
 アップロード完了とともに Socket.IO の `file-uploaded` イベントがブロードキャストされ、
 Web UI のファイルタブが自動更新される。
 
-## ステータスコード
-
-| コード | 意味 |
-| --- | --- |
-| 201 | アップロード成功 |
-| 400 | 不正リクエスト（body無し、rid無し等） |
-| 500 | サーバー内部エラー |
-
 ## よくある用途
 
-### テスト後のスクリーンショット
+- **テスト後のスクリーンショット**: `preview_upload`（`filePath` にスクショの絶対パス、`title:"Cypressテスト結果"` 等）
+- **iOS シミュレータ**: まず `xcrun simctl io booted screenshot /tmp/sim.png` で保存 → `preview_upload`（`filePath:"/tmp/sim.png"`）
+- **生成した図**: `preview_upload`（`filePath` に図の絶対パス、`title:"アーキテクチャ図"`）
 
-```bash
-curl -X POST \
-  "http://localhost:${DC_API_PORT:-8001}/api/preview/${RID}?filename=cypress.png&source=claude&title=Cypressテスト結果" \
-  -H "Content-Type: image/png" \
-  --data-binary @./cypress/screenshots/test.png
-```
+## エラーハンドリング
 
-### iOS シミュレータ スクリーンショット
+ツールがエラー時は結果に `isError` が付き、メッセージに理由が入る。
 
-```bash
-xcrun simctl io booted screenshot /tmp/sim.png
-curl -X POST \
-  "http://localhost:${DC_API_PORT:-8001}/api/preview/${RID}?filename=sim.png&source=claude&title=シミュレータ画面" \
-  -H "Content-Type: image/png" \
-  --data-binary @/tmp/sim.png
-```
-
-### 生成した図
-
-```bash
-curl -X POST \
-  "http://localhost:${DC_API_PORT:-8001}/api/preview/${RID}?filename=arch.png&source=claude&title=アーキテクチャ図" \
-  -H "Content-Type: image/png" \
-  --data-binary @./diagram.png
-```
+| 状況 | 意味 |
+|------|------|
+| 400 | 不正リクエスト（body 無し、rid 無し等） |
+| 接続失敗 | dokodemo-claude-api が起動していない / ベース URL が不正 |
 
 ## メモ
 
-- `source=claude` を付けると Claude 由来のファイルとして metadata に保存される
-- 対応 MIME 例: `image/png` `image/jpeg` `image/gif` `image/webp` `video/mp4` `video/webm` `application/pdf` 等
-- アップロード対象のフルパスを `--data-binary @<path>` で渡すこと（`-d` だと改行が壊れる）
-- `DC_API_PORT` が未定義のときは `8001` をフォールバックに使う
+- `source:"claude"` を付けると Claude 由来のファイルとして metadata に保存される（既定）。
+- 対応 MIME 例: `image/png` `image/jpeg` `image/gif` `image/webp` `video/mp4` `video/webm` `application/pdf` 等。
+- ファイルはローカルの**絶対パス**で渡すこと（MCP サーバがそのパスを読み込んで raw binary として送信する）。
