@@ -8,7 +8,14 @@ description: This skill should be used when the user asks to "create/list/delete
 dokodemo-claude のバックエンド API 経由で git ワークツリーを作成・一覧・削除・メモ更新するスキル。
 作成/削除/メモ更新すると Web UI のタブにも自動反映される。
 
-> **重要: ワークツリーの「説明」は git の `branch.description`（`git config`）ではなく、必ず本スキルの
+> **重要 1: rid / wtid は不透明なIDとして扱い、必ず作成・一覧 API のレスポンスから逐語コピーして使うこと。**
+> 形式を手で組み立ててはいけない。`wt:reponame/feature/foo` のような表記は実装によって変わりうる
+> サーバ生成値であり、推測で組むと存在しない wtid を作って事故る。**作成時は必ずレスポンスの
+> `worktree.wtid` をその場で変数に控え、メモ・削除・プロンプト送信すべてその変数を使い回す**
+> （後から一覧で取り直す必要をなくす）。対象を指定したいだけなら一覧 API の `rid` フィールドの値を
+> そのままコピーする。
+>
+> **重要 2: ワークツリーの「説明」は git の `branch.description`（`git config`）ではなく、必ず本スキルの
 > メモ API（`PUT /api/worktree/:rid/memo`）に入れること。** `git config branch.<name>.description` に
 > 書いても dokodemo-claude の API レスポンスにも Web UI のタブにも一切反映されない。Web UI のタブに
 > 表示される「説明 = メモ」はこのメモ API 経由のものだけ。
@@ -50,9 +57,11 @@ dokodemo-claude のバックエンド API 経由で git ワークツリーを作
 | メモ更新 | `PUT /api/worktree/:rid/memo` | `{memo}`（:rid は対象 worktree の wtid） |
 
 > 作成・一覧の `:rid` は親でも worktree でも可（サーバが親リポジトリへ正規化する）。
-> 削除・メモ取得/更新の `:rid` は **対象 worktree の wtid**。親 rid を渡すと 404/400 になる。
+> 削除・メモ取得/更新の `:rid` は **対象 worktree の wtid**。親 rid・存在しない wtid を渡すと 404/400 になる
+> （存在しない wtid のメモ更新は以前は誤って成功扱いになっていたが、現在は 404 を返す）。
 >
-> **`rid` は `wt:reponame/feature/foo` のように `:` や `/` を含む**。URLパスに埋め込む前に必ずエンコードすること（下記参照）。
+> **`rid` / `wtid` は `:` や `/` を含む不透明なID**。値は作成・一覧レスポンスから逐語コピーし（手で組まない）、
+> URLパスに埋め込む前に必ず `@uri` でエンコードすること（下記参照）。
 
 ## クイック実行
 
@@ -106,7 +115,8 @@ RID_ENC=$(jq -rn --arg r "$RID" '$r|@uri')
 ```
 
 ワークツリー内で実行していても問題ない。サーバ側で親リポジトリへ正規化される。
-`rid` は `wt:proj/feature/foo` のように `/` を含むため、`@uri` で encode してから URL パスに埋め込む。
+`rid` は `:` や `/` を含むため、`@uri` で encode してから URL パスに埋め込む。
+（この `rid` も含め、ID はすべてレスポンスの値をそのまま使い、形式を手で組み立てない。）
 
 ### Step 3: 操作を実行する
 
@@ -189,11 +199,14 @@ curl -sk -X DELETE "${API}/api/worktree/${WTID_ENC}" \
 |----------------|------|
 | 200 / 201 | 成功 |
 | 400 | 必須欠落（メモは `memo` が文字列でない） / git 失敗（`message` に git stderr 等の理由） / main 削除不可 |
-| 404 | rid に対応するリポジトリ・ワークツリーが見つからない（多くは rid を encode せず `/` で path が割れているケース） |
+| 404 | rid/wtid に対応するリポジトリ・ワークツリーが見つからない。よくある原因: ①rid を encode せず `/` で path が割れている ②手で組み立てた（または取り違えた）存在しない wtid を渡している（→ 作成/一覧レスポンスの値を逐語コピーして使う） |
 | 500 | サーバーエラー |
 
 ## Tips
 
+- **ID は手で組まず、作成・一覧レスポンスの値を逐語コピーして使い回す。** 特に作成直後は
+  `worktree.wtid` をその場で変数に控え、続くメモ・削除・プロンプト送信に流用する。これだけで wtid の
+  取り違え事故（存在しない wtid を作って 404／別の worktree を操作）はほぼ全て防げる。
 - 作成・削除・メモ更新は Web UI のタブに自動反映される（手動リロード不要）。
 - **「説明」は git ではなくメモ API に入れる。** `git config branch.<name>.description` は dokodemo-claude には一切反映されない。Web UI に出したい説明は必ず `PUT /api/worktree/:rid/memo`。
 - 既存ブランチをワークツリー化する場合は `useExistingBranch:true` を指定する。指定なしで既存ブランチ名を渡すと git が失敗し 400（`message` に理由）。

@@ -820,6 +820,17 @@ app.post('/api/queue/resume', async (req, res) => {
 // ============================================
 
 // ワークツリー一覧を取得（:rid は親 or worktree。getMainRepoPath で親へ正規化）
+// rid(wtid) → 実在する worktree の絶対パス。実在しなければ null。
+// repositoryIdManager.getPath は文字列を機械的に resolve するだけで存在検証しないため、
+// （存在しない wtid でもパスを返してしまう）ここで git worktree 一覧に含まれるかを確認する。
+// これを通さないと、誤った wtid でもメモ保存などが「成功」してしまう（サイレント失敗）。
+async function resolveExistingWorktreePath(rid: string): Promise<string | null> {
+  const candidate = repositoryIdManager.getPath(rid);
+  const parentRepoPath = getMainRepoPath(candidate);
+  const worktrees = await getWorktrees(parentRepoPath);
+  return worktrees.some((w) => w.path === candidate) ? candidate : null;
+}
+
 app.get('/api/worktrees/:rid', async (req, res) => {
   const resolved = repositoryIdManager.getPath(req.params.rid);
   if (!resolved) {
@@ -901,9 +912,9 @@ app.post('/api/worktree/:rid', async (req, res) => {
 // ワークツリーを削除（:rid は削除対象 worktree の wtid）
 app.delete('/api/worktree/:rid', async (req, res) => {
   try {
-    const worktreePath = repositoryIdManager.getPath(req.params.rid);
+    const worktreePath = await resolveExistingWorktreePath(req.params.rid);
     if (!worktreePath) {
-      res.status(404).json({ success: false, message: 'ワークツリーが見つかりません' });
+      res.status(404).json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
       return;
     }
     const parentRepoPath = getMainRepoPath(worktreePath);
@@ -948,12 +959,12 @@ app.delete('/api/worktree/:rid', async (req, res) => {
 });
 
 // ワークツリーのメモを取得（:rid は worktree の wtid）
-app.get('/api/worktree/:rid/memo', (req, res) => {
-  const worktreePath = repositoryIdManager.getPath(req.params.rid);
+app.get('/api/worktree/:rid/memo', async (req, res) => {
+  const worktreePath = await resolveExistingWorktreePath(req.params.rid);
   if (!worktreePath) {
     res
       .status(404)
-      .json({ success: false, message: 'ワークツリーが見つかりません' });
+      .json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
     return;
   }
   res.json({
@@ -966,11 +977,11 @@ app.get('/api/worktree/:rid/memo', (req, res) => {
 // ワークツリーのメモを更新（:rid は worktree の wtid、body は { memo: string }）
 app.put('/api/worktree/:rid/memo', async (req, res) => {
   try {
-    const worktreePath = repositoryIdManager.getPath(req.params.rid);
+    const worktreePath = await resolveExistingWorktreePath(req.params.rid);
     if (!worktreePath) {
       res
         .status(404)
-        .json({ success: false, message: 'ワークツリーが見つかりません' });
+        .json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
       return;
     }
 
@@ -1028,12 +1039,15 @@ app.post('/api/prompt/broadcast', async (req, res) => {
     let targetPaths = worktrees
       .filter((w) => includeMain || !w.isMain)
       .map((w) => w.path);
+    // 指定された targets のうち、どの送信先にも一致しなかったもの（誤った wtid 等）。
+    // getPath は存在しない rid でもパスを返すため、ここで実在の送信先と突き合わせて検出する。
+    let unmatchedTargets: string[] = [];
     if (Array.isArray(targets) && targets.length > 0) {
-      const wanted = new Set(
-        targets
-          .map((t: string) => repositoryIdManager.getPath(t))
-          .filter((p): p is string => Boolean(p))
+      const allowed = new Set(targetPaths);
+      unmatchedTargets = targets.filter(
+        (t: string) => !allowed.has(repositoryIdManager.getPath(t))
       );
+      const wanted = new Set(targets.map((t: string) => repositoryIdManager.getPath(t)));
       targetPaths = targetPaths.filter((p) => wanted.has(p));
     }
 
@@ -1053,7 +1067,20 @@ app.post('/api/prompt/broadcast', async (req, res) => {
         results.push({ path: p, rid: repositoryIdManager.tryGetId(p), success: false, message: String(e) });
       }
     }
-    res.json({ success: true, sent: results.filter((r) => r.success).length, results });
+    const sent = results.filter((r) => r.success).length;
+    const warning =
+      unmatchedTargets.length > 0
+        ? `指定した targets のうち ${unmatchedTargets.length} 件がどのワークツリーにも一致しませんでした（wtid を確認してください）`
+        : sent === 0
+          ? '送信先が 0 件でした（ワークツリーが存在しないか targets が一致していません）'
+          : undefined;
+    res.json({
+      success: true,
+      sent,
+      results,
+      unmatchedTargets,
+      ...(warning ? { warning } : {}),
+    });
   } catch (error) {
     console.error('[REST API] プロンプト一斉送信エラー:', error);
     res.status(500).json({ success: false, message: String(error) });

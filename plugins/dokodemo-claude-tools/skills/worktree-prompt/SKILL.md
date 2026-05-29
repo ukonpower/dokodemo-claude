@@ -69,7 +69,10 @@ curl -sk "${API}/api/worktrees/${RID_ENC}" | jq '.worktrees'
 ```
 
 各 worktree の `rid`（wtid）が分かる。特定のワークツリーだけに送りたい場合は `targets` で指定する。
-※`rid` はパスに `/` を含むため、URLに埋め込むときは `@uri` で encode する。
+**`targets` に渡す値は、この一覧レスポンスの `rid` フィールドをそのまま逐語コピーして使うこと。**
+`wt:...` のような形式を手で組み立てると、存在しない wtid となり下記の `unmatchedTargets` に入って黙って送信対象から外れる。
+※`rid` はパスに `:` や `/` を含むため、`/api/worktrees/:rid` のように URL に埋め込むときは `@uri` で encode する
+（`targets` は body で渡すので encode 不要）。
 
 ### Step 3: 一斉送信する
 
@@ -92,9 +95,10 @@ curl -sk -X POST "${API}/api/prompt/broadcast" \
         '{rid:$rid, provider:"claude", prompt:$prompt}')" | jq
 
 # 対象を絞って送信（main も含める）
+# targets の値は Step 2 の一覧レスポンスの rid をそのまま貼る（手で組まない）
 curl -sk -X POST "${API}/api/prompt/broadcast" \
   -H "Content-Type: application/json" \
-  -d "$(jq -n --arg rid "$RID" --arg prompt "..." --argjson targets '["wtid1","wtid2"]' \
+  -d "$(jq -n --arg rid "$RID" --arg prompt "..." --argjson targets '["<一覧のrid1>","<一覧のrid2>"]' \
         '{rid:$rid, provider:"claude", prompt:$prompt, targets:$targets, includeMain:true}')" | jq
 ```
 
@@ -107,12 +111,19 @@ curl -sk -X POST "${API}/api/prompt/broadcast" \
   "results": [
     { "path": "/.../wt-a", "rid": "...", "success": true, "itemId": "..." },
     { "path": "/.../wt-b", "rid": "...", "success": false, "message": "..." }
-  ]
+  ],
+  "unmatchedTargets": [],
+  "warning": "（送信先 0 件 や 未マッチ target がある場合のみ付与される）"
 }
 ```
 
 `results` に各ワークツリーへの投入結果が並ぶ（部分成功を許容）。投入されたプロンプトは
 各ワークツリーのキュー処理で順次 AI へ送られ、Web UI のキュー表示にも自動反映される。
+
+> **送信後は必ず `sent` / `unmatchedTargets` / `warning` を確認すること。**
+> `unmatchedTargets` には、指定した `targets` のうちどのワークツリーにも一致しなかった値が入る
+> （誤った wtid・取り違え）。`sent:0` や `unmatchedTargets` が非空なら投げっぱなしの事故なので、
+> 一覧 API で正しい `rid` を取り直して送信し直す。
 
 ## エラーハンドリング
 
@@ -126,7 +137,10 @@ curl -sk -X POST "${API}/api/prompt/broadcast" \
 ## Tips
 
 - このスキルは **キュー投入まで**。実際に AI へ送られるのは既存のキュー処理に委ねられる。
-- 一部のワークツリーで投入に失敗しても全体は 200 で返る。`results` の各要素で成否を確認すること。
+  各 claude が処理中か完了したかを取る API は現状ない（必要ならターミナル出力等でポーリングする）。
+- **`targets` は一覧 API の `rid` を逐語コピー。** 手で組んだ wtid は `unmatchedTargets` に入り黙って外れる。
+- 一部のワークツリーで投入に失敗しても全体は 200 で返る。`sent` / `results` / `unmatchedTargets` / `warning` で
+  成否と未マッチを必ず確認すること。`sent:0` でもエラーにはならない（送信先 0 件 or targets 不一致）。
 - 日本語プロンプトを `-d` でインライン指定するときは JSON 文字列のエスケープに注意。`jq -n --arg` で組み立てるとエスケープ事故が起きにくい。
 - 自己署名証明書のため curl では `-k` を必ず付ける。
 - `:rid` をパスに埋め込む API（`/api/worktrees/:rid` 等）では `jq -rn --arg r "$RID" '$r|@uri'` で URL エンコードする。`/api/prompt/broadcast` は body 渡しなので不要。
