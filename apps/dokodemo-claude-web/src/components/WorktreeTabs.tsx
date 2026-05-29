@@ -190,6 +190,9 @@ function WorktreeTabs({
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // ドラッグ終了時刻（直後に発火する click を無視するために使用）
+  const lastDragEndAtRef = useRef(0);
+
   // ドラッグ&ドロップ用センサー（8px動かすまではクリック扱い）
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -339,6 +342,9 @@ function WorktreeTabs({
 
   // ドラッグ終了時に並び替えを反映
   const handleDragEnd = (event: DragEndEvent) => {
+    // ドラッグ直後に発火する click を無視するため終了時刻を記録
+    lastDragEndAtRef.current = Date.now();
+
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const paths = branchWorktrees.map((wt) => wt.path);
@@ -346,6 +352,12 @@ function WorktreeTabs({
     const newIndex = paths.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
     onReorderWorktrees(arrayMove(paths, oldIndex, newIndex));
+  };
+
+  // タブクリックでの切り替え（ドラッグ直後の click は無視）
+  const handleSwitch = (path: string) => {
+    if (Date.now() - lastDragEndAtRef.current < 300) return;
+    onSwitchRepository(path);
   };
 
   return (
@@ -414,7 +426,7 @@ function WorktreeTabs({
                   isMenuOpen={menuOpenPath === wt.path}
                   compact={compact}
                   isConnected={isConnected}
-                  onSwitch={onSwitchRepository}
+                  onSwitch={handleSwitch}
                   onMenuClick={handleMenuClick}
                 />
               ))}
