@@ -100,7 +100,10 @@ export class AISessionManager extends EventEmitter {
       }
       case 'codex': {
         const codexCommand = process.env.CODEX_CLI_COMMAND || 'codex';
-        return { command: codexCommand, args: ['--full-auto'] };
+        return {
+          command: codexCommand,
+          args: ['--dangerously-bypass-approvals-and-sandbox'],
+        };
       }
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
