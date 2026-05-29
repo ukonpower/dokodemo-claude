@@ -101,6 +101,82 @@
   min-width: 0;
 }
 
+// メインワークツリー（左固定）セクション
+.mainSection {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.mainTab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &.compactStyle {
+    border-radius: $radius;
+
+    &.active {
+      background-color: rgba($gray-700, 0.5);
+    }
+
+    &:not(.active):hover {
+      background-color: rgba($gray-700, 0.3);
+    }
+  }
+
+  &.normalStyle {
+    border-bottom: 2px solid;
+
+    &.active {
+      border-color: $blue-500;
+      background-color: $gray-800;
+    }
+
+    &:not(.active) {
+      border-color: transparent;
+
+      &:hover {
+        background-color: $gray-800;
+      }
+    }
+  }
+}
+
+.mainIcon {
+  flex-shrink: 0;
+
+  &.compact {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-right: 0.375rem;
+
+    @include sm-up {
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-right: 0.25rem;
+    }
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+  }
+}
+
+// メインとブランチの区切り線
+.divider {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1px;
+  height: 1.25rem;
+  background-color: $dark-border-light;
+  margin: 0 0.5rem;
+}
+
 .swiper {
   flex: 1;
   min-width: 0;
@@ -275,16 +351,6 @@
   &.normal {
     width: 1rem;
     height: 1rem;
-  }
-}
-
-.mainTabSpacer {
-  &.compact {
-    padding-right: 0.125rem;
-  }
-
-  &.normal {
-    padding-right: 0.5rem;
   }
 }
 

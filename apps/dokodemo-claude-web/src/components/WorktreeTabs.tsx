@@ -205,9 +205,61 @@ function WorktreeTabs({
     );
   }
 
+  // パスを正規化してアクティブ判定
+  const normalizedCurrentPath = currentWorktreePath.replace(/\/+$/, '');
+  const isWorktreeActive = (wt: GitWorktree) =>
+    wt.path.replace(/\/+$/, '') === normalizedCurrentPath;
+
+  // メインワークツリーとブランチワークツリーを分離
+  const mainWorktree = worktrees.find((wt) => wt.isMain);
+  const branchWorktrees = worktrees.filter((wt) => !wt.isMain);
+
   return (
     <div className={`${s.root} ${compact ? '' : s.normal}`}>
       <div className={s.tabsContainer}>
+        {/* メインワークツリー（左固定） */}
+        {mainWorktree && (
+          <div className={s.mainSection}>
+            <div
+              className={`${s.mainTab} ${compact ? s.compactStyle : s.normalStyle} ${isWorktreeActive(mainWorktree) ? s.active : ''}`}
+            >
+              <a
+                href={`?repo=${encodeURIComponent(mainWorktree.path)}`}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
+                    return;
+                  }
+                  e.preventDefault();
+                  if (isWorktreeActive(mainWorktree)) return;
+                  onSwitchRepository(mainWorktree.path);
+                }}
+                className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isWorktreeActive(mainWorktree) ? s.active : ''}`}
+              >
+                <svg
+                  className={`${s.mainIcon} ${compact ? s.compact : s.normal}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
+                <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
+                  {mainWorktree.branch}
+                </span>
+                {isWorktreeActive(mainWorktree) && (
+                  <span className={`${s.activeDot} ${compact ? s.compact : s.normal}`}></span>
+                )}
+              </a>
+            </div>
+            <div className={s.divider}></div>
+          </div>
+        )}
+
         <Swiper
           modules={[FreeMode]}
           freeMode={true}
@@ -215,12 +267,9 @@ function WorktreeTabs({
           spaceBetween={0}
           className={s.swiper}
         >
-          {/* ワークツリータブ */}
-          {worktrees.map((wt) => {
-            // パスを正規化（trailing slashを削除）
-            const normalizedWtPath = wt.path.replace(/\/+$/, '');
-            const normalizedCurrentPath = currentWorktreePath.replace(/\/+$/, '');
-            const isActive = normalizedWtPath === normalizedCurrentPath;
+          {/* ブランチワークツリータブ */}
+          {branchWorktrees.map((wt) => {
+            const isActive = isWorktreeActive(wt);
             const isMenuOpen = menuOpenPath === wt.path;
             return (
               <SwiperSlide key={wt.path} className={s.swiperSlideAuto}>
@@ -245,30 +294,21 @@ function WorktreeTabs({
                     )}
                   </a>
 
-                  {/* 3点リーダーメニュー（メインワークツリー以外） */}
-                  {!wt.isMain && (
-                    <>
-                      <button
-                        onClick={(e) => handleMenuClick(e, wt)}
-                        disabled={!isConnected}
-                        className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
-                        title="ワークツリー操作"
-                      >
-                        <svg
-                          className={`${s.menuIcon} ${compact ? s.compact : s.normal}`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-
-                      {/* ドロップダウンメニュー（Portalでbodyに描画） */}
-                    </>
-                  )}
-
-                  {/* mainタブの場合、右側にスペースを追加 */}
-                  {wt.isMain && <div className={`${s.mainTabSpacer} ${compact ? s.compact : s.normal}`}></div>}
+                  {/* 3点リーダーメニュー */}
+                  <button
+                    onClick={(e) => handleMenuClick(e, wt)}
+                    disabled={!isConnected}
+                    className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
+                    title="ワークツリー操作"
+                  >
+                    <svg
+                      className={`${s.menuIcon} ${compact ? s.compact : s.normal}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </button>
                 </div>
               </SwiperSlide>
             );
