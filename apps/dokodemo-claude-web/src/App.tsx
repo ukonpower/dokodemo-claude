@@ -500,6 +500,7 @@ function App() {
       pullError={branchWorktree.pullError}
       onClearPullError={() => branchWorktree.setPullError(null)}
       onCreateWorktree={branchWorktree.createWorktree}
+      onReorderWorktrees={branchWorktree.reorderWorktrees}
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}
       onRequestWorktreeSyncConfig={branchWorktree.requestWorktreeSyncConfig}
       onSaveWorktreeSyncConfig={branchWorktree.saveWorktreeSyncConfig}

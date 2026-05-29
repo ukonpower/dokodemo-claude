@@ -146,6 +146,7 @@ interface ProjectViewProps {
   onSaveWorktreeSyncConfig: (entries: WorktreeSyncEntry[]) => void;
   worktreeSyncCandidates: WorktreeSyncCandidatesState | null;
   onRequestWorktreeSyncCandidates: (dirPath: string) => void;
+  onReorderWorktrees: (orderedBranchPaths: string[]) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
   onClearMergeError: () => void;
@@ -326,6 +327,7 @@ export function ProjectView({
   pullError,
   onClearPullError,
   onCreateWorktree,
+  onReorderWorktrees,
   worktreeSyncConfig,
   onRequestWorktreeSyncConfig,
   onSaveWorktreeSyncConfig,
@@ -713,6 +715,7 @@ export function ProjectView({
                   currentWorktreePath={currentRepo}
                   parentRepoPath={parentRepoPath}
                   onCreateWorktree={onCreateWorktree}
+                  onReorderWorktrees={onReorderWorktrees}
                   onDeleteWorktree={onDeleteWorktree}
                   onMergeWorktree={onMergeWorktree}
                   onSwitchRepository={onSwitchRepository}

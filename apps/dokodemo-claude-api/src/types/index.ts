@@ -353,6 +353,14 @@ export interface ServerToClientEvents {
     parentRepoPath?: string;
   }) => void;
 
+  // ワークツリータブの並び順の保存結果
+  'worktree-sort-order-saved': (data: {
+    success: boolean;
+    message?: string;
+    prid?: string;
+    parentRepoPath?: string;
+  }) => void;
+
   // ワークツリー同期対象候補（指定ディレクトリ直下のファイル/ディレクトリ一覧）
   'worktree-sync-candidates': (data: {
     prid?: string;
@@ -684,6 +692,13 @@ export interface ClientToServerEvents {
     prid?: string;
     parentRepoPath?: string;
     entries: WorktreeSyncEntry[];
+  }) => void;
+
+  // ワークツリータブの並び順の保存（orderedPaths はブランチワークツリーのパス配列）
+  'save-worktree-sort-order': (data: {
+    prid?: string;
+    parentRepoPath?: string;
+    orderedPaths: string[];
   }) => void;
 
   // ワークツリー同期対象候補の取得（親リポジトリ内の指定ディレクトリ直下を列挙）

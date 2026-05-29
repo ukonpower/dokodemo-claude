@@ -36,7 +36,10 @@ import {
   getWorktrees,
   getMainRepoPath,
 } from './utils/git-utils.js';
-import { addWorktreeIds } from './handlers/branch-handlers.js';
+import {
+  addWorktreeIds,
+  setWorktreeSortOrderManager,
+} from './handlers/branch-handlers.js';
 import { emitIdMappingUpdated } from './handlers/id-mapping-helpers.js';
 import { registerTerminalRoutes } from './handlers/terminal-handlers.js';
 import { stripAnsi } from './utils/strip-ansi.js';
@@ -175,6 +178,8 @@ initRepositoryIdManager(REPOS_DIR, WORKTREES_DIR);
 
 // プロセス管理インスタンス
 const processManager = new ProcessManager(PROCESSES_DIR);
+// ワークツリータブの並び順を addWorktreeIds が適用できるよう注入
+setWorktreeSortOrderManager(processManager.worktreeSortOrderManager);
 
 const persistenceService = new PersistenceService(PROCESSES_DIR);
 
@@ -875,7 +880,7 @@ app.post('/api/worktree/:rid', async (req, res) => {
     await emitIdMappingUpdated(io, repositories);
     const worktrees = await getWorktrees(parentRepoPath);
     io.emit('worktrees-list', {
-      worktrees: addWorktreeIds(worktrees),
+      worktrees: addWorktreeIds(worktrees, parentRepoPath),
       prid,
       parentRepoPath,
     });
@@ -924,7 +929,7 @@ app.delete('/api/worktree/:rid', async (req, res) => {
       (w) => w.path !== worktreePath
     );
     io.emit('worktrees-list', {
-      worktrees: addWorktreeIds(worktrees),
+      worktrees: addWorktreeIds(worktrees, parentRepoPath),
       prid,
       parentRepoPath,
     });

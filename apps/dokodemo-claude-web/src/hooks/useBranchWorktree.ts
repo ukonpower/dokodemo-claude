@@ -91,6 +91,7 @@ export interface UseBranchWorktreeReturn {
   deleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
   mergeWorktree: (worktreePath: string) => void;
   switchWorktree: (worktreePath: string) => void;
+  reorderWorktrees: (orderedBranchPaths: string[]) => void;
 
   // ワークツリー同期設定
   worktreeSyncConfig: WorktreeSyncConfigState | null;
@@ -573,6 +574,35 @@ export function useBranchWorktree(
     [onSwitchRepository]
   );
 
+  // ワークツリータブの並び替え（楽観的更新 + サーバーへ永続化）
+  const reorderWorktrees = useCallback(
+    (orderedBranchPaths: string[]) => {
+      // ローカル状態を即座に並び替え（メイン先頭、指定順、残りは末尾）
+      setWorktrees((prev) => {
+        const byPath = new Map(prev.map((wt) => [wt.path, wt]));
+        const main = prev.filter((wt) => wt.isMain);
+        const ordered = orderedBranchPaths
+          .map((p) => byPath.get(p))
+          .filter((wt): wt is GitWorktree => wt !== undefined);
+        const orderedSet = new Set(orderedBranchPaths);
+        const rest = prev.filter(
+          (wt) => !wt.isMain && !orderedSet.has(wt.path)
+        );
+        return [...main, ...ordered, ...rest];
+      });
+
+      if (socket && parentRepoPath) {
+        const prid = repositoryIdMap.getRid(parentRepoPath);
+        socket.emit('save-worktree-sort-order', {
+          prid,
+          parentRepoPath,
+          orderedPaths: orderedBranchPaths,
+        });
+      }
+    },
+    [socket, parentRepoPath]
+  );
+
   // 状態クリア
   const clearState = useCallback(() => {
     setBranches([]);
@@ -612,6 +642,7 @@ export function useBranchWorktree(
     deleteWorktree,
     mergeWorktree,
     switchWorktree,
+    reorderWorktrees,
     setMergeError,
     setPullError,
     clearWorktreeCreateError,

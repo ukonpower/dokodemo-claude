@@ -177,19 +177,25 @@
   margin: 0 0.5rem;
 }
 
-.swiper {
+// タブの横スクロールコンテナ（dnd-kit で並び替え可能）
+.tabsScroll {
+  display: flex;
+  align-items: center;
   flex: 1;
   min-width: 0;
-}
+  overflow-x: auto;
+  scrollbar-width: none;
 
-.swiperSlideAuto {
-  width: auto;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tabWrapper {
   position: relative;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing;
 
   &.compactStyle {
@@ -357,6 +363,7 @@
 .newButton {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   color: $gray-500;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;

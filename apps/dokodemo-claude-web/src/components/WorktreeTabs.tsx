@@ -1,9 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { FreeMode } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/free-mode';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type Modifier,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { GitWorktree, GitBranch, WorktreeSyncEntry } from '../types';
 import type {
   WorktreeSyncConfigState,
@@ -11,6 +25,103 @@ import type {
 } from '../hooks/useBranchWorktree';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
+
+// ドラッグ移動を横軸のみに制限する modifier
+const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  y: 0,
+});
+
+interface SortableWorktreeTabProps {
+  wt: GitWorktree;
+  isActive: boolean;
+  isMenuOpen: boolean;
+  compact: boolean;
+  isConnected: boolean;
+  onSwitch: (path: string) => void;
+  onMenuClick: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    wt: GitWorktree
+  ) => void;
+}
+
+/**
+ * ドラッグ&ドロップで並び替え可能なブランチワークツリータブ
+ */
+function SortableWorktreeTab({
+  wt,
+  isActive,
+  isMenuOpen,
+  compact,
+  isConnected,
+  onSwitch,
+  onMenuClick,
+}: SortableWorktreeTabProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: wt.path });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`${s.tabWrapper} ${compact ? s.compactStyle : s.normalStyle} ${isActive ? s.active : ''}`}
+    >
+      <a
+        href={`?repo=${encodeURIComponent(wt.path)}`}
+        draggable={false}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
+            return;
+          }
+          e.preventDefault();
+          if (isActive) return;
+          onSwitch(wt.path);
+        }}
+        className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isActive ? s.active : ''}`}
+      >
+        <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
+          {wt.branch}
+        </span>
+        {isActive && (
+          <span
+            className={`${s.activeDot} ${compact ? s.compact : s.normal}`}
+          ></span>
+        )}
+      </a>
+
+      {/* 3点リーダーメニュー */}
+      <button
+        onClick={(e) => onMenuClick(e, wt)}
+        disabled={!isConnected}
+        className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
+        title="ワークツリー操作"
+      >
+        <svg
+          className={`${s.menuIcon} ${compact ? s.compact : s.normal}`}
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 interface WorktreeTabsProps {
   worktrees: GitWorktree[];
@@ -22,6 +133,7 @@ interface WorktreeTabsProps {
     useExisting: boolean,
     syncEntries: WorktreeSyncEntry[]
   ) => void;
+  onReorderWorktrees: (orderedBranchPaths: string[]) => void;
   onDeleteWorktree: (worktreePath: string, deleteBranch: boolean) => void;
   onMergeWorktree: (worktreePath: string) => void;
   onSwitchRepository: (path: string) => void;
@@ -45,6 +157,7 @@ function WorktreeTabs({
   currentWorktreePath,
   parentRepoPath,
   onCreateWorktree,
+  onReorderWorktrees,
   onDeleteWorktree,
   onMergeWorktree,
   onSwitchRepository,
@@ -76,6 +189,16 @@ function WorktreeTabs({
     left: number;
   } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // ドラッグ&ドロップ用センサー（8px動かすまではクリック扱い）
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // メニュー外クリックで閉じる
   useEffect(() => {
@@ -214,6 +337,17 @@ function WorktreeTabs({
   const mainWorktree = worktrees.find((wt) => wt.isMain);
   const branchWorktrees = worktrees.filter((wt) => !wt.isMain);
 
+  // ドラッグ終了時に並び替えを反映
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const paths = branchWorktrees.map((wt) => wt.path);
+    const oldIndex = paths.indexOf(active.id as string);
+    const newIndex = paths.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorderWorktrees(arrayMove(paths, oldIndex, newIndex));
+  };
+
   return (
     <div className={`${s.root} ${compact ? '' : s.normal}`}>
       <div className={s.tabsContainer}>
@@ -260,84 +394,55 @@ function WorktreeTabs({
           </div>
         )}
 
-        <Swiper
-          modules={[FreeMode]}
-          freeMode={true}
-          slidesPerView="auto"
-          spaceBetween={0}
-          className={s.swiper}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToHorizontalAxis]}
+          onDragEnd={handleDragEnd}
         >
-          {/* ブランチワークツリータブ */}
-          {branchWorktrees.map((wt) => {
-            const isActive = isWorktreeActive(wt);
-            const isMenuOpen = menuOpenPath === wt.path;
-            return (
-              <SwiperSlide key={wt.path} className={s.swiperSlideAuto}>
-                <div
-                  className={`${s.tabWrapper} ${compact ? s.compactStyle : s.normalStyle} ${isActive ? s.active : ''}`}
-                >
-                  <a
-                    href={`?repo=${encodeURIComponent(wt.path)}`}
-                    onClick={(e) => {
-                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
-                        return;
-                      }
-                      e.preventDefault();
-                      if (isActive) return;
-                      onSwitchRepository(wt.path);
-                    }}
-                    className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isActive ? s.active : ''}`}
-                  >
-                    <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>{wt.branch}</span>
-                    {isActive && (
-                      <span className={`${s.activeDot} ${compact ? s.compact : s.normal}`}></span>
-                    )}
-                  </a>
-
-                  {/* 3点リーダーメニュー */}
-                  <button
-                    onClick={(e) => handleMenuClick(e, wt)}
-                    disabled={!isConnected}
-                    className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
-                    title="ワークツリー操作"
-                  >
-                    <svg
-                      className={`${s.menuIcon} ${compact ? s.compact : s.normal}`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
-                </div>
-              </SwiperSlide>
-            );
-          })}
-
-          {/* 新規作成ボタン */}
-          <SwiperSlide className={s.swiperSlideAuto}>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              disabled={!isConnected}
-              className={`${s.newButton} ${compact ? s.compact : s.normal}`}
-              title="新しいワークツリーを作成"
-            >
-              <svg
-                className={`${s.newIcon} ${compact ? s.compact : s.normal}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+          <SortableContext
+            items={branchWorktrees.map((wt) => wt.path)}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className={s.tabsScroll}>
+              {/* ブランチワークツリータブ */}
+              {branchWorktrees.map((wt) => (
+                <SortableWorktreeTab
+                  key={wt.path}
+                  wt={wt}
+                  isActive={isWorktreeActive(wt)}
+                  isMenuOpen={menuOpenPath === wt.path}
+                  compact={compact}
+                  isConnected={isConnected}
+                  onSwitch={onSwitchRepository}
+                  onMenuClick={handleMenuClick}
                 />
-              </svg>
-            </button>
-          </SwiperSlide>
-        </Swiper>
+              ))}
+
+              {/* 新規作成ボタン */}
+              <button
+                onClick={() => setShowCreateModal(true)}
+                disabled={!isConnected}
+                className={`${s.newButton} ${compact ? s.compact : s.normal}`}
+                title="新しいワークツリーを作成"
+              >
+                <svg
+                  className={`${s.newIcon} ${compact ? s.compact : s.normal}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </button>
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* ワークツリー操作メニュー（Portalでbodyに描画） */}
