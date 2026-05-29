@@ -17,7 +17,7 @@ import {
   PermissionMode,
 } from '../types/index.js';
 import { RingBuffer } from '../utils/ring-buffer.js';
-import { cleanChildEnv } from '../utils/clean-env.js';
+import { cleanChildEnv, getDokodemoApiBaseUrl } from '../utils/clean-env.js';
 import { ProcessRegistry } from './process-registry.js';
 
 /**
@@ -143,6 +143,7 @@ export class AISessionManager extends EventEmitter {
         COLORTERM: 'truecolor',
         FORCE_COLOR: '1',
         CLAUDECODE: undefined,
+        DOKODEMO_API_BASE_URL: getDokodemoApiBaseUrl(),
       }),
     });
 

@@ -17,12 +17,14 @@ dokodemo-claude のバックエンド API 経由で git ワークツリーを作
 
 | 項目 | 値 |
 |------|-----|
-| プロトコル | **HTTPS**（自己署名証明書を使用） |
-| ホスト | `localhost` |
-| ポート | `.env` の `DC_API_PORT`（既定 `8101`） |
+| ベースURL | 環境変数 `DOKODEMO_API_BASE_URL`（dokodemo が Claude/ターミナル起動時に注入） |
+| プロトコル | 通常は **HTTPS**（自己署名証明書） |
 | 認証 | なし（ローカル専用） |
 
 > HTTPS の自己署名証明書を使うため、curl では `-k`（`--insecure`）が必要。
+>
+> `DOKODEMO_API_BASE_URL` は dokodemo-claude から起動された Claude/ターミナルにのみ自動でセットされる。
+> 未設定の場合は dokodemo-claude 本体の `.env`（既定パス `~/dokodemo-claude/.env` 等）の `DC_API_PORT` と `DC_USE_HTTPS` から組み立てるか、ユーザーに直接聞く。**作業ディレクトリの `.env` は別プロジェクトの設定なので参照しない。**
 
 | 操作 | メソッド/パス | body |
 |------|---------------|------|
@@ -32,44 +34,56 @@ dokodemo-claude のバックエンド API 経由で git ワークツリーを作
 
 > 作成・一覧の `:rid` は親でも worktree でも可（サーバが親リポジトリへ正規化する）。
 > 削除の `:rid` は **削除対象 worktree の wtid**。親 rid を渡すと 400 になる。
+>
+> **`rid` は `wt:reponame/feature/foo` のように `:` や `/` を含む**。URLパスに埋め込む前に必ずエンコードすること（下記参照）。
 
 ## クイック実行
 
 ```bash
-API_PORT=$(grep '^DC_API_PORT=' .env | cut -d= -f2)
-RID=$(curl -sk "https://localhost:${API_PORT}/api/repository-id?path=$(pwd)" | jq -r '.rid')
+API="${DOKODEMO_API_BASE_URL:?dokodemo-claude から起動されていないため未設定。ユーザーに API のURLを確認してください}"
+RID=$(curl -sk "${API}/api/repository-id?path=$(pwd)" | jq -r '.rid')
+RID_ENC=$(jq -rn --arg r "$RID" '$r|@uri')
 
 # 一覧
-curl -sk "https://localhost:${API_PORT}/api/worktrees/${RID}" | jq
+curl -sk "${API}/api/worktrees/${RID_ENC}" | jq
 
 # 作成
-curl -sk -X POST "https://localhost:${API_PORT}/api/worktree/${RID}" \
+curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
   -H "Content-Type: application/json" \
   -d '{"branchName":"feature/foo","baseBranch":"main"}' | jq
 
-# 削除（WTID は一覧 or 作成レスポンスの wtid）
-curl -sk -X DELETE "https://localhost:${API_PORT}/api/worktree/${WTID}" \
+# 削除（WTID は一覧 or 作成レスポンスの wtid。これも encode する）
+WTID_ENC=$(jq -rn --arg r "$WTID" '$r|@uri')
+curl -sk -X DELETE "${API}/api/worktree/${WTID_ENC}" \
   -H "Content-Type: application/json" \
   -d '{"deleteBranch":false}' | jq
 ```
 
 ## ワークフロー
 
-### Step 1: API のポートを取得する
+### Step 1: API ベースURLを取得する
 
 ```bash
-API_PORT=$(grep '^DC_API_PORT=' .env | cut -d= -f2)
+API="${DOKODEMO_API_BASE_URL}"
 ```
 
-ユーザーから直接ポートを聞いてもよい（既定 8101）。
+dokodemo-claude から起動された Claude/ターミナルでは自動で設定される。
+未設定の場合のフォールバック手順:
 
-### Step 2: Repository ID を取得する
+1. dokodemo-claude 本体の `.env`（例: `~/dokodemo-claude/.env`）から `DC_API_PORT` と `DC_USE_HTTPS` を読む
+2. `DC_USE_HTTPS=false` でなければ HTTPS、それ以外は HTTP
+3. URL は `https://localhost:${DC_API_PORT}`（既定 `8001`）
+4. それでも分からなければユーザーに直接聞く
+
+### Step 2: Repository ID を取得して URL エンコードする
 
 ```bash
-RID=$(curl -sk "https://localhost:${API_PORT}/api/repository-id?path=$(pwd)" | jq -r '.rid')
+RID=$(curl -sk "${API}/api/repository-id?path=$(pwd)" | jq -r '.rid')
+RID_ENC=$(jq -rn --arg r "$RID" '$r|@uri')
 ```
 
 ワークツリー内で実行していても問題ない。サーバ側で親リポジトリへ正規化される。
+`rid` は `wt:proj/feature/foo` のように `/` を含むため、`@uri` で encode してから URL パスに埋め込む。
 
 ### Step 3: 操作を実行する
 
@@ -83,7 +97,7 @@ RID=$(curl -sk "https://localhost:${API_PORT}/api/repository-id?path=$(pwd)" | j
 | `syncEntries` | 任意 | 親から取り込むファイル。例 `[{"path":".env","mode":"copy"}]`（`mode` は `copy` or `link`） |
 
 ```bash
-curl -sk -X POST "https://localhost:${API_PORT}/api/worktree/${RID}" \
+curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
   -H "Content-Type: application/json" \
   -d '{"branchName":"feature/foo","baseBranch":"main","syncEntries":[{"path":".env","mode":"copy"}]}' | jq
 ```
@@ -101,17 +115,18 @@ curl -sk -X POST "https://localhost:${API_PORT}/api/worktree/${RID}" \
 #### 一覧
 
 ```bash
-curl -sk "https://localhost:${API_PORT}/api/worktrees/${RID}" | jq
+curl -sk "${API}/api/worktrees/${RID_ENC}" | jq
 ```
 
 main リポジトリと各 worktree が `rid` 付きで返る（main は prid、worktree は wtid）。
 
 #### 削除
 
-削除には対象 worktree の **wtid** を使う（一覧 or 作成レスポンスから取得）。
+削除には対象 worktree の **wtid** を使う（一覧 or 作成レスポンスから取得）。wtid も `/` を含むので encode する。
 
 ```bash
-curl -sk -X DELETE "https://localhost:${API_PORT}/api/worktree/${WTID}" \
+WTID_ENC=$(jq -rn --arg r "$WTID" '$r|@uri')
+curl -sk -X DELETE "${API}/api/worktree/${WTID_ENC}" \
   -H "Content-Type: application/json" \
   -d '{"deleteBranch":true}' | jq
 ```
@@ -124,7 +139,7 @@ curl -sk -X DELETE "https://localhost:${API_PORT}/api/worktree/${WTID}" \
 |----------------|------|
 | 200 / 201 | 成功 |
 | 400 | 必須欠落 / git 失敗（`message` に git stderr 等の理由） / main 削除不可 |
-| 404 | rid に対応するリポジトリが見つからない |
+| 404 | rid に対応するリポジトリが見つからない（多くは rid を encode せず `/` で path が割れているケース） |
 | 500 | サーバーエラー |
 
 ## Tips
@@ -132,3 +147,4 @@ curl -sk -X DELETE "https://localhost:${API_PORT}/api/worktree/${WTID}" \
 - 作成・削除は Web UI のタブに自動反映される（手動リロード不要）。
 - 既存ブランチをワークツリー化する場合は `useExistingBranch:true` を指定する。指定なしで既存ブランチ名を渡すと git が失敗し 400（`message` に理由）。
 - 自己署名証明書のため curl では `-k` を必ず付ける。HTTP ではなく **HTTPS**。
+- `rid`/`wtid` は必ず `@uri` で URL エンコードしてからパスに埋め込むこと。`jq parse error` や 404 が返ったらこれを疑う。
