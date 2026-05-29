@@ -12,7 +12,7 @@
       "name": "dokodemo-claude-tools",
       "source": "./dokodemo-claude-tools",
       "description": "dokodemo-claude で利用する統合ツールセット（preview, workflow, git など）",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "author": {
         "name": "dokodemo-claude"
       },

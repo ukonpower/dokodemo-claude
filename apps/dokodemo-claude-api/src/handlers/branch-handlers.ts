@@ -17,9 +17,37 @@ import { startBranchWatching } from '../services/branch-watcher.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
+import type {
+  WorktreeSortOrderManager,
+  WorktreeMemoManager,
+} from '../managers/index.js';
 
 // ワークツリー取得の進行中リクエストを管理（同時実行防止）
 const pendingWorktreeRequests = new Map<string, Promise<GitWorktree[]>>();
+
+// 並び順マネージャーの参照（server.ts 起動時に注入）
+let sortOrderManager: WorktreeSortOrderManager | null = null;
+
+// メモマネージャーの参照（server.ts 起動時に注入）
+let memoManager: WorktreeMemoManager | null = null;
+
+/**
+ * ワークツリー並び順マネージャーを注入する。
+ * addWorktreeIds が emit 時に保存済みの並び順を適用するために使用する。
+ */
+export function setWorktreeSortOrderManager(
+  manager: WorktreeSortOrderManager
+): void {
+  sortOrderManager = manager;
+}
+
+/**
+ * ワークツリーメモマネージャーを注入する。
+ * addWorktreeIds が emit 時に各ワークツリーのメモを同梱するために使用する。
+ */
+export function setWorktreeMemoManager(manager: WorktreeMemoManager): void {
+  memoManager = manager;
+}
 
 // ワークツリー結果のキャッシュ（短時間の重複リクエスト対策）
 const worktreeCache = new Map<
@@ -31,15 +59,20 @@ const CACHE_TTL_MS = 1000; // 1秒間キャッシュ
 /**
  * ワークツリーに wtid を付与する。
  * managed dir 外（Cursor 等の外部ツールが登録した worktree）は除外する。
+ * parentRepoPath を渡すと、保存済みのタブ並び順を適用する。
  */
-function addWorktreeIds(
+export function addWorktreeIds(
   worktrees: GitWorktree[],
+  parentRepoPath?: string,
 ): Array<GitWorktree & { wtid: string }> {
   const result: Array<GitWorktree & { wtid: string }> = [];
   for (const wt of worktrees) {
     const wtid = repositoryIdManager.tryGetId(wt.path);
     if (wtid === undefined) continue;
-    result.push({ ...wt, wtid });
+    result.push({ ...wt, wtid, memo: memoManager?.get(wt.path) });
+  }
+  if (parentRepoPath && sortOrderManager) {
+    return sortOrderManager.applyOrder(parentRepoPath, result);
   }
   return result;
 }
@@ -109,7 +142,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
           });
         }
         socket.emit('worktrees-list', {
-          worktrees: addWorktreeIds(worktrees),
+          worktrees: addWorktreeIds(worktrees, mainRepoPath),
           prid,
           parentRepoPath: mainRepoPath,
         });
@@ -148,7 +181,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
       const cached = worktreeCache.get(mainRepoPath);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
         socket.emit('worktrees-list', {
-          worktrees: addWorktreeIds(cached.worktrees),
+          worktrees: addWorktreeIds(cached.worktrees, mainRepoPath),
           prid,
           parentRepoPath: mainRepoPath,
         });
@@ -177,7 +210,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         const existingCache = worktreeCache.get(mainRepoPath);
         if (existingCache && existingCache.worktrees.length > 0) {
           socket.emit('worktrees-list', {
-            worktrees: addWorktreeIds(existingCache.worktrees),
+            worktrees: addWorktreeIds(existingCache.worktrees, mainRepoPath),
             prid,
             parentRepoPath: mainRepoPath,
           });
@@ -186,7 +219,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
       }
 
       socket.emit('worktrees-list', {
-        worktrees: addWorktreeIds(worktrees),
+        worktrees: addWorktreeIds(worktrees, mainRepoPath),
         prid,
         parentRepoPath: mainRepoPath,
       });
@@ -243,7 +276,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         });
 
         socket.emit('worktrees-list', {
-          worktrees: addWorktreeIds(worktrees),
+          worktrees: addWorktreeIds(worktrees, parentRepoPath),
           prid,
           parentRepoPath,
         });
@@ -333,6 +366,9 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
       });
 
       if (result.success) {
+        // 削除したワークツリーのメモも掃除する
+        await processManager.worktreeMemoManager.remove(worktreePath);
+
         // 全クライアントへ最新の id-mapping を通知（ワークツリー削除を反映）
         void emitIdMappingUpdated(ctx.io, ctx.repositories);
 
@@ -351,7 +387,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         });
 
         socket.emit('worktrees-list', {
-          worktrees: addWorktreeIds(filteredWorktrees),
+          worktrees: addWorktreeIds(filteredWorktrees, parentRepoPath),
           prid,
           parentRepoPath,
         });
@@ -465,7 +501,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
           });
         }
         socket.emit('worktrees-list', {
-          worktrees: addWorktreeIds(worktrees),
+          worktrees: addWorktreeIds(worktrees, mainRepoPath),
           prid,
           parentRepoPath: mainRepoPath,
         });
@@ -513,5 +549,78 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         rid,
       });
     }
+  });
+
+  // ワークツリータブの並び順を保存
+  socket.on('save-worktree-sort-order', async (data) => {
+    const repoPath = resolveRepositoryPath({
+      rid: data.prid,
+      repositoryPath: data.parentRepoPath,
+    });
+    if (!repoPath) return;
+
+    const parentRepoPath = getMainRepoPath(repoPath);
+    const prid = repositoryIdManager.tryGetId(parentRepoPath);
+
+    const result = await processManager.worktreeSortOrderManager.save(
+      parentRepoPath,
+      data.orderedPaths
+    );
+    if (!result.ok) {
+      socket.emit('worktree-sort-order-saved', {
+        success: false,
+        message: result.error.message,
+        prid,
+        parentRepoPath,
+      });
+      return;
+    }
+
+    socket.emit('worktree-sort-order-saved', {
+      success: true,
+      prid,
+      parentRepoPath,
+    });
+
+    // 並び順を適用した最新一覧を全クライアントへ通知
+    const cached = worktreeCache.get(parentRepoPath);
+    const worktrees = cached?.worktrees ?? (await getWorktrees(parentRepoPath));
+    ctx.io.emit('worktrees-list', {
+      worktrees: addWorktreeIds(worktrees, parentRepoPath),
+      prid,
+      parentRepoPath,
+    });
+  });
+
+  // ワークツリーのメモを保存
+  socket.on('save-worktree-memo', async (data) => {
+    const worktreePath = repositoryIdManager.getPath(data.rid);
+    if (!worktreePath) return;
+
+    const result = await processManager.worktreeMemoManager.save(
+      worktreePath,
+      data.memo ?? ''
+    );
+    if (!result.ok) {
+      socket.emit('worktree-memo-saved', {
+        success: false,
+        message: result.error.message,
+        rid: data.rid,
+      });
+      return;
+    }
+
+    socket.emit('worktree-memo-saved', { success: true, rid: data.rid });
+
+    // メモを同梱した最新一覧を全クライアントへ通知
+    const parentRepoPath = getMainRepoPath(worktreePath);
+    const prid = repositoryIdManager.tryGetId(parentRepoPath);
+    const cached = worktreeCache.get(parentRepoPath);
+    const worktrees = cached?.worktrees ?? (await getWorktrees(parentRepoPath));
+    ctx.io.emit('worktrees-list', {
+      worktrees: addWorktreeIds(worktrees, parentRepoPath),
+      prid,
+      parentRepoPath,
+    });
   });
 }

@@ -22,6 +22,8 @@ import {
   ProcessMonitor,
   CustomAiButtonManager,
   WorktreeSyncManager,
+  WorktreeSortOrderManager,
+  WorktreeMemoManager,
   AISessionManager,
   type ActiveAiSession,
   type ActiveTerminal,
@@ -50,6 +52,8 @@ export class ProcessManager extends EventEmitter {
   public readonly promptQueueManager: PromptQueueManager;
   public readonly customAiButtonManager: CustomAiButtonManager;
   public readonly worktreeSyncManager: WorktreeSyncManager;
+  public readonly worktreeSortOrderManager: WorktreeSortOrderManager;
+  public readonly worktreeMemoManager: WorktreeMemoManager;
 
   public readonly processRegistry: ProcessRegistry;
   public readonly processMonitor: ProcessMonitor;
@@ -121,6 +125,14 @@ export class ProcessManager extends EventEmitter {
 
     // WorktreeSyncManager: 親リポジトリごとに worktree 作成時の同期設定を保持
     this.worktreeSyncManager = new WorktreeSyncManager(this.persistenceService);
+
+    // WorktreeSortOrderManager: 親リポジトリごとに worktree タブの並び順を保持
+    this.worktreeSortOrderManager = new WorktreeSortOrderManager(
+      this.persistenceService
+    );
+
+    // WorktreeMemoManager: ワークツリーごとのメモを保持
+    this.worktreeMemoManager = new WorktreeMemoManager(this.persistenceService);
 
     // PromptQueueManager: プライマリインスタンスのセッションを返すアダプター
     this.promptQueueManager = new PromptQueueManager(this.persistenceService, {
@@ -306,6 +318,8 @@ export class ProcessManager extends EventEmitter {
     await this.promptQueueManager.initialize();
     await this.customAiButtonManager.initialize();
     await this.worktreeSyncManager.initialize();
+    await this.worktreeSortOrderManager.initialize();
+    await this.worktreeMemoManager.initialize();
 
     this.startProcessMonitoring();
   }

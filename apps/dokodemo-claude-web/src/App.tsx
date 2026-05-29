@@ -500,6 +500,7 @@ function App() {
       pullError={branchWorktree.pullError}
       onClearPullError={() => branchWorktree.setPullError(null)}
       onCreateWorktree={branchWorktree.createWorktree}
+      onReorderWorktrees={branchWorktree.reorderWorktrees}
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}
       onRequestWorktreeSyncConfig={branchWorktree.requestWorktreeSyncConfig}
       onSaveWorktreeSyncConfig={branchWorktree.saveWorktreeSyncConfig}
@@ -509,6 +510,7 @@ function App() {
       }
       onDeleteWorktree={branchWorktree.deleteWorktree}
       onMergeWorktree={branchWorktree.mergeWorktree}
+      onSaveWorktreeMemo={branchWorktree.saveWorktreeMemo}
       onClearMergeError={() => branchWorktree.setMergeError(null)}
       // プロンプトキュー関連
       promptQueue={promptQueue.promptQueue}
