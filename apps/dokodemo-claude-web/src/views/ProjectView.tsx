@@ -122,6 +122,9 @@ interface ProjectViewProps {
     conflictFiles?: string[];
     errorDetails?: string;
   } | null;
+  worktreeCreateError: { message: string } | null;
+  worktreeCreateSuccessNonce: number;
+  onClearWorktreeCreateError: () => void;
   isDeletingWorktree: boolean;
   deletingWorktreePath: string | null;
   onSwitchBranch: (branchName: string) => void;
@@ -309,6 +312,9 @@ export function ProjectView({
   worktrees,
   parentRepoPath,
   mergeError,
+  worktreeCreateError,
+  worktreeCreateSuccessNonce,
+  onClearWorktreeCreateError,
   isDeletingWorktree,
   deletingWorktreePath,
   onSwitchBranch,
@@ -720,6 +726,9 @@ export function ProjectView({
                   onSaveSyncConfig={onSaveWorktreeSyncConfig}
                   syncCandidates={worktreeSyncCandidates}
                   onRequestSyncCandidates={onRequestWorktreeSyncCandidates}
+                  worktreeCreateError={worktreeCreateError}
+                  worktreeCreateSuccessNonce={worktreeCreateSuccessNonce}
+                  onClearWorktreeCreateError={onClearWorktreeCreateError}
                 />
               </>
             )}

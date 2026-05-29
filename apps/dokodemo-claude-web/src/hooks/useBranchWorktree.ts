@@ -62,6 +62,8 @@ export interface UseBranchWorktreeReturn {
     conflictFiles?: string[];
     errorDetails?: string;
   } | null;
+  worktreeCreateError: { message: string } | null;
+  worktreeCreateSuccessNonce: number;
   isDeletingWorktree: boolean;
   deletingWorktreePath: string | null;
 
@@ -113,6 +115,7 @@ export interface UseBranchWorktreeReturn {
       output?: string;
     } | null
   ) => void;
+  clearWorktreeCreateError: () => void;
 
   // クリア関数（リポジトリ切り替え時用）
   clearState: () => void;
@@ -144,6 +147,11 @@ export function useBranchWorktree(
   const [deletingWorktreePath, setDeletingWorktreePath] = useState<
     string | null
   >(null);
+  const [worktreeCreateError, setWorktreeCreateError] = useState<{
+    message: string;
+  } | null>(null);
+  const [worktreeCreateSuccessNonce, setWorktreeCreateSuccessNonce] =
+    useState(0);
 
   // pull 状態
   const [isPulling, setIsPulling] = useState(false);
@@ -237,10 +245,15 @@ export function useBranchWorktree(
     const handleWorktreeCreated = (
       data: Parameters<ServerToClientEvents['worktree-created']>[0]
     ) => {
-      const logFn = data.success ? console.log : console.error;
-      logFn(data.message);
+      if (!data.success) {
+        setWorktreeCreateError({ message: data.message });
+        return;
+      }
 
-      if (data.success && data.worktree?.path) {
+      setWorktreeCreateError(null);
+      setWorktreeCreateSuccessNonce((n) => n + 1);
+
+      if (data.worktree?.path) {
         const newWorktreePath = data.worktree.path;
         // 最終アクセス時刻をバックエンドに送信
         socket.emit('update-repo-access', { path: newWorktreePath });
@@ -453,6 +466,7 @@ export function useBranchWorktree(
       syncEntries?: WorktreeSyncEntry[]
     ) => {
       if (socket && parentRepoPath) {
+        setWorktreeCreateError(null);
         const prid = repositoryIdMap.getRid(parentRepoPath);
         socket.emit('create-worktree', {
           prid,
@@ -466,6 +480,10 @@ export function useBranchWorktree(
     },
     [socket, parentRepoPath]
   );
+
+  const clearWorktreeCreateError = useCallback(() => {
+    setWorktreeCreateError(null);
+  }, []);
 
   const requestWorktreeSyncConfig = useCallback(() => {
     if (!socket) return;
@@ -563,6 +581,7 @@ export function useBranchWorktree(
     setParentRepoPath('');
     setIsPulling(false);
     setPullError(null);
+    setWorktreeCreateError(null);
     setWorktreeSyncConfig(null);
     setWorktreeSyncCandidates(null);
   }, []);
@@ -578,6 +597,8 @@ export function useBranchWorktree(
     worktrees,
     parentRepoPath,
     mergeError,
+    worktreeCreateError,
+    worktreeCreateSuccessNonce,
     isDeletingWorktree,
     deletingWorktreePath,
     isPulling,
@@ -593,6 +614,7 @@ export function useBranchWorktree(
     switchWorktree,
     setMergeError,
     setPullError,
+    clearWorktreeCreateError,
     clearState,
     worktreeSyncConfig,
     requestWorktreeSyncConfig,

@@ -27,6 +27,7 @@ interface WorktreeCreateModalProps {
   onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
   syncCandidates: WorktreeSyncCandidatesState | null;
   onRequestSyncCandidates: (dirPath: string) => void;
+  worktreeCreateError: { message: string } | null;
   onClose: () => void;
   onCreate: (
     branchName: string,
@@ -56,6 +57,7 @@ function WorktreeCreateModal({
   onSaveSyncConfig,
   syncCandidates,
   onRequestSyncCandidates,
+  worktreeCreateError,
   onClose,
   onCreate,
 }: WorktreeCreateModalProps) {
@@ -258,8 +260,14 @@ function WorktreeCreateModal({
       useExistingBranch,
       rows
     );
-    onClose();
   };
+
+  // バックエンドからエラーが返ってきたら作成中ローディングを解除
+  useEffect(() => {
+    if (worktreeCreateError) {
+      setIsCreating(false);
+    }
+  }, [worktreeCreateError]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -684,6 +692,30 @@ function WorktreeCreateModal({
           </div>
         </div>
 
+        {worktreeCreateError && (
+          <div className={s.createErrorBox} role="alert">
+            <div className={s.createErrorTitle}>
+              <svg
+                className={s.createErrorIcon}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              ワークツリーの作成に失敗しました
+            </div>
+            <pre className={s.createErrorMessage}>
+              {worktreeCreateError.message}
+            </pre>
+          </div>
+        )}
+
         <div className={s.modalFooter}>
           <button onClick={onClose} className={s.cancelButton}>
             キャンセル
@@ -693,7 +725,11 @@ function WorktreeCreateModal({
             disabled={!branchName.trim() || isCreating}
             className={s.createButton}
           >
-            {isCreating ? '作成中...' : '作成'}
+            {isCreating
+              ? '作成中...'
+              : worktreeCreateError
+                ? '再試行'
+                : '作成'}
           </button>
         </div>
       </div>

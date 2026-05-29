@@ -35,6 +35,9 @@ interface WorktreeTabsProps {
   onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
   syncCandidates: WorktreeSyncCandidatesState | null;
   onRequestSyncCandidates: (dirPath: string) => void;
+  worktreeCreateError: { message: string } | null;
+  worktreeCreateSuccessNonce: number;
+  onClearWorktreeCreateError: () => void;
 }
 
 function WorktreeTabs({
@@ -55,6 +58,9 @@ function WorktreeTabs({
   onSaveSyncConfig,
   syncCandidates,
   onRequestSyncCandidates,
+  worktreeCreateError,
+  worktreeCreateSuccessNonce,
+  onClearWorktreeCreateError,
 }: WorktreeTabsProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
@@ -87,6 +93,15 @@ function WorktreeTabs({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuOpenPath]);
+
+  // ワークツリー作成が成功したら作成モーダルを閉じる
+  const lastCreateSuccessNonceRef = useRef(worktreeCreateSuccessNonce);
+  useEffect(() => {
+    if (worktreeCreateSuccessNonce !== lastCreateSuccessNonceRef.current) {
+      lastCreateSuccessNonceRef.current = worktreeCreateSuccessNonce;
+      setShowCreateModal(false);
+    }
+  }, [worktreeCreateSuccessNonce]);
 
   const handleMenuClick = (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -178,7 +193,11 @@ function WorktreeTabs({
             onSaveSyncConfig={onSaveSyncConfig}
             syncCandidates={syncCandidates}
             onRequestSyncCandidates={onRequestSyncCandidates}
-            onClose={() => setShowCreateModal(false)}
+            worktreeCreateError={worktreeCreateError}
+            onClose={() => {
+              setShowCreateModal(false);
+              onClearWorktreeCreateError();
+            }}
             onCreate={onCreateWorktree}
           />
         )}
@@ -353,7 +372,11 @@ function WorktreeTabs({
           onSaveSyncConfig={onSaveSyncConfig}
           syncCandidates={syncCandidates}
           onRequestSyncCandidates={onRequestSyncCandidates}
-          onClose={() => setShowCreateModal(false)}
+          worktreeCreateError={worktreeCreateError}
+          onClose={() => {
+            setShowCreateModal(false);
+            onClearWorktreeCreateError();
+          }}
           onCreate={onCreateWorktree}
         />
       )}

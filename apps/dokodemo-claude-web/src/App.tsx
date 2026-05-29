@@ -486,6 +486,9 @@ function App() {
       worktrees={branchWorktree.worktrees}
       parentRepoPath={branchWorktree.parentRepoPath}
       mergeError={branchWorktree.mergeError}
+      worktreeCreateError={branchWorktree.worktreeCreateError}
+      worktreeCreateSuccessNonce={branchWorktree.worktreeCreateSuccessNonce}
+      onClearWorktreeCreateError={branchWorktree.clearWorktreeCreateError}
       isDeletingWorktree={branchWorktree.isDeletingWorktree}
       deletingWorktreePath={branchWorktree.deletingWorktreePath}
       onSwitchBranch={branchWorktree.switchBranch}
