@@ -1,12 +1,17 @@
 ---
 name: worktree-manage
-description: This skill should be used when the user asks to "create/list/delete a worktree", "ワークツリーを作成/一覧/削除", "ワークツリー作って", "ワークツリー一覧", "ワークツリー消して", "worktree-manage", or when Claude Code needs to create, list, or delete git worktrees through the dokodemo-claude backend API.
+description: This skill should be used when the user asks to "create/list/delete a worktree", "ワークツリーを作成/一覧/削除", "ワークツリー作って", "ワークツリー一覧", "ワークツリー消して", "ワークツリーに説明/メモを付けて/書いて", "worktree-manage", or when Claude Code needs to create, list, delete, or annotate (add a description / メモ to) git worktrees through the dokodemo-claude backend API.
 ---
 
 # worktree-manage
 
-dokodemo-claude のバックエンド API 経由で git ワークツリーを作成・一覧・削除するスキル。
-作成/削除すると Web UI のタブにも自動反映される。
+dokodemo-claude のバックエンド API 経由で git ワークツリーを作成・一覧・削除・メモ更新するスキル。
+作成/削除/メモ更新すると Web UI のタブにも自動反映される。
+
+> **重要: ワークツリーの「説明」は git の `branch.description`（`git config`）ではなく、必ず本スキルの
+> メモ API（`PUT /api/worktree/:rid/memo`）に入れること。** `git config branch.<name>.description` に
+> 書いても dokodemo-claude の API レスポンスにも Web UI のタブにも一切反映されない。Web UI のタブに
+> 表示される「説明 = メモ」はこのメモ API 経由のものだけ。
 
 ## Prerequisites
 
@@ -31,9 +36,11 @@ dokodemo-claude のバックエンド API 経由で git ワークツリーを作
 | 一覧 | `GET /api/worktrees/:rid` | — |
 | 作成 | `POST /api/worktree/:rid` | `{branchName, baseBranch?, useExistingBranch?, syncEntries?}` |
 | 削除 | `DELETE /api/worktree/:rid` | `{deleteBranch?}`（:rid は対象 worktree の wtid） |
+| メモ取得 | `GET /api/worktree/:rid/memo` | —（:rid は対象 worktree の wtid） |
+| メモ更新 | `PUT /api/worktree/:rid/memo` | `{memo}`（:rid は対象 worktree の wtid） |
 
 > 作成・一覧の `:rid` は親でも worktree でも可（サーバが親リポジトリへ正規化する）。
-> 削除の `:rid` は **削除対象 worktree の wtid**。親 rid を渡すと 400 になる。
+> 削除・メモ取得/更新の `:rid` は **対象 worktree の wtid**。親 rid を渡すと 404/400 になる。
 >
 > **`rid` は `wt:reponame/feature/foo` のように `:` や `/` を含む**。URLパスに埋め込む前に必ずエンコードすること（下記参照）。
 
@@ -47,10 +54,16 @@ RID_ENC=$(jq -rn --arg r "$RID" '$r|@uri')
 # 一覧
 curl -sk "${API}/api/worktrees/${RID_ENC}" | jq
 
-# 作成
-curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
+# 作成（作成レスポンスの worktree.wtid を控える）
+WTID=$(curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
   -H "Content-Type: application/json" \
-  -d '{"branchName":"feature/foo","baseBranch":"main"}' | jq
+  -d '{"branchName":"feature/foo","baseBranch":"main"}' | jq -r '.worktree.wtid')
+
+# メモ（= Web UI に表示される説明）を設定。日本語は jq -n --arg で安全に組み立てる
+WTID_ENC=$(jq -rn --arg r "$WTID" '$r|@uri')
+curl -sk -X PUT "${API}/api/worktree/${WTID_ENC}/memo" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg memo "新機能 foo の実験用ワークツリー" '{memo:$memo}')" | jq
 
 # 削除（WTID は一覧 or 作成レスポンスの wtid。これも encode する）
 WTID_ENC=$(jq -rn --arg r "$WTID" '$r|@uri')
@@ -112,6 +125,33 @@ curl -sk -X POST "${API}/api/worktree/${RID_ENC}" \
 }
 ```
 
+> **作成時に説明（用途・目的など）を求められたら**、レスポンスの `worktree.wtid` を控え、続けて
+> 下記「メモ（説明）」の `PUT /api/worktree/:rid/memo` を実行して説明を設定する。git の
+> `branch.description` には絶対に書かない（Web UI に反映されない）。
+
+#### メモ（説明）
+
+ワークツリーの「説明」は **メモ**として管理され、Web UI のタブに表示される。`:rid` は
+対象 worktree の **wtid**（作成レスポンス or 一覧から取得）。wtid は `/` を含むので encode する。
+
+```bash
+WTID_ENC=$(jq -rn --arg r "$WTID" '$r|@uri')
+
+# メモ取得
+curl -sk "${API}/api/worktree/${WTID_ENC}/memo" | jq
+
+# メモ更新（説明をセット）。日本語は jq -n --arg でエスケープ事故を防ぐ
+curl -sk -X PUT "${API}/api/worktree/${WTID_ENC}/memo" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg memo "GLPower の実験用サンドボックス。master を汚さず補間関数等を試す隔離環境。" '{memo:$memo}')" | jq
+```
+
+| パラメータ | 必須 | 説明 |
+|-----------|------|------|
+| `memo` | 必須 | 説明本文（自由記述の文字列）。本文中の URL は Web UI 表示時に自動リンク化される。**空文字を渡すとメモ削除**（残骸を残さない）。保存時に前後の空白は trim される |
+
+成功時 (HTTP 200): `{ "success": true, "rid": "...", "memo": "保存された本文" }`
+
 #### 一覧
 
 ```bash
@@ -138,13 +178,15 @@ curl -sk -X DELETE "${API}/api/worktree/${WTID_ENC}" \
 | HTTP ステータス | 意味 |
 |----------------|------|
 | 200 / 201 | 成功 |
-| 400 | 必須欠落 / git 失敗（`message` に git stderr 等の理由） / main 削除不可 |
-| 404 | rid に対応するリポジトリが見つからない（多くは rid を encode せず `/` で path が割れているケース） |
+| 400 | 必須欠落（メモは `memo` が文字列でない） / git 失敗（`message` に git stderr 等の理由） / main 削除不可 |
+| 404 | rid に対応するリポジトリ・ワークツリーが見つからない（多くは rid を encode せず `/` で path が割れているケース） |
 | 500 | サーバーエラー |
 
 ## Tips
 
-- 作成・削除は Web UI のタブに自動反映される（手動リロード不要）。
+- 作成・削除・メモ更新は Web UI のタブに自動反映される（手動リロード不要）。
+- **「説明」は git ではなくメモ API に入れる。** `git config branch.<name>.description` は dokodemo-claude には一切反映されない。Web UI に出したい説明は必ず `PUT /api/worktree/:rid/memo`。
 - 既存ブランチをワークツリー化する場合は `useExistingBranch:true` を指定する。指定なしで既存ブランチ名を渡すと git が失敗し 400（`message` に理由）。
 - 自己署名証明書のため curl では `-k` を必ず付ける。HTTP ではなく **HTTPS**。
 - `rid`/`wtid` は必ず `@uri` で URL エンコードしてからパスに埋め込むこと。`jq parse error` や 404 が返ったらこれを疑う。
+- 日本語のメモを `-d` でインライン指定するときは `jq -n --arg memo "..." '{memo:$memo}'` で組み立てるとエスケープ事故が起きにくい。
