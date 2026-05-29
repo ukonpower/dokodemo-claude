@@ -28,7 +28,18 @@ import { ProcessManager } from './process-manager.js';
 import * as CodeServerManager from './code-server.js';
 import { registerAllHandlers } from './handlers/index.js';
 import { isPathSafe } from './handlers/file-viewer-handlers.js';
-import { findRepositoryRoot, getWorktreeInfo } from './utils/git-utils.js';
+import {
+  findRepositoryRoot,
+  getWorktreeInfo,
+  createWorktree,
+  deleteWorktree,
+  getWorktrees,
+  getMainRepoPath,
+} from './utils/git-utils.js';
+import { addWorktreeIds } from './handlers/branch-handlers.js';
+import { emitIdMappingUpdated } from './handlers/id-mapping-helpers.js';
+import { registerTerminalRoutes } from './handlers/terminal-handlers.js';
+import { stripAnsi } from './utils/strip-ansi.js';
 import {
   repositoryIdManager,
   initRepositoryIdManager,
@@ -280,15 +291,6 @@ app.get('/api/repository-id', (req, res) => {
     res.status(404).json({ error: 'Repository not found', path: repoPath });
   }
 });
-
-/**
- * ANSIエスケープシーケンスを除去する
- */
-function stripAnsi(text: string): string {
-  // ANSI制御文字のパターン (ESC [ ... m などの形式)
-  const ansiPattern = /\u001B\[[0-9;]*[a-zA-Z]/g;
-  return text.replace(ansiPattern, '');
-}
 
 /**
  * transcriptファイル（JSONL形式）から会話サマリーを抽出する
@@ -804,6 +806,186 @@ app.post('/api/queue/resume', async (req, res) => {
     res.status(500).json({ success: false, message: String(error) });
   }
 });
+
+// ============================================
+// ワークツリー REST API エンドポイント
+// ============================================
+
+// ワークツリー一覧を取得（:rid は親 or worktree。getMainRepoPath で親へ正規化）
+app.get('/api/worktrees/:rid', async (req, res) => {
+  const resolved = repositoryIdManager.getPath(req.params.rid);
+  if (!resolved) {
+    res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
+    return;
+  }
+  const parentRepoPath = getMainRepoPath(resolved);
+  const worktrees = await getWorktrees(parentRepoPath);
+  res.json({
+    success: true,
+    parentRepoPath,
+    prid: repositoryIdManager.tryGetId(parentRepoPath),
+    worktrees: worktrees.map((w) => ({
+      path: w.path,
+      branch: w.branch,
+      isMain: w.isMain,
+      rid: repositoryIdManager.tryGetId(w.path),
+    })),
+  });
+});
+
+// ワークツリーを作成（:rid は親 or worktree。getMainRepoPath で親へ正規化）
+app.post('/api/worktree/:rid', async (req, res) => {
+  try {
+    const resolved = repositoryIdManager.getPath(req.params.rid);
+    if (!resolved) {
+      res.status(404).json({ success: false, message: `rid「${req.params.rid}」に対応するリポジトリが見つかりません` });
+      return;
+    }
+    const parentRepoPath = getMainRepoPath(resolved);
+
+    const { branchName, baseBranch, useExistingBranch, syncEntries } = req.body ?? {};
+    if (!branchName || typeof branchName !== 'string') {
+      res.status(400).json({ success: false, message: 'branchName は必須です' });
+      return;
+    }
+
+    const result = await createWorktree({
+      parentRepoPath,
+      branchName,
+      baseBranch,
+      useExistingBranch,
+      syncEntries,
+    });
+
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+
+    const wtid = result.worktree
+      ? repositoryIdManager.getId(result.worktree.path)
+      : undefined;
+
+    // Web UI へブロードキャスト（REST には要求元 socket がないため io.emit）
+    const prid = repositoryIdManager.tryGetId(parentRepoPath);
+    await emitIdMappingUpdated(io, repositories);
+    const worktrees = await getWorktrees(parentRepoPath);
+    io.emit('worktrees-list', {
+      worktrees: addWorktreeIds(worktrees),
+      prid,
+      parentRepoPath,
+    });
+
+    res.status(201).json({
+      ...result,
+      worktree: result.worktree ? { ...result.worktree, wtid } : undefined,
+    });
+  } catch (error) {
+    console.error('[REST API] ワークツリー作成エラー:', error);
+    res.status(500).json({ success: false, message: String(error) });
+  }
+});
+
+// ワークツリーを削除（:rid は削除対象 worktree の wtid）
+app.delete('/api/worktree/:rid', async (req, res) => {
+  try {
+    const worktreePath = repositoryIdManager.getPath(req.params.rid);
+    if (!worktreePath) {
+      res.status(404).json({ success: false, message: 'ワークツリーが見つかりません' });
+      return;
+    }
+    const parentRepoPath = getMainRepoPath(worktreePath);
+    if (parentRepoPath === worktreePath) {
+      res.status(400).json({ success: false, message: 'main リポジトリは削除できません' });
+      return;
+    }
+
+    // 削除対象の branch 名を取得（deleteBranch 時に使う）
+    const before = await getWorktrees(parentRepoPath);
+    const target = before.find((w) => w.path === worktreePath);
+
+    await processManager.cleanupRepositoryProcesses(worktreePath);
+    const result = await deleteWorktree(worktreePath, parentRepoPath, {
+      deleteBranch: req.body?.deleteBranch === true,
+      branchName: target?.branch,
+    });
+    if (!result.success) {
+      res.status(400).json(result);
+      return;
+    }
+
+    const prid = repositoryIdManager.tryGetId(parentRepoPath);
+    await emitIdMappingUpdated(io, repositories);
+    const worktrees = (await getWorktrees(parentRepoPath)).filter(
+      (w) => w.path !== worktreePath
+    );
+    io.emit('worktrees-list', {
+      worktrees: addWorktreeIds(worktrees),
+      prid,
+      parentRepoPath,
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('[REST API] ワークツリー削除エラー:', error);
+    res.status(500).json({ success: false, message: String(error) });
+  }
+});
+
+// プロンプト一斉送信（親 rid 配下の全 or 指定ワークツリーへ同一プロンプトを投入）
+app.post('/api/prompt/broadcast', async (req, res) => {
+  try {
+    const { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, model } = req.body ?? {};
+    if (!rid || !provider || !prompt) {
+      res.status(400).json({ success: false, message: 'rid, provider, prompt は必須です' });
+      return;
+    }
+    const resolved = repositoryIdManager.getPath(rid);
+    if (!resolved) {
+      res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
+      return;
+    }
+    const parentRepoPath = getMainRepoPath(resolved);
+    const worktrees = await getWorktrees(parentRepoPath);
+
+    // 送信先 path を決定
+    let targetPaths = worktrees
+      .filter((w) => includeMain || !w.isMain)
+      .map((w) => w.path);
+    if (Array.isArray(targets) && targets.length > 0) {
+      const wanted = new Set(
+        targets
+          .map((t: string) => repositoryIdManager.getPath(t))
+          .filter((p): p is string => Boolean(p))
+      );
+      targetPaths = targetPaths.filter((p) => wanted.has(p));
+    }
+
+    const results = [];
+    for (const p of targetPaths) {
+      try {
+        const item = await processManager.addToPromptQueue(
+          p,
+          provider as AiProvider,
+          prompt,
+          sendClearBefore,
+          isAutoCommit,
+          model
+        );
+        results.push({ path: p, rid: repositoryIdManager.tryGetId(p), success: true, itemId: item.id });
+      } catch (e) {
+        results.push({ path: p, rid: repositoryIdManager.tryGetId(p), success: false, message: String(e) });
+      }
+    }
+    res.json({ success: true, sent: results.filter((r) => r.success).length, results });
+  } catch (error) {
+    console.error('[REST API] プロンプト一斉送信エラー:', error);
+    res.status(500).json({ success: false, message: String(error) });
+  }
+});
+
+// ターミナル操作 REST API ルートを登録
+registerTerminalRoutes(app, processManager);
 
 // リポジトリディレクトリの作成
 async function ensureReposDir(): Promise<void> {

@@ -32,7 +32,7 @@ const CACHE_TTL_MS = 1000; // 1秒間キャッシュ
  * ワークツリーに wtid を付与する。
  * managed dir 外（Cursor 等の外部ツールが登録した worktree）は除外する。
  */
-function addWorktreeIds(
+export function addWorktreeIds(
   worktrees: GitWorktree[],
 ): Array<GitWorktree & { wtid: string }> {
   const result: Array<GitWorktree & { wtid: string }> = [];

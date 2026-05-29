@@ -1,7 +1,127 @@
 import path from 'path';
+import type { Express } from 'express';
 import type { HandlerContext } from './types.js';
+import type { ProcessManager } from '../process-manager.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
+import { stripAnsi } from '../utils/strip-ansi.js';
+
+/**
+ * ターミナル操作の REST API ルートを登録する。
+ * UI 反映は processManager の EventEmitter 配線（terminal-created/output/exit）が
+ * 自動で行うため、REST 側でブロードキャストは書かない。
+ */
+export function registerTerminalRoutes(
+  app: Express,
+  processManager: ProcessManager
+): void {
+  // ターミナル一覧（:rid のリポジトリに属するターミナル）
+  app.get('/api/terminals/:rid', (req, res) => {
+    const cwd = repositoryIdManager.getPath(req.params.rid);
+    if (!cwd) {
+      res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
+      return;
+    }
+    const terminals = processManager.getTerminalsByRepository(cwd);
+    res.json({
+      success: true,
+      terminals: terminals.map((t) => ({
+        id: t.id,
+        name: t.name,
+        cwd: t.repositoryPath,
+        rid: repositoryIdManager.tryGetId(t.repositoryPath),
+        status: t.status,
+        pid: t.pid,
+        createdAt: t.createdAt,
+      })),
+    });
+  });
+
+  // ターミナル作成
+  app.post('/api/terminals/:rid', async (req, res) => {
+    try {
+      const cwd = repositoryIdManager.getPath(req.params.rid);
+      if (!cwd) {
+        res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
+        return;
+      }
+      const { name, cols, rows } = req.body ?? {};
+      const terminal = await processManager.createTerminal(
+        cwd,
+        path.basename(cwd),
+        name,
+        cols && rows ? { cols, rows } : undefined
+      );
+      res.status(201).json({
+        success: true,
+        terminal: {
+          id: terminal.id,
+          name: terminal.name,
+          cwd: terminal.repositoryPath,
+          rid: repositoryIdManager.tryGetId(terminal.repositoryPath),
+          status: terminal.status,
+          pid: terminal.pid,
+          createdAt: terminal.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error('[REST API] ターミナル作成エラー:', error);
+      res.status(500).json({ success: false, message: String(error) });
+    }
+  });
+
+  // ターミナルへの入力送信（enter:true で末尾に改行を付与してコマンド実行）
+  app.post('/api/terminals/:terminalId/input', (req, res) => {
+    const { input, enter } = req.body ?? {};
+    if (typeof input !== 'string') {
+      res.status(400).json({ success: false, message: 'input は必須です' });
+      return;
+    }
+    const ok = processManager.sendToTerminal(
+      req.params.terminalId,
+      enter ? input + '\r' : input
+    );
+    res.status(ok ? 200 : 404).json({ success: ok });
+  });
+
+  // ターミナルへのシグナル送信
+  app.post('/api/terminals/:terminalId/signal', (req, res) => {
+    const { signal } = req.body ?? {};
+    if (typeof signal !== 'string') {
+      res.status(400).json({ success: false, message: 'signal は必須です' });
+      return;
+    }
+    const ok = processManager.sendSignalToTerminal(req.params.terminalId, signal);
+    res.status(ok ? 200 : 404).json({ success: ok });
+  });
+
+  // ターミナルのリサイズ
+  app.post('/api/terminals/:terminalId/resize', (req, res) => {
+    const { cols, rows } = req.body ?? {};
+    if (typeof cols !== 'number' || typeof rows !== 'number') {
+      res.status(400).json({ success: false, message: 'cols, rows（数値）は必須です' });
+      return;
+    }
+    const ok = processManager.resizeTerminal(req.params.terminalId, cols, rows);
+    res.status(ok ? 200 : 404).json({ success: ok });
+  });
+
+  // ターミナルの終了
+  app.post('/api/terminals/:terminalId/close', async (req, res) => {
+    const ok = await processManager.closeTerminal(req.params.terminalId);
+    res.status(ok ? 200 : 404).json({ success: ok });
+  });
+
+  // ターミナル出力履歴の取得（?strip=true で ANSI 除去）
+  app.get('/api/terminals/:terminalId/output', (req, res) => {
+    const history = processManager.getTerminalOutputHistory(req.params.terminalId);
+    const text = history.map((h) => h.content).join('');
+    res.json({
+      success: true,
+      output: req.query.strip === 'true' ? stripAnsi(text) : text,
+    });
+  });
+}
 
 /**
  * ターミナル関連のSocket.IOイベントハンドラーを登録
