@@ -1,7 +1,8 @@
 @use "sass:color";
 
+// 横スクロールは親の .branchBar 側で一体的に行うため、自身は縮まず内容幅を保つ
 .root {
-  min-width: 0;
+  flex-shrink: 0;
 
   &.normal {
     background-color: $gray-900;
@@ -98,7 +99,7 @@
 .tabsContainer {
   display: flex;
   align-items: center;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 // メインワークツリー（左固定）セクション
@@ -177,18 +178,11 @@
   margin: 0 0.5rem;
 }
 
-// タブの横スクロールコンテナ（dnd-kit で並び替え可能）
+// ブランチワークツリータブ群（dnd-kit で並び替え可能。スクロールは親の .branchBar 側で一体的に行う）
 .tabsScroll {
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  flex-shrink: 0;
 }
 
 .tabWrapper {
