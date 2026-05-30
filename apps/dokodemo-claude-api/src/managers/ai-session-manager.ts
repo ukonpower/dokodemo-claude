@@ -58,7 +58,11 @@ export interface AISessionManagerConfig {
 }
 
 const DEFAULT_CONFIG: AISessionManagerConfig = {
-  maxOutputLines: 500,
+  // 出力履歴の保持件数。リロード／再接続／タブ・プロバイダ切替で履歴を
+  // 取り直す際にここまで遡れる。Claude Code は TUI 再描画フレームを多く
+  // 吐くため、500 では直近しか残らず履歴を遡れない。xterm の scrollback
+  // (10000 行) と釣り合う 5000 チャンクを保持する。
+  maxOutputLines: 5000,
   gracefulTerminationTimeoutMs: 2000,
 };
 
