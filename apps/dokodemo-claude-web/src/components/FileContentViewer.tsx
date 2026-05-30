@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import { ArrowLeft, FileText, AlertTriangle, Maximize2, Minimize2, WrapText } from 'lucide-react';
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { FileContent, GitDiffDetail } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
 import '../utils/prism-languages';
+import MarkdownViewer from './MarkdownViewer';
 import s from './FileContentViewer.module.scss';
 
 const LANGUAGE_FALLBACK: Record<string, string> = {
@@ -16,38 +15,6 @@ const LANGUAGE_FALLBACK: Record<string, string> = {
 function normalizeLang(lang: string): string {
   return LANGUAGE_FALLBACK[lang] || lang;
 }
-
-const markdownComponents: Components = {
-  code({ className, children }) {
-    const match = /language-(\w+)/.exec(className || '');
-    const code = String(children).replace(/\n$/, '');
-    if (!match) {
-      return (
-        <code className={s.inlineCode}>
-          {children}
-        </code>
-      );
-    }
-    return (
-      <Highlight theme={themes.vsDark} code={code} language={normalizeLang(match[1])}>
-        {({ tokens, getLineProps, getTokenProps, style }) => (
-          <pre style={{ ...(style as React.CSSProperties), margin: 0, padding: '12px', borderRadius: '6px', fontSize: '0.6875rem', lineHeight: '1.5', overflow: 'auto' }}>
-            {tokens.map((line, i) => {
-              const lineProps = getLineProps({ line });
-              return (
-                <div key={i} {...lineProps} style={lineProps.style as React.CSSProperties}>
-                  {line.map((token, key) => (
-                    <span key={key} {...getTokenProps({ token }) as React.HTMLAttributes<HTMLSpanElement>} />
-                  ))}
-                </div>
-              );
-            })}
-          </pre>
-        )}
-      </Highlight>
-    );
-  },
-};
 
 interface DiffLine {
   type: 'header' | 'hunk' | 'context' | 'addition' | 'deletion' | 'empty';
@@ -340,14 +307,7 @@ export default function FileContentViewer({
           </div>
         ) : isMarkdown && markdownPreview && !isDiffMode ? (
           /* Markdown プレビューモード */
-          <div className={s.markdownPreview}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={markdownComponents}
-            >
-              {content.content}
-            </ReactMarkdown>
-          </div>
+          <MarkdownViewer content={content.content} padded />
         ) : isDiffMode && hasDiff ? (
           /* 差分モード */
           <div className={s.diffContainer}>
