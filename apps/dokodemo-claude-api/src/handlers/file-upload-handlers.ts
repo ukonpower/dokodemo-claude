@@ -8,7 +8,7 @@ import { Server as TusServer } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import type { HandlerContext, TypedServer } from './types.js';
 import { fileManager, MAX_FILE_SIZE } from '../services/file-manager.js';
-import type { FileSource } from '../types/index.js';
+import type { FileSource, UploadedFileInfo } from '../types/index.js';
 
 // プレビューAPI: raw binary POST受け取り時の上限
 const PREVIEW_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -134,6 +134,55 @@ function createTusServer(io: TypedServer): TusServer {
 }
 
 /**
+ * プレビューファイルの保存コア。raw バイナリを一時ファイルへ書き出して fileManager に保存し、
+ * 成功時に file-uploaded を emit する。REST(`/api/preview/:rid`) と MCP(`preview_upload`) の双方から呼ぶ。
+ */
+export async function savePreviewFile(
+  io: TypedServer,
+  rid: string,
+  body: Buffer,
+  meta: {
+    originalname: string;
+    mimetype: string;
+    source: FileSource;
+    title?: string;
+    description?: string;
+  }
+): Promise<{ success: boolean; message: string; file?: UploadedFileInfo }> {
+  const ext = path.extname(meta.originalname).toLowerCase();
+  const filename = `${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
+
+  const tmpPath = path.join(os.tmpdir(), `dokodemo-preview-${uuidv4()}${ext}`);
+  await fs.writeFile(tmpPath, body);
+
+  const result = await fileManager.saveFile(
+    rid,
+    {
+      tmpPath,
+      filename,
+      originalname: meta.originalname,
+      mimetype: meta.mimetype.split(';')[0].trim(),
+      size: body.length,
+    },
+    { source: meta.source, title: meta.title, description: meta.description }
+  );
+
+  if (!result.success) {
+    await fs.unlink(tmpPath).catch(() => {});
+    return result;
+  }
+
+  io.emit('file-uploaded', {
+    rid,
+    success: true,
+    message: 'ファイルがアップロードされました',
+    file: result.file,
+  });
+
+  return result;
+}
+
+/**
  * POST /api/preview/:rid
  * Claude Code等のCLIから画像（または任意ファイル）をシンプルにアップロードするための
  * raw binary 受け取りエンドポイント。
@@ -178,39 +227,18 @@ export function createPreviewUploadHandler(io: TypedServer): RequestHandler {
         (req.query.filename as string | undefined) ||
         `${Date.now()}.${mimetype.split('/')[1] || 'bin'}`;
 
-      const ext = path.extname(originalname).toLowerCase();
-      const filename = `${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
-
-      const tmpPath = path.join(
-        os.tmpdir(),
-        `dokodemo-preview-${uuidv4()}${ext}`
-      );
-      await fs.writeFile(tmpPath, body);
-
-      const result = await fileManager.saveFile(
-        rid,
-        {
-          tmpPath,
-          filename,
-          originalname,
-          mimetype: mimetype.split(';')[0].trim(),
-          size: body.length,
-        },
-        { source, title, description }
-      );
+      const result = await savePreviewFile(io, rid, body, {
+        originalname,
+        mimetype,
+        source,
+        title,
+        description,
+      });
 
       if (!result.success) {
-        await fs.unlink(tmpPath).catch(() => {});
         res.status(400).json(result);
         return;
       }
-
-      io.emit('file-uploaded', {
-        rid,
-        success: true,
-        message: 'ファイルがアップロードされました',
-        file: result.file,
-      });
 
       res.status(201).json({
         success: true,

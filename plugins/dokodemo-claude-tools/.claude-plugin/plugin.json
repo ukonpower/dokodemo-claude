@@ -1,6 +1,6 @@
 {
   "name": "dokodemo-claude-tools",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "dokodemo-claude の統合ツールセット（MCP 経由の worktree/terminal/prompt/preview, workflow, git など）",
   "author": {
     "name": "dokodemo-claude"

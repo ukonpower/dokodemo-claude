@@ -1,14 +1,8 @@
 {
   "mcpServers": {
     "api": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"],
-      "env": {
-        "DOKODEMO_API_BASE_URL": "${DOKODEMO_API_BASE_URL}",
-        "DC_API_PORT": "${DC_API_PORT}",
-        "DC_USE_HTTPS": "${DC_USE_HTTPS}",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
-      }
+      "type": "http",
+      "url": "${DOKODEMO_MCP_URL}"
     }
   }
 }

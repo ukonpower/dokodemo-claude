@@ -1,98 +1,26 @@
-#!/usr/bin/env node
-// dokodemo-claude バックエンド API を MCP ツールとして公開するゼロ依存 stdio サーバ。
-//
-// - 依存パッケージなし。Node 18+ の組み込み fetch / URLSearchParams のみ使用。
-// - JSON-RPC 2.0 over stdio（改行区切り）を自前で処理する。
-// - 状態（worktree / terminal など）は起動中の dokodemo-claude-api が保持しているため、
-//   このサーバはその HTTP API を薄くプロキシするだけ。curl を一切使わないので
-//   権限（auto モードの classifier / Bash ルール）に一切触れない。
-// - ベース URL は環境変数 DOKODEMO_API_BASE_URL（dokodemo が Claude 起動時に注入）。
-//   自己署名 HTTPS のため、起動側で NODE_TLS_REJECT_UNAUTHORIZED=0 を渡す（.mcp.json）。
+// dokodemo-claude-api が自プロセスで MCP（Streamable HTTP）を `/mcp` に提供する。
+// 公式 SDK の低レベル Server + StreamableHTTPServerTransport（ステートレス）を使い、
+// ツールの実体は services/mcp-actions.ts のアクション層を同一プロセス内で直接呼ぶ。
 
-import { readFile } from 'node:fs/promises';
-import { extname } from 'node:path';
+import type { Express, Request, Response, NextFunction } from 'express';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  ListToolsRequestSchema,
+  CallToolRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import type { AiProvider, FileSource, WorktreeSyncEntry } from '../types/index.js';
+import * as actions from '../services/mcp-actions.js';
+import { ActionError } from '../services/mcp-actions.js';
 
 const SERVER_NAME = 'dokodemo-claude';
-const SERVER_VERSION = '1.4.0';
-const DEFAULT_PROTOCOL = '2025-06-18';
+const SERVER_VERSION = '1.5.0';
 
 // ---------------------------------------------------------------------------
-// HTTP ヘルパー
+// ツール定義（name / description / inputSchema）
 // ---------------------------------------------------------------------------
 
-// 未展開のプレースホルダ（"${FOO}"）や空文字を「未設定」として扱う
-function cleanEnv(v) {
-  if (!v) return '';
-  const t = v.trim();
-  if (!t || t.includes('${')) return '';
-  return t;
-}
-
-function baseUrl() {
-  const u = cleanEnv(process.env.DOKODEMO_API_BASE_URL);
-  if (u) return u.replace(/\/$/, '');
-  // フォールバック: dokodemo-claude-api の getDokodemoApiBaseUrl() と同じ組み立て
-  const port = cleanEnv(process.env.DC_API_PORT) || '8001';
-  const proto = cleanEnv(process.env.DC_USE_HTTPS) !== 'false' ? 'https' : 'http';
-  return `${proto}://localhost:${port}`;
-}
-
-function qs(obj) {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(obj)) {
-    if (v !== undefined && v !== null) p.set(k, String(v));
-  }
-  const s = p.toString();
-  return s ? `?${s}` : '';
-}
-
-const enc = encodeURIComponent;
-
-async function api(method, pathname, opts = {}) {
-  const url = baseUrl() + pathname;
-  const headers = { ...(opts.headers || {}) };
-  let body;
-  if (opts.json !== undefined) {
-    headers['Content-Type'] = 'application/json';
-    body = JSON.stringify(opts.json);
-  } else if (opts.raw !== undefined) {
-    body = opts.raw;
-  }
-  let res;
-  try {
-    res = await fetch(url, { method, headers, body });
-  } catch (e) {
-    throw new Error(
-      `バックエンドへの接続に失敗しました (${method} ${pathname}): ${e.message}. ` +
-        `dokodemo-claude-api が起動しているか、DOKODEMO_API_BASE_URL を確認してください。`
-    );
-  }
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`API ${method} ${pathname} が HTTP ${res.status} を返しました: ${text}`);
-  }
-  return text;
-}
-
-// MIME 推定（preview アップロードで Content-Type 未指定のとき用）
-const MIME = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
-  '.mp4': 'video/mp4',
-  '.webm': 'video/webm',
-  '.mov': 'video/quicktime',
-  '.pdf': 'application/pdf',
-};
-
-// ---------------------------------------------------------------------------
-// ツール定義
-// ---------------------------------------------------------------------------
-
-const TOOLS = [
+const TOOL_DEFS = [
   // --- repository ---
   {
     name: 'repository_id',
@@ -109,7 +37,6 @@ const TOOLS = [
       },
       required: ['path'],
     },
-    handler: (a) => api('GET', `/api/repository-id${qs({ path: a.path })}`),
   },
 
   // --- worktree ---
@@ -123,18 +50,26 @@ const TOOLS = [
       properties: { rid: { type: 'string', description: '親 or 任意 worktree の rid' } },
       required: ['rid'],
     },
-    handler: (a) => api('GET', `/api/worktrees/${enc(a.rid)}`),
   },
   {
     name: 'worktree_create',
     description:
       'git ワークツリーを作成する（Web UI のタブにも自動反映）。応答の worktree.wtid を控え、' +
-      'メモ設定・削除・プロンプト送信に使い回す。複数タスクを分離環境で進める場合はタスクごとに1つ作る。',
+      'メモ設定・削除・プロンプト送信に使い回す。複数タスクを分離環境で進める場合はタスクごとに1つ作る。' +
+      'description（説明）は原則必ず指定すること（このワークツリーで何をするかを書く）。' +
+      'description を渡せば作成と同時にメモが設定され、別途 worktree_set_memo を呼ぶ必要はない。',
     inputSchema: {
       type: 'object',
       properties: {
         rid: { type: 'string', description: '親 or 任意 worktree の rid（親へ正規化される）' },
         branchName: { type: 'string', description: '作成するブランチ名（= ワークツリー名）' },
+        description: {
+          type: 'string',
+          description:
+            'ワークツリーの説明（= Web UI のタブに表示されるメモ）。Markdown 表記で、後から何のワークツリーか' +
+            'すぐ思い出せる情報を書く（何をするかの要約に加え、関連 issue/PR/チケットの URL があれば必ず含める）。' +
+            '作成と同時に保存されるので worktree_set_memo を別途呼ぶ必要はない。',
+        },
         baseBranch: { type: 'string', description: '分岐元（省略時は現在の HEAD）' },
         useExistingBranch: {
           type: 'boolean',
@@ -157,17 +92,6 @@ const TOOLS = [
       },
       required: ['rid', 'branchName'],
     },
-    handler: (a) =>
-      api('POST', `/api/worktree/${enc(a.rid)}`, {
-        json: {
-          branchName: a.branchName,
-          ...(a.baseBranch !== undefined ? { baseBranch: a.baseBranch } : {}),
-          ...(a.useExistingBranch !== undefined
-            ? { useExistingBranch: a.useExistingBranch }
-            : {}),
-          ...(a.syncEntries !== undefined ? { syncEntries: a.syncEntries } : {}),
-        },
-      }),
   },
   {
     name: 'worktree_delete',
@@ -183,10 +107,6 @@ const TOOLS = [
       },
       required: ['wtid'],
     },
-    handler: (a) =>
-      api('DELETE', `/api/worktree/${enc(a.wtid)}`, {
-        json: { deleteBranch: a.deleteBranch ?? false },
-      }),
   },
   {
     name: 'worktree_get_memo',
@@ -196,7 +116,6 @@ const TOOLS = [
       properties: { wtid: { type: 'string', description: '対象ワークツリーの wtid' } },
       required: ['wtid'],
     },
-    handler: (a) => api('GET', `/api/worktree/${enc(a.wtid)}/memo`),
   },
   {
     name: 'worktree_set_memo',
@@ -211,7 +130,6 @@ const TOOLS = [
       },
       required: ['wtid', 'memo'],
     },
-    handler: (a) => api('PUT', `/api/worktree/${enc(a.wtid)}/memo`, { json: { memo: a.memo } }),
   },
 
   // --- prompt ---
@@ -243,19 +161,6 @@ const TOOLS = [
       },
       required: ['rid', 'provider', 'prompt'],
     },
-    handler: (a) =>
-      api('POST', '/api/prompt/broadcast', {
-        json: {
-          rid: a.rid,
-          provider: a.provider,
-          prompt: a.prompt,
-          ...(a.targets !== undefined ? { targets: a.targets } : {}),
-          ...(a.includeMain !== undefined ? { includeMain: a.includeMain } : {}),
-          ...(a.sendClearBefore !== undefined ? { sendClearBefore: a.sendClearBefore } : {}),
-          ...(a.isAutoCommit !== undefined ? { isAutoCommit: a.isAutoCommit } : {}),
-          ...(a.model !== undefined ? { model: a.model } : {}),
-        },
-      }),
   },
 
   // --- terminal ---
@@ -267,7 +172,6 @@ const TOOLS = [
       properties: { rid: { type: 'string', description: 'main の prid または worktree の wtid' } },
       required: ['rid'],
     },
-    handler: (a) => api('GET', `/api/terminals/${enc(a.rid)}`),
   },
   {
     name: 'terminal_create',
@@ -284,14 +188,6 @@ const TOOLS = [
       },
       required: ['rid'],
     },
-    handler: (a) =>
-      api('POST', `/api/terminals/${enc(a.rid)}`, {
-        json: {
-          ...(a.name !== undefined ? { name: a.name } : {}),
-          ...(a.cols !== undefined ? { cols: a.cols } : {}),
-          ...(a.rows !== undefined ? { rows: a.rows } : {}),
-        },
-      }),
   },
   {
     name: 'terminal_input',
@@ -307,10 +203,6 @@ const TOOLS = [
       },
       required: ['terminalId', 'input'],
     },
-    handler: (a) =>
-      api('POST', `/api/terminals/${enc(a.terminalId)}/input`, {
-        json: { input: a.input, ...(a.enter !== undefined ? { enter: a.enter } : {}) },
-      }),
   },
   {
     name: 'terminal_output',
@@ -324,8 +216,6 @@ const TOOLS = [
       },
       required: ['terminalId'],
     },
-    handler: (a) =>
-      api('GET', `/api/terminals/${enc(a.terminalId)}/output${qs({ strip: a.strip ?? true })}`),
   },
   {
     name: 'terminal_signal',
@@ -338,8 +228,6 @@ const TOOLS = [
       },
       required: ['terminalId', 'signal'],
     },
-    handler: (a) =>
-      api('POST', `/api/terminals/${enc(a.terminalId)}/signal`, { json: { signal: a.signal } }),
   },
   {
     name: 'terminal_resize',
@@ -353,10 +241,6 @@ const TOOLS = [
       },
       required: ['terminalId', 'cols', 'rows'],
     },
-    handler: (a) =>
-      api('POST', `/api/terminals/${enc(a.terminalId)}/resize`, {
-        json: { cols: a.cols, rows: a.rows },
-      }),
   },
   {
     name: 'terminal_close',
@@ -366,7 +250,6 @@ const TOOLS = [
       properties: { terminalId: { type: 'string', description: '対象 terminal.id' } },
       required: ['terminalId'],
     },
-    handler: (a) => api('POST', `/api/terminals/${enc(a.terminalId)}/close`),
   },
 
   // --- preview ---
@@ -398,118 +281,191 @@ const TOOLS = [
       },
       required: ['rid', 'filePath'],
     },
-    handler: async (a) => {
-      const data = await readFile(a.filePath);
-      const fname = a.filename || a.filePath.split('/').pop() || 'upload.bin';
-      const ext = extname(fname).toLowerCase();
-      const ct = a.contentType || MIME[ext] || 'application/octet-stream';
-      const query = qs({
-        filename: fname,
-        source: a.source ?? 'claude',
-        title: a.title,
-        description: a.description,
-      });
-      return api('POST', `/api/preview/${enc(a.rid)}${query}`, {
-        raw: data,
-        headers: { 'Content-Type': ct },
-      });
-    },
   },
-];
-
-const TOOL_MAP = new Map(TOOLS.map((t) => [t.name, t]));
+] as const;
 
 // ---------------------------------------------------------------------------
-// JSON-RPC over stdio
+// ツール呼び出しのディスパッチ（アクション層へ）
 // ---------------------------------------------------------------------------
 
-function send(msg) {
-  process.stdout.write(`${JSON.stringify(msg)}\n`);
-}
+type Args = Record<string, unknown>;
 
-function sendResult(id, result) {
-  send({ jsonrpc: '2.0', id, result });
-}
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+const bool = (v: unknown): boolean | undefined =>
+  typeof v === 'boolean' ? v : undefined;
+const num = (v: unknown): number | undefined =>
+  typeof v === 'number' ? v : undefined;
 
-function sendError(id, code, message) {
-  send({ jsonrpc: '2.0', id, error: { code, message } });
-}
-
-async function handleMessage(msg) {
-  const { id, method, params } = msg;
-  const isNotification = id === undefined || id === null;
-
-  switch (method) {
-    case 'initialize': {
-      const requested = params && typeof params.protocolVersion === 'string'
-        ? params.protocolVersion
-        : DEFAULT_PROTOCOL;
-      sendResult(id, {
-        protocolVersion: requested,
-        capabilities: { tools: {} },
-        serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
-      });
-      return;
-    }
-    case 'notifications/initialized':
-    case 'notifications/cancelled':
-      return; // 通知: 応答しない
-    case 'ping':
-      if (!isNotification) sendResult(id, {});
-      return;
-    case 'tools/list': {
-      const tools = TOOLS.map((t) => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-      }));
-      sendResult(id, { tools });
-      return;
-    }
-    case 'tools/call': {
-      const name = params && params.name;
-      const args = (params && params.arguments) || {};
-      const tool = TOOL_MAP.get(name);
-      if (!tool) {
-        sendError(id, -32602, `未知のツール: ${name}`);
-        return;
-      }
-      try {
-        const text = await tool.handler(args);
-        sendResult(id, { content: [{ type: 'text', text: String(text) }] });
-      } catch (e) {
-        // ツール内エラーは isError 付き結果として返す（プロトコルエラーにはしない）
-        sendResult(id, {
-          content: [{ type: 'text', text: e && e.message ? e.message : String(e) }],
-          isError: true,
-        });
-      }
-      return;
-    }
+async function dispatch(
+  name: string,
+  args: Args,
+  deps: actions.ActionDeps
+): Promise<object> {
+  switch (name) {
+    case 'repository_id':
+      return actions.getRepositoryId(str(args.path));
+    case 'worktree_list':
+      return actions.listWorktrees(str(args.rid));
+    case 'worktree_create':
+      return actions.createWorktreeAction(
+        str(args.rid),
+        {
+          branchName: str(args.branchName),
+          description:
+            typeof args.description === 'string' ? args.description : undefined,
+          baseBranch: typeof args.baseBranch === 'string' ? args.baseBranch : undefined,
+          useExistingBranch: bool(args.useExistingBranch),
+          syncEntries: Array.isArray(args.syncEntries)
+            ? (args.syncEntries as WorktreeSyncEntry[])
+            : undefined,
+        },
+        deps
+      );
+    case 'worktree_delete':
+      return actions.deleteWorktreeAction(
+        str(args.wtid),
+        { deleteBranch: bool(args.deleteBranch) },
+        deps
+      );
+    case 'worktree_get_memo':
+      return actions.getWorktreeMemo(str(args.wtid), deps);
+    case 'worktree_set_memo':
+      return actions.setWorktreeMemo(str(args.wtid), str(args.memo), deps);
+    case 'prompt_broadcast':
+      return actions.broadcastPrompt(
+        {
+          rid: str(args.rid),
+          provider: str(args.provider) as AiProvider,
+          prompt: str(args.prompt),
+          targets: Array.isArray(args.targets)
+            ? (args.targets as string[])
+            : undefined,
+          includeMain: bool(args.includeMain),
+          sendClearBefore: bool(args.sendClearBefore),
+          isAutoCommit: bool(args.isAutoCommit),
+          model: typeof args.model === 'string' ? args.model : undefined,
+        },
+        deps
+      );
+    case 'terminal_list':
+      return actions.listTerminals(str(args.rid), deps);
+    case 'terminal_create':
+      return actions.createTerminalAction(
+        str(args.rid),
+        {
+          name: typeof args.name === 'string' ? args.name : undefined,
+          cols: num(args.cols),
+          rows: num(args.rows),
+        },
+        deps
+      );
+    case 'terminal_input':
+      return actions.sendTerminalInput(
+        str(args.terminalId),
+        str(args.input),
+        bool(args.enter),
+        deps
+      );
+    case 'terminal_output':
+      return actions.getTerminalOutput(
+        str(args.terminalId),
+        bool(args.strip) ?? true,
+        deps
+      );
+    case 'terminal_signal':
+      return actions.signalTerminal(str(args.terminalId), str(args.signal), deps);
+    case 'terminal_resize':
+      return actions.resizeTerminalAction(
+        str(args.terminalId),
+        num(args.cols) ?? NaN,
+        num(args.rows) ?? NaN,
+        deps
+      );
+    case 'terminal_close':
+      return actions.closeTerminalAction(str(args.terminalId), deps);
+    case 'preview_upload':
+      return actions.uploadPreview(
+        str(args.rid),
+        {
+          filePath: str(args.filePath),
+          filename: typeof args.filename === 'string' ? args.filename : undefined,
+          contentType:
+            typeof args.contentType === 'string' ? args.contentType : undefined,
+          source:
+            args.source === 'user' || args.source === 'claude'
+              ? (args.source as FileSource)
+              : undefined,
+          title: typeof args.title === 'string' ? args.title : undefined,
+          description:
+            typeof args.description === 'string' ? args.description : undefined,
+        },
+        deps
+      );
     default:
-      if (!isNotification) sendError(id, -32601, `未対応のメソッド: ${method}`);
+      throw new ActionError(400, `未知のツール: ${name}`);
   }
 }
 
-let buffer = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (chunk) => {
-  buffer += chunk;
-  let idx;
-  while ((idx = buffer.indexOf('\n')) >= 0) {
-    const line = buffer.slice(0, idx).trim();
-    buffer = buffer.slice(idx + 1);
-    if (!line) continue;
-    let msg;
-    try {
-      msg = JSON.parse(line);
-    } catch {
-      continue; // 不正な行は無視
-    }
-    handleMessage(msg).catch((e) => {
-      process.stderr.write(`handleMessage error: ${e && e.stack ? e.stack : e}\n`);
-    });
-  }
-});
+// ---------------------------------------------------------------------------
+// localhost 限定ミドルウェア
+// ---------------------------------------------------------------------------
 
-process.stdin.on('end', () => process.exit(0));
+function localhostOnly(req: Request, res: Response, next: NextFunction): void {
+  const ip = req.socket.remoteAddress ?? '';
+  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
+    next();
+    return;
+  }
+  res.status(403).json({ error: 'MCP はローカルホストからのみ利用できます' });
+}
+
+// ---------------------------------------------------------------------------
+// ルート登録
+// ---------------------------------------------------------------------------
+
+/**
+ * Express アプリへ MCP の Streamable HTTP エンドポイント（`/mcp`）を登録する。
+ * ステートレス運用: リクエストごとに Server + transport を生成・破棄する。
+ */
+export function registerMcpRoutes(app: Express, deps: actions.ActionDeps): void {
+  app.post('/mcp', localhostOnly, async (req: Request, res: Response) => {
+    const server = new Server(
+      { name: SERVER_NAME, version: SERVER_VERSION },
+      { capabilities: { tools: {} } }
+    );
+
+    server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: TOOL_DEFS,
+    }));
+
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const name = request.params.name;
+      const args = (request.params.arguments ?? {}) as Args;
+      try {
+        const result = await dispatch(name, args, deps);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { content: [{ type: 'text', text: message }], isError: true };
+      }
+    });
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    res.on('close', () => {
+      transport.close();
+      server.close();
+    });
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  });
+
+  // ステートレス運用では GET(SSE)/DELETE は使わない
+  app.get('/mcp', localhostOnly, (_req: Request, res: Response) => {
+    res.status(405).end();
+  });
+  app.delete('/mcp', localhostOnly, (_req: Request, res: Response) => {
+    res.status(405).end();
+  });
+}
