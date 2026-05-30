@@ -66,6 +66,19 @@ const DEFAULT_CONFIG: AISessionManagerConfig = {
   gracefulTerminationTimeoutMs: 2000,
 };
 
+// コールドスタート（claude/codex CLI を新規 spawn した直後）の起動完了待ち
+// パラメータ。CLI の TUI 入力ハンドラが起動しきる前にプロンプト＋Enter を
+// 送ると Enter が取りこぼされて送信されない。PTY 出力が一定時間途切れた
+// （＝初期描画が落ち着いた）ことを検知してから送信を始めることで取りこぼしを防ぐ。
+// CLI が初期出力を始めるまでの最低待機時間。これ未満では「落ち着いた」と判定しない。
+const SESSION_READY_MIN_WAIT_MS = 1500;
+// PTY 出力がこの時間途切れたら初期描画が完了したとみなす。
+const SESSION_READY_QUIET_PERIOD_MS = 600;
+// 環境差で出力が止まらない場合に待機を打ち切る上限。
+const SESSION_READY_MAX_WAIT_MS = 10000;
+// 出力静止判定のポーリング間隔。
+const SESSION_READY_POLL_INTERVAL_MS = 100;
+
 export class AISessionManager extends EventEmitter {
   private readonly registry: ProcessRegistry;
   private readonly config: AISessionManagerConfig;
@@ -303,7 +316,11 @@ export class AISessionManager extends EventEmitter {
       initialSize?: { cols: number; rows: number };
       permissionMode?: PermissionMode;
     }
-  ): Promise<{ instance: AiInstance; session: ActiveAiSession }> {
+  ): Promise<{
+    instance: AiInstance;
+    session: ActiveAiSession;
+    coldStart: boolean;
+  }> {
     const primary = this.getPrimaryInstance(repositoryPath);
     if (primary) {
       // セッションが死んでいれば spawn し直す
@@ -315,6 +332,8 @@ export class AISessionManager extends EventEmitter {
           instanceId: primary.instanceId,
           instance: { ...primary },
         });
+        // 新規に PTY を spawn したのでコールドスタート
+        return { instance: primary, session, coldStart: true };
       } else if (options?.initialSize) {
         try {
           session.process.resize(
@@ -327,10 +346,11 @@ export class AISessionManager extends EventEmitter {
       }
 
       // provider 切替が必要な場合は呼び出し側で switchPrimaryProvider を呼ぶ
-      return { instance: primary, session };
+      // 既存セッションを再利用したのでコールドスタートではない
+      return { instance: primary, session, coldStart: false };
     }
 
-    return await this.createInstance({
+    const created = await this.createInstance({
       repositoryPath,
       repositoryName,
       provider,
@@ -338,6 +358,8 @@ export class AISessionManager extends EventEmitter {
       initialSize: options?.initialSize,
       permissionMode: options?.permissionMode,
     });
+    // プライマリが無く新規作成したのでコールドスタート
+    return { ...created, coldStart: true };
   }
 
   /**
@@ -352,7 +374,11 @@ export class AISessionManager extends EventEmitter {
       initialSize?: { cols: number; rows: number };
       permissionMode?: PermissionMode;
     }
-  ): Promise<{ instance: AiInstance; session: ActiveAiSession }> {
+  ): Promise<{
+    instance: AiInstance;
+    session: ActiveAiSession;
+    coldStart: boolean;
+  }> {
     const primary = this.getPrimaryInstance(repositoryPath);
     if (!primary) {
       return await this.ensurePrimaryInstance(
@@ -366,7 +392,8 @@ export class AISessionManager extends EventEmitter {
     if (primary.provider === newProvider) {
       const existing = this.activeSessions.get(primary.instanceId);
       if (existing && existing.isActive) {
-        return { instance: primary, session: existing };
+        // 既存セッションを再利用したのでコールドスタートではない
+        return { instance: primary, session: existing, coldStart: false };
       }
     }
 
@@ -389,7 +416,8 @@ export class AISessionManager extends EventEmitter {
       instance: { ...primary },
     });
 
-    return { instance: primary, session };
+    // PTY を作り直したのでコールドスタート
+    return { instance: primary, session, coldStart: true };
   }
 
   /**
@@ -524,6 +552,43 @@ export class AISessionManager extends EventEmitter {
     const instanceId = this.sessionIdIndex.get(sessionId);
     if (!instanceId) return false;
     return this.sendInput(instanceId, input);
+  }
+
+  /**
+   * コールドスタート直後のセッションが入力受付可能になるまで待つ。
+   * PTY 出力が SESSION_READY_QUIET_PERIOD_MS 途切れたら初期描画完了とみなして
+   * resolve する。CLI が初期出力を始める前に誤判定しないよう最低
+   * SESSION_READY_MIN_WAIT_MS は待ち、出力が止まらない環境では
+   * SESSION_READY_MAX_WAIT_MS で打ち切る。
+   */
+  async waitForSessionReady(sessionId: string): Promise<void> {
+    const instanceId = this.sessionIdIndex.get(sessionId);
+    if (!instanceId) return;
+    const session = this.activeSessions.get(instanceId);
+    if (!session) return;
+
+    const start = Date.now();
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        const elapsed = Date.now() - start;
+        // lastAccessedAt は PTY 出力受信のたびに更新される
+        const quietFor = Date.now() - session.lastAccessedAt;
+
+        if (elapsed >= SESSION_READY_MAX_WAIT_MS) {
+          resolve();
+          return;
+        }
+        if (
+          elapsed >= SESSION_READY_MIN_WAIT_MS &&
+          quietFor >= SESSION_READY_QUIET_PERIOD_MS
+        ) {
+          resolve();
+          return;
+        }
+        setTimeout(check, SESSION_READY_POLL_INTERVAL_MS);
+      };
+      setTimeout(check, SESSION_READY_POLL_INTERVAL_MS);
+    });
   }
 
   /**
