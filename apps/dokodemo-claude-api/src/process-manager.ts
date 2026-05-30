@@ -159,7 +159,7 @@ export class ProcessManager extends EventEmitter {
 
         if (primary && primary.provider !== provider) {
           // プライマリの provider を強制的に合わせる
-          const { instance, session } =
+          const { instance, session, coldStart } =
             await this.aiSessionManager.switchPrimaryProvider(
               repositoryPath,
               provider,
@@ -169,10 +169,11 @@ export class ProcessManager extends EventEmitter {
             id: session.id,
             repositoryPath: instance.repositoryPath,
             provider: instance.provider,
+            coldStart,
           };
         }
 
-        const { instance, session } =
+        const { instance, session, coldStart } =
           await this.aiSessionManager.ensurePrimaryInstance(
             repositoryPath,
             repositoryName,
@@ -182,7 +183,11 @@ export class ProcessManager extends EventEmitter {
           id: session.id,
           repositoryPath: instance.repositoryPath,
           provider: instance.provider,
+          coldStart,
         };
+      },
+      waitForSessionReady: async (sessionId: string) => {
+        await this.aiSessionManager.waitForSessionReady(sessionId);
       },
       getSessionStatus: (sessionId: string) => {
         const session = this.aiSessionManager.getSessionById(sessionId);
