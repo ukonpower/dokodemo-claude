@@ -84,7 +84,9 @@ const commandConfigs: Record<CommandType, CommandConfig> = {
   raw: { needsEnter: false },
 };
 
-const MAX_MESSAGES = 500;
+// フロントで保持する出力履歴の件数。バックエンドの maxOutputLines と
+// 揃える（小さいと再取得時にここで履歴が切り詰められ遡れなくなる）。
+const MAX_MESSAGES = 5000;
 
 /**
  * AI CLI 状態とコマンド送信を管理するカスタムフック
