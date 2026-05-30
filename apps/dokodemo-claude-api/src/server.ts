@@ -31,18 +31,16 @@ import { isPathSafe } from './handlers/file-viewer-handlers.js';
 import {
   findRepositoryRoot,
   getWorktreeInfo,
-  createWorktree,
-  deleteWorktree,
-  getWorktrees,
-  getMainRepoPath,
 } from './utils/git-utils.js';
 import {
-  addWorktreeIds,
   setWorktreeSortOrderManager,
   setWorktreeMemoManager,
 } from './handlers/branch-handlers.js';
-import { emitIdMappingUpdated } from './handlers/id-mapping-helpers.js';
 import { registerTerminalRoutes } from './handlers/terminal-handlers.js';
+import { registerMcpRoutes } from './handlers/mcp-handlers.js';
+import * as mcpActions from './services/mcp-actions.js';
+import { ActionError } from './services/mcp-actions.js';
+import { getMcpPort } from './utils/clean-env.js';
 import { stripAnsi } from './utils/strip-ansi.js';
 import {
   repositoryIdManager,
@@ -819,271 +817,94 @@ app.post('/api/queue/resume', async (req, res) => {
 // ワークツリー REST API エンドポイント
 // ============================================
 
-// ワークツリー一覧を取得（:rid は親 or worktree。getMainRepoPath で親へ正規化）
-// rid(wtid) → 実在する worktree の絶対パス。実在しなければ null。
-// repositoryIdManager.getPath は文字列を機械的に resolve するだけで存在検証しないため、
-// （存在しない wtid でもパスを返してしまう）ここで git worktree 一覧に含まれるかを確認する。
-// これを通さないと、誤った wtid でもメモ保存などが「成功」してしまう（サイレント失敗）。
-async function resolveExistingWorktreePath(rid: string): Promise<string | null> {
-  const candidate = repositoryIdManager.getPath(rid);
-  const parentRepoPath = getMainRepoPath(candidate);
-  const worktrees = await getWorktrees(parentRepoPath);
-  return worktrees.some((w) => w.path === candidate) ? candidate : null;
-}
+// MCP ツールと共有するアクション層への依存。repositories は再代入されるため getter で渡す。
+const actionDeps: mcpActions.ActionDeps = {
+  processManager,
+  io,
+  getRepositories: () => repositories,
+};
 
-app.get('/api/worktrees/:rid', async (req, res) => {
-  const resolved = repositoryIdManager.getPath(req.params.rid);
-  if (!resolved) {
-    res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
+// アクション層の ActionError を HTTP レスポンスへ変換する。
+// 想定外の例外は 500 で包む（REST 既存挙動の踏襲）。
+function handleActionError(res: express.Response, error: unknown): void {
+  if (error instanceof ActionError) {
+    res.status(error.status).json({ success: false, message: error.message });
     return;
   }
-  const parentRepoPath = getMainRepoPath(resolved);
-  const worktrees = await getWorktrees(parentRepoPath);
-  res.json({
-    success: true,
-    parentRepoPath,
-    prid: repositoryIdManager.tryGetId(parentRepoPath),
-    worktrees: worktrees.map((w) => ({
-      path: w.path,
-      branch: w.branch,
-      isMain: w.isMain,
-      rid: repositoryIdManager.tryGetId(w.path),
-    })),
-  });
+  console.error('[REST API] アクション実行エラー:', error);
+  res.status(500).json({ success: false, message: String(error) });
+}
+
+// ワークツリー一覧を取得（:rid は親 or worktree。getMainRepoPath で親へ正規化）
+app.get('/api/worktrees/:rid', async (req, res) => {
+  try {
+    res.json(await mcpActions.listWorktrees(req.params.rid));
+  } catch (error) {
+    handleActionError(res, error);
+  }
 });
 
 // ワークツリーを作成（:rid は親 or worktree。getMainRepoPath で親へ正規化）
 app.post('/api/worktree/:rid', async (req, res) => {
   try {
-    const resolved = repositoryIdManager.getPath(req.params.rid);
-    if (!resolved) {
-      res.status(404).json({ success: false, message: `rid「${req.params.rid}」に対応するリポジトリが見つかりません` });
-      return;
-    }
-    const parentRepoPath = getMainRepoPath(resolved);
-
-    const { branchName, baseBranch, useExistingBranch, syncEntries } = req.body ?? {};
-    if (!branchName || typeof branchName !== 'string') {
-      res.status(400).json({ success: false, message: 'branchName は必須です' });
-      return;
-    }
-
-    // syncEntries 未指定時は親リポジトリの既定設定（GUI で保存したもの）を使う
-    const effectiveSyncEntries =
-      syncEntries ?? processManager.worktreeSyncManager.get(parentRepoPath);
-
-    const result = await createWorktree({
-      parentRepoPath,
-      branchName,
-      baseBranch,
-      useExistingBranch,
-      syncEntries: effectiveSyncEntries,
-    });
-
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-
-    const wtid = result.worktree
-      ? repositoryIdManager.getId(result.worktree.path)
-      : undefined;
-
-    // Web UI へブロードキャスト（REST には要求元 socket がないため io.emit）
-    const prid = repositoryIdManager.tryGetId(parentRepoPath);
-    await emitIdMappingUpdated(io, repositories);
-    const worktrees = await getWorktrees(parentRepoPath);
-    io.emit('worktrees-list', {
-      worktrees: addWorktreeIds(worktrees, parentRepoPath),
-      prid,
-      parentRepoPath,
-    });
-
-    res.status(201).json({
-      ...result,
-      worktree: result.worktree ? { ...result.worktree, wtid } : undefined,
-    });
+    const { branchName, description, baseBranch, useExistingBranch, syncEntries } =
+      req.body ?? {};
+    const result = await mcpActions.createWorktreeAction(
+      req.params.rid,
+      { branchName, description, baseBranch, useExistingBranch, syncEntries },
+      actionDeps
+    );
+    res.status(201).json(result);
   } catch (error) {
-    console.error('[REST API] ワークツリー作成エラー:', error);
-    res.status(500).json({ success: false, message: String(error) });
+    handleActionError(res, error);
   }
 });
 
 // ワークツリーを削除（:rid は削除対象 worktree の wtid）
 app.delete('/api/worktree/:rid', async (req, res) => {
   try {
-    const worktreePath = await resolveExistingWorktreePath(req.params.rid);
-    if (!worktreePath) {
-      res.status(404).json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
-      return;
-    }
-    const parentRepoPath = getMainRepoPath(worktreePath);
-    if (parentRepoPath === worktreePath) {
-      res.status(400).json({ success: false, message: 'main リポジトリは削除できません' });
-      return;
-    }
-
-    // 削除対象の branch 名を取得（deleteBranch 時に使う）
-    const before = await getWorktrees(parentRepoPath);
-    const target = before.find((w) => w.path === worktreePath);
-
-    await processManager.cleanupRepositoryProcesses(worktreePath);
-    const result = await deleteWorktree(worktreePath, parentRepoPath, {
-      deleteBranch: req.body?.deleteBranch === true,
-      branchName: target?.branch,
-    });
-    if (!result.success) {
-      res.status(400).json(result);
-      return;
-    }
-
-    // 削除したワークツリーのメモも掃除する
-    await processManager.worktreeMemoManager.remove(worktreePath);
-
-    const prid = repositoryIdManager.tryGetId(parentRepoPath);
-    await emitIdMappingUpdated(io, repositories);
-    const worktrees = (await getWorktrees(parentRepoPath)).filter(
-      (w) => w.path !== worktreePath
+    const result = await mcpActions.deleteWorktreeAction(
+      req.params.rid,
+      { deleteBranch: req.body?.deleteBranch === true },
+      actionDeps
     );
-    io.emit('worktrees-list', {
-      worktrees: addWorktreeIds(worktrees, parentRepoPath),
-      prid,
-      parentRepoPath,
-    });
-
     res.json(result);
   } catch (error) {
-    console.error('[REST API] ワークツリー削除エラー:', error);
-    res.status(500).json({ success: false, message: String(error) });
+    handleActionError(res, error);
   }
 });
 
 // ワークツリーのメモを取得（:rid は worktree の wtid）
 app.get('/api/worktree/:rid/memo', async (req, res) => {
-  const worktreePath = await resolveExistingWorktreePath(req.params.rid);
-  if (!worktreePath) {
-    res
-      .status(404)
-      .json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
-    return;
+  try {
+    res.json(await mcpActions.getWorktreeMemo(req.params.rid, actionDeps));
+  } catch (error) {
+    handleActionError(res, error);
   }
-  res.json({
-    success: true,
-    rid: req.params.rid,
-    memo: processManager.worktreeMemoManager.get(worktreePath) ?? '',
-  });
 });
 
 // ワークツリーのメモを更新（:rid は worktree の wtid、body は { memo: string }）
 app.put('/api/worktree/:rid/memo', async (req, res) => {
   try {
-    const worktreePath = await resolveExistingWorktreePath(req.params.rid);
-    if (!worktreePath) {
-      res
-        .status(404)
-        .json({ success: false, message: `wtid「${req.params.rid}」に対応するワークツリーが見つかりません` });
-      return;
-    }
-
     const { memo } = req.body ?? {};
-    if (typeof memo !== 'string') {
-      res
-        .status(400)
-        .json({ success: false, message: 'memo は文字列で指定してください' });
-      return;
-    }
-
-    const result = await processManager.worktreeMemoManager.save(
-      worktreePath,
-      memo
-    );
-    if (!result.ok) {
-      res.status(500).json({ success: false, message: result.error.message });
-      return;
-    }
-
-    // Web UI へブロードキャスト（REST には要求元 socket がないため io.emit）
-    const parentRepoPath = getMainRepoPath(worktreePath);
-    const prid = repositoryIdManager.tryGetId(parentRepoPath);
-    const worktrees = await getWorktrees(parentRepoPath);
-    io.emit('worktrees-list', {
-      worktrees: addWorktreeIds(worktrees, parentRepoPath),
-      prid,
-      parentRepoPath,
-    });
-
-    res.json({ success: true, rid: req.params.rid, memo: result.value });
+    res.json(await mcpActions.setWorktreeMemo(req.params.rid, memo, actionDeps));
   } catch (error) {
-    console.error('[REST API] ワークツリーメモ更新エラー:', error);
-    res.status(500).json({ success: false, message: String(error) });
+    handleActionError(res, error);
   }
 });
 
 // プロンプト一斉送信（親 rid 配下の全 or 指定ワークツリーへ同一プロンプトを投入）
 app.post('/api/prompt/broadcast', async (req, res) => {
   try {
-    const { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, model } = req.body ?? {};
-    if (!rid || !provider || !prompt) {
-      res.status(400).json({ success: false, message: 'rid, provider, prompt は必須です' });
-      return;
-    }
-    const resolved = repositoryIdManager.getPath(rid);
-    if (!resolved) {
-      res.status(404).json({ success: false, message: 'リポジトリが見つかりません' });
-      return;
-    }
-    const parentRepoPath = getMainRepoPath(resolved);
-    const worktrees = await getWorktrees(parentRepoPath);
-
-    // 送信先 path を決定
-    let targetPaths = worktrees
-      .filter((w) => includeMain || !w.isMain)
-      .map((w) => w.path);
-    // 指定された targets のうち、どの送信先にも一致しなかったもの（誤った wtid 等）。
-    // getPath は存在しない rid でもパスを返すため、ここで実在の送信先と突き合わせて検出する。
-    let unmatchedTargets: string[] = [];
-    if (Array.isArray(targets) && targets.length > 0) {
-      const allowed = new Set(targetPaths);
-      unmatchedTargets = targets.filter(
-        (t: string) => !allowed.has(repositoryIdManager.getPath(t))
-      );
-      const wanted = new Set(targets.map((t: string) => repositoryIdManager.getPath(t)));
-      targetPaths = targetPaths.filter((p) => wanted.has(p));
-    }
-
-    const results = [];
-    for (const p of targetPaths) {
-      try {
-        const item = await processManager.addToPromptQueue(
-          p,
-          provider as AiProvider,
-          prompt,
-          sendClearBefore,
-          isAutoCommit,
-          model
-        );
-        results.push({ path: p, rid: repositoryIdManager.tryGetId(p), success: true, itemId: item.id });
-      } catch (e) {
-        results.push({ path: p, rid: repositoryIdManager.tryGetId(p), success: false, message: String(e) });
-      }
-    }
-    const sent = results.filter((r) => r.success).length;
-    const warning =
-      unmatchedTargets.length > 0
-        ? `指定した targets のうち ${unmatchedTargets.length} 件がどのワークツリーにも一致しませんでした（wtid を確認してください）`
-        : sent === 0
-          ? '送信先が 0 件でした（ワークツリーが存在しないか targets が一致していません）'
-          : undefined;
-    res.json({
-      success: true,
-      sent,
-      results,
-      unmatchedTargets,
-      ...(warning ? { warning } : {}),
-    });
+    const { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, model } =
+      req.body ?? {};
+    const result = await mcpActions.broadcastPrompt(
+      { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, model },
+      actionDeps
+    );
+    res.json(result);
   } catch (error) {
-    console.error('[REST API] プロンプト一斉送信エラー:', error);
-    res.status(500).json({ success: false, message: String(error) });
+    handleActionError(res, error);
   }
 });
 
@@ -1317,6 +1138,17 @@ async function startServer(): Promise<void> {
   server.listen(PORT, HOST, () => {
     const protocol = isHttps ? 'https' : 'http';
     console.log(`Server started on ${protocol}://${HOST}:${PORT}`);
+  });
+
+  // MCP（Streamable HTTP）は loopback 限定の専用 HTTP サーバで提供する。
+  // メインサーバが HTTPS（自己署名）でも MCP は常に http://127.0.0.1 で繋がるようにし、
+  // クライアントの証明書検証問題を回避する。127.0.0.1 バインドで外部からは到達不能。
+  const mcpApp = express();
+  mcpApp.use(express.json());
+  registerMcpRoutes(mcpApp, actionDeps);
+  const mcpPort = getMcpPort();
+  createServer(mcpApp).listen(mcpPort, '127.0.0.1', () => {
+    console.log(`MCP server started on http://127.0.0.1:${mcpPort}/mcp`);
   });
 }
 

@@ -10,7 +10,11 @@ import { PersistenceService } from '../services/persistence-service.js';
 import { Result, Ok, Err } from '../utils/result.js';
 import { TerminalError } from '../utils/errors.js';
 import { RingBuffer } from '../utils/ring-buffer.js';
-import { cleanChildEnv, getDokodemoApiBaseUrl } from '../utils/clean-env.js';
+import {
+  cleanChildEnv,
+  getDokodemoApiBaseUrl,
+  getDokodemoMcpUrl,
+} from '../utils/clean-env.js';
 
 const MAX_OUTPUT_LINES = 2000;
 
@@ -92,6 +96,7 @@ export class TerminalManager extends EventEmitter {
             COLORTERM: 'truecolor',
             FORCE_COLOR: '1',
             DOKODEMO_API_BASE_URL: getDokodemoApiBaseUrl(),
+            DOKODEMO_MCP_URL: getDokodemoMcpUrl(),
           }),
         }
       );
