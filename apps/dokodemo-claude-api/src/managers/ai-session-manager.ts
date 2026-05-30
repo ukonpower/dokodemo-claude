@@ -94,7 +94,7 @@ export class AISessionManager extends EventEmitter {
         if (permissionMode === 'dangerous' || permissionMode === undefined) {
           args.push('--dangerously-skip-permissions');
         } else if (permissionMode === 'auto') {
-          args.push('--permission-mode', 'acceptEdits', '--enable-auto-mode');
+          args.push('--permission-mode', 'auto');
         }
         return { command: claudeCommand, args };
       }
