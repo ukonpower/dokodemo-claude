@@ -53,6 +53,12 @@ function WorktreeMemoEditor({
             if (e.key === 'Escape') {
               e.preventDefault();
               cancelEdit();
+            } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              // Cmd/Ctrl+Enter で保存して編集終了
+              e.preventDefault();
+              // blur 経由の二重保存を防ぐ
+              skipBlurSaveRef.current = true;
+              saveEdit();
             }
           }}
           onBlur={() => {
@@ -86,11 +92,26 @@ function WorktreeMemoEditor({
   }
 
   return (
-    <div
-      className={s.memoDisplay}
-      onClick={() => setIsEditing(true)}
-      title="クリックして編集"
-    >
+    <div className={s.memoDisplay}>
+      <button
+        className={s.memoEditButton}
+        onClick={() => setIsEditing(true)}
+        title="メモを編集"
+      >
+        <svg
+          className={s.memoEditIcon}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
+        </svg>
+      </button>
       {memo ? (
         <MarkdownViewer content={memo} stopLinkPropagation />
       ) : (
