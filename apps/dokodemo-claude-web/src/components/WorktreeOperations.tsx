@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { GitWorktree } from '../types';
+import MarkdownViewer from './MarkdownViewer';
 import s from './WorktreeOperations.module.scss';
 
 interface WorktreeOperationsProps {
@@ -14,23 +13,6 @@ interface WorktreeOperationsProps {
   } | null;
   onClearMergeError: () => void;
 }
-
-// メモ用 Markdown コンポーネント。
-// リンクは別タブで開き、クリックしても編集モードに入らないよう伝播を止める。
-const memoMarkdownComponents: Components = {
-  a({ href, children }) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </a>
-    );
-  },
-};
 
 /**
  * ワークツリーメモの表示・編集。
@@ -131,14 +113,7 @@ function WorktreeMemoEditor({
         </svg>
       </button>
       {memo ? (
-        <div className={s.memoMarkdown}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={memoMarkdownComponents}
-          >
-            {memo}
-          </ReactMarkdown>
-        </div>
+        <MarkdownViewer content={memo} stopLinkPropagation />
       ) : (
         <span className={s.memoPlaceholder}>メモを追加</span>
       )}

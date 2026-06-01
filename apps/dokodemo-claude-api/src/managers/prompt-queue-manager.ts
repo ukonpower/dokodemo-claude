@@ -15,6 +15,12 @@ import { QueueError } from '../utils/errors.js';
 
 const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 
+// コールドスタート（CLI 新規起動）時は起動完了を待ってからプロンプトを送るが、
+// それでも TUI 入力ハンドラの初期化と Enter の到達が競合して取りこぼされる
+// ことが稀にある。保険として Enter をこの間隔で 1 回追加送信する。
+// 入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
+const COLD_START_ENTER_RETRY_MS = 600;
+
 /**
  * AIセッションとのやり取りを抽象化するインターフェース
  */
@@ -34,11 +40,22 @@ export interface QueueAiSessionAdapter {
 
   /**
    * セッションを確保（存在しなければ作成）
+   * coldStart: 今回新規に CLI を spawn した場合 true（既存セッション再利用時は false）
    */
   ensureSession(
     repositoryPath: string,
     provider: AiProvider
-  ): Promise<{ id: string; repositoryPath: string; provider: AiProvider }>;
+  ): Promise<{
+    id: string;
+    repositoryPath: string;
+    provider: AiProvider;
+    coldStart: boolean;
+  }>;
+
+  /**
+   * コールドスタート直後のセッションが入力受付可能になるまで待つ
+   */
+  waitForSessionReady(sessionId: string): Promise<void>;
 
   /**
    * セッションの状態を取得
@@ -373,8 +390,13 @@ export class PromptQueueManager extends EventEmitter {
         provider
       );
 
+      // コールドスタート時は CLI 起動完了を待ってから送信する
+      if (session.coldStart) {
+        await this.aiSessionAdapter.waitForSessionReady(session.id);
+      }
+
       // コマンド送信処理
-      await this.sendItemCommands(session.id, item);
+      await this.sendItemCommands(session.id, item, session.coldStart);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -612,13 +634,11 @@ export class PromptQueueManager extends EventEmitter {
           provider
         );
 
-        this.aiSessionAdapter.sendCommand(
+        await this.sendSlashCommand(
           session.id,
-          '/dokodemo-claude-tools:workflow-plan-codexreview'
+          '/dokodemo-claude-tools:workflow-plan-codexreview',
+          session.coldStart
         );
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(session.id, '\r');
-        }, 300);
       } catch (error) {
         console.error('[PromptQueueManager] Codexレビューセッションエラー:', error);
         state.isProcessing = false;
@@ -641,13 +661,11 @@ export class PromptQueueManager extends EventEmitter {
           provider
         );
 
-        this.aiSessionAdapter.sendCommand(
+        await this.sendSlashCommand(
           session.id,
-          '/dokodemo-claude-tools:commit-push'
+          '/dokodemo-claude-tools:commit-push',
+          session.coldStart
         );
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(session.id, '\r');
-        }, 300);
       } catch (error) {
         console.error('[PromptQueueManager] セッション確保エラー:', error);
         state.isProcessing = false;
@@ -743,8 +761,13 @@ export class PromptQueueManager extends EventEmitter {
         provider
       );
 
+      // コールドスタート時は CLI 起動完了を待ってから送信する
+      if (session.coldStart) {
+        await this.aiSessionAdapter.waitForSessionReady(session.id);
+      }
+
       // コマンド送信処理
-      await this.sendItemCommands(session.id, item);
+      await this.sendItemCommands(session.id, item, session.coldStart);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -764,11 +787,39 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * スラッシュコマンド（/commit-push 等）を送信する。
+   * コールドスタート時は CLI 起動完了を待ってから送り、Enter 取りこぼし対策で
+   * Enter を 1 回追加送信する。
+   */
+  private async sendSlashCommand(
+    sessionId: string,
+    command: string,
+    coldStart: boolean
+  ): Promise<void> {
+    if (!this.aiSessionAdapter) return;
+
+    if (coldStart) {
+      await this.aiSessionAdapter.waitForSessionReady(sessionId);
+    }
+
+    this.aiSessionAdapter.sendCommand(sessionId, command);
+    setTimeout(() => {
+      this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+      if (coldStart) {
+        setTimeout(() => {
+          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+        }, COLD_START_ENTER_RETRY_MS);
+      }
+    }, 300);
+  }
+
+  /**
    * アイテムのコマンドを送信
    */
   private async sendItemCommands(
     sessionId: string,
-    item: PromptQueueItem
+    item: PromptQueueItem,
+    coldStart = false
   ): Promise<void> {
     if (!this.aiSessionAdapter) return;
 
@@ -777,6 +828,12 @@ export class PromptQueueManager extends EventEmitter {
         this.aiSessionAdapter?.sendCommand(sessionId, item.prompt);
         setTimeout(() => {
           this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+          // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
+          if (coldStart) {
+            setTimeout(() => {
+              this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+            }, COLD_START_ENTER_RETRY_MS);
+          }
         }, 500);
       }, delay);
     };
@@ -814,11 +871,9 @@ export class PromptQueueManager extends EventEmitter {
 
         sendPromptWithEnter(1500);
       } else {
-        this.aiSessionAdapter.sendCommand(sessionId, item.prompt);
-
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-        }, 500);
+        // モデル指定も /clear も無い最短経路。コールドスタート時の Enter
+        // 取りこぼし対策も含めるため sendPromptWithEnter に集約する
+        sendPromptWithEnter(0);
       }
     }
   }

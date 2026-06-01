@@ -27,13 +27,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
-    "@nx/eslint": "22.3.3",
-    "@nx/eslint-plugin": "22.3.3",
-    "@nx/js": "22.3.3",
-    "@nx/react": "^22.3.3",
-    "@nx/vite": "22.3.3",
-    "@nx/web": "^22.3.3",
-    "@nx/workspace": "22.3.3",
+    "@nx/eslint": "22.7.5",
+    "@nx/eslint-plugin": "22.7.5",
+    "@nx/js": "22.7.5",
+    "@nx/react": "^22.7.5",
+    "@nx/vite": "22.7.5",
+    "@nx/web": "^22.7.5",
+    "@nx/workspace": "22.7.5",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
@@ -41,7 +41,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "nx": "22.3.3",
+    "nx": "22.7.5",
     "sass": "^1.99.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.54.0",
@@ -49,6 +49,9 @@
     "vite-plugin-pwa": "^1.2.0",
     "workbox-core": "^7.4.0",
     "workbox-precaching": "^7.4.0"
+  },
+  "overrides": {
+    "ws": "^8.21.0"
   },
   "volta": {
     "node": "22.17.0"
