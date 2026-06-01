@@ -71,6 +71,12 @@ function WorktreeMemoEditor({
             if (e.key === 'Escape') {
               e.preventDefault();
               cancelEdit();
+            } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              // Cmd/Ctrl+Enter で保存して編集終了
+              e.preventDefault();
+              // blur 経由の二重保存を防ぐ
+              skipBlurSaveRef.current = true;
+              saveEdit();
             }
           }}
           onBlur={() => {
