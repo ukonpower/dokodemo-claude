@@ -6,13 +6,15 @@
 
 // メモ表示・編集
 .memoDisplay {
+  position: relative;
   padding: 0.5rem;
+  // 編集ボタンとテキストの重なりを避けるため右側に余白を確保
+  padding-right: 2.25rem;
   font-size: $font-size-sm;
   color: $gray-300;
   background-color: $gray-900;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
-  cursor: text;
   white-space: pre-wrap;
   word-break: break-word;
 
@@ -114,6 +116,31 @@
     border: 1px solid $dark-border-light;
     padding: 0.25rem 0.5rem;
   }
+}
+
+.memoEditButton {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  padding: 0.25rem;
+  color: $gray-500;
+  background: none;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-300;
+    background-color: $gray-700;
+  }
+}
+
+.memoEditIcon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
 }
 
 .memoPlaceholder {
