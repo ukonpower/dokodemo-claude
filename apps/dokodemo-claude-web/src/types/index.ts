@@ -133,6 +133,14 @@ export interface TerminalMessage {
   timestamp: number;
 }
 
+// 検出された開発サーバーのポート情報
+export interface DetectedPortInfo {
+  terminalId: string;
+  port: number;
+  pid: number;
+  command: string;
+}
+
 // AI CLI出力履歴の行情報
 export interface AiOutputLine {
   id: string;
@@ -392,6 +400,11 @@ export interface ServerToClientEvents {
   'terminal-output-history': (data: {
     terminalId: string;
     history: TerminalOutputLine[];
+  }) => void;
+  'terminal-ports': (data: {
+    repositoryPath: string;
+    rid?: string;
+    ports: DetectedPortInfo[];
   }) => void;
 
   // コマンドショートカット関連イベント

@@ -25,6 +25,7 @@ import {
   WorktreeSortOrderManager,
   WorktreeMemoManager,
   AISessionManager,
+  PortDetector,
   type ActiveAiSession,
   type ActiveTerminal,
   type TerminalOutputLine,
@@ -54,6 +55,8 @@ export class ProcessManager extends EventEmitter {
   public readonly worktreeSyncManager: WorktreeSyncManager;
   public readonly worktreeSortOrderManager: WorktreeSortOrderManager;
   public readonly worktreeMemoManager: WorktreeMemoManager;
+
+  public readonly portDetector: PortDetector;
 
   public readonly processRegistry: ProcessRegistry;
   public readonly processMonitor: ProcessMonitor;
@@ -111,6 +114,21 @@ export class ProcessManager extends EventEmitter {
     );
     this.terminalManager.on('terminal-exit', (data) =>
       this.emit('terminal-exit', data)
+    );
+
+    // PortDetector: 各ターミナルの子孫プロセスが LISTEN するポートを検出
+    this.portDetector = new PortDetector(() =>
+      this.terminalManager
+        .getAllTerminals()
+        .filter((t) => t.status === 'active' && t.pid > 0)
+        .map((t) => ({
+          id: t.id,
+          pid: t.pid,
+          repositoryPath: t.repositoryPath,
+        }))
+    );
+    this.portDetector.on('ports-updated', (data) =>
+      this.emit('terminal-ports', data)
     );
 
     this.shortcutManager = new ShortcutManager(this.persistenceService, {
@@ -327,6 +345,7 @@ export class ProcessManager extends EventEmitter {
     await this.worktreeMemoManager.initialize();
 
     this.startProcessMonitoring();
+    this.portDetector.start();
   }
 
   private async ensureProcessesDir(): Promise<void> {
@@ -405,6 +424,20 @@ export class ProcessManager extends EventEmitter {
 
   getTerminalOutputHistory(terminalId: string): TerminalOutputLine[] {
     return this.terminalManager.getTerminalOutputHistory(terminalId);
+  }
+
+  /**
+   * 指定リポジトリで検出済みの開発サーバーポート一覧を取得
+   */
+  getDetectedPorts(repositoryPath: string) {
+    return this.portDetector.getPorts(repositoryPath);
+  }
+
+  /**
+   * 検出済みの全リポジトリ（全worktree）の開発サーバーポート一覧を取得
+   */
+  getAllDetectedPorts() {
+    return this.portDetector.getAllPorts();
   }
 
   // ====================
@@ -679,6 +712,8 @@ export class ProcessManager extends EventEmitter {
       clearInterval(this.processMonitoringInterval);
       this.processMonitoringInterval = null;
     }
+
+    this.portDetector.stop();
 
     await this.aiSessionManager.shutdown();
     await this.terminalManager.shutdown();

@@ -31,6 +31,7 @@ import { isPathSafe } from './handlers/file-viewer-handlers.js';
 import {
   findRepositoryRoot,
   getWorktreeInfo,
+  getMainRepoPath,
 } from './utils/git-utils.js';
 import {
   setWorktreeSortOrderManager,
@@ -145,6 +146,26 @@ function emitToRepositoryClients<K extends keyof ServerToClientEvents>(
     if (targetSocket) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (targetSocket.emit as any)(eventName, data);
+    }
+  }
+}
+
+// 親リポジトリを共有する全クライアント（親自身＋配下の全worktree）にイベントを送信
+// 開発サーバーポートのように「どのworktreeを開いていても全worktree分を見せたい」用途に使う
+function emitToParentScopedClients<K extends keyof ServerToClientEvents>(
+  repositoryPath: string,
+  eventName: K,
+  data: Parameters<ServerToClientEvents[K]>[0]
+): void {
+  const parent = getMainRepoPath(repositoryPath);
+  for (const [repoPath, socketIds] of repositoryToSocketIds) {
+    if (getMainRepoPath(repoPath) !== parent) continue;
+    for (const socketId of socketIds) {
+      const targetSocket = io.sockets.sockets.get(socketId);
+      if (targetSocket) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (targetSocket.emit as any)(eventName, data);
+      }
     }
   }
 }
@@ -1069,6 +1090,15 @@ processManager.on('terminal-output', (data) => {
 processManager.on('terminal-exit', (data) => {
   emitToRepositoryClients(data.repositoryPath, 'terminal-closed', {
     terminalId: data.terminalId,
+  });
+});
+
+processManager.on('terminal-ports', (data) => {
+  // 親リポジトリを共有する全クライアントへ配信（worktree を切り替えずに全worktree分を見せる）
+  emitToParentScopedClients(data.repositoryPath, 'terminal-ports', {
+    repositoryPath: data.repositoryPath,
+    rid: repositoryIdManager.tryGetId(data.repositoryPath),
+    ports: data.ports,
   });
 });
 

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import type { GitWorktree } from '../types';
+import type { DetectedPortInfo, GitWorktree } from '../types';
 import MarkdownViewer from './MarkdownViewer';
 import s from './WorktreeOperations.module.scss';
 
@@ -12,6 +12,51 @@ interface WorktreeOperationsProps {
     errorDetails?: string;
   } | null;
   onClearMergeError: () => void;
+  // 全worktreeと、repositoryPath ごとの開発サーバーポート（一覧表示用）
+  worktrees: GitWorktree[];
+  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
+}
+
+/**
+ * 全worktreeで検出された開発サーバーを「ports」見出し付きで横並び表示する。
+ * worktree 名は出さず、プロセス名＋ポート（node :3001）のリンクを横に並べる。
+ */
+function DevServerList({
+  worktrees,
+  devServerPortsByRepo,
+}: {
+  worktrees: GitWorktree[];
+  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
+}) {
+  const hostname = window.location.hostname;
+  // 全worktreeのポートをフラットに集約
+  const ports = worktrees.flatMap(
+    (wt) => devServerPortsByRepo.get(wt.path.replace(/\/+$/, '')) ?? []
+  );
+
+  if (ports.length === 0) return null;
+
+  return (
+    <div className={s.devServers}>
+      <span className={s.sectionLabel}>ports</span>
+      {ports.map((p) => {
+        const url = `http://${hostname}:${p.port}`;
+        return (
+          <a
+            key={`${p.terminalId}-${p.port}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={s.devServerLink}
+            title={`${url}\n${p.command} (pid: ${p.pid})`}
+          >
+            <span className={s.devServerCommand}>{p.command}</span>
+            <span className={s.devServerPort}>:{p.port}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -91,6 +136,19 @@ function WorktreeMemoEditor({
     );
   }
 
+  // 空メモ時はボックスを出さずインラインのプレースホルダだけ表示（クリックで編集）
+  if (!memo) {
+    return (
+      <span
+        className={s.memoPlaceholder}
+        onClick={() => setIsEditing(true)}
+        title="クリックして編集"
+      >
+        メモを追加 ＋
+      </span>
+    );
+  }
+
   return (
     <div className={s.memoDisplay}>
       <button
@@ -112,11 +170,7 @@ function WorktreeMemoEditor({
           />
         </svg>
       </button>
-      {memo ? (
-        <MarkdownViewer content={memo} stopLinkPropagation />
-      ) : (
-        <span className={s.memoPlaceholder}>メモを追加</span>
-      )}
+      <MarkdownViewer content={memo} stopLinkPropagation />
     </div>
   );
 }
@@ -126,18 +180,37 @@ function WorktreeOperations({
   onSaveMemo,
   mergeError,
   onClearMergeError,
+  worktrees,
+  devServerPortsByRepo,
 }: WorktreeOperationsProps) {
-  // メインワークツリーの場合は表示しない
-  if (!currentWorktree || currentWorktree.isMain) {
+  // メモは worktree（非メイン）でのみ編集可能
+  const showMemo = !!currentWorktree && !currentWorktree.isMain;
+  // 開発サーバーが1つでも検出されていれば一覧を出す（メインを開いていても表示）
+  const hasServers = worktrees.some(
+    (wt) => (devServerPortsByRepo.get(wt.path.replace(/\/+$/, '')) ?? []).length > 0
+  );
+
+  // 表示するものが何も無ければセクションごと出さない
+  if (!showMemo && !hasServers) {
     return null;
   }
 
   return (
     <div className={s.container}>
-      <WorktreeMemoEditor
-        key={currentWorktree.path}
-        memo={currentWorktree.memo ?? ''}
-        onSave={(memo) => onSaveMemo(currentWorktree.path, memo)}
+      {showMemo && currentWorktree && (
+        <div className={s.section}>
+          <span className={s.sectionLabel}>note</span>
+          <WorktreeMemoEditor
+            key={currentWorktree.path}
+            memo={currentWorktree.memo ?? ''}
+            onSave={(memo) => onSaveMemo(currentWorktree.path, memo)}
+          />
+        </div>
+      )}
+
+      <DevServerList
+        worktrees={worktrees}
+        devServerPortsByRepo={devServerPortsByRepo}
       />
 
       {/* マージエラーモーダル（タブからのマージ失敗時に表示） */}

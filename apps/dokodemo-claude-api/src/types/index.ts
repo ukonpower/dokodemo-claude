@@ -140,6 +140,14 @@ export interface TerminalOutputLine {
   type: 'stdout' | 'stderr' | 'system';
 }
 
+// 検出された開発サーバーのポート情報
+export interface DetectedPortInfo {
+  terminalId: string;
+  port: number;
+  pid: number;
+  command: string;
+}
+
 // エディタ関連の型定義
 export type EditorType = 'vscode' | 'cursor' | 'code-server';
 
@@ -249,6 +257,11 @@ export interface ServerToClientEvents {
   'terminal-output-history': (data: {
     terminalId: string;
     history: TerminalOutputLine[];
+  }) => void;
+  'terminal-ports': (data: {
+    repositoryPath: string;
+    rid?: string;
+    ports: DetectedPortInfo[];
   }) => void;
 
   // コマンドショートカット関連イベント

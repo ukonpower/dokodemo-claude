@@ -5,6 +5,7 @@ import type { ProcessManager } from '../process-manager.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
 import { stripAnsi } from '../utils/strip-ansi.js';
+import { getMainRepoPath } from '../utils/git-utils.js';
 
 /**
  * ターミナル操作の REST API ルートを登録する。
@@ -159,6 +160,20 @@ export function registerTerminalHandlers(ctx: HandlerContext): void {
       })),
       rid,
     });
+
+    // 検出済みの開発サーバーポートを送信（接続直後の初期表示用）
+    // 親リポジトリを共有する全worktree分をまとめて送る（worktreeタブ横断表示用）
+    if (repositoryPath) {
+      const parent = getMainRepoPath(repositoryPath);
+      for (const entry of processManager.getAllDetectedPorts()) {
+        if (getMainRepoPath(entry.repositoryPath) !== parent) continue;
+        socket.emit('terminal-ports', {
+          repositoryPath: entry.repositoryPath,
+          rid: repositoryIdManager.tryGetId(entry.repositoryPath),
+          ports: entry.ports,
+        });
+      }
+    }
 
     // 各ターミナルの出力履歴を送信
     for (const terminal of terminals) {
