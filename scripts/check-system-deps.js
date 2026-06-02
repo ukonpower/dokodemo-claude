@@ -96,27 +96,21 @@ function tryInstallJqBinary() {
   }
 }
 
-// ─── lsof インストール ───
+// ─── ss (iproute2) インストール ───
+// Linux/WSL のポート検出は ss を使用する（lsof は next-server のソケットを取りこぼすため）
 
-function tryInstallLsof() {
-  const platform = getPlatform();
-
-  // mac は lsof が標準で含まれるためここには来ない想定
-  if (platform === 'linux') {
-    if (!commandExists('apt-get')) {
-      console.log('⚠️  apt-get が見つかりません。lsof を手動でインストールしてください');
-      return false;
-    }
-    console.log('🔧 lsof を apt でインストール中...');
-    try {
-      run('sudo apt-get update -qq && sudo apt-get install -y -qq lsof 2>/dev/null');
-      return commandExists('lsof');
-    } catch {
-      return false;
-    }
+function tryInstallSs() {
+  if (!commandExists('apt-get')) {
+    console.log('⚠️  apt-get が見つかりません。iproute2 (ss) を手動でインストールしてください');
+    return false;
   }
-
-  return false;
+  console.log('🔧 ss (iproute2) を apt でインストール中...');
+  try {
+    run('sudo apt-get update -qq && sudo apt-get install -y -qq iproute2 2>/dev/null');
+    return commandExists('ss');
+  } catch {
+    return false;
+  }
 }
 
 // ─── メイン ───
@@ -124,18 +118,31 @@ function tryInstallLsof() {
 function main() {
   console.log('🔍 システム依存ツールをチェック中...');
 
+  const platform = getPlatform();
+
   const deps = [
     {
       name: 'jq',
       reason: 'Claude Code hooks の JSON 処理に必要',
       install: tryInstallJq,
     },
-    {
-      name: 'lsof',
-      reason: '開発サーバーのポート検出に必要（WSL/Linux ではデフォルト未インストールのことがある）',
-      install: tryInstallLsof,
-    },
   ];
+
+  // ポート検出ツールは OS で使い分ける（Linux/WSL: ss / macOS: lsof）
+  if (platform === 'linux') {
+    deps.push({
+      name: 'ss',
+      reason: '開発サーバーのポート検出に必要（iproute2。WSL/Linux ではデフォルト未インストールのことがある）',
+      install: tryInstallSs,
+    });
+  } else if (platform === 'mac') {
+    // macOS の lsof は標準で含まれるため、未検出時のみ案内する
+    deps.push({
+      name: 'lsof',
+      reason: '開発サーバーのポート検出に必要',
+      install: () => false,
+    });
+  }
 
   let allOk = true;
 

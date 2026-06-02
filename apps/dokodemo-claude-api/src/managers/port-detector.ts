@@ -2,15 +2,26 @@
  * 開発サーバーのポート検出マネージャー
  *
  * 各ターミナル（bash PTY）の子孫プロセスが LISTEN している TCP ポートを
- * `ps` でプロセスツリーを辿り `lsof` で取得する。
+ * `ps` でプロセスツリーを辿り、Linux/WSL では `ss`、macOS では `lsof` で取得する。
  * フレームワークの出力フォーマットに依存せず、実際に開いているポートのみを検出する。
+ *
+ * 注: Linux/WSL では `lsof` ではなく `ss`（netlink/sock_diag）を使用する。
+ * Next.js の next-server は process.title を "next-server (v15.5.15)" に変更するため、
+ * /proc/PID/stat の comm フィールドが入れ子括弧 "(next-server (v1)" になり、
+ * lsof の stat パーサが破綻して該当プロセスのソケットを取りこぼす（特に WSL 環境）。
+ * ss はプロセス名に依存せずソケットを列挙できるため、この問題を回避できる。
+ * 一方 macOS には ss が無く、lsof は /proc を使わない実装で上記問題も起きないため lsof を使う。
  */
 
 import { EventEmitter } from 'events';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import os from 'os';
 
 const execAsync = promisify(exec);
+
+// Linux/WSL では ss、それ以外（macOS）では lsof を使用する
+const USE_SS = os.platform() === 'linux';
 
 // ポーリング間隔（ミリ秒）
 const POLL_INTERVAL_MS = 4000;
@@ -77,7 +88,7 @@ function collectDescendants(
 }
 
 /**
- * `lsof -F pcn` の機械可読出力をパースして、LISTEN中の (pid, command, port) を返す
+ * `lsof -F pcn` の機械可読出力をパースして、LISTEN中の (pid, command, port) を返す（macOS 用）
  */
 function parseLsof(lsofOutput: string): Array<{
   pid: number;
@@ -106,6 +117,50 @@ function parseLsof(lsofOutput: string): Array<{
           port: Number(match[1]),
         });
       }
+    }
+  }
+  return results;
+}
+
+/**
+ * `ss -tlnpH` の出力をパースして、LISTEN中の (pid, command, port) を返す（Linux/WSL 用）
+ *
+ * ss の各行は以下のような形式（列はスペース区切り）:
+ *   LISTEN 0  511  *:3001  *:*  users:(("next-server (v1",pid=319542,fd=24))
+ * 1つのソケットを複数プロセスが共有する場合、users:(...) に複数の pid が並ぶ。
+ */
+function parseSs(ssOutput: string): Array<{
+  pid: number;
+  command: string;
+  port: number;
+}> {
+  const results: Array<{ pid: number; command: string; port: number }> = [];
+  // users:(("name",pid=N,fd=M),("name2",pid=M,...)) から (name, pid) を抜き出す
+  const procRegex = /\("([^"]*)",pid=(\d+)/g;
+  for (const line of ssOutput.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const cols = trimmed.split(/\s+/);
+    // 先頭列が State。LISTEN 行のみを対象とする
+    if (cols[0] !== 'LISTEN') continue;
+    // Local Address:Port は4列目。例: "*:3001" / "127.0.0.1:8000" / "[::1]:8000"
+    const localAddr = cols[3];
+    if (!localAddr) continue;
+    const portMatch = localAddr.match(/:(\d+)$/);
+    if (!portMatch) continue;
+    const port = Number(portMatch[1]);
+    // プロセス情報（users:...）が無い行はスキップ
+    const usersIndex = trimmed.indexOf('users:');
+    if (usersIndex === -1) continue;
+    const procPart = trimmed.slice(usersIndex);
+    procRegex.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = procRegex.exec(procPart)) !== null) {
+      results.push({
+        pid: Number(match[2]),
+        command: match[1],
+        port,
+      });
     }
   }
   return results;
@@ -170,12 +225,17 @@ export class PortDetector extends EventEmitter {
         return;
       }
 
-      const [psOutput, lsofOutput] = await Promise.all([
+      // Linux/WSL は ss、macOS は lsof でLISTEN中のTCPソケットを取得
+      // ss: -t:TCP -l:LISTEN -n:数値 -p:プロセス -H:ヘッダ無し
+      // lsof: 機械可読形式（該当なしは終了コード1だが出力は得る）
+      const portCommand = USE_SS
+        ? 'ss -tlnpH'
+        : 'lsof -nP -iTCP -sTCP:LISTEN -F pcn';
+      const [psOutput, portOutput] = await Promise.all([
         execAsync('ps -eo pid=,ppid=', { maxBuffer: 1024 * 1024 }).then(
           (r) => r.stdout
         ),
-        // LISTEN中のTCPソケットを機械可読形式で取得（該当なしは終了コード1だが出力は得る）
-        execAsync('lsof -nP -iTCP -sTCP:LISTEN -F pcn', {
+        execAsync(portCommand, {
           maxBuffer: 4 * 1024 * 1024,
         })
           .then((r) => r.stdout)
@@ -183,7 +243,9 @@ export class PortDetector extends EventEmitter {
       ]);
 
       const childrenMap = buildChildrenMap(psOutput);
-      const listening = parseLsof(lsofOutput);
+      const listening = USE_SS
+        ? parseSs(portOutput)
+        : parseLsof(portOutput);
 
       // リポジトリごとにポートを集約（同一ポートのIPv4/IPv6重複を除去）
       const portsByRepository = new Map<string, DetectedPort[]>();
