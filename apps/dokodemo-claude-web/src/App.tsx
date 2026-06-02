@@ -471,6 +471,7 @@ function App() {
       terminalHistories={terminal.terminalHistories}
       isTerminalsLoaded={terminal.isTerminalsLoaded}
       shortcuts={terminal.shortcuts}
+      devServerPortsByRepo={terminal.devServerPortsByRepo}
       onCreateTerminal={terminal.createTerminal}
       onCloseTerminal={terminal.closeTerminal}
       onTerminalInput={terminal.sendInput}

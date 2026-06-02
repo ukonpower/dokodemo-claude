@@ -11,6 +11,7 @@ import type {
   AiOutputLine,
   AiInstance,
   CommandShortcut,
+  DetectedPortInfo,
   AiProvider,
   EditorInfo,
   EditorType,
@@ -102,6 +103,7 @@ interface ProjectViewProps {
   terminalHistories: Map<string, TerminalOutputLine[]>;
   isTerminalsLoaded: boolean;
   shortcuts: CommandShortcut[];
+  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
   onCreateTerminal: (cwd: string, name?: string) => void;
   onCloseTerminal: (terminalId: string) => void;
   onTerminalInput: (terminalId: string, input: string) => void;
@@ -300,6 +302,7 @@ export function ProjectView({
   terminalHistories,
   isTerminalsLoaded,
   shortcuts,
+  devServerPortsByRepo,
   onCreateTerminal,
   onCloseTerminal,
   onTerminalInput,
@@ -739,7 +742,7 @@ export function ProjectView({
             )}
           </div>
 
-          {/* ワークツリー操作セクション */}
+          {/* ワークツリー操作セクション（メモ＋全worktreeの開発サーバー一覧） */}
           {(() => {
             const normalizedCurrentRepo = currentRepo.replace(/\/+$/, '');
             const matchedWorktree = worktrees.find(
@@ -751,6 +754,8 @@ export function ProjectView({
                 onSaveMemo={onSaveWorktreeMemo}
                 mergeError={mergeError}
                 onClearMergeError={onClearMergeError}
+                worktrees={worktrees}
+                devServerPortsByRepo={devServerPortsByRepo}
               />
             );
           })()}
@@ -975,7 +980,6 @@ export function ProjectView({
               onRefreshScripts={onRefreshNpmScripts}
             />
           </section>
-
         </div>
 
         <div className={s.deleteCenter}>

@@ -5,6 +5,7 @@ import type {
   TerminalMessage,
   TerminalOutputLine,
   CommandShortcut,
+  DetectedPortInfo,
   ServerToClientEvents,
   ClientToServerEvents,
 } from '../types';
@@ -27,6 +28,8 @@ export interface UseTerminalReturn {
   terminalHistories: Map<string, TerminalOutputLine[]>;
   isTerminalsLoaded: boolean;
   shortcuts: CommandShortcut[];
+  // repositoryPath(worktree) ごとの開発サーバーポート。親リポジトリ配下の全worktree分を保持
+  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
 
   // アクション
   createTerminal: (cwd: string, name?: string) => void;
@@ -63,6 +66,9 @@ export function useTerminal(
     Map<string, TerminalOutputLine[]>
   >(new Map());
   const [shortcuts, setShortcuts] = useState<CommandShortcut[]>([]);
+  const [devServerPortsByRepo, setDevServerPortsByRepo] = useState<
+    Map<string, DetectedPortInfo[]>
+  >(new Map());
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -160,12 +166,30 @@ export function useTerminal(
       setShortcuts(data.shortcuts);
     };
 
+    // 開発サーバーポート検出
+    // サーバーは親リポジトリ配下の全worktree分を送ってくるので、repositoryPath をキーに保持する
+    const handleTerminalPorts = (
+      data: Parameters<ServerToClientEvents['terminal-ports']>[0]
+    ) => {
+      const key = data.repositoryPath.replace(/\/+$/, '');
+      setDevServerPortsByRepo((prev) => {
+        const next = new Map(prev);
+        if (data.ports.length === 0) {
+          next.delete(key);
+        } else {
+          next.set(key, data.ports);
+        }
+        return next;
+      });
+    };
+
     socket.on('terminals-list', handleTerminalsList);
     socket.on('terminal-created', handleTerminalCreated);
     socket.on('terminal-output', handleTerminalOutput);
     socket.on('terminal-closed', handleTerminalClosed);
     socket.on('terminal-output-history', handleTerminalOutputHistory);
     socket.on('shortcuts-list', handleShortcutsList);
+    socket.on('terminal-ports', handleTerminalPorts);
 
     return () => {
       socket.off('terminals-list', handleTerminalsList);
@@ -174,6 +198,7 @@ export function useTerminal(
       socket.off('terminal-closed', handleTerminalClosed);
       socket.off('terminal-output-history', handleTerminalOutputHistory);
       socket.off('shortcuts-list', handleShortcutsList);
+      socket.off('terminal-ports', handleTerminalPorts);
     };
   }, [socket]);
 
@@ -266,6 +291,7 @@ export function useTerminal(
     setTerminalMessages([]);
     setTerminalHistories(new Map());
     setShortcuts([]);
+    setDevServerPortsByRepo(new Map());
   }, []);
 
   // リポジトリ切り替え時に状態をリセット
@@ -280,6 +306,7 @@ export function useTerminal(
     terminalHistories,
     isTerminalsLoaded,
     shortcuts,
+    devServerPortsByRepo,
     createTerminal,
     closeTerminal,
     sendInput,
