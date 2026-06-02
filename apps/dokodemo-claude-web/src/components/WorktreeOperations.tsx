@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { DetectedPortInfo, GitWorktree } from '../types';
+import MarkdownViewer from './MarkdownViewer';
 import s from './WorktreeOperations.module.scss';
 
 interface WorktreeOperationsProps {
@@ -60,23 +59,6 @@ function DevServerList({
   );
 }
 
-// メモ用 Markdown コンポーネント。
-// リンクは別タブで開き、クリックしても編集モードに入らないよう伝播を止める。
-const memoMarkdownComponents: Components = {
-  a({ href, children }) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </a>
-    );
-  },
-};
-
 /**
  * ワークツリーメモの表示・編集。
  * 表示モードでは Markdown としてレンダリング、編集モードでは textarea を表示する。
@@ -116,6 +98,12 @@ function WorktreeMemoEditor({
             if (e.key === 'Escape') {
               e.preventDefault();
               cancelEdit();
+            } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              // Cmd/Ctrl+Enter で保存して編集終了
+              e.preventDefault();
+              // blur 経由の二重保存を防ぐ
+              skipBlurSaveRef.current = true;
+              saveEdit();
             }
           }}
           onBlur={() => {
@@ -148,24 +136,41 @@ function WorktreeMemoEditor({
     );
   }
 
+  // 空メモ時はボックスを出さずインラインのプレースホルダだけ表示（クリックで編集）
+  if (!memo) {
+    return (
+      <span
+        className={s.memoPlaceholder}
+        onClick={() => setIsEditing(true)}
+        title="クリックして編集"
+      >
+        メモを追加 ＋
+      </span>
+    );
+  }
+
   return (
-    <div
-      className={`${s.memoDisplay} ${memo ? '' : s.memoDisplayEmpty}`}
-      onClick={() => setIsEditing(true)}
-      title="クリックして編集"
-    >
-      {memo ? (
-        <div className={s.memoMarkdown}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={memoMarkdownComponents}
-          >
-            {memo}
-          </ReactMarkdown>
-        </div>
-      ) : (
-        <span className={s.memoPlaceholder}>メモを追加 ＋</span>
-      )}
+    <div className={s.memoDisplay}>
+      <button
+        className={s.memoEditButton}
+        onClick={() => setIsEditing(true)}
+        title="メモを編集"
+      >
+        <svg
+          className={s.memoEditIcon}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
+        </svg>
+      </button>
+      <MarkdownViewer content={memo} stopLinkPropagation />
     </div>
   );
 }
