@@ -96,6 +96,29 @@ function tryInstallJqBinary() {
   }
 }
 
+// ─── lsof インストール ───
+
+function tryInstallLsof() {
+  const platform = getPlatform();
+
+  // mac は lsof が標準で含まれるためここには来ない想定
+  if (platform === 'linux') {
+    if (!commandExists('apt-get')) {
+      console.log('⚠️  apt-get が見つかりません。lsof を手動でインストールしてください');
+      return false;
+    }
+    console.log('🔧 lsof を apt でインストール中...');
+    try {
+      run('sudo apt-get update -qq && sudo apt-get install -y -qq lsof 2>/dev/null');
+      return commandExists('lsof');
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 // ─── メイン ───
 
 function main() {
@@ -106,6 +129,11 @@ function main() {
       name: 'jq',
       reason: 'Claude Code hooks の JSON 処理に必要',
       install: tryInstallJq,
+    },
+    {
+      name: 'lsof',
+      reason: '開発サーバーのポート検出に必要（WSL/Linux ではデフォルト未インストールのことがある）',
+      install: tryInstallLsof,
     },
   ];
 
