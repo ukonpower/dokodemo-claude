@@ -754,7 +754,6 @@ export function ProjectView({
                 onSaveMemo={onSaveWorktreeMemo}
                 mergeError={mergeError}
                 onClearMergeError={onClearMergeError}
-                worktrees={worktrees}
                 devServerPortsByRepo={devServerPortsByRepo}
               />
             );
