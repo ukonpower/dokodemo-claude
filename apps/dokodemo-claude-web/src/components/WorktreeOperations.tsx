@@ -12,27 +12,16 @@ interface WorktreeOperationsProps {
     errorDetails?: string;
   } | null;
   onClearMergeError: () => void;
-  // 全worktreeと、repositoryPath ごとの開発サーバーポート（一覧表示用）
-  worktrees: GitWorktree[];
+  // repositoryPath ごとの開発サーバーポート（今開いているワークツリーの分を表示する）
   devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
 }
 
 /**
- * 全worktreeで検出された開発サーバーを「ports」見出し付きで横並び表示する。
- * worktree 名は出さず、プロセス名＋ポート（node :3001）のリンクを横に並べる。
+ * 今開いているワークツリーで検出された開発サーバーを「ports」見出し付きで横並び表示する。
+ * プロセス名＋ポート（node :3001）のリンクを横に並べる。
  */
-function DevServerList({
-  worktrees,
-  devServerPortsByRepo,
-}: {
-  worktrees: GitWorktree[];
-  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
-}) {
+function DevServerList({ ports }: { ports: DetectedPortInfo[] }) {
   const hostname = window.location.hostname;
-  // 全worktreeのポートをフラットに集約
-  const ports = worktrees.flatMap(
-    (wt) => devServerPortsByRepo.get(wt.path.replace(/\/+$/, '')) ?? []
-  );
 
   if (ports.length === 0) return null;
 
@@ -180,15 +169,15 @@ function WorktreeOperations({
   onSaveMemo,
   mergeError,
   onClearMergeError,
-  worktrees,
   devServerPortsByRepo,
 }: WorktreeOperationsProps) {
   // メモは worktree（非メイン）でのみ編集可能
   const showMemo = !!currentWorktree && !currentWorktree.isMain;
-  // 開発サーバーが1つでも検出されていれば一覧を出す（メインを開いていても表示）
-  const hasServers = worktrees.some(
-    (wt) => (devServerPortsByRepo.get(wt.path.replace(/\/+$/, '')) ?? []).length > 0
-  );
+  // 今開いているワークツリーで検出された開発サーバーポート
+  const currentPorts = currentWorktree
+    ? (devServerPortsByRepo.get(currentWorktree.path.replace(/\/+$/, '')) ?? [])
+    : [];
+  const hasServers = currentPorts.length > 0;
 
   // 表示するものが何も無ければセクションごと出さない
   if (!showMemo && !hasServers) {
@@ -208,10 +197,7 @@ function WorktreeOperations({
         </div>
       )}
 
-      <DevServerList
-        worktrees={worktrees}
-        devServerPortsByRepo={devServerPortsByRepo}
-      />
+      <DevServerList ports={currentPorts} />
 
       {/* マージエラーモーダル（タブからのマージ失敗時に表示） */}
       {mergeError && (
