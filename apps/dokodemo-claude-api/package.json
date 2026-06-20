@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "postinstall": "node scripts/ensure-spawn-helper-executable.cjs"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",

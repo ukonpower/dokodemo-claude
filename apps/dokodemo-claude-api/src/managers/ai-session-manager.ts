@@ -9,6 +9,7 @@
  */
 
 import * as pty from 'node-pty';
+import * as fs from 'fs';
 import { EventEmitter } from 'events';
 import {
   AiProvider,
@@ -21,7 +22,9 @@ import {
   cleanChildEnv,
   getDokodemoApiBaseUrl,
   getDokodemoMcpUrl,
+  resolveCommandPath,
 } from '../utils/clean-env.js';
+import { diagnoseSpawnHelper } from '../utils/node-pty-repair.js';
 import { ProcessRegistry } from './process-registry.js';
 
 /**
@@ -157,20 +160,57 @@ export class AISessionManager extends EventEmitter {
     );
     const sessionId = this.generateSessionId(instance.provider);
 
-    const aiProcess = pty.spawn(command, args, {
-      name: 'xterm-color',
-      cols: options.initialSize?.cols ?? 120,
-      rows: options.initialSize?.rows ?? 30,
-      cwd: instance.repositoryPath,
-      env: cleanChildEnv({
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor',
-        FORCE_COLOR: '1',
-        CLAUDECODE: undefined,
-        DOKODEMO_API_BASE_URL: getDokodemoApiBaseUrl(),
-        DOKODEMO_MCP_URL: getDokodemoMcpUrl(),
-      }),
+    // cwd（リポジトリパス）が存在しない場合は node-pty が "posix_spawnp failed"
+    // という原因の判別不能な汎用エラーを投げてしまうため、事前に検証して
+    // 具体的なメッセージを返す。
+    if (!fs.existsSync(instance.repositoryPath)) {
+      throw new Error(
+        `リポジトリパスが存在しません: ${instance.repositoryPath}`
+      );
+    }
+
+    const childEnv = cleanChildEnv({
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      FORCE_COLOR: '1',
+      CLAUDECODE: undefined,
+      DOKODEMO_API_BASE_URL: getDokodemoApiBaseUrl(),
+      DOKODEMO_MCP_URL: getDokodemoMcpUrl(),
     });
+
+    // コマンドが PATH から解決できなければ "posix_spawnp failed" になるので
+    // 事前に絶対パス解決して、解決失敗時は明確なエラーを投げる。
+    const resolvedCommand = resolveCommandPath(command, childEnv);
+    if (!resolvedCommand) {
+      throw new Error(
+        `${instance.provider} CLI が見つかりません: "${command}" は PATH 上で実行可能ファイルとして解決できませんでした。` +
+          ` ~/.local/bin など CLI のインストール先が PATH に含まれているかご確認ください。` +
+          ` (PATH="${childEnv.PATH ?? ''}")`
+      );
+    }
+
+    let aiProcess: pty.IPty;
+    try {
+      aiProcess = pty.spawn(resolvedCommand, args, {
+        name: 'xterm-color',
+        cols: options.initialSize?.cols ?? 120,
+        rows: options.initialSize?.rows ?? 30,
+        cwd: instance.repositoryPath,
+        env: childEnv,
+      });
+    } catch (error) {
+      // node-pty の元エラーには cwd / command が含まれていないため、
+      // 原因特定できるように情報を付与し直す。
+      // posix_spawnp failed の場合は spawn-helper のモード診断を付加する。
+      const reason = error instanceof Error ? error.message : String(error);
+      const helperHint =
+        reason.includes('posix_spawnp') ? diagnoseSpawnHelper() : null;
+      throw new Error(
+        `${instance.provider} CLI の起動に失敗しました: ${reason} ` +
+          `(command="${resolvedCommand}", cwd="${instance.repositoryPath}")` +
+          (helperHint ? ` ${helperHint}` : '')
+      );
+    }
 
     const session: ActiveAiSession = {
       id: sessionId,

@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 export function cleanChildEnv(
   overrides: Record<string, string | undefined> = {}
 ): Record<string, string> {
@@ -11,6 +14,54 @@ export function cleanChildEnv(
     else env[key] = value;
   }
   return env;
+}
+
+/**
+ * 与えられた env の PATH を辿って、コマンド名から実行可能ファイルの絶対パスを解決する。
+ *
+ * node-pty の posix_spawnp で「コマンド名のまま渡す」と、解決失敗時に
+ * "posix_spawnp failed" という原因不明の汎用エラーになるため、事前にここで解決する。
+ *
+ * - コマンドが既にパス区切りを含む場合は、そのパスを存在チェックして返す
+ * - PATH エントリを順に走査し、最初に見つかった実行可能ファイルを返す
+ * - 解決できない場合は null
+ */
+export function resolveCommandPath(
+  command: string,
+  env: Record<string, string>
+): string | null {
+  if (command.includes('/')) {
+    try {
+      const stat = fs.statSync(command);
+      if (stat.isFile()) return command;
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  const pathEnv = env.PATH || env.Path || '';
+  if (!pathEnv) return null;
+
+  for (const dir of pathEnv.split(path.delimiter)) {
+    if (!dir) continue;
+    const candidate = path.join(dir, command);
+    try {
+      const stat = fs.statSync(candidate);
+      if (stat.isFile()) {
+        // 実行ビットの確認（取得失敗時は許容してそのまま返す）
+        try {
+          fs.accessSync(candidate, fs.constants.X_OK);
+        } catch {
+          continue;
+        }
+        return candidate;
+      }
+    } catch {
+      // 次のエントリへ
+    }
+  }
+  return null;
 }
 
 // dokodemo-claude API のベースURLを返す（子プロセスから自身のAPIへアクセスするため）

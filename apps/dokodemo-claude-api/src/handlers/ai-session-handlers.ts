@@ -151,9 +151,10 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       void session;
     } catch (error) {
       console.error('[switch-repo] failed:', error);
+      const reason = error instanceof Error ? error.message : String(error);
       socket.emit('repo-switched', {
         success: false,
-        message: `リポジトリの切り替えに失敗しました`,
+        message: `リポジトリの切り替えに失敗しました: ${reason}`,
         currentPath: '',
       });
     }

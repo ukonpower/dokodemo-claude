@@ -1,12 +1,20 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ensureSpawnHelperExecutable } from './utils/node-pty-repair.js';
 
 // プロジェクトルートの.envファイルを読み込み
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '../../..');
 dotenv.config({ path: path.join(projectRoot, '.env'), override: true });
+
+// node-pty の spawn-helper が x ビット欠落で配布されている問題への対策。
+// postinstall でも当てるが、ここでも自己修復しておく（別 Node で再 install された場合や
+// CI で postinstall がスキップされた場合に備える）。node-pty を import する前に実行する。
+for (const fixed of ensureSpawnHelperExecutable()) {
+  console.log(`[node-pty] chmod 0755: ${fixed}`);
+}
 
 import express from 'express';
 import { createServer } from 'http';
