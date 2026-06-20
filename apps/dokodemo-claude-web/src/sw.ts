@@ -1,5 +1,10 @@
 import { clientsClaim } from 'workbox-core';
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import {
+  precacheAndRoute,
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+} from 'workbox-precaching';
+import { NavigationRoute, registerRoute } from 'workbox-routing';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -7,6 +12,14 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 // 古いキャッシュを自動削除
 cleanupOutdatedCaches();
+
+// SPAナビゲーションはプリキャッシュ済みの index.html を返す。
+// ただし WebSocket（/socket.io/）と API（/api/）は SW でインターセプトせずネットワークへ通す。
+const navigationHandler = createHandlerBoundToURL('/index.html');
+const navigationRoute = new NavigationRoute(navigationHandler, {
+  denylist: [/^\/socket\.io\//, /^\/api\//],
+});
+registerRoute(navigationRoute);
 
 self.skipWaiting();
 clientsClaim();
