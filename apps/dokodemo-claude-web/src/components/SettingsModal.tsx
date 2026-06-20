@@ -77,9 +77,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const webPush = useWebPush(socket, isOpen, currentRepo);
 
-  const [hooksPort] = useState<number>(
-    parseInt(import.meta.env.DC_API_PORT || '8001', 10)
-  );
   const [claudeHooks, setClaudeHooks] = useState<HooksProviderState>({
     configured: false, loading: false, message: null,
   });
@@ -93,11 +90,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen || !socket) return;
 
-    socket.emit('check-hooks-status', { port: hooksPort, provider: 'claude' });
-    socket.emit('check-hooks-status', { port: hooksPort, provider: 'codex' });
+    socket.emit('check-hooks-status', { provider: 'claude' });
+    socket.emit('check-hooks-status', { provider: 'codex' });
 
-    const handleHooksStatus = (data: { configured: boolean; port: number; provider: AiProvider }) => {
-      if (data.port !== hooksPort) return;
+    const handleHooksStatus = (data: { configured: boolean; provider: AiProvider }) => {
       if (data.provider === 'claude') {
         setClaudeHooks(prev => ({ ...prev, configured: data.configured }));
       } else {
@@ -137,7 +133,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       socket.off('hooks-status', handleHooksStatus);
       socket.off('hooks-updated', handleHooksUpdated);
     };
-  }, [isOpen, socket, hooksPort]);
+  }, [isOpen, socket]);
 
   useEffect(() => {
     if (!isOpen || !socket) return;
@@ -197,9 +193,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     setState(prev => ({ ...prev, loading: true, message: null }));
 
     if (state.configured) {
-      socket.emit('remove-dokodemo-hooks', { port: hooksPort, provider });
+      socket.emit('remove-dokodemo-hooks', { provider });
     } else {
-      socket.emit('add-dokodemo-hooks', { port: hooksPort, provider });
+      socket.emit('add-dokodemo-hooks', { provider });
     }
   };
 
@@ -467,15 +463,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               プロンプトキューの自動処理とWeb Push通知を有効化します。
               処理完了時に次のキューアイテムを自動実行できます。
             </p>
-
-            <div className={s.fieldGroup}>
-              <label className={s.fieldLabel}>
-                接続先ポート
-              </label>
-              <div className={s.portDisplay}>
-                {hooksPort}
-              </div>
-            </div>
 
             {renderHooksRow('claude', 'Claude Code', '~/.claude/settings.json に hooks 設定を追加', claudeHooks)}
             {renderHooksRow('codex', 'Codex CLI', '~/.codex/hooks.json に hooks 設定を追加', codexHooks)}

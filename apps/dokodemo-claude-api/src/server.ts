@@ -941,55 +941,58 @@ app.post('/api/prompt/broadcast', async (req, res) => {
 registerTerminalRoutes(app, processManager);
 
 // ============================================
-// フロントエンド (dist) 配信
+// フロントエンド (dist) 配信 — DC_MODE=prod のときだけ有効
 // ============================================
-// 本番運用では Express が apps/dokodemo-claude-web/dist を静的配信する。
+// 本番運用 (npm run start) では Express が apps/dokodemo-claude-web/dist を静的配信する。
 // vite build --watch が dist を継続再生成するので、API と同一プロセス・同一ポートで完結する。
-const WEB_DIST_PATH = path.join(projectRoot, 'apps/dokodemo-claude-web/dist');
+// dev (npm run dev) では Vite dev server が dist を経由せず HMR つきで配信するため、ここでは無効化。
+if (process.env.DC_MODE === 'prod') {
+  const WEB_DIST_PATH = path.join(projectRoot, 'apps/dokodemo-claude-web/dist');
 
-app.use(
-  express.static(WEB_DIST_PATH, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('index.html')) {
-        res.setHeader('Cache-Control', 'no-cache');
-      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      }
-    },
-  })
-);
-
-// SPA フォールバック: index.html を返す（/api, /hook, /socket.io は前段で処理済み）
-app.get('*', (req, res, next) => {
-  if (
-    req.path.startsWith('/api') ||
-    req.path.startsWith('/hook') ||
-    req.path.startsWith('/socket.io')
-  ) {
-    return next();
-  }
-  const indexPath = path.join(WEB_DIST_PATH, 'index.html');
-  fs.access(indexPath).then(
-    () => {
-      res.setHeader('Cache-Control', 'no-cache');
-      res.sendFile(indexPath);
-    },
-    () => {
-      // dist 未生成時の暫定ページ（5 秒後に自動リロード）
-      res
-        .status(503)
-        .setHeader('Cache-Control', 'no-store')
-        .setHeader('Content-Type', 'text/html; charset=utf-8')
-        .send(
-          '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
-            '<title>dokodemo-claude (起動中)</title>' +
-            '<meta http-equiv="refresh" content="5">' +
-            '<style>body{font-family:system-ui;background:#0a0a0a;color:#eee;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}p{font-size:1.1rem}</style>' +
-            '</head><body><p>ビルド中… 5 秒後に自動でリロードします。</p></body></html>'
-        );
-    }
+  app.use(
+    express.static(WEB_DIST_PATH, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
+    })
   );
-});
+
+  // SPA フォールバック: index.html を返す（/api, /hook, /socket.io は前段で処理済み）
+  app.get('*', (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/hook') ||
+      req.path.startsWith('/socket.io')
+    ) {
+      return next();
+    }
+    const indexPath = path.join(WEB_DIST_PATH, 'index.html');
+    fs.access(indexPath).then(
+      () => {
+        res.setHeader('Cache-Control', 'no-cache');
+        res.sendFile(indexPath);
+      },
+      () => {
+        // dist 未生成時の暫定ページ（5 秒後に自動リロード）
+        res
+          .status(503)
+          .setHeader('Cache-Control', 'no-store')
+          .setHeader('Content-Type', 'text/html; charset=utf-8')
+          .send(
+            '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
+              '<title>dokodemo-claude (起動中)</title>' +
+              '<meta http-equiv="refresh" content="5">' +
+              '<style>body{font-family:system-ui;background:#0a0a0a;color:#eee;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}p{font-size:1.1rem}</style>' +
+              '</head><body><p>ビルド中… 5 秒後に自動でリロードします。</p></body></html>'
+          );
+      }
+    );
+  });
+}
 
 // リポジトリディレクトリの作成
 async function ensureReposDir(): Promise<void> {
@@ -1180,7 +1183,12 @@ io.on('connection', (socket) => {
 });
 
 // サーバー起動
-const PORT = parseInt(process.env.DC_API_PORT || '8001', 10);
+// DC_MODE=prod のとき: Web (dist) + API + WebSocket を 1 ポート (DC_PROD_PORT) で統合配信
+// それ以外: dev 用に DC_API_PORT のみで listen し、Web は Vite dev server が別ポートで配信
+const IS_PROD = process.env.DC_MODE === 'prod';
+const PORT = IS_PROD
+  ? parseInt(process.env.DC_PROD_PORT || '8000', 10)
+  : parseInt(process.env.DC_API_PORT || '8001', 10);
 const HOST = process.env.DC_HOST || '0.0.0.0';
 
 async function startServer(): Promise<void> {
@@ -1226,7 +1234,8 @@ async function startServer(): Promise<void> {
 
   server.listen(PORT, HOST, () => {
     const protocol = isHttps ? 'https' : 'http';
-    console.log(`Server started on ${protocol}://${HOST}:${PORT}`);
+    const mode = IS_PROD ? 'prod (web+api)' : 'dev (api only)';
+    console.log(`Server started on ${protocol}://${HOST}:${PORT} [${mode}]`);
   });
 
   // MCP（Streamable HTTP）は loopback 限定の専用 HTTP サーバで提供する。

@@ -49,18 +49,19 @@ npm run start
 
 | エンドポイント | デフォルト |
 |----------------|-----------|
-| Web UI + API | https://localhost:8001 |
+| Web UI + API | https://localhost:8000 |
 
 `npm run start` の挙動：
 
+- `DC_MODE=prod` を渡して Express を「Web + API 統合配信モード」で起動
 - `apps/dokodemo-claude-web/dist/index.html` が無ければ初回のみワンショットビルドを実行
 - `tsx watch` で API をソース直接実行（ファイル変更で自動再起動）
 - `vite build --watch` で `dist` を継続再生成
-- Express が同一プロセス・同一ポート（`DC_API_PORT`）で API と Web を配信
+- Express が同一プロセス・同一ポート（`DC_PROD_PORT`）で API と Web を配信
 
 Web UI 上の「更新」ボタンを押すと `git pull` のみ実行され、`tsx watch` / `vite build --watch` / PWA Service Worker (autoUpdate) が新しいソースを自動で吸収します。手動リロードは不要です（PWA の更新検知後に切り替わるまでに数十秒かかります）。
 
-ポートは `.env` の `DC_API_PORT` で変更できます。
+ポートは `.env` の `DC_PROD_PORT` で変更できます。
 
 > 開発者向けの HMR ありの起動方法は [開発者向け](#開発者向け) を参照してください。
 
@@ -78,10 +79,16 @@ mkcert -cert-file /path/to/server.crt -key-file /path/to/server.key localhost
 
 ## 設定リファレンス（`.env`）
 
+ポートは dev / prod で役割が分かれます：
+
+| 変数 | デフォルト | 用途 | 説明 |
+|------|-----------|------|------|
+| `DC_WEB_PORT` | `8000` | dev | `npm run dev` で vite dev server が listen する公開ポート |
+| `DC_API_PORT` | `8001` | dev | `npm run dev` で Express が listen するポート。vite がここに `/api`, `/hook`, `/socket.io` を proxy する |
+| `DC_PROD_PORT` | `8000` | prod | `npm run start` で Express が Web (dist) + API を統合配信する公開ポート |
+
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
-| `DC_API_PORT` | `8001` | API + Web UI を配信するポート（本番運用ではこのポート 1 つのみ使用） |
-| `DC_WEB_PORT` | `8000` | 開発時 (`npm run dev`) の vite dev server ポート。本番運用 (`npm run start`) では未使用 |
 | `DC_HOST` | `0.0.0.0` | バインドするホスト（`127.0.0.1` でローカル限定） |
 | `DC_USE_HTTPS` | `true` | `false` にすると HTTP で起動 |
 | `DC_HTTPS_CERT_PATH` | — | TLS 証明書ファイルの絶対パス |
@@ -99,7 +106,7 @@ mkcert -cert-file /path/to/server.crt -key-file /path/to/server.key localhost
 
 | 項目 | 内容 |
 |------|------|
-| エンドポイント | `POST https://localhost:<DC_API_PORT>/hook/claude-event` |
+| エンドポイント | `POST https://localhost:<DC_PROD_PORT>/hook/claude-event`（dev は `DC_API_PORT`） |
 | イベント | `Stop`, `UserPromptSubmit`, `PermissionRequest` |
 | Codex | `/hook/codex-event` |
 
@@ -159,12 +166,16 @@ npm run check-all    # lint + type-check 一括
 
 | 観点 | `npm run dev` | `npm run start` |
 |------|---------------|-----------------|
+| `DC_MODE` | 未設定 (dev) | `prod` |
 | Web 配信 | vite dev server（HMR あり） | Express の `express.static(dist)` |
 | Web 再ビルド | 不要（HMR） | `vite build --watch` が継続実行 |
-| アクセス URL | `https://localhost:DC_WEB_PORT` | `https://localhost:DC_API_PORT` |
-| 使用ポート | 2 つ（`DC_WEB_PORT` + `DC_API_PORT`） | 1 つ（`DC_API_PORT` のみ） |
+| アクセス URL | `https://localhost:DC_WEB_PORT` | `https://localhost:DC_PROD_PORT` |
+| 使用ポート | 2 つ（`DC_WEB_PORT` + `DC_API_PORT`） | 1 つ（`DC_PROD_PORT` のみ） |
+| API へのリクエスト | vite が `/api`, `/hook`, `/socket.io` を Express に proxy | Express が直接処理 |
 | PWA Service Worker | 無効 | 有効（dist 配信時のみ登録） |
 | 更新反映 | HMR で即時 | `git pull` → `vite build --watch` 再生成 → SW autoUpdate |
+
+どちらのモードでもフロントは `window.location.origin` で API/WebSocket に接続するため、ハードコードされたポートはありません。
 
 開発時の UI 修正など即時確認が必要なときは `npm run dev`、常時稼働サーバとして動かすときは `npm run start` を使ってください。
 

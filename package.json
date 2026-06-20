@@ -7,7 +7,7 @@
     "dev": "npx concurrently -n api,web -c yellow,cyan \"npx nx serve dokodemo-claude-api\" \"npx nx serve dokodemo-claude-web\"",
     "dev:dokodemo": "npx concurrently -n api,web -c yellow,cyan \"npx nx serve dokodemo-claude-api\" \"npx nx serve dokodemo-claude-web\"",
     "start:prepare": "node -e \"const fs=require('fs');if(!fs.existsSync('apps/dokodemo-claude-web/dist/index.html')){require('child_process').execSync('npx nx build dokodemo-claude-web',{stdio:'inherit'})}\"",
-    "start": "npm run start:prepare && npx concurrently -n api,web -c yellow,cyan \"npx tsx watch apps/dokodemo-claude-api/src/server.ts\" \"cd apps/dokodemo-claude-web && npx vite build --watch\"",
+    "start": "npm run start:prepare && DC_MODE=prod npx concurrently -n api,web -c yellow,cyan \"npx tsx watch apps/dokodemo-claude-api/src/server.ts\" \"cd apps/dokodemo-claude-web && npx vite build --watch\"",
     "build:all": "npx nx run-many --target=build",
     "lint": "npx nx run-many --target=lint",
     "type-check": "npx nx run-many --target=type-check",

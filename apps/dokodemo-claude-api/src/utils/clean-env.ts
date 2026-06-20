@@ -64,11 +64,18 @@ export function resolveCommandPath(
   return null;
 }
 
+// Express の実 listen port を返す（dev: DC_API_PORT / prod: DC_PROD_PORT）
+export function getApiListenPort(): number {
+  if (process.env.DC_MODE === 'prod') {
+    return parseInt(process.env.DC_PROD_PORT || '8000', 10);
+  }
+  return parseInt(process.env.DC_API_PORT || '8001', 10);
+}
+
 // dokodemo-claude API のベースURLを返す（子プロセスから自身のAPIへアクセスするため）
 export function getDokodemoApiBaseUrl(): string {
-  const port = process.env.DC_API_PORT || '8001';
   const protocol = process.env.DC_USE_HTTPS !== 'false' ? 'https' : 'http';
-  return `${protocol}://localhost:${port}`;
+  return `${protocol}://localhost:${getApiListenPort()}`;
 }
 
 // MCP 専用サーバのポート。DC_MCP_PORT 未指定時は DC_API_PORT + 1。

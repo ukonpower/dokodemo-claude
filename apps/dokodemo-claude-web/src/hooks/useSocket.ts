@@ -41,10 +41,9 @@ export function useSocket(): UseSocketReturn {
   > | null>(null);
 
   useEffect(() => {
-    // フロントエンドと同じホスト名でバックエンドに接続（外部アクセス対応）
-    const backendPort = import.meta.env.DC_API_PORT || '8001';
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socketUrl = `${protocol}//${window.location.hostname}:${backendPort}`;
+    // dev は Vite proxy、prod は Express 統合配信のため、どちらも同一オリジンで OK。
+    // Socket.IO は URL 未指定だと location.origin にフォールバックする。
+    const socketUrl = window.location.origin;
 
     // transports は指定せず Socket.IO デフォルト（polling → WebSocket アップグレード）に任せる。
     // 初回接続の安定性・速度のためにはこれが最も確実。

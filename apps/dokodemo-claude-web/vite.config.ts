@@ -7,6 +7,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '../../', 'DC_');
   const port = Number(env.DC_WEB_PORT) || 8000;
+  const apiPort = Number(env.DC_API_PORT) || 8001;
   const useHttps = env.DC_USE_HTTPS !== 'false';
 
   let httpsConfig: { cert: Buffer; key: Buffer } | undefined;
@@ -24,6 +25,15 @@ export default defineConfig(({ mode }) => {
       );
     }
   }
+
+  // dev 時に Express(DC_API_PORT) へプロキシする対象パス
+  const apiTarget = `${httpsConfig ? 'https' : 'http'}://127.0.0.1:${apiPort}`;
+  const proxyCommon = {
+    target: apiTarget,
+    changeOrigin: true,
+    // Express 側が自己署名証明書の場合でも通す
+    secure: false,
+  };
 
   return {
     envPrefix: 'DC_',
@@ -82,6 +92,11 @@ export default defineConfig(({ mode }) => {
       port,
       allowedHosts: ['.ts.net'], // Tailscaleドメインを許可
       https: httpsConfig,
+      proxy: {
+        '/api': proxyCommon,
+        '/hook': proxyCommon,
+        '/socket.io': { ...proxyCommon, ws: true },
+      },
     },
   };
 });

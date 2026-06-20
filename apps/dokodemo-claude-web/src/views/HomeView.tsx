@@ -78,7 +78,8 @@ export function HomeView({
   onCancelStopProcesses,
 }: HomeViewProps) {
   const useHttps = import.meta.env.DC_USE_HTTPS !== 'false';
-  const certDownloadUrl = `${window.location.protocol}//${window.location.hostname}:${import.meta.env.DC_API_PORT || '8001'}/api/cert`;
+  // 同一オリジン (dev: Vite proxy / prod: Express 統合配信) で配信
+  const certDownloadUrl = '/api/cert';
 
   return (
     <div className={`${s.root} ${repositories.length > 0 ? s.hasSwitcher : ''}`}>
@@ -193,17 +194,10 @@ export function HomeView({
                 </div>
 
                 <div className={s.serverInfoItem}>
-                  <span className={s.serverLabel}>Frontend:</span>
+                  <span className={s.serverLabel}>Port:</span>
                   <span className={s.serverValue}>
                     {window.location.port ||
                       (window.location.protocol === 'https:' ? '443' : '80')}
-                  </span>
-                </div>
-
-                <div className={s.serverInfoItem}>
-                  <span className={s.serverLabel}>Backend:</span>
-                  <span className={s.serverValue}>
-                    {import.meta.env.DC_API_PORT || '8001'}
                   </span>
                 </div>
 

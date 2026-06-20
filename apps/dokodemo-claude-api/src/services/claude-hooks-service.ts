@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as TOML from '@iarna/toml';
 import type { AiProvider } from '../types/index.js';
+import { getApiListenPort } from '../utils/clean-env.js';
 
 interface HookHandler {
   type: string;
@@ -43,27 +44,29 @@ class AiHooksService {
     return provider === 'claude' ? '/hook/claude-event' : '/hook/codex-event';
   }
 
-  private getHookUrl(port: number, provider: AiProvider): string {
-    return `https://localhost:${port}${this.getHookEndpointPath(provider)}`;
+  private getHookUrl(provider: AiProvider): string {
+    const port = getApiListenPort();
+    const protocol = process.env.DC_USE_HTTPS !== 'false' ? 'https' : 'http';
+    return `${protocol}://localhost:${port}${this.getHookEndpointPath(provider)}`;
   }
 
-  private isDokodemoHook(matcher: HookMatcher, port: number, provider: AiProvider): boolean {
+  // 過去に異なる port / プロトコルで登録された hook も同 provider の dokodemo フックとみなす
+  // （エンドポイントパスが特徴的なので、それを含むかどうかで判定する）
+  private isDokodemoHook(matcher: HookMatcher, provider: AiProvider): boolean {
     if (!matcher.hooks || !Array.isArray(matcher.hooks)) return false;
     const endpointPath = this.getHookEndpointPath(provider);
-    const targetUrlHttp = `http://localhost:${port}${endpointPath}`;
-    const targetUrlHttps = `https://localhost:${port}${endpointPath}`;
     return matcher.hooks.some(
-      (hook) => hook.command && (hook.command.includes(targetUrlHttp) || hook.command.includes(targetUrlHttps))
+      (hook) => hook.command && hook.command.includes(endpointPath)
     );
   }
 
-  private generateHooks(port: number, provider: AiProvider): {
+  private generateHooks(provider: AiProvider): {
     stop: HookMatcher;
     notificationPermission: HookMatcher;
     userPromptSubmit: HookMatcher;
     preToolUseAskUserQuestion: HookMatcher;
   } {
-    const hookUrl = this.getHookUrl(port, provider);
+    const hookUrl = this.getHookUrl(provider);
     const createHookCommand = (event: string): string => {
       return `jq -nc --arg event "${event}" --arg cwd "$PWD" 'first(inputs) | {event: $event, transcript_path: .transcript_path, session_id: .session_id, cwd: $cwd}' | curl -k --connect-timeout 1 --max-time 3 -X POST ${hookUrl} -H 'Content-Type: application/json' -d @- || true`;
     };
@@ -182,22 +185,22 @@ class AiHooksService {
 
   // --- Public API ---
 
-  async isHooksConfigured(port: number, provider: AiProvider): Promise<boolean> {
+  async isHooksConfigured(provider: AiProvider): Promise<boolean> {
     if (provider === 'claude') {
       const settings = await this.loadClaudeSettings();
       if (!settings.hooks) return false;
 
       const stopMatchers = settings.hooks['Stop'];
-      if (stopMatchers?.some((m) => this.isDokodemoHook(m, port, provider))) return true;
+      if (stopMatchers?.some((m) => this.isDokodemoHook(m, provider))) return true;
 
       const notifMatchers = settings.hooks['Notification'];
-      if (notifMatchers?.some((m) => this.isDokodemoHook(m, port, provider))) return true;
+      if (notifMatchers?.some((m) => this.isDokodemoHook(m, provider))) return true;
 
       const userPromptMatchers = settings.hooks['UserPromptSubmit'];
-      if (userPromptMatchers?.some((m) => this.isDokodemoHook(m, port, provider))) return true;
+      if (userPromptMatchers?.some((m) => this.isDokodemoHook(m, provider))) return true;
 
       const preToolUseMatchers = settings.hooks['PreToolUse'];
-      if (preToolUseMatchers?.some((m) => this.isDokodemoHook(m, port, provider))) return true;
+      if (preToolUseMatchers?.some((m) => this.isDokodemoHook(m, provider))) return true;
 
       return false;
     }
@@ -205,12 +208,12 @@ class AiHooksService {
     // Codex
     const hooksFile = await this.loadCodexHooks();
     const stopMatchers = hooksFile.hooks['Stop'];
-    if (stopMatchers?.some((m) => this.isDokodemoHook(m, port, provider))) return true;
+    if (stopMatchers?.some((m) => this.isDokodemoHook(m, provider))) return true;
     return false;
   }
 
-  async addHooks(port: number, provider: AiProvider): Promise<void> {
-    const newHooks = this.generateHooks(port, provider);
+  async addHooks(provider: AiProvider): Promise<void> {
+    const newHooks = this.generateHooks(provider);
 
     if (provider === 'claude') {
       const settings = await this.loadClaudeSettings();
@@ -218,27 +221,27 @@ class AiHooksService {
 
       // Stop
       if (!settings.hooks['Stop']) settings.hooks['Stop'] = [];
-      settings.hooks['Stop'] = settings.hooks['Stop'].filter((m) => !this.isDokodemoHook(m, port, provider));
+      settings.hooks['Stop'] = settings.hooks['Stop'].filter((m) => !this.isDokodemoHook(m, provider));
       settings.hooks['Stop'].push(newHooks.stop);
 
       // Notification
       if (!settings.hooks['Notification']) settings.hooks['Notification'] = [];
-      settings.hooks['Notification'] = settings.hooks['Notification'].filter((m) => !this.isDokodemoHook(m, port, provider));
+      settings.hooks['Notification'] = settings.hooks['Notification'].filter((m) => !this.isDokodemoHook(m, provider));
       settings.hooks['Notification'].push(newHooks.notificationPermission);
 
       // UserPromptSubmit
       if (!settings.hooks['UserPromptSubmit']) settings.hooks['UserPromptSubmit'] = [];
-      settings.hooks['UserPromptSubmit'] = settings.hooks['UserPromptSubmit'].filter((m) => !this.isDokodemoHook(m, port, provider));
+      settings.hooks['UserPromptSubmit'] = settings.hooks['UserPromptSubmit'].filter((m) => !this.isDokodemoHook(m, provider));
       settings.hooks['UserPromptSubmit'].push(newHooks.userPromptSubmit);
 
       // PreToolUse (AskUserQuestion)
       if (!settings.hooks['PreToolUse']) settings.hooks['PreToolUse'] = [];
-      settings.hooks['PreToolUse'] = settings.hooks['PreToolUse'].filter((m) => !this.isDokodemoHook(m, port, provider));
+      settings.hooks['PreToolUse'] = settings.hooks['PreToolUse'].filter((m) => !this.isDokodemoHook(m, provider));
       settings.hooks['PreToolUse'].push(newHooks.preToolUseAskUserQuestion);
 
       // SubagentStop cleanup
       if (settings.hooks['SubagentStop']) {
-        settings.hooks['SubagentStop'] = settings.hooks['SubagentStop'].filter((m) => !this.isDokodemoHook(m, port, provider));
+        settings.hooks['SubagentStop'] = settings.hooks['SubagentStop'].filter((m) => !this.isDokodemoHook(m, provider));
         if (settings.hooks['SubagentStop'].length === 0) delete settings.hooks['SubagentStop'];
       }
 
@@ -251,21 +254,21 @@ class AiHooksService {
 
       // Stop
       if (!hooksFile.hooks['Stop']) hooksFile.hooks['Stop'] = [];
-      hooksFile.hooks['Stop'] = hooksFile.hooks['Stop'].filter((m) => !this.isDokodemoHook(m, port, provider));
+      hooksFile.hooks['Stop'] = hooksFile.hooks['Stop'].filter((m) => !this.isDokodemoHook(m, provider));
       hooksFile.hooks['Stop'].push(newHooks.stop);
 
       await this.saveCodexHooks(hooksFile);
     }
   }
 
-  async removeHooks(port: number, provider: AiProvider): Promise<void> {
+  async removeHooks(provider: AiProvider): Promise<void> {
     if (provider === 'claude') {
       const settings = await this.loadClaudeSettings();
       if (!settings.hooks) return;
 
       for (const eventName of ['Stop', 'Notification', 'SubagentStop', 'UserPromptSubmit', 'PreToolUse']) {
         if (settings.hooks[eventName]) {
-          settings.hooks[eventName] = settings.hooks[eventName].filter((m) => !this.isDokodemoHook(m, port, provider));
+          settings.hooks[eventName] = settings.hooks[eventName].filter((m) => !this.isDokodemoHook(m, provider));
           if (settings.hooks[eventName].length === 0) delete settings.hooks[eventName];
         }
       }
@@ -277,7 +280,7 @@ class AiHooksService {
       const hooksFile = await this.loadCodexHooks();
 
       for (const eventName of Object.keys(hooksFile.hooks)) {
-        hooksFile.hooks[eventName] = hooksFile.hooks[eventName].filter((m) => !this.isDokodemoHook(m, port, provider));
+        hooksFile.hooks[eventName] = hooksFile.hooks[eventName].filter((m) => !this.isDokodemoHook(m, provider));
         if (hooksFile.hooks[eventName].length === 0) delete hooksFile.hooks[eventName];
       }
 

@@ -523,7 +523,7 @@ export interface ServerToClientEvents {
   'git-diff-error': (data: { rid: string; message: string }) => void;
 
   // AI Hooks設定関連イベント
-  'hooks-status': (data: { configured: boolean; port: number; provider: AiProvider }) => void;
+  'hooks-status': (data: { configured: boolean; provider: AiProvider }) => void;
   'hooks-updated': (data: {
     success: boolean;
     message: string;
@@ -851,9 +851,9 @@ export interface ClientToServerEvents {
   'get-git-diff-detail': (data: { rid: string; filename: string }) => void;
 
   // AI Hooks設定関連イベント
-  'check-hooks-status': (data: { port: number; provider: AiProvider }) => void;
-  'add-dokodemo-hooks': (data: { port: number; provider: AiProvider }) => void;
-  'remove-dokodemo-hooks': (data: { port: number; provider: AiProvider }) => void;
+  'check-hooks-status': (data: { provider: AiProvider }) => void;
+  'add-dokodemo-hooks': (data: { provider: AiProvider }) => void;
+  'remove-dokodemo-hooks': (data: { provider: AiProvider }) => void;
 
   // Claude Code プラグイン関連イベント
   'check-plugin-status': () => void;

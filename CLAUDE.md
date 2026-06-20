@@ -51,8 +51,12 @@ dokodemo-workspace/
 ## 開発コマンド
 
 ```bash
-# 一括起動（.env の DC_WEB_PORT / DC_API_PORT を使用）
+# 開発モード一括起動（Vite=DC_WEB_PORT + Express=DC_API_PORT を concurrently で立てる）
+# Vite が /api,/hook,/socket.io を Express に proxy するため、ブラウザは DC_WEB_PORT を開く
 npm run dev
+
+# 本番モード起動（DC_MODE=prod で Express を DC_PROD_PORT に単体起動、Web も統合配信）
+npm run start
 
 # 個別起動（Nx経由）
 npx nx serve dokodemo-claude-web    # フロントエンド開発サーバー
@@ -77,32 +81,33 @@ npx nx type-check dokodemo-claude-api
 
 ## ポート割り当て
 
-| アプリ | ポート |
-|-------|--------|
-| dokodemo-claude-web | .env の DC_WEB_PORT で設定 |
-| dokodemo-claude-api | .env の DC_API_PORT で設定 |
+ポート env は dev / prod で役割が分かれています：
+
+| 変数 | 用途 | 説明 |
+|------|------|------|
+| `DC_WEB_PORT` | dev | `npm run dev` で Vite が listen する公開ポート（既定 8000） |
+| `DC_API_PORT` | dev | `npm run dev` で Express が listen するポート（既定 8001、Vite から proxy される） |
+| `DC_PROD_PORT` | prod | `npm run start` で Express が Web+API を統合配信する公開ポート（既定 8000） |
+
+フロントは `window.location.origin` で API / Socket.IO に接続するため、dev でも prod でも単一オリジンで完結します（ポートはフロントコードにハードコードしない）。
 
 ## 起動手順
 
-1. **一括起動（推奨）**
+1. **開発モード**
 
    ```bash
    npm run dev
    ```
+   - ブラウザで `https://localhost:<DC_WEB_PORT>` にアクセス（既定 8000）
+   - Vite が `/api`, `/hook`, `/socket.io` を Express（`DC_API_PORT`）に proxy
 
-2. **個別起動**
+2. **本番モード**
 
    ```bash
-   # バックエンド
-   npx nx serve dokodemo-claude-api
-
-   # フロントエンド
-   npx nx serve dokodemo-claude-web
+   npm run start
    ```
-
-3. **動作確認**
-   - ブラウザで `https://localhost:<DC_WEB_PORT>` にアクセス（`.env.example` の既定は 8000）
-   - 接続状態（緑丸）を確認
+   - ブラウザで `https://localhost:<DC_PROD_PORT>` にアクセス（既定 8000）
+   - Express が Web (dist) + API を 1 ポートで配信
 
 ## ビルドチェックフロー
 

@@ -5,27 +5,25 @@ import { aiHooksService } from '../services/claude-hooks-service.js';
 export function registerHooksHandlers(ctx: HandlerContext): void {
   const { socket } = ctx;
 
-  socket.on('check-hooks-status', async (data: { port: number; provider: AiProvider }) => {
+  socket.on('check-hooks-status', async (data: { provider: AiProvider }) => {
     try {
-      const configured = await aiHooksService.isHooksConfigured(data.port, data.provider);
+      const configured = await aiHooksService.isHooksConfigured(data.provider);
       socket.emit('hooks-status', {
         configured,
-        port: data.port,
         provider: data.provider,
       });
     } catch (error) {
       console.error('hooks設定状況の確認に失敗:', error);
       socket.emit('hooks-status', {
         configured: false,
-        port: data.port,
         provider: data.provider,
       });
     }
   });
 
-  socket.on('add-dokodemo-hooks', async (data: { port: number; provider: AiProvider }) => {
+  socket.on('add-dokodemo-hooks', async (data: { provider: AiProvider }) => {
     try {
-      await aiHooksService.addHooks(data.port, data.provider);
+      await aiHooksService.addHooks(data.provider);
       socket.emit('hooks-updated', {
         success: true,
         message: `${data.provider === 'claude' ? 'Claude Code' : 'Codex'} の hooks 設定を追加しました`,
@@ -43,9 +41,9 @@ export function registerHooksHandlers(ctx: HandlerContext): void {
     }
   });
 
-  socket.on('remove-dokodemo-hooks', async (data: { port: number; provider: AiProvider }) => {
+  socket.on('remove-dokodemo-hooks', async (data: { provider: AiProvider }) => {
     try {
-      await aiHooksService.removeHooks(data.port, data.provider);
+      await aiHooksService.removeHooks(data.provider);
       socket.emit('hooks-updated', {
         success: true,
         message: `${data.provider === 'claude' ? 'Claude Code' : 'Codex'} の hooks 設定を削除しました`,
