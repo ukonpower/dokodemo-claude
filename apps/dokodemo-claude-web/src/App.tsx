@@ -208,9 +208,7 @@ function App() {
       data: Parameters<ServerToClientEvents['self-pulled']>[0]
     ) => {
       if (data.success) {
-        alert(
-          `✅ ${data.message}\n\n${data.output}\n\n更新を反映するには、ブラウザをリロードしてください。`
-        );
+        alert(`✅ ${data.message}\n\n${data.output}`);
       } else {
         alert(`❌ ${data.message}\n\n${data.output}`);
       }

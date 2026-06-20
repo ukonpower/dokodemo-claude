@@ -263,7 +263,8 @@ export function registerMiscHandlers(
         if (code === 0) {
           socket.emit('self-pulled', {
             success: true,
-            message: 'dokodemo-claudeを最新版に更新しました',
+            message:
+              'dokodemo-claudeを最新版に更新しました。数十秒後に自動的に切り替わります。',
             output: output || errorOutput,
           });
         } else {
