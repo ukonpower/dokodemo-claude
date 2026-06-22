@@ -23,6 +23,7 @@ import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
 } from '../hooks/useBranchWorktree';
+import { setLastWorktreeForParent } from '../utils/last-tab-storage';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
 
@@ -367,6 +368,12 @@ function WorktreeTabs({
   const mainWorktree = worktrees.find((wt) => wt.isMain);
   const branchWorktrees = worktrees.filter((wt) => !wt.isMain);
 
+  // 明示的なクリックを「次回ホームから親リポを開く時の遷移先」として記憶する
+  const handleSwitchAndRemember = (path: string) => {
+    setLastWorktreeForParent(parentRepoPath, path);
+    onSwitchRepository(path);
+  };
+
   // ドラッグ終了時に並び替えを反映
   const handleDragEnd = (event: DragEndEvent) => {
     suppressNextClick(); // ドラッグ後に合成される click を1回だけ握り潰す
@@ -396,7 +403,7 @@ function WorktreeTabs({
                   }
                   e.preventDefault();
                   if (isWorktreeActive(mainWorktree)) return;
-                  onSwitchRepository(mainWorktree.path);
+                  handleSwitchAndRemember(mainWorktree.path);
                 }}
                 className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isWorktreeActive(mainWorktree) ? s.active : ''}`}
               >
@@ -446,7 +453,7 @@ function WorktreeTabs({
                   isMenuOpen={menuOpenPath === wt.path}
                   compact={compact}
                   isConnected={isConnected}
-                  onSwitch={onSwitchRepository}
+                  onSwitch={handleSwitchAndRemember}
                   onMenuClick={handleMenuClick}
                 />
               ))}

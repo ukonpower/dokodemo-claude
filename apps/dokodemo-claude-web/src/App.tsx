@@ -5,6 +5,7 @@ import type {
   ClientToServerEvents,
 } from './types';
 import { repositoryIdMap } from './utils/repository-id-map';
+import { getLastWorktreeForParent } from './utils/last-tab-storage';
 
 // フック
 import {
@@ -352,6 +353,26 @@ function App() {
     gitDiff.diffViewFilename,
   ]);
 
+  // リポジトリ一覧（HomeView / RepositorySwitcher）からのクリック時に、
+  // 親リポに紐づく「最後に選んだ worktree」が保存されていれば差し替える。
+  // 自動 restore は本ハンドラ呼び出し時にのみ発火（描画時の useEffect では
+  // やらない）。これにより「topに戻る」ボタンを押してもホームに留まれる。
+  const switchRepositoryFromList = useCallback(
+    (path: string) => {
+      if (!path) {
+        repository.switchRepository(path);
+        return;
+      }
+      const lastPath = getLastWorktreeForParent(path);
+      if (lastPath && lastPath !== path) {
+        repository.switchRepository(lastPath);
+        return;
+      }
+      repository.switchRepository(path);
+    },
+    [repository]
+  );
+
   // リポジトリが選択されていない場合はホーム画面
   if (!repository.currentRepo) {
     return (
@@ -367,7 +388,7 @@ function App() {
         onCloneRepository={repository.cloneRepository}
         onCreateRepository={repository.createRepository}
         onStopProcesses={repository.showStopProcessConfirmDialog}
-        onSwitchRepository={repository.switchRepository}
+        onSwitchRepository={switchRepositoryFromList}
         onPullSelf={repository.pullSelf}
         appSettings={appSettings.appSettings}
         showSettingsModal={appSettings.showSettingsModal}
@@ -416,7 +437,7 @@ function App() {
           currentRepo={repository.currentRepo}
           lastAccessTimes={repository.lastAccessTimes}
           repoProcessStatuses={repository.repoProcessStatuses}
-          onSwitchRepository={repository.switchRepository}
+          onSwitchRepository={switchRepositoryFromList}
         />
       </div>
     );
@@ -590,8 +611,10 @@ function App() {
         url.searchParams.set('fullscreen', '1');
         window.open(url.toString(), '_blank');
       }}
-      // リポジトリ切り替え
-      onSwitchRepository={repository.switchRepository}
+      // リポジトリ切り替え（HomeView / RepositorySwitcher / WorktreeTabs 共通）。
+      // WorktreeTabs はクリック時に setLastWorktreeForParent を先に呼ぶため、
+      // ラッパー経由でも結果が変わらないことを担保している。
+      onSwitchRepository={switchRepositoryFromList}
     />
   );
 }
