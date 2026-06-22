@@ -414,6 +414,11 @@
   display: flex;
   align-items: center;
 
+  // SP時は親(.terminalSection)の角丸消去に合わせて0に
+  @include sm-down {
+    border-radius: 0;
+  }
+
   @include sm-up {
     padding: 0.5rem 1rem;
   }
@@ -567,6 +572,16 @@
   display: flex;
   flex-direction: column;
   min-height: 150px;
+
+  // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
+  // xterm を画面端まで広げるため
+  @include sm-down {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
 }
 
 .terminalSectionExpanded {
