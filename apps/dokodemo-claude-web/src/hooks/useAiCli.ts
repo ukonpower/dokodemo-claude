@@ -608,9 +608,10 @@ export function useAiCli(
     pendingActivateCountRef.current = 0;
   }, []);
 
+  // リポ切替時は createInstance 連打の残カウントだけリセット（state は socket 応答で上書きされる）
   useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
+    pendingActivateCountRef.current = 0;
+  }, [currentRepo]);
 
   return {
     aiInstances,

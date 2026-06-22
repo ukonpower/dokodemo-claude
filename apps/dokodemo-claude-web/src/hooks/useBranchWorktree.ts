@@ -640,11 +640,6 @@ export function useBranchWorktree(
     setWorktreeSyncCandidates(null);
   }, []);
 
-  // リポジトリ切り替え時に状態をリセット
-  useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
-
   return {
     branches,
     currentBranch,

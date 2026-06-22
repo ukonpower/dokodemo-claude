@@ -265,7 +265,7 @@ export interface ServerToClientEvents {
   }) => void;
 
   // コマンドショートカット関連イベント
-  'shortcuts-list': (data: { shortcuts: CommandShortcut[] }) => void;
+  'shortcuts-list': (data: { rid: string; shortcuts: CommandShortcut[] }) => void;
   'shortcut-created': (data: {
     success: boolean;
     message: string;

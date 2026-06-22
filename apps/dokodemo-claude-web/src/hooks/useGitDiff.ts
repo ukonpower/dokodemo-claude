@@ -200,10 +200,11 @@ export function useGitDiff(
     setDiffViewFilename('');
   }, []);
 
-  // リポジトリ切り替え時に状態をリセット
+  // リポジトリ切り替え時は差分詳細ビューから main へ戻す（データは socket 応答で上書き）
   useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
+    setCurrentView('main');
+    setDiffViewFilename('');
+  }, [currentRepo]);
 
   return {
     diffSummary,
