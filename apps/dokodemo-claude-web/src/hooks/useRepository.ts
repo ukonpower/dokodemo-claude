@@ -314,6 +314,10 @@ export function useRepository(
         url.searchParams.delete('file');
         url.searchParams.delete('fullscreen');
         window.history.pushState({}, '', url.toString());
+
+        // 前進遷移ではスクロール位置を画面上部にリセット
+        // （popstate 経由の場合はブラウザのスクロール復元に任せる）
+        window.scrollTo(0, 0);
       }
 
       if (path) {
