@@ -115,9 +115,12 @@ export class AISessionManager extends EventEmitter {
       case 'claude': {
         const claudeCommand = process.env.CLAUDE_CLI_COMMAND || 'claude';
         const args: string[] = [];
-        if (permissionMode === 'dangerous' || permissionMode === undefined) {
+        // permissionMode が undefined のときは「未指定＝最強権限」と扱うとサイレントに
+        // dangerous で起動してしまうので、安全側の 'auto' を既定として倒す。
+        const mode: PermissionMode = permissionMode ?? 'auto';
+        if (mode === 'dangerous') {
           args.push('--dangerously-skip-permissions');
-        } else if (permissionMode === 'auto') {
+        } else if (mode === 'auto') {
           args.push('--permission-mode', 'auto');
         }
         return { command: claudeCommand, args };

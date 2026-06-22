@@ -11,6 +11,9 @@ import { repositoryIdMap } from '../utils/repository-id-map';
 
 /**
  * localStorage から permissionMode 設定を取得
+ * 設定が未保存／壊れている場合は安全側の 'auto' にフォールバックする。
+ * （以前は 'dangerous' をフォールバックにしていたため、settings 取得失敗で
+ *  サイレントに最強権限で起動してしまうリスクがあった）
  */
 function getPermissionModeSetting(): PermissionMode {
   try {
@@ -18,10 +21,9 @@ function getPermissionModeSetting(): PermissionMode {
     if (saved) {
       const settings = JSON.parse(saved);
       if (settings.permissionMode) return settings.permissionMode as PermissionMode;
-      if (settings.bypassPermission === false) return 'disabled';
     }
   } catch { /* ignore */ }
-  return 'dangerous';
+  return 'auto';
 }
 
 /**

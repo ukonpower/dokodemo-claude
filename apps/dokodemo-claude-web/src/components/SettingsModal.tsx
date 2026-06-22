@@ -28,7 +28,7 @@ export interface AppSettings {
  */
 export const DEFAULT_SETTINGS: AppSettings = {
   fontSizePreset: 'medium',
-  permissionMode: 'dangerous',
+  permissionMode: 'auto',
 };
 
 /**
@@ -330,7 +330,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 パーミッションモード
               </label>
               <select
-                value={settings.permissionMode ?? 'dangerous'}
+                value={settings.permissionMode ?? 'auto'}
                 onChange={(e) =>
                   onSettingsChange({
                     ...settings,
