@@ -801,6 +801,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         return;
       }
 
+      // Cmd/Ctrl + ↑ で前の履歴へ、Cmd/Ctrl + ↓ で次の履歴へ
+      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateHistoryUp();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateHistoryDown();
+        return;
+      }
+
       // Alt+T でAlt+tキーを送信
       if (e.altKey && e.key === 't') {
         e.preventDefault();
