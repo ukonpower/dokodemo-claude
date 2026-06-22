@@ -50,15 +50,9 @@
   }
 
   &.compact {
-    padding: 0.5rem 0.625rem;
-    font-size: $font-size-sm;
-    line-height: 1.25rem;
-
-    @include sm-up {
-      padding: 0.25rem 0.5rem;
-      font-size: $font-size-xs;
-      line-height: 1rem;
-    }
+    padding: 0.25rem 0.5rem;
+    font-size: $font-size-xs;
+    line-height: 1rem;
   }
 
   &.normal {
@@ -78,15 +72,9 @@
 
 .createIcon {
   &.compact {
-    width: 1rem;
-    height: 1rem;
-    margin-right: 0.375rem;
-
-    @include sm-up {
-      width: 0.75rem;
-      height: 0.75rem;
-      margin-right: 0.25rem;
-    }
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.25rem;
   }
 
   &.normal {
@@ -150,15 +138,9 @@
   flex-shrink: 0;
 
   &.compact {
-    width: 0.875rem;
-    height: 0.875rem;
-    margin-right: 0.375rem;
-
-    @include sm-up {
-      width: 0.75rem;
-      height: 0.75rem;
-      margin-right: 0.25rem;
-    }
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.25rem;
   }
 
   &.normal {
@@ -240,15 +222,9 @@
   }
 
   &.compact {
-    padding: 0.5rem 0.625rem;
-    font-size: $font-size-sm;
-    line-height: 1.25rem;
-
-    @include sm-up {
-      padding: 0.25rem 0.5rem;
-      font-size: $font-size-xs;
-      line-height: 1rem;
-    }
+    padding: 0.25rem 0.5rem;
+    font-size: $font-size-xs;
+    line-height: 1rem;
   }
 
   &.normal {
@@ -286,15 +262,9 @@
   border-radius: 9999px;
 
   &.compact {
-    margin-left: 0.375rem;
-    width: 0.375rem;
-    height: 0.375rem;
-
-    @include sm-up {
-      margin-left: 0.25rem;
-      width: 0.25rem;
-      height: 0.25rem;
-    }
+    margin-left: 0.25rem;
+    width: 0.25rem;
+    height: 0.25rem;
   }
 
   &.normal {
@@ -316,12 +286,8 @@
   }
 
   &.compact {
-    padding: 0.375rem;
+    padding: 0.125rem;
     margin-right: 0.25rem;
-
-    @include sm-up {
-      padding: 0.125rem;
-    }
   }
 
   &.normal {
@@ -346,13 +312,8 @@
 
 .menuIcon {
   &.compact {
-    width: 1rem;
-    height: 1rem;
-
-    @include sm-up {
-      width: 0.75rem;
-      height: 0.75rem;
-    }
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   &.normal {
@@ -383,11 +344,7 @@
   }
 
   &.compact {
-    padding: 0.5rem;
-
-    @include sm-up {
-      padding: 0.25rem;
-    }
+    padding: 0.25rem;
   }
 
   &.normal {
@@ -399,13 +356,8 @@
 
 .newIcon {
   &.compact {
-    width: 1rem;
-    height: 1rem;
-
-    @include sm-up {
-      width: 0.75rem;
-      height: 0.75rem;
-    }
+    width: 0.75rem;
+    height: 0.75rem;
   }
 
   &.normal {
