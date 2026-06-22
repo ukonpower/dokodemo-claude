@@ -5,7 +5,7 @@
 }
 
 .header {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.5rem;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
 
@@ -109,7 +109,7 @@
 
 .scrollButtonWrapper {
   position: absolute;
-  right: 0.75rem;
+  right: 0.5rem;
   bottom: 0.5rem;
   z-index: 20;
 }
