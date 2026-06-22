@@ -146,7 +146,7 @@ function App() {
       socket.emit('switch-repo', {
         path: currentPath,
         initialSize: aiTerminalSize || undefined,
-        permissionMode: appSettings.appSettings.permissionMode ?? 'auto',
+        permissionMode: appSettings.appSettings.permissionMode,
       });
     }
   }, [socket, isConnected, aiTerminalSize, appSettings.appSettings.permissionMode]);

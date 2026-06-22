@@ -11,11 +11,10 @@ import { repositoryIdMap } from '../utils/repository-id-map';
 
 /**
  * localStorage から permissionMode 設定を取得
- * 設定が未保存／壊れている場合は安全側の 'auto' にフォールバックする。
- * （以前は 'dangerous' をフォールバックにしていたため、settings 取得失敗で
- *  サイレントに最強権限で起動してしまうリスクがあった）
+ * ユーザが明示的に選択していなければ undefined を返し、Claude CLI の既定
+ * 権限確認モードで起動させる。サイレントに dangerous/auto に倒さない。
  */
-function getPermissionModeSetting(): PermissionMode {
+function getPermissionModeSetting(): PermissionMode | undefined {
   try {
     const saved = localStorage.getItem('app-settings');
     if (saved) {
@@ -23,7 +22,7 @@ function getPermissionModeSetting(): PermissionMode {
       if (settings.permissionMode) return settings.permissionMode as PermissionMode;
     }
   } catch { /* ignore */ }
-  return 'auto';
+  return undefined;
 }
 
 /**

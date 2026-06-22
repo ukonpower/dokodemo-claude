@@ -28,7 +28,6 @@ export interface AppSettings {
  */
 export const DEFAULT_SETTINGS: AppSettings = {
   fontSizePreset: 'medium',
-  permissionMode: 'auto',
 };
 
 /**
@@ -330,22 +329,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 パーミッションモード
               </label>
               <select
-                value={settings.permissionMode ?? 'auto'}
-                onChange={(e) =>
+                value={settings.permissionMode ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
                   onSettingsChange({
                     ...settings,
-                    permissionMode: e.target.value as PermissionMode,
-                  })
-                }
+                    permissionMode:
+                      value === '' ? undefined : (value as PermissionMode),
+                  });
+                }}
                 className={s.select}
               >
+                <option value="">未設定</option>
                 <option value="disabled">無効</option>
                 <option value="auto">オートモード</option>
                 <option value="dangerous">デンジャラスパーミッション</option>
               </select>
             </div>
             <p className={s.hint}>
-              ※無効: 権限確認あり / オートモード: ファイル編集を自動承認 / デンジャラス: 全権限スキップ。変更は次回セッション作成時に反映されます。
+              ※未設定: Claude CLI 既定の権限確認モード / 無効: 権限確認あり / オートモード: ファイル編集を自動承認 / デンジャラス: 全権限スキップ。変更は次回セッション作成時に反映されます。
             </p>
           </div>
 
