@@ -61,20 +61,21 @@ export interface UseAiCliReturn {
 
 /**
  * localStorage から permissionMode 設定を取得
+ * ユーザが明示的に選択していなければ undefined を返し、Claude CLI の既定
+ * 権限確認モードで起動させる。サイレントに dangerous/auto に倒さない。
  */
-function getPermissionModeSetting(): PermissionMode {
+function getPermissionModeSetting(): PermissionMode | undefined {
   try {
     const saved = localStorage.getItem('app-settings');
     if (saved) {
       const settings = JSON.parse(saved);
       if (settings.permissionMode)
         return settings.permissionMode as PermissionMode;
-      if (settings.bypassPermission === false) return 'disabled';
     }
   } catch {
     /* ignore */
   }
-  return 'dangerous';
+  return undefined;
 }
 
 const commandConfigs: Record<CommandType, CommandConfig> = {

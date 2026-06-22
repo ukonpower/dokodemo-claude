@@ -578,30 +578,26 @@ function WorktreeTabs({
                   />
                 </svg>
               </div>
-              <h3 className={s.modalTitle}>
-                ワークツリーを削除
-              </h3>
+              <div className={s.modalHeaderText}>
+                <h3 className={s.modalTitle}>ワークツリーを削除</h3>
+                <p className={s.modalDescription}>
+                  ワークツリー「
+                  <span className={s.modalBranchName}>
+                    {targetWorktree.branch}
+                  </span>
+                  」を削除しますか？
+                </p>
+              </div>
             </div>
 
-            <p className={s.modalDescription}>
-              ワークツリー「
-              <span className={s.modalBranchName}>
-                {targetWorktree.branch}
-              </span>
-              」を削除しますか？
-            </p>
-
-            <div className={`${s.warningBox} ${s.yellow}`}>
-              <p className={s.warningTitle}>
-                <span style={{ fontWeight: 600 }}>注意:</span>
-              </p>
-              <ul className={`${s.warningList} ${s.yellow}`}>
-                <li>• 関連するCLIセッション、ターミナル、キューも終了します</li>
-                <li>• 未コミットの変更は失われる可能性があります</li>
+            <div className={`${s.warningBox} ${s.warning}`}>
+              <p className={s.warningTitle}>注意</p>
+              <ul className={`${s.warningList} ${s.warning}`}>
+                <li>関連するCLIセッション、ターミナル、キューも終了します</li>
+                <li>未コミットの変更は失われる可能性があります</li>
               </ul>
             </div>
 
-            {/* ブランチ削除オプション */}
             <label className={s.checkboxLabel}>
               <input
                 type="checkbox"
