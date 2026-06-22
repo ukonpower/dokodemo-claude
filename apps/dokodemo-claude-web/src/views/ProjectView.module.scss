@@ -391,6 +391,15 @@
   flex-direction: column;
   min-height: 27.5rem;
 
+  // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
+  @include sm-down {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
   @include sm-up {
     flex: 3 1 0%;
     min-height: 900px;
@@ -419,6 +428,11 @@
   border-radius: $radius-lg $radius-lg 0 0;
   padding-right: 0.5rem;
   min-height: 2.25rem;
+
+  // SP時は親の角丸消去に合わせて0に
+  @include sm-down {
+    border-radius: 0;
+  }
 }
 
 .sectionTitle {
@@ -452,6 +466,12 @@
   padding: 0.75rem;
   gap: 0.75rem;
   overflow: hidden;
+
+  // SP時は横方向のパディングを除去し、AI出力エリアを広く見せる
+  @include sm-down {
+    padding-left: 0;
+    padding-right: 0;
+  }
 
   @include sm-up {
     padding: 1rem;
