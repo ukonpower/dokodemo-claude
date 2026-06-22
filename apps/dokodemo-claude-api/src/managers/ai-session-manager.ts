@@ -115,7 +115,10 @@ export class AISessionManager extends EventEmitter {
       case 'claude': {
         const claudeCommand = process.env.CLAUDE_CLI_COMMAND || 'claude';
         const args: string[] = [];
-        if (permissionMode === 'dangerous' || permissionMode === undefined) {
+        // permissionMode が未設定 (undefined) もしくは 'disabled' の場合は CLI に何も
+        // 追加引数を渡さず、Claude CLI 既定の権限確認モードで起動させる。
+        // ユーザが明示的に 'auto' / 'dangerous' を選んだときだけ対応する引数を付ける。
+        if (permissionMode === 'dangerous') {
           args.push('--dangerously-skip-permissions');
         } else if (permissionMode === 'auto') {
           args.push('--permission-mode', 'auto');
