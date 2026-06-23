@@ -530,7 +530,6 @@
 .optionButton {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
   padding: 0.25rem 0.5rem;
   border-radius: $radius;
   font-size: $font-size-xs;
@@ -543,8 +542,8 @@
   white-space: nowrap;
 
   &.active {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
+    background-color: $accent-blue;
+    color: white;
   }
 
   &:not(.active) {
@@ -554,15 +553,6 @@
       color: $dark-text-primary;
     }
   }
-}
-
-.optionCheckbox {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: $radius;
-  border-color: $dark-border-light;
-  background-color: $dark-bg-secondary;
-  accent-color: $accent-blue;
 }
 
 .modelDropdownWrapper {

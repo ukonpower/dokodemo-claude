@@ -230,9 +230,11 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   const isClaude = currentProvider === 'claude';
 
-  const hasAuxButtons =
+  const hasAuxRowButtons = Boolean(
     onSendInterrupt ||
-    (isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview));
+      (isClaude &&
+        (onSendAltT || onSendResume || onSendUsage || onSendPreview))
+  );
 
   const handleDialogSubmit = (
     name: string,
@@ -331,84 +333,85 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         </div>
       )}
 
-      {/* 補助系行（折りたたみ） */}
-      {hasAuxButtons && (
-        <div className={s.auxSection}>
-          <button
-            type="button"
-            onClick={() => setShowAux(!showAux)}
-            className={s.moreToggle}
-            title="その他のボタンを表示"
-          >
-            {showAux ? '▲ その他' : '▼ その他'}
-          </button>
-          {showAux && (
-            <div className={s.row}>
-              {onSendInterrupt && (
-                <button type="button" onClick={onSendInterrupt} disabled={disabled} className={s.grayButton} title="プロセスを中断 (Ctrl+C)">
-                  Ctrl+C
-                </button>
-              )}
-              {isClaude && onSendAltT && (
-                <button type="button" onClick={onSendAltT} disabled={disabled} className={s.grayButton} title="Alt+Tキーを送信">
-                  Alt+T
-                </button>
-              )}
-              {isClaude && onSendResume && (
-                <button type="button" onClick={onSendResume} disabled={disabled} className={s.grayButton} title="セッションを再開 (/resume)">
-                  Resume
-                </button>
-              )}
-              {isClaude && onSendUsage && (
-                <button type="button" onClick={onSendUsage} disabled={disabled} className={s.grayButton} title="使用状況を表示 (/usage)">
-                  Usage
-                </button>
-              )}
-              {isClaude && onSendPreview && (
-                <button type="button" onClick={onSendPreview} disabled={disabled} className={s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
-                  Preview
-                </button>
-              )}
+      {/* 補助系行（折りたたみ） + カスタム行 */}
+      <div className={s.auxSection}>
+        <button
+          type="button"
+          onClick={() => setShowAux(!showAux)}
+          className={s.moreToggle}
+          title="その他のボタンを表示"
+        >
+          {showAux ? '▲ その他' : '▼ その他'}
+        </button>
+        {showAux && (
+          <div className={s.auxContent}>
+            {hasAuxRowButtons && (
+              <div className={s.row}>
+                {onSendInterrupt && (
+                  <button type="button" onClick={onSendInterrupt} disabled={disabled} className={s.grayButton} title="プロセスを中断 (Ctrl+C)">
+                    Ctrl+C
+                  </button>
+                )}
+                {isClaude && onSendAltT && (
+                  <button type="button" onClick={onSendAltT} disabled={disabled} className={s.grayButton} title="Alt+Tキーを送信">
+                    Alt+T
+                  </button>
+                )}
+                {isClaude && onSendResume && (
+                  <button type="button" onClick={onSendResume} disabled={disabled} className={s.grayButton} title="セッションを再開 (/resume)">
+                    Resume
+                  </button>
+                )}
+                {isClaude && onSendUsage && (
+                  <button type="button" onClick={onSendUsage} disabled={disabled} className={s.grayButton} title="使用状況を表示 (/usage)">
+                    Usage
+                  </button>
+                )}
+                {isClaude && onSendPreview && (
+                  <button type="button" onClick={onSendPreview} disabled={disabled} className={s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
+                    Preview
+                  </button>
+                )}
+              </div>
+            )}
 
+            {/* カスタム行（その他タブ内に統合） */}
+            <div className={s.customSection}>
+              <div className={s.customHeader}>カスタム</div>
+              <div className={s.row}>
+                {customButtons.map((btn) => {
+                  const scopeLabel =
+                    btn.scope === 'global' ? '共通' : 'プロジェクト固有';
+                  return (
+                    <button
+                      key={btn.id}
+                      type="button"
+                      onClick={() => onExecuteCustomButton(btn.command)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setDialogState({ mode: 'edit', button: btn });
+                      }}
+                      disabled={disabled}
+                      className={s.customButton}
+                      title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
+                    >
+                      {btn.name}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setDialogState({ mode: 'add' })}
+                  className={s.addButton}
+                  title="ボタンを追加"
+                  aria-label="カスタムボタンを追加"
+                >
+                  ＋
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* カスタム行 */}
-      <div className={s.customSection}>
-        <div className={s.customHeader}>カスタム</div>
-        <div className={s.row}>
-          {customButtons.map((btn) => {
-            const scopeLabel =
-              btn.scope === 'global' ? '共通' : 'プロジェクト固有';
-            return (
-              <button
-                key={btn.id}
-                type="button"
-                onClick={() => onExecuteCustomButton(btn.command)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setDialogState({ mode: 'edit', button: btn });
-                }}
-                disabled={disabled}
-                className={s.customButton}
-                title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
-              >
-                {btn.name}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setDialogState({ mode: 'add' })}
-            className={s.addButton}
-            title="ボタンを追加"
-            aria-label="カスタムボタンを追加"
-          >
-            ＋
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {dialogState && (

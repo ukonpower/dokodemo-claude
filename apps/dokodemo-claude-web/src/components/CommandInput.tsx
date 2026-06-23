@@ -1327,12 +1327,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
                     title="/clear: 送信前にコンテキストをクリア"
                   >
-                    <input
-                      type="checkbox"
-                      checked={sendClearBefore}
-                      onChange={() => {}}
-                      className={s.optionCheckbox}
-                    />
                     /clear
                   </button>
 
@@ -1346,12 +1340,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
                     title="/commit: 完了後に自動コミット"
                   >
-                    <input
-                      type="checkbox"
-                      checked={sendCommitAfter}
-                      onChange={() => {}}
-                      className={s.optionCheckbox}
-                    />
                     /commit
                   </button>
 
