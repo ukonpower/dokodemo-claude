@@ -11,6 +11,11 @@ import type {
   PermissionMode,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
+import {
+  getLastAiTab,
+  setLastAiTab,
+  type SavedAiTab,
+} from '../utils/last-tab-storage';
 
 /**
  * useAiCli フックの戻り値
@@ -90,6 +95,64 @@ const commandConfigs: Record<CommandType, CommandConfig> = {
 const MAX_MESSAGES = 5000;
 
 /**
+ * インスタンスから localStorage に保存する安定キーを生成する。
+ * instanceId はサーバ揮発のため保存しない。
+ */
+function toSavedAiTab(
+  inst: AiInstance,
+  allInstances: AiInstance[]
+): SavedAiTab {
+  if (inst.isPrimary) {
+    return { provider: inst.provider, isPrimary: true };
+  }
+  const subs = allInstances
+    .filter((i) => !i.isPrimary && i.provider === inst.provider)
+    .sort((a, b) => a.order - b.order);
+  const subOrder = subs.findIndex((i) => i.instanceId === inst.instanceId);
+  return {
+    provider: inst.provider,
+    isPrimary: false,
+    subOrder: subOrder >= 0 ? subOrder : 0,
+  };
+}
+
+/**
+ * 安定キーに合うインスタンスを探す。見つからなければ undefined。
+ */
+function findInstanceFromSaved(
+  saved: SavedAiTab,
+  instances: AiInstance[]
+): AiInstance | undefined {
+  if (saved.isPrimary) {
+    return instances.find(
+      (i) => i.isPrimary && i.provider === saved.provider
+    );
+  }
+  const subs = instances
+    .filter((i) => !i.isPrimary && i.provider === saved.provider)
+    .sort((a, b) => a.order - b.order);
+  return subs[saved.subOrder ?? 0];
+}
+
+/**
+ * 「フォールバック先 instanceId」を一意に決定する。
+ * 保存値がマッチすればそれを、無ければプライマリを返す。
+ */
+function pickFallbackInstanceId(
+  instances: AiInstance[],
+  repoPath: string
+): string {
+  if (instances.length === 0) return '';
+  const saved = getLastAiTab(repoPath);
+  if (saved) {
+    const matched = findInstanceFromSaved(saved, instances);
+    if (matched) return matched.instanceId;
+  }
+  const primary = instances.find((i) => i.isPrimary);
+  return primary?.instanceId ?? instances[0]?.instanceId ?? '';
+}
+
+/**
  * AI CLI 状態とコマンド送信を管理するカスタムフック
  * マルチインスタンス対応版
  */
@@ -119,6 +182,7 @@ export function useAiCli(
   // refs（イベントハンドラ内で最新値を参照）
   const currentRepoRef = useRef(currentRepo);
   const activeInstanceIdRef = useRef(activeInstanceId);
+  const aiInstancesRef = useRef(aiInstances);
   const aiTerminalSizeRef = useRef(aiTerminalSize);
   // 自分が createInstance を呼んだ回数。ai-instance-created の都度 1 ずつ消費し、自動アクティブ化する
   const pendingActivateCountRef = useRef(0);
@@ -130,6 +194,9 @@ export function useAiCli(
   useEffect(() => {
     activeInstanceIdRef.current = activeInstanceId;
   }, [activeInstanceId]);
+  useEffect(() => {
+    aiInstancesRef.current = aiInstances;
+  }, [aiInstances]);
   useEffect(() => {
     aiTerminalSizeRef.current = aiTerminalSize;
   }, [aiTerminalSize]);
@@ -155,8 +222,7 @@ export function useAiCli(
       setAiInstances(data.instances);
       setActiveInstanceId((prev) => {
         if (data.instances.some((i) => i.instanceId === prev)) return prev;
-        const primary = data.instances.find((i) => i.isPrimary);
-        return primary?.instanceId ?? data.instances[0]?.instanceId ?? '';
+        return pickFallbackInstanceId(data.instances, currentRepoRef.current);
       });
     };
 
@@ -316,9 +382,8 @@ export function useAiCli(
   // 閉じたタブがアクティブだった場合のフォールバック
   useEffect(() => {
     if (!activeInstanceId && aiInstances.length > 0) {
-      const primary = aiInstances.find((i) => i.isPrimary);
       setActiveInstanceId(
-        primary?.instanceId ?? aiInstances[0]?.instanceId ?? ''
+        pickFallbackInstanceId(aiInstances, currentRepoRef.current)
       );
     }
   }, [activeInstanceId, aiInstances]);
@@ -419,6 +484,12 @@ export function useAiCli(
   const changePrimaryProvider = useCallback(
     (newProvider: AiProvider) => {
       if (!socket || !currentRepoRef.current) return;
+      // プライマリの provider が変わるとアクティブな AI タブ自体も「新プロバイダの
+      // プライマリ」に変わるため、保存値も同期する。
+      setLastAiTab(currentRepoRef.current, {
+        provider: newProvider,
+        isPrimary: true,
+      });
       socket.emit('switch-repo', {
         path: currentRepoRef.current,
         provider: newProvider,
@@ -486,6 +557,15 @@ export function useAiCli(
   // タブ操作
   const activateInstance = useCallback((instanceId: string) => {
     setActiveInstanceId(instanceId);
+    const inst = aiInstancesRef.current.find(
+      (i) => i.instanceId === instanceId
+    );
+    if (inst) {
+      setLastAiTab(
+        currentRepoRef.current,
+        toSavedAiTab(inst, aiInstancesRef.current)
+      );
+    }
   }, []);
 
   const createInstance = useCallback(
@@ -528,9 +608,10 @@ export function useAiCli(
     pendingActivateCountRef.current = 0;
   }, []);
 
+  // リポ切替時は createInstance 連打の残カウントだけリセット（state は socket 応答で上書きされる）
   useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
+    pendingActivateCountRef.current = 0;
+  }, [currentRepo]);
 
   return {
     aiInstances,

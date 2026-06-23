@@ -479,19 +479,20 @@ export function ProjectView({
                     {copiedPath ? (
                       <span className={s.copiedText}>コピーしました!</span>
                     ) : (() => {
-                      const matchedWorktree = worktrees.find(
-                        (wt: GitWorktree) =>
-                          wt.path === currentRepo && wt.path !== parentRepoPath
+                      const repoInfo = repositories.find(
+                        (r) => r.path === currentRepo
                       );
-
-                      if (matchedWorktree) {
-                        const parentName =
-                          parentRepoPath.split('/').filter(Boolean).pop() ||
-                          'Repository';
-                        return `${parentName} - ${matchedWorktree.branch}`;
-                      } else {
-                        return currentRepo.split('/').pop() || 'プロジェクト';
+                      if (
+                        repoInfo?.isWorktree &&
+                        repoInfo.parentRepoName &&
+                        repoInfo.worktreeBranch
+                      ) {
+                        return `${repoInfo.parentRepoName} - ${repoInfo.worktreeBranch}`;
                       }
+                      if (repoInfo?.name) {
+                        return repoInfo.name;
+                      }
+                      return currentRepo.split('/').pop() || 'プロジェクト';
                     })()}
                   </h1>
                   {remoteUrl && (

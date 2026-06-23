@@ -322,11 +322,6 @@ export function usePromptQueue(
     setIsQueuePaused(false);
   }, []);
 
-  // リポジトリ切り替え時に状態をリセット
-  useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
-
   return {
     promptQueue,
     isQueueProcessing,

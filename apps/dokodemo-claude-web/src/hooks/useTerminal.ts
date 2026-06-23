@@ -163,6 +163,10 @@ export function useTerminal(
     const handleShortcutsList = (
       data: Parameters<ServerToClientEvents['shortcuts-list']>[0]
     ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) {
+        return;
+      }
       setShortcuts(data.shortcuts);
     };
 
@@ -293,11 +297,6 @@ export function useTerminal(
     setShortcuts([]);
     setDevServerPortsByRepo(new Map());
   }, []);
-
-  // リポジトリ切り替え時に状態をリセット
-  useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
 
   return {
     terminals,

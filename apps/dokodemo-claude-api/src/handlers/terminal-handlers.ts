@@ -268,8 +268,10 @@ export function registerTerminalHandlers(ctx: HandlerContext): void {
       repositoryPath: rawPath,
     });
     if (!repositoryPath) return;
+    const rid = repositoryIdManager.tryGetId(repositoryPath);
+    if (!rid) return;
     const shortcuts = processManager.getShortcutsByRepository(repositoryPath);
-    socket.emit('shortcuts-list', { shortcuts });
+    socket.emit('shortcuts-list', { rid, shortcuts });
   });
 
   // 新しいコマンドショートカットの作成
@@ -295,7 +297,10 @@ export function registerTerminalHandlers(ctx: HandlerContext): void {
       });
 
       const shortcuts = processManager.getShortcutsByRepository(repositoryPath);
-      socket.emit('shortcuts-list', { shortcuts });
+      const rid = repositoryIdManager.tryGetId(repositoryPath);
+      if (rid) {
+        socket.emit('shortcuts-list', { rid, shortcuts });
+      }
     } catch {
       socket.emit('shortcut-created', {
         success: false,

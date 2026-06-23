@@ -10,6 +10,10 @@ import type {
   WorktreeSyncEntry,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
+import {
+  getLastWorktreeForParent,
+  setLastWorktreeForParent,
+} from '../utils/last-tab-storage';
 
 /**
  * worktree 作成時のファイル同期設定（リポジトリ単位の保存値）
@@ -285,6 +289,14 @@ export function useBranchWorktree(
 
           const currentPath = currentRepoRef.current;
           const parentPath = parentRepoPathRef.current;
+          // 削除した worktree が「次回ホームから開く先」として保存されていれば
+          // 親リポへ戻す（stale な参照で broken state にならないように）。
+          if (
+            parentPath &&
+            getLastWorktreeForParent(parentPath) === deletedPath
+          ) {
+            setLastWorktreeForParent(parentPath, parentPath);
+          }
           if (currentPath === deletedPath && parentPath) {
             onSwitchRepository(parentPath);
           }
@@ -627,11 +639,6 @@ export function useBranchWorktree(
     setWorktreeSyncConfig(null);
     setWorktreeSyncCandidates(null);
   }, []);
-
-  // リポジトリ切り替え時に状態をリセット
-  useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
 
   return {
     branches,

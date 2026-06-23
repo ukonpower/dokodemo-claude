@@ -179,10 +179,11 @@ export function useFileManager(
     setUploadProgress(null);
   }, []);
 
-  // リポジトリ切り替え時に状態をリセット
+  // リポジトリ切り替え時はアップロード進行中表示だけリセット（files は socket 応答で上書き）
   useEffect(() => {
-    clearState();
-  }, [currentRepo, clearState]);
+    setIsUploadingFile(false);
+    setUploadProgress(null);
+  }, [currentRepo]);
 
   return {
     files,
