@@ -54,6 +54,7 @@ function BranchSelector({
   } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const pullPopupRef = useRef<HTMLDivElement>(null);
 
   // Pull モーダル（ツールチップ風ポップオーバー）の出現位置を
   // トリガーボタンの直下に揃える。表示中は scroll/resize にも追随する。
@@ -77,6 +78,31 @@ function BranchSelector({
       window.removeEventListener('resize', updatePosition);
     };
   }, [pullState]);
+
+  // 成功時はログを読む暇を残しつつ、一定時間後に自動で閉じる。
+  // 失敗時はメッセージを確認したいので自動非表示しない。
+  useEffect(() => {
+    if (pullState?.status !== 'success') return;
+    const timer = setTimeout(() => {
+      onClearPullState();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [pullState?.status, onClearPullState]);
+
+  // ポップオーバー外クリックで閉じる。実行中は誤操作で消さないように維持する。
+  useEffect(() => {
+    if (!pullState || pullState.status === 'running') return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (pullPopupRef.current?.contains(target)) return;
+      if (buttonRef.current?.contains(target)) return;
+      onClearPullState();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [pullState, onClearPullState]);
 
   // ワークツリーで使用中のブランチ一覧
   const worktreeBranches = worktrees.map((wt) => wt.branch);
@@ -478,6 +504,7 @@ function BranchSelector({
         pullPopupPosition &&
         createPortal(
           <div
+            ref={pullPopupRef}
             className={`${s.pullPopup} ${
               pullState.status === 'error'
                 ? s.pullPopupError
@@ -533,7 +560,7 @@ function BranchSelector({
                 ) : (
                   <span className={s.pullPopupLogPlaceholder}>
                     {pullState.status === 'running'
-                      ? '出力待ち…'
+                      ? 'Pull中…'
                       : '出力なし'}
                   </span>
                 )}
