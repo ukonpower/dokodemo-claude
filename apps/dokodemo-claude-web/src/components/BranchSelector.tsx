@@ -48,8 +48,35 @@ function BranchSelector({
   const [deleteRemoteToo, setDeleteRemoteToo] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [pullPopupPosition, setPullPopupPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Pull モーダル（ツールチップ風ポップオーバー）の出現位置を
+  // トリガーボタンの直下に揃える。表示中は scroll/resize にも追随する。
+  useEffect(() => {
+    if (!pullState) {
+      setPullPopupPosition(null);
+      return;
+    }
+
+    const updatePosition = (): void => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPullPopupPosition({ top: rect.bottom + 6, left: rect.left });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [pullState]);
 
   // ワークツリーで使用中のブランチ一覧
   const worktreeBranches = worktrees.map((wt) => wt.branch);
@@ -446,94 +473,103 @@ function BranchSelector({
         />
       )}
 
-      {/* Pull 進行状況 / 結果モーダル */}
-      {pullState && (
-        <div className={s.modalOverlay}>
-          <div className={s.modalContent}>
-            <div className={s.modalHeader}>
-              <div
-                className={`${s.modalIconCircle} ${
-                  pullState.status === 'error'
-                    ? s.modalIconCircleRed
-                    : s.modalIconCircleBlue
-                }`}
-              >
-                {pullState.status === 'running' ? (
-                  <svg
-                    className={`${s.modalIcon} ${s.modalIconBlue} ${s.pullSpinner}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                ) : pullState.status === 'success' ? (
-                  <svg
-                    className={`${s.modalIcon} ${s.modalIconBlue}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className={`${s.modalIcon} ${s.modalIconRed}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                )}
-              </div>
-              <h3 className={s.modalTitle}>
+      {/* Pull 進行状況 / 結果ポップオーバー（ツールチップ風） */}
+      {pullState &&
+        pullPopupPosition &&
+        createPortal(
+          <div
+            className={`${s.pullPopup} ${
+              pullState.status === 'error'
+                ? s.pullPopupError
+                : pullState.status === 'success'
+                  ? s.pullPopupSuccess
+                  : s.pullPopupRunning
+            }`}
+            style={{
+              top: pullPopupPosition.top,
+              left: pullPopupPosition.left,
+            }}
+          >
+            <div className={s.pullPopupHeader}>
+              {pullState.status === 'running' ? (
+                <svg
+                  className={`${s.pullPopupIcon} ${s.pullSpinner}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              ) : pullState.status === 'success' ? (
+                <svg
+                  className={s.pullPopupIcon}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className={s.pullPopupIcon}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              )}
+              <span className={s.pullPopupTitle}>
                 {pullState.status === 'running'
                   ? `Pull 実行中（${currentBranch || 'current'}）…`
                   : pullState.status === 'success'
                     ? 'Pull が完了しました'
                     : 'Pull に失敗しました'}
-              </h3>
-            </div>
-
-            {pullState.message && (
-              <p className={s.modalText}>{pullState.message}</p>
-            )}
-
-            <pre ref={pullLogRef} className={s.pullErrorOutput}>
-              {pullState.log ||
-                (pullState.status === 'running'
-                  ? '出力待ち…\n'
-                  : '(出力なし)')}
-            </pre>
-
-            <div className={s.modalFooter}>
+              </span>
               <button
                 onClick={onClearPullState}
                 disabled={pullState.status === 'running'}
-                className={s.cancelButton}
+                className={s.pullPopupClose}
+                title={pullState.status === 'running' ? 'Pull 実行中' : '閉じる'}
               >
-                {pullState.status === 'running' ? 'Pull 中…' : '閉じる'}
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            <pre ref={pullLogRef} className={s.pullPopupLog}>
+              {pullState.log ||
+                (pullState.status === 'running'
+                  ? '出力待ち…'
+                  : '(出力なし)')}
+            </pre>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

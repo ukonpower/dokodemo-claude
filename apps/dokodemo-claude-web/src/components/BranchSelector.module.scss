@@ -336,23 +336,6 @@
   }
 }
 
-.pullErrorOutput {
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.75rem;
-  background-color: rgba($gray-900, 0.8);
-  border: 1px solid $dark-border;
-  border-radius: $radius;
-  font-family: $font-mono;
-  font-size: $font-size-xs;
-  color: $gray-300;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 16rem;
-  min-height: 6rem;
-  overflow-y: auto;
-}
-
 @keyframes pull-spinner-rotate {
   to {
     transform: rotate(360deg);
@@ -361,6 +344,113 @@
 
 .pullSpinner {
   animation: pull-spinner-rotate 1s linear infinite;
+}
+
+// Pull 進行状況 / 結果ポップオーバー（ツールチップ風、画面遷移なし）
+.pullPopup {
+  position: fixed;
+  z-index: 10000;
+  width: 22rem;
+  max-width: calc(100vw - 1rem);
+  background-color: $gray-800;
+  border: 1px solid $dark-border;
+  border-left-width: 3px;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: 0.5rem 0.625rem 0.625rem;
+  color: $gray-200;
+}
+
+.pullPopupRunning {
+  border-left-color: #60a5fa;
+}
+
+.pullPopupSuccess {
+  border-left-color: #34d399;
+}
+
+.pullPopupError {
+  border-left-color: #f87171;
+}
+
+.pullPopupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.pullPopupIcon {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+
+  .pullPopupRunning & {
+    color: #60a5fa;
+  }
+
+  .pullPopupSuccess & {
+    color: #34d399;
+  }
+
+  .pullPopupError & {
+    color: #f87171;
+  }
+}
+
+.pullPopupTitle {
+  flex: 1;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: white;
+  @include truncate;
+}
+
+.pullPopupClose {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: $gray-400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  & > svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  &:hover:not(:disabled) {
+    color: white;
+    background-color: rgba(white, 0.06);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.pullPopupLog {
+  margin: 0;
+  padding: 0.375rem 0.5rem;
+  background-color: rgba($gray-900, 0.85);
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  font-family: $font-mono;
+  font-size: 11px;
+  line-height: 1.4;
+  color: $gray-300;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 9rem;
+  min-height: 2.5rem;
+  overflow-y: auto;
 }
 
 .checkboxLabel {
