@@ -473,7 +473,7 @@ function BranchSelector({
         />
       )}
 
-      {/* Pull 進行状況 / 結果ポップオーバー（ツールチップ風） */}
+      {/* Pull 進行状況 / 結果ポップオーバー（dropdown と統一感のあるフラットなトーン） */}
       {pullState &&
         pullPopupPosition &&
         createPortal(
@@ -491,61 +491,23 @@ function BranchSelector({
             }}
           >
             <div className={s.pullPopupHeader}>
-              {pullState.status === 'running' ? (
-                <svg
-                  className={`${s.pullPopupIcon} ${s.pullSpinner}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              ) : pullState.status === 'success' ? (
-                <svg
-                  className={s.pullPopupIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className={s.pullPopupIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              )}
+              <span className={s.pullPopupStatusDot} aria-hidden />
               <span className={s.pullPopupTitle}>
                 {pullState.status === 'running'
-                  ? `Pull 実行中（${currentBranch || 'current'}）…`
+                  ? 'Pulling'
                   : pullState.status === 'success'
-                    ? 'Pull が完了しました'
-                    : 'Pull に失敗しました'}
+                    ? 'Pull 完了'
+                    : 'Pull 失敗'}
+                {currentBranch && (
+                  <span className={s.pullPopupBranch}>{currentBranch}</span>
+                )}
               </span>
               <button
                 onClick={onClearPullState}
                 disabled={pullState.status === 'running'}
                 className={s.pullPopupClose}
                 title={pullState.status === 'running' ? 'Pull 実行中' : '閉じる'}
+                aria-label="閉じる"
               >
                 <svg
                   fill="none"
@@ -561,12 +523,22 @@ function BranchSelector({
                 </svg>
               </button>
             </div>
-            <pre ref={pullLogRef} className={s.pullPopupLog}>
-              {pullState.log ||
-                (pullState.status === 'running'
-                  ? '出力待ち…'
-                  : '(出力なし)')}
-            </pre>
+            <div className={s.pullPopupBody}>
+              {pullState.status !== 'running' && pullState.message && (
+                <div className={s.pullPopupMessage}>{pullState.message}</div>
+              )}
+              <pre ref={pullLogRef} className={s.pullPopupLog}>
+                {pullState.log ? (
+                  pullState.log
+                ) : (
+                  <span className={s.pullPopupLogPlaceholder}>
+                    {pullState.status === 'running'
+                      ? '出力待ち…'
+                      : '出力なし'}
+                  </span>
+                )}
+              </pre>
+            </div>
           </div>,
           document.body,
         )}
