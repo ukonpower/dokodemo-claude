@@ -1,0 +1,365 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: $dark-bg-secondary;
+  border-bottom: 1px solid $dark-border;
+  flex-wrap: wrap;
+
+  @include md-up {
+    padding: 0.5rem 1rem;
+  }
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.homeLink {
+  @include flex-center;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+  color: $dark-text-secondary;
+  text-decoration: none;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.headerTitleGroup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.repoTitle {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $dark-text-primary;
+  margin: 0;
+  @include truncate;
+}
+
+.viewLabel {
+  font-size: 0.65rem;
+  color: $dark-text-muted;
+  letter-spacing: 0.05em;
+}
+
+.selectionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+  }
+}
+
+.columnsControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: $dark-text-secondary;
+}
+
+.columnsLabel {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.columnsSelect {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: $blue-500;
+  }
+}
+
+.iconButton {
+  @include flex-center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.modeSwitchButton {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-light;
+  }
+}
+
+.broadcastBar {
+  position: sticky;
+  top: 49px;
+  z-index: 40;
+  background-color: $dark-bg-secondary;
+  border-bottom: 1px solid $dark-border;
+  padding: 0.5rem 0.75rem;
+
+  @include md-up {
+    padding: 0.5rem 1rem;
+  }
+}
+
+.broadcastInner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.broadcastInputRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+
+  @include md-up {
+    flex-wrap: nowrap;
+  }
+}
+
+.prefixWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.prefixButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+  min-height: 38px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.prefixActive {
+  border-color: $blue-500;
+  color: $blue-500;
+}
+
+.prefixMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  box-shadow: $shadow-md;
+}
+
+.prefixMenuItem {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.75rem;
+  text-align: left;
+  background: transparent;
+  color: $dark-text-primary;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.prefixMenuItemActive {
+  background-color: $dark-bg-hover;
+  color: $blue-500;
+}
+
+.broadcastTextarea {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  min-height: 38px;
+  max-height: 160px;
+  padding: 0.4rem 0.5rem;
+  font-size: $font-size-sm;
+  font-family: $font-sans;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  outline: none;
+  transition: border-color $transition-fast $transition-easing;
+
+  &:focus {
+    border-color: $blue-500;
+  }
+}
+
+.broadcastSubmit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.8rem;
+  min-height: 38px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: $blue-500;
+  color: white;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-blue-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.broadcastSubmitText {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.main {
+  flex: 1;
+  padding: 0.75rem;
+
+  @include md-up {
+    padding: 1rem;
+  }
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+
+  @include md-up {
+    gap: 1rem;
+  }
+}
+
+.empty {
+  @include flex-center;
+  height: 200px;
+  color: $dark-text-muted;
+  font-size: $font-size-sm;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 0.6rem 1rem;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  font-size: $font-size-sm;
+}
+
+// スマホ表示: 1 列固定（columns 設定よりも幅優先）
+@include md-down {
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -258,6 +258,9 @@ interface ProjectViewProps {
 
   // リポジトリ切り替え
   onSwitchRepository: (path: string) => void;
+
+  // ダッシュボード切替
+  onOpenDashboard: () => void;
 }
 
 export function ProjectView({
@@ -402,6 +405,7 @@ export function ProjectView({
   onOpenFileViewer,
   onOpenWorkflowFile,
   onSwitchRepository,
+  onOpenDashboard,
 }: ProjectViewProps) {
   // Refs
   const textInputRef = useRef<TextInputRef>(null);
@@ -739,6 +743,17 @@ export function ProjectView({
                   worktreeCreateSuccessNonce={worktreeCreateSuccessNonce}
                   onClearWorktreeCreateError={onClearWorktreeCreateError}
                 />
+                <button
+                  type="button"
+                  onClick={onOpenDashboard}
+                  className={s.dashboardButton}
+                  title="ワークツリーダッシュボードを開く"
+                >
+                  <span className={s.dashboardButtonIcon} aria-hidden>
+                    📊
+                  </span>
+                  <span className={s.dashboardButtonLabel}>ダッシュボード</span>
+                </button>
               </>
             )}
           </div>
