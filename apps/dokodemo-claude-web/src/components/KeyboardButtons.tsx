@@ -8,6 +8,7 @@ interface KeyboardButtonsProps {
   onSendEnter: () => void;
   onSendInterrupt?: () => void;
   onSendEscape?: () => void;
+  onSendSpace?: () => void;
   onClearAi?: () => void;
   onSendResume?: () => void;
   onSendUsage?: () => void;
@@ -207,6 +208,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onSendEnter,
   onSendInterrupt,
   onSendEscape,
+  onSendSpace,
   onClearAi,
   onSendResume,
   onSendUsage,
@@ -233,7 +235,12 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   const hasAuxRowButtons = Boolean(
     onSendInterrupt ||
       (isClaude &&
-        (onSendAltT || onSendResume || onSendUsage || onSendPreview))
+        (onSendMode ||
+          onChangeModel ||
+          onSendAltT ||
+          onSendResume ||
+          onSendUsage ||
+          onSendPreview))
   );
 
   const handleDialogSubmit = (
@@ -265,10 +272,24 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   return (
     <div className={s.root}>
-      {/* 上段: 方向キーとEnterボタン */}
-      <div className={s.topRow}>
-        {onSendArrowKey && (
-          <div className={s.arrowKeysWrapper}>
+      {/* メイン行: 左=矢印キー+Enter、右=コマンド群 */}
+      <div className={s.mainRow}>
+        <div className={s.arrowGroup}>
+          {(onSendEscape || onSendSpace) && (
+            <div className={s.escColumn}>
+              {onSendEscape && (
+                <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
+                  ESC
+                </button>
+              )}
+              {onSendSpace && (
+                <button type="button" onClick={onSendSpace} disabled={disabled} className={s.spaceButton} title="スペース送信">
+                  Space
+                </button>
+              )}
+            </div>
+          )}
+          {onSendArrowKey && (
             <div className={s.arrowGrid}>
               <div></div>
               <button type="button" onClick={() => onSendArrowKey('up')} disabled={disabled} className={s.arrowKey} title="上キー">↑</button>
@@ -277,61 +298,27 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
               <button type="button" onClick={() => onSendArrowKey('down')} disabled={disabled} className={s.arrowKey} title="下キー">↓</button>
               <button type="button" onClick={() => onSendArrowKey('right')} disabled={disabled} className={s.arrowKey} title="右キー">→</button>
             </div>
-          </div>
-        )}
-        <div className={s.enterWrapper}>
+          )}
           <button type="button" onClick={onSendEnter} disabled={disabled} className={s.enterButton}>
             Enter
           </button>
         </div>
-      </div>
 
-      {/* 破壊系行 */}
-      {(onSendEscape || onClearAi) && (
-        <div className={s.row}>
-          {onSendEscape && (
-            <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
-              ESC
-            </button>
-          )}
+        <div className={s.divider}></div>
+
+        <div className={s.commandGroup}>
           {onClearAi && (
             <button type="button" onClick={onClearAi} disabled={disabled} className={s.clearButton} title={providerInfo?.clearTitle || 'クリア'}>
               Clear
             </button>
           )}
-        </div>
-      )}
-
-      {/* モード系行（Claude のみ） */}
-      {isClaude && (onSendMode || onChangeModel || onSendCommit) && (
-        <div className={s.row}>
-          {onSendMode && (
-            <button type="button" onClick={onSendMode} disabled={disabled} className={s.modeButton} title="モード切り替え (Shift+Tab)">
-              Mode
-            </button>
-          )}
-          {onChangeModel && (
-            <div className={s.modelWrapper}>
-              <button type="button" onClick={() => setShowModelMenu(!showModelMenu)} disabled={disabled} className={s.modelButton} title="モデルを選択">
-                Model
-              </button>
-              {showModelMenu && (
-                <div className={s.modelMenu}>
-                  <button type="button" onClick={() => { onChangeModel('default'); setShowModelMenu(false); }} className={s.modelMenuItem}>Default</button>
-                  <button type="button" onClick={() => { onChangeModel('Opus'); setShowModelMenu(false); }} className={s.modelMenuItem}>Opus</button>
-                  <button type="button" onClick={() => { onChangeModel('Sonnet'); setShowModelMenu(false); }} className={s.modelMenuItem}>Sonnet</button>
-                  <button type="button" onClick={() => { onChangeModel('OpusPlan'); setShowModelMenu(false); }} className={s.modelMenuItem}>OpusPlan</button>
-                </div>
-              )}
-            </div>
-          )}
-          {onSendCommit && (
+          {isClaude && onSendCommit && (
             <button type="button" onClick={onSendCommit} disabled={disabled} className={s.commitButton} title="コミット (/commit)">
               Commit
             </button>
           )}
         </div>
-      )}
+      </div>
 
       {/* 補助系行（折りたたみ） + カスタム行 */}
       <div className={s.auxSection}>
@@ -347,6 +334,26 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           <div className={s.auxContent}>
             {hasAuxRowButtons && (
               <div className={s.row}>
+                {isClaude && onSendMode && (
+                  <button type="button" onClick={onSendMode} disabled={disabled} className={s.modeButton} title="モード切り替え (Shift+Tab)">
+                    Mode
+                  </button>
+                )}
+                {isClaude && onChangeModel && (
+                  <div className={s.modelWrapper}>
+                    <button type="button" onClick={() => setShowModelMenu(!showModelMenu)} disabled={disabled} className={s.modelButton} title="モデルを選択">
+                      Model
+                    </button>
+                    {showModelMenu && (
+                      <div className={s.modelMenu}>
+                        <button type="button" onClick={() => { onChangeModel('default'); setShowModelMenu(false); }} className={s.modelMenuItem}>Default</button>
+                        <button type="button" onClick={() => { onChangeModel('Opus'); setShowModelMenu(false); }} className={s.modelMenuItem}>Opus</button>
+                        <button type="button" onClick={() => { onChangeModel('Sonnet'); setShowModelMenu(false); }} className={s.modelMenuItem}>Sonnet</button>
+                        <button type="button" onClick={() => { onChangeModel('OpusPlan'); setShowModelMenu(false); }} className={s.modelMenuItem}>OpusPlan</button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {onSendInterrupt && (
                   <button type="button" onClick={onSendInterrupt} disabled={disabled} className={s.grayButton} title="プロセスを中断 (Ctrl+C)">
                     Ctrl+C

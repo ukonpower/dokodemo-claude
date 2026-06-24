@@ -83,6 +83,7 @@ interface ProjectViewProps {
   onSendAltT: () => void;
   onSendInterrupt: () => void;
   onSendEscape: () => void;
+  onSendSpace: () => void;
   onSendClear: () => void;
   onSendCommit: () => void;
   onSendPreview: () => void;
@@ -282,6 +283,7 @@ export function ProjectView({
   onSendAltT,
   onSendInterrupt,
   onSendEscape,
+  onSendSpace,
   onSendClear,
   onSendCommit,
   onSendPreview,
@@ -861,6 +863,7 @@ export function ProjectView({
                     onSendEnter={() => textInputRef.current?.submit()}
                     onSendInterrupt={onSendInterrupt}
                     onSendEscape={onSendEscape}
+                    onSendSpace={onSendSpace}
                     onClearAi={onSendClear}
                     onSendResume={onSendResume}
                     onSendUsage={onSendUsage}

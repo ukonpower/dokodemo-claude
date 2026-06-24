@@ -470,6 +470,7 @@ function App() {
       onSendAltT={aiCli.sendAltT}
       onSendInterrupt={aiCli.sendInterrupt}
       onSendEscape={aiCli.sendEscape}
+      onSendSpace={aiCli.sendSpace}
       onSendClear={aiCli.sendClear}
       onSendCommit={aiCli.sendCommit}
       onSendPreview={aiCli.sendPreview}

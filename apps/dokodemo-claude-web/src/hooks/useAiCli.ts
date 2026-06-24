@@ -40,6 +40,7 @@ export interface UseAiCliReturn {
   sendAltT: () => void;
   sendInterrupt: () => void;
   sendEscape: () => void;
+  sendSpace: () => void;
   sendClear: () => void;
   sendCommit: () => void;
   sendPreview: () => void;
@@ -448,6 +449,10 @@ export function useAiCli(
     sendCommandToActive('\x1b', 'raw');
   }, [sendCommandToActive]);
 
+  const sendSpace = useCallback(() => {
+    sendCommandToActive(' ', 'raw');
+  }, [sendCommandToActive]);
+
   const sendClear = useCallback(() => {
     sendCommandToActive('/clear', 'clear');
   }, [sendCommandToActive]);
@@ -630,6 +635,7 @@ export function useAiCli(
     sendAltT,
     sendInterrupt,
     sendEscape,
+    sendSpace,
     sendClear,
     sendCommit,
     sendPreview,
