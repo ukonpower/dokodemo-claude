@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GitBranch, GitWorktree } from '../types';
+import type { PullState } from '../hooks/useBranchWorktree';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
@@ -12,9 +13,8 @@ interface BranchSelectorProps {
   onCreateBranch: (branchName: string, baseBranch?: string) => void;
   onRefreshBranches: () => void;
   onPullBranch: () => void;
-  isPulling: boolean;
-  pullError: { message: string; output?: string } | null;
-  onClearPullError: () => void;
+  pullState: PullState | null;
+  onClearPullState: () => void;
   worktrees?: GitWorktree[];
   isConnected: boolean;
 }
@@ -27,12 +27,20 @@ function BranchSelector({
   onCreateBranch,
   onRefreshBranches,
   onPullBranch,
-  isPulling,
-  pullError,
-  onClearPullError,
+  pullState,
+  onClearPullState,
   worktrees = [],
   isConnected,
 }: BranchSelectorProps) {
+  const isPulling = pullState?.status === 'running';
+  const pullLogRef = useRef<HTMLPreElement>(null);
+
+  // ログが追記されたら自動で末尾までスクロール
+  useEffect(() => {
+    if (pullLogRef.current) {
+      pullLogRef.current.scrollTop = pullLogRef.current.scrollHeight;
+    }
+  }, [pullState?.log]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -40,8 +48,61 @@ function BranchSelector({
   const [deleteRemoteToo, setDeleteRemoteToo] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [pullPopupPosition, setPullPopupPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const pullPopupRef = useRef<HTMLDivElement>(null);
+
+  // Pull モーダル（ツールチップ風ポップオーバー）の出現位置を
+  // トリガーボタンの直下に揃える。表示中は scroll/resize にも追随する。
+  useEffect(() => {
+    if (!pullState) {
+      setPullPopupPosition(null);
+      return;
+    }
+
+    const updatePosition = (): void => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPullPopupPosition({ top: rect.bottom + 6, left: rect.left });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [pullState]);
+
+  // 成功時はログを読む暇を残しつつ、一定時間後に自動で閉じる。
+  // 失敗時はメッセージを確認したいので自動非表示しない。
+  useEffect(() => {
+    if (pullState?.status !== 'success') return;
+    const timer = setTimeout(() => {
+      onClearPullState();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [pullState?.status, onClearPullState]);
+
+  // ポップオーバー外クリックで閉じる。実行中は誤操作で消さないように維持する。
+  useEffect(() => {
+    if (!pullState || pullState.status === 'running') return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (pullPopupRef.current?.contains(target)) return;
+      if (buttonRef.current?.contains(target)) return;
+      onClearPullState();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [pullState, onClearPullState]);
 
   // ワークツリーで使用中のブランチ一覧
   const worktreeBranches = worktrees.map((wt) => wt.branch);
@@ -438,14 +499,44 @@ function BranchSelector({
         />
       )}
 
-      {/* Pull エラーモーダル */}
-      {pullError && (
-        <div className={s.modalOverlay}>
-          <div className={s.modalContent}>
-            <div className={s.modalHeader}>
-              <div className={`${s.modalIconCircle} ${s.modalIconCircleRed}`}>
+      {/* Pull 進行状況 / 結果ポップオーバー（dropdown と統一感のあるフラットなトーン） */}
+      {pullState &&
+        pullPopupPosition &&
+        createPortal(
+          <div
+            ref={pullPopupRef}
+            className={`${s.pullPopup} ${
+              pullState.status === 'error'
+                ? s.pullPopupError
+                : pullState.status === 'success'
+                  ? s.pullPopupSuccess
+                  : s.pullPopupRunning
+            }`}
+            style={{
+              top: pullPopupPosition.top,
+              left: pullPopupPosition.left,
+            }}
+          >
+            <div className={s.pullPopupHeader}>
+              <span className={s.pullPopupStatusDot} aria-hidden />
+              <span className={s.pullPopupTitle}>
+                {pullState.status === 'running'
+                  ? 'Pulling'
+                  : pullState.status === 'success'
+                    ? 'Pull 完了'
+                    : 'Pull 失敗'}
+                {currentBranch && (
+                  <span className={s.pullPopupBranch}>{currentBranch}</span>
+                )}
+              </span>
+              <button
+                onClick={onClearPullState}
+                disabled={pullState.status === 'running'}
+                className={s.pullPopupClose}
+                title={pullState.status === 'running' ? 'Pull 実行中' : '閉じる'}
+                aria-label="閉じる"
+              >
                 <svg
-                  className={`${s.modalIcon} ${s.modalIconRed}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -454,27 +545,30 @@ function BranchSelector({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              </div>
-              <h3 className={s.modalTitle}>Pull に失敗しました</h3>
-            </div>
-
-            <p className={s.modalText}>{pullError.message}</p>
-
-            {pullError.output && (
-              <pre className={s.pullErrorOutput}>{pullError.output}</pre>
-            )}
-
-            <div className={s.modalFooter}>
-              <button onClick={onClearPullError} className={s.cancelButton}>
-                閉じる
               </button>
             </div>
-          </div>
-        </div>
-      )}
+            <div className={s.pullPopupBody}>
+              {pullState.status !== 'running' && pullState.message && (
+                <div className={s.pullPopupMessage}>{pullState.message}</div>
+              )}
+              <pre ref={pullLogRef} className={s.pullPopupLog}>
+                {pullState.log ? (
+                  pullState.log
+                ) : (
+                  <span className={s.pullPopupLogPlaceholder}>
+                    {pullState.status === 'running'
+                      ? 'Pull中…'
+                      : '出力なし'}
+                  </span>
+                )}
+              </pre>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

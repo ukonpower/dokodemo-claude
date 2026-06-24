@@ -128,8 +128,16 @@ function AiInstanceTabs({
           const providerClass = inst.provider === 'claude' ? s.claude : s.codex;
           return (
             <SwiperSlide key={inst.instanceId} className={s.slideAuto}>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onActivate(inst.instanceId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onActivate(inst.instanceId);
+                  }
+                }}
                 className={`${s.tab} ${isActive ? s.active : ''} ${providerClass}`}
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}`}
               >
@@ -155,7 +163,7 @@ function AiInstanceTabs({
                     </svg>
                   </button>
                 )}
-              </button>
+              </div>
             </SwiperSlide>
           );
         })}

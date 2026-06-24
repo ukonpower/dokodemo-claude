@@ -526,8 +526,14 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
     if (!repositoryPath) return;
     const rid = repositoryIdManager.tryGetId(repositoryPath);
 
+    // 開始イベント（モーダル表示などのトリガー）
+    socket.emit('branch-pull-started', { rid });
+
     try {
-      const result = await pullBranch(repositoryPath);
+      const result = await pullBranch(repositoryPath, (chunk, stream) => {
+        // stdout/stderr のチャンクを逐次配信
+        socket.emit('branch-pull-progress', { rid, chunk, stream });
+      });
 
       socket.emit('branch-pulled', {
         success: result.success,

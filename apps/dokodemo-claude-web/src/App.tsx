@@ -470,6 +470,7 @@ function App() {
       onSendAltT={aiCli.sendAltT}
       onSendInterrupt={aiCli.sendInterrupt}
       onSendEscape={aiCli.sendEscape}
+      onSendSpace={aiCli.sendSpace}
       onSendClear={aiCli.sendClear}
       onSendCommit={aiCli.sendCommit}
       onSendPreview={aiCli.sendPreview}
@@ -516,9 +517,8 @@ function App() {
       onCreateBranch={branchWorktree.createBranch}
       onRefreshBranches={branchWorktree.refreshBranches}
       onPullBranch={branchWorktree.pullBranch}
-      isPulling={branchWorktree.isPulling}
-      pullError={branchWorktree.pullError}
-      onClearPullError={() => branchWorktree.setPullError(null)}
+      pullState={branchWorktree.pullState}
+      onClearPullState={branchWorktree.clearPullState}
       onCreateWorktree={branchWorktree.createWorktree}
       onReorderWorktrees={branchWorktree.reorderWorktrees}
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}

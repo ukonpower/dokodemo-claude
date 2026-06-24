@@ -442,6 +442,18 @@ export interface ServerToClientEvents {
     output: string;
   }) => void;
 
+  // ブランチ pull 進行ログ（stdout/stderr のストリーミング配信）
+  'branch-pull-progress': (data: {
+    rid?: string;
+    chunk: string;
+    stream: 'stdout' | 'stderr';
+  }) => void;
+
+  // ブランチ pull 開始通知（モーダル表示などのトリガー）
+  'branch-pull-started': (data: {
+    rid?: string;
+  }) => void;
+
   // ブランチ pull 結果通知
   'branch-pulled': (data: {
     success: boolean;
