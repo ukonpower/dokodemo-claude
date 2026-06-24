@@ -614,6 +614,11 @@
 
 .terminalSectionExpanded {
   min-height: 35rem;
+
+  // SP時は画面高に追従して縦領域を拡張（小型端末では従来の35remを下回らない）
+  @include sm-down {
+    min-height: max(35rem, 70dvh);
+  }
 }
 
 .terminalBody {
