@@ -21,6 +21,8 @@ export interface UseWorktreeDashboardReturn {
   refresh: () => void;
   refreshDiff: (rid: string) => void;
   sendCommand: (rid: string, command: string, type?: CommandType) => void;
+  /** 指定 rid のプライマリインスタンスの PTY をリサイズ */
+  resizeInstance: (rid: string, cols: number, rows: number) => void;
   broadcastPrompt: (
     rids: string[],
     prompt: string,
@@ -61,6 +63,16 @@ export function useWorktreeDashboard(
     worktreeRidsRef.current = set;
   }, [worktrees]);
 
+  // 自動起動を要求済みの rid。ai-instances-list で primary が無いとわかった
+  // タイミングで ensure-primary-instance を打つが、その結果が反映されるまで
+  // 何度も emit しないようにここで重複抑止する
+  const ensureRequestedRef = useRef<Set<string>>(new Set());
+  // 最新の provider マップ（ハンドラから参照するため ref で持つ）
+  const repoProvidersRef = useRef(repoProvidersByRid);
+  useEffect(() => {
+    repoProvidersRef.current = repoProvidersByRid;
+  }, [repoProvidersByRid]);
+
   // worktree 一覧が変わるたびに、各 rid に対して必要な情報を取得
   useEffect(() => {
     if (!socket) return;
@@ -92,6 +104,15 @@ export function useWorktreeDashboard(
       });
       if (primary) {
         socket.emit('get-ai-history', { instanceId: primary.instanceId });
+        ensureRequestedRef.current.delete(data.rid);
+      } else if (!ensureRequestedRef.current.has(data.rid)) {
+        // 未起動なので自動でプライマリを起こす
+        const provider = repoProvidersRef.current.get(data.rid) ?? 'claude';
+        ensureRequestedRef.current.add(data.rid);
+        socket.emit('ensure-primary-instance', {
+          rid: data.rid,
+          provider,
+        });
       }
     };
 
@@ -232,6 +253,20 @@ export function useWorktreeDashboard(
     [socket, primaryInstances]
   );
 
+  const resizeInstance = useCallback(
+    (rid: string, cols: number, rows: number) => {
+      if (!socket) return;
+      const inst = primaryInstances.get(rid);
+      if (!inst) return;
+      socket.emit('ai-resize', {
+        instanceId: inst.instanceId,
+        cols,
+        rows,
+      });
+    },
+    [socket, primaryInstances]
+  );
+
   const broadcastPrompt = useCallback(
     (
       rids: string[],
@@ -261,6 +296,7 @@ export function useWorktreeDashboard(
     refresh,
     refreshDiff,
     sendCommand,
+    resizeInstance,
     broadcastPrompt,
   };
 }

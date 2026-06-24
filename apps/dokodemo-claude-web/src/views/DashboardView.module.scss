@@ -150,6 +150,9 @@
 }
 
 .modeSwitchButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.7rem;
   font-size: 0.75rem;
   font-weight: 500;
@@ -243,6 +246,9 @@
 }
 
 .prefixMenuItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 0.7rem;
   font-size: 0.75rem;
   text-align: left;

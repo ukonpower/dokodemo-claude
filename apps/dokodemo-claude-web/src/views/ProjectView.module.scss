@@ -417,15 +417,7 @@
 }
 
 .dashboardButtonIcon {
-  font-size: 0.95em;
-}
-
-.dashboardButtonLabel {
-  display: none;
-
-  @include sm-up {
-    display: inline;
-  }
+  flex-shrink: 0;
 }
 
 // Claude CLI セクション

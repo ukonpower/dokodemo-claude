@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowUpRight, Send } from 'lucide-react';
+import { ArrowUpRight, Diff, ListTodo, Send } from 'lucide-react';
 import TerminalOut from './TerminalOut';
 import type {
   AiOutputLine,
@@ -54,6 +54,8 @@ interface WorktreeDashboardCardProps {
     prompt: string,
     options: { addToQueue: boolean }
   ) => void;
+  /** 自カードの xterm サイズに合わせて PTY をリサイズ */
+  onResizeInstance: (rid: string, cols: number, rows: number) => void;
 }
 
 interface BadgeInfo {
@@ -98,12 +100,22 @@ function WorktreeDashboardCard({
   onToggleSelected,
   onOpenInNormalView,
   onSendPrompt,
+  onResizeInstance,
 }: WorktreeDashboardCardProps) {
   // xterm.js インスタンス
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const writtenIdsRef = useRef<Set<string>>(new Set());
   const writtenContentRef = useRef<Map<string, string>>(new Map());
+
+  // 現在の xterm サイズ。primary instance が後から ready になっても
+  // 改めて PTY をリサイズできるように state で保持する
+  const [terminalSize, setTerminalSize] = useState<{
+    cols: number;
+    rows: number;
+  } | null>(null);
+  // 直前に PTY へ送ったサイズ。同サイズの連続送信を抑止
+  const lastSentSizeRef = useRef<string>('');
 
   // 入力欄
   const [draft, setDraft] = useState('');
@@ -138,11 +150,19 @@ function WorktreeDashboardCard({
   }, [terminalMounted]);
 
   const handleTerminalReady = useCallback(
-    (terminal: Terminal, fitAddon: FitAddon) => {
+    (
+      terminal: Terminal,
+      fitAddon: FitAddon,
+      initialSize?: { cols: number; rows: number }
+    ) => {
       terminalRef.current = terminal;
       fitAddonRef.current = fitAddon;
       writtenIdsRef.current = new Set();
       writtenContentRef.current = new Map();
+      // xterm サイズを state に記録し、後続の useEffect から PTY リサイズを発火
+      if (initialSize) {
+        setTerminalSize(initialSize);
+      }
       // 既存メッセージを一気に流し込む
       for (const msg of messages) {
         terminal.write(filterTerminalResponses(msg.content));
@@ -152,6 +172,30 @@ function WorktreeDashboardCard({
     },
     [messages]
   );
+
+  const handleTerminalResize = useCallback((cols: number, rows: number) => {
+    setTerminalSize({ cols, rows });
+  }, []);
+
+  // hasPrimaryInstance が true になったタイミング、または xterm サイズが
+  // 変わったタイミングで PTY に ai-resize を送る。
+  // handleTerminalReady の中で送るだけだと、まだ primaryInstances に該当 rid が
+  // セットされていないカード（先にマウントされたカードたち）の resize が
+  // 空振りし、結果として最後の 1 個だけ再描画されるという挙動になる。
+  useEffect(() => {
+    if (!hasPrimaryInstance || !terminalSize) return;
+    const key = `${terminalSize.cols}x${terminalSize.rows}`;
+    if (lastSentSizeRef.current === key) return;
+    lastSentSizeRef.current = key;
+    onResizeInstance(rid, terminalSize.cols, terminalSize.rows);
+  }, [hasPrimaryInstance, terminalSize, onResizeInstance, rid]);
+
+  // primary instance がなくなったら次回 ready 時に再送できるようリセット
+  useEffect(() => {
+    if (!hasPrimaryInstance) {
+      lastSentSizeRef.current = '';
+    }
+  }, [hasPrimaryInstance]);
 
   // 新規メッセージを書き込み
   useEffect(() => {
@@ -240,10 +284,12 @@ function WorktreeDashboardCard({
           </span>
         </span>
         <span className={s.metric} title="キュー件数">
-          Q:{queuePending}
+          <ListTodo size={12} aria-hidden />
+          {queuePending}
         </span>
         <span className={s.metric} title="差分行数 (+追加 -削除)">
-          Δ:{diffCount}
+          <Diff size={12} aria-hidden />
+          {diffCount}
         </span>
         <button
           type="button"
@@ -259,6 +305,7 @@ function WorktreeDashboardCard({
         {terminalMounted ? (
           <TerminalOut
             onTerminalReady={handleTerminalReady}
+            onResize={handleTerminalResize}
             disableStdin
             cursorBlink={false}
             fontSize={10}

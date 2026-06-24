@@ -107,6 +107,9 @@
 }
 
 .metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   font-size: 0.7rem;
   color: $dark-text-secondary;
   font-family: $font-mono;

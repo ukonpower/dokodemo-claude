@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, LayoutDashboard } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -748,11 +748,13 @@ export function ProjectView({
                   onClick={onOpenDashboard}
                   className={s.dashboardButton}
                   title="ワークツリーダッシュボードを開く"
+                  aria-label="ワークツリーダッシュボードを開く"
                 >
-                  <span className={s.dashboardButtonIcon} aria-hidden>
-                    📊
-                  </span>
-                  <span className={s.dashboardButtonLabel}>ダッシュボード</span>
+                  <LayoutDashboard
+                    size={16}
+                    className={s.dashboardButtonIcon}
+                    aria-hidden
+                  />
                 </button>
               </>
             )}

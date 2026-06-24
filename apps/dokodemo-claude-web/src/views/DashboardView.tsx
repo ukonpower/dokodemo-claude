@@ -7,7 +7,19 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { Socket } from 'socket.io-client';
-import { ChevronDown, LayoutGrid, RefreshCw, Settings, Send } from 'lucide-react';
+import {
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  Eraser,
+  GitCommit,
+  LayoutGrid,
+  Minus,
+  RefreshCw,
+  Send,
+  Settings,
+  Square,
+} from 'lucide-react';
 import type {
   AiProvider,
   GitRepository,
@@ -219,6 +231,14 @@ export function DashboardView({
     [dashboard]
   );
 
+  // 各カードの xterm サイズに合わせて PTY をリサイズ
+  const handleResizeInstance = useCallback(
+    (rid: string, cols: number, rows: number) => {
+      dashboard.resizeInstance(rid, cols, rows);
+    },
+    [dashboard]
+  );
+
   // 一斉送信
   const handleBroadcast = useCallback(() => {
     const trimmed = broadcastDraft.trim();
@@ -304,7 +324,14 @@ export function DashboardView({
                 : 'すべて選択'
             }
           >
-            ☑ {selectedCount}/{totalCount}
+            {selectedCount === totalCount && totalCount > 0 ? (
+              <CheckSquare size={14} aria-hidden />
+            ) : (
+              <Square size={14} aria-hidden />
+            )}
+            <span>
+              {selectedCount}/{totalCount}
+            </span>
           </button>
         </div>
         <div className={s.headerRight}>
@@ -345,7 +372,8 @@ export function DashboardView({
             className={s.modeSwitchButton}
             title="通常表示へ切替"
           >
-            通常表示 ▶
+            <span>通常表示</span>
+            <ChevronRight size={14} aria-hidden />
           </button>
         </div>
       </header>
@@ -360,34 +388,53 @@ export function DashboardView({
                 className={`${s.prefixButton} ${broadcastPrefix !== 'none' ? s.prefixActive : ''}`}
                 title="プレフィックス"
               >
-                {broadcastPrefix === 'clear'
-                  ? '/clear'
-                  : broadcastPrefix === 'commit'
-                    ? '/commit'
-                    : 'プレフィックス'}
-                <ChevronDown size={14} />
+                {broadcastPrefix === 'clear' ? (
+                  <>
+                    <Eraser size={14} aria-hidden />
+                    <span>/clear</span>
+                  </>
+                ) : broadcastPrefix === 'commit' ? (
+                  <>
+                    <GitCommit size={14} aria-hidden />
+                    <span>/commit</span>
+                  </>
+                ) : (
+                  <>
+                    <Minus size={14} aria-hidden />
+                    <span>プレフィックス</span>
+                  </>
+                )}
+                <ChevronDown size={14} aria-hidden />
               </button>
               {showPrefixMenu && (
                 <div className={s.prefixMenu}>
                   {(
                     [
-                      { v: 'none', label: 'なし' },
-                      { v: 'clear', label: '/clear（送信前）' },
-                      { v: 'commit', label: '/commit（送信後）' },
-                    ] as Array<{ v: BroadcastPrefix; label: string }>
-                  ).map((opt) => (
-                    <button
-                      type="button"
-                      key={opt.v}
-                      onClick={() => {
-                        setBroadcastPrefix(opt.v);
-                        setShowPrefixMenu(false);
-                      }}
-                      className={`${s.prefixMenuItem} ${broadcastPrefix === opt.v ? s.prefixMenuItemActive : ''}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                      { v: 'none', label: 'なし', icon: Minus },
+                      { v: 'clear', label: '/clear（送信前）', icon: Eraser },
+                      { v: 'commit', label: '/commit（送信後）', icon: GitCommit },
+                    ] as Array<{
+                      v: BroadcastPrefix;
+                      label: string;
+                      icon: typeof Minus;
+                    }>
+                  ).map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        type="button"
+                        key={opt.v}
+                        onClick={() => {
+                          setBroadcastPrefix(opt.v);
+                          setShowPrefixMenu(false);
+                        }}
+                        className={`${s.prefixMenuItem} ${broadcastPrefix === opt.v ? s.prefixMenuItemActive : ''}`}
+                      >
+                        <Icon size={14} aria-hidden />
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -451,6 +498,7 @@ export function DashboardView({
                   onToggleSelected={handleToggleSelected}
                   onOpenInNormalView={onOpenWorktree}
                   onSendPrompt={handleSendPromptToWorktree}
+                  onResizeInstance={handleResizeInstance}
                 />
               );
             })}
