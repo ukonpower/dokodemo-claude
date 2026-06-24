@@ -193,7 +193,11 @@ export function registerMiscHandlers(
   // 特定のリポジトリを開くURLの取得
   socket.on(
     'get-code-server-url',
-    (data: { rid?: string; repositoryPath?: string }) => {
+    (data: {
+      rid?: string;
+      repositoryPath?: string;
+      clientHost?: string;
+    }) => {
       const repositoryPath = resolveRepositoryPath({
         rid: data.rid,
         repositoryPath: data.repositoryPath,
@@ -205,11 +209,18 @@ export function registerMiscHandlers(
         let url =
           CodeServerManager.getCodeServerUrlForRepository(repositoryPath);
 
-        const host = socket.handshake.headers.host;
-        if (host) {
+        // dev モードでは Vite proxy により Host ヘッダーが書き換わるため、
+        // クライアント側で見えているホスト（window.location.host）を最優先で使う
+        const hostCandidates = [
+          data.clientHost,
+          socket.handshake.headers.host,
+        ];
+        for (const host of hostCandidates) {
+          if (!host) continue;
           const hostname = host.split(':')[0];
-          if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
             url = url.replace('localhost', hostname);
+            break;
           }
         }
 

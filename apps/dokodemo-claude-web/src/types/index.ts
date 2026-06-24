@@ -866,6 +866,7 @@ export interface ClientToServerEvents {
   // code-server関連イベント
   'get-code-server-url': (data: {
     rid: string; // リポジトリID（必須）
+    clientHost?: string; // クライアント側で見えているホスト（window.location.host）
   }) => void;
 
   // dokodemo-claude自身の更新関連イベント

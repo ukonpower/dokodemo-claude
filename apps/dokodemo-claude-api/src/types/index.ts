@@ -777,6 +777,7 @@ export interface ClientToServerEvents {
   'get-code-server-url': (data: {
     rid?: string; // リポジトリID（通信最適化用）
     repositoryPath: string;
+    clientHost?: string; // クライアント側で見えているホスト（window.location.host）
   }) => void;
   'get-code-servers': () => void;
 
