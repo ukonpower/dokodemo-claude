@@ -5,7 +5,6 @@ import type {
   AiInstance,
   AiProvider,
   CommandType,
-  GitDiffSummary,
   GitWorktree,
   ServerToClientEvents,
   ClientToServerEvents,
@@ -17,9 +16,7 @@ const MAX_MESSAGES = 5000;
 export interface UseWorktreeDashboardReturn {
   primaryInstances: Map<string, AiInstance>;
   outputByRid: Map<string, AiOutputLine[]>;
-  diffByRid: Map<string, GitDiffSummary>;
   refresh: () => void;
-  refreshDiff: (rid: string) => void;
   sendCommand: (rid: string, command: string, type?: CommandType) => void;
   /** 指定 rid のプライマリインスタンスの PTY をリサイズ */
   resizeInstance: (rid: string, cols: number, rows: number) => void;
@@ -46,9 +43,6 @@ export function useWorktreeDashboard(
     Map<string, AiInstance>
   >(new Map());
   const [outputByRid, setOutputByRid] = useState<Map<string, AiOutputLine[]>>(
-    new Map()
-  );
-  const [diffByRid, setDiffByRid] = useState<Map<string, GitDiffSummary>>(
     new Map()
   );
 
@@ -80,7 +74,6 @@ export function useWorktreeDashboard(
       const rid = repositoryIdMap.getRid(wt.path);
       if (!rid) continue;
       socket.emit('list-ai-instances', { rid });
-      socket.emit('get-git-diff-summary', { rid });
     }
   }, [socket, worktrees]);
 
@@ -183,24 +176,12 @@ export function useWorktreeDashboard(
       });
     };
 
-    const handleDiffSummary = (
-      data: Parameters<ServerToClientEvents['git-diff-summary']>[0]
-    ) => {
-      if (!worktreeRidsRef.current.has(data.rid)) return;
-      setDiffByRid((prev) => {
-        const next = new Map(prev);
-        next.set(data.rid, data.summary);
-        return next;
-      });
-    };
-
     socket.on('ai-instances-list', handleInstancesList);
     socket.on('ai-instance-created', handleInstanceCreated);
     socket.on('ai-instance-updated', handleInstanceUpdated);
     socket.on('ai-output-history', handleOutputHistory);
     socket.on('ai-output-line', handleOutputLine);
     socket.on('ai-output-cleared', handleOutputCleared);
-    socket.on('git-diff-summary', handleDiffSummary);
 
     return () => {
       socket.off('ai-instances-list', handleInstancesList);
@@ -209,7 +190,6 @@ export function useWorktreeDashboard(
       socket.off('ai-output-history', handleOutputHistory);
       socket.off('ai-output-line', handleOutputLine);
       socket.off('ai-output-cleared', handleOutputCleared);
-      socket.off('git-diff-summary', handleDiffSummary);
     };
   }, [socket]);
 
@@ -217,17 +197,8 @@ export function useWorktreeDashboard(
     if (!socket) return;
     for (const rid of worktreeRidsRef.current) {
       socket.emit('list-ai-instances', { rid });
-      socket.emit('get-git-diff-summary', { rid });
     }
   }, [socket]);
-
-  const refreshDiff = useCallback(
-    (rid: string) => {
-      if (!socket) return;
-      socket.emit('get-git-diff-summary', { rid });
-    },
-    [socket]
-  );
 
   const sendCommand = useCallback(
     (rid: string, command: string, type: CommandType = 'prompt') => {
@@ -275,8 +246,12 @@ export function useWorktreeDashboard(
     ) => {
       if (!socket) return;
       for (const rid of rids) {
-        const provider = repoProvidersByRid.get(rid);
-        if (!provider) continue;
+        // worktree の rid は repos-process-status に含まれないため、
+        // primary instance の provider を優先し、最後に 'claude' へフォールバック。
+        const provider =
+          primaryInstances.get(rid)?.provider ??
+          repoProvidersByRid.get(rid) ??
+          'claude';
         socket.emit('add-to-prompt-queue', {
           rid,
           provider,
@@ -286,15 +261,13 @@ export function useWorktreeDashboard(
         });
       }
     },
-    [socket, repoProvidersByRid]
+    [socket, primaryInstances, repoProvidersByRid]
   );
 
   return {
     primaryInstances,
     outputByRid,
-    diffByRid,
     refresh,
-    refreshDiff,
     sendCommand,
     resizeInstance,
     broadcastPrompt,
