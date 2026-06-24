@@ -5,23 +5,25 @@ import {
   useState,
   type ChangeEvent,
   type KeyboardEvent,
+  type RefObject,
 } from 'react';
 import { Socket } from 'socket.io-client';
 import {
   CheckSquare,
   ChevronDown,
-  ChevronRight,
+  ChevronLeft,
   Eraser,
   GitCommit,
-  LayoutGrid,
   Minus,
   RefreshCw,
   Send,
-  Settings,
   Square,
 } from 'lucide-react';
 import type {
+  AiInstance,
   AiProvider,
+  EditorInfo,
+  EditorType,
   GitRepository,
   GitWorktree,
   RepoProcessStatus,
@@ -30,6 +32,7 @@ import type {
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
+import RepoHeader from '../components/RepoHeader';
 import WorktreeDashboardCard from '../components/WorktreeDashboardCard';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import s from './DashboardView.module.scss';
@@ -37,6 +40,9 @@ import s from './DashboardView.module.scss';
 interface DashboardViewProps {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   isConnected: boolean;
+  isReconnecting: boolean;
+  connectionAttempts: number;
+  primaryInstance?: AiInstance;
   worktrees: GitWorktree[];
   parentRepoPath: string;
   currentRepo: string;
@@ -46,6 +52,18 @@ interface DashboardViewProps {
   onSettingsChange: (settings: AppSettings) => void;
   onSwitchToProjectView: () => void;
   onOpenWorktree: (path: string) => void;
+
+  // RepoHeader 用
+  onOpenFileViewer: () => void;
+  onStartCodeServer: () => void;
+  startingCodeServer: boolean;
+  isLocalhost: boolean;
+  availableEditors: EditorInfo[];
+  showEditorMenu: boolean;
+  setShowEditorMenu: (show: boolean) => void;
+  editorMenuRef: RefObject<HTMLDivElement | null>;
+  onOpenInEditor: (id: EditorType) => void;
+  remoteUrl: string | null;
 }
 
 type BroadcastPrefix = 'none' | 'clear' | 'commit';
@@ -102,6 +120,9 @@ function writeSelection(repo: string, sel: Set<string>): void {
 export function DashboardView({
   socket,
   isConnected,
+  isReconnecting,
+  connectionAttempts,
+  primaryInstance,
   worktrees,
   parentRepoPath,
   currentRepo,
@@ -111,6 +132,16 @@ export function DashboardView({
   onSettingsChange,
   onSwitchToProjectView,
   onOpenWorktree,
+  onOpenFileViewer,
+  onStartCodeServer,
+  startingCodeServer,
+  isLocalhost,
+  availableEditors,
+  showEditorMenu,
+  setShowEditorMenu,
+  editorMenuRef,
+  onOpenInEditor,
+  remoteUrl,
 }: DashboardViewProps) {
   // 列数（auto / 1-4 列）
   const [columns, setColumns] = useState<'auto' | 1 | 2 | 3 | 4>(() =>
@@ -274,16 +305,6 @@ export function DashboardView({
     }
   }, []);
 
-  // リポジトリ表示名
-  const repoDisplayName = useMemo(() => {
-    const info = repositories.find((r) => r.path === currentRepo);
-    if (info?.isWorktree && info.parentRepoName) {
-      return info.parentRepoName;
-    }
-    if (info?.name) return info.name;
-    return (parentRepoPath || currentRepo).split('/').pop() || 'リポジトリ';
-  }, [repositories, currentRepo, parentRepoPath]);
-
   // グリッドの style（columns に応じて切替）
   const gridStyle = useMemo(() => {
     if (columns === 'auto') {
@@ -301,19 +322,37 @@ export function DashboardView({
 
   return (
     <div className={s.root}>
-      <header className={s.header}>
-        <div className={s.headerLeft}>
-          <a
-            href={window.location.pathname}
-            className={s.homeLink}
-            title="ホームに戻る"
+      <RepoHeader
+        isConnected={isConnected}
+        isReconnecting={isReconnecting}
+        connectionAttempts={connectionAttempts}
+        primaryInstance={primaryInstance}
+        repositories={repositories}
+        currentRepo={currentRepo}
+        onOpenFileViewer={onOpenFileViewer}
+        onOpenSettings={() => setShowSettings(true)}
+        onStartCodeServer={onStartCodeServer}
+        startingCodeServer={startingCodeServer}
+        isLocalhost={isLocalhost}
+        availableEditors={availableEditors}
+        showEditorMenu={showEditorMenu}
+        setShowEditorMenu={setShowEditorMenu}
+        editorMenuRef={editorMenuRef}
+        onOpenInEditor={onOpenInEditor}
+        remoteUrl={remoteUrl}
+      />
+
+      <div className={s.toolbar}>
+        <div className={s.toolbarLeft}>
+          <button
+            type="button"
+            onClick={onSwitchToProjectView}
+            className={s.modeSwitchButton}
+            title="ダッシュボードを閉じる"
           >
-            <LayoutGrid size={16} />
-          </a>
-          <div className={s.headerTitleGroup}>
-            <h1 className={s.repoTitle}>{repoDisplayName}</h1>
-            <span className={s.viewLabel}>ダッシュボード</span>
-          </div>
+            <ChevronLeft size={14} aria-hidden />
+            <span>ダッシュボードを閉じる</span>
+          </button>
           <button
             type="button"
             onClick={selectedCount === totalCount ? handleClearSelection : handleSelectAll}
@@ -333,8 +372,6 @@ export function DashboardView({
               {selectedCount}/{totalCount}
             </span>
           </button>
-        </div>
-        <div className={s.headerRight}>
           <label className={s.columnsControl} title="列数">
             <span className={s.columnsLabel}>列</span>
             <select
@@ -349,37 +386,23 @@ export function DashboardView({
               ))}
             </select>
           </label>
+        </div>
+        <div className={s.toolbarRight}>
           <button
             type="button"
             onClick={() => dashboard.refresh()}
             disabled={!isConnected}
-            className={s.iconButton}
+            className="btn-icon"
             title="再読み込み"
           >
             <RefreshCw size={16} />
           </button>
-          <button
-            type="button"
-            onClick={() => setShowSettings(true)}
-            className={s.iconButton}
-            title="設定"
-          >
-            <Settings size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={onSwitchToProjectView}
-            className={s.modeSwitchButton}
-            title="通常表示へ切替"
-          >
-            <span>通常表示</span>
-            <ChevronRight size={14} aria-hidden />
-          </button>
         </div>
-      </header>
+      </div>
 
-      <section className={s.broadcastBar}>
-        <div className={s.broadcastInner}>
+      {selectedCount > 0 && (
+        <section className={s.broadcastBar}>
+          <div className={s.broadcastInner}>
           <div className={s.broadcastInputRow}>
             <div className={s.prefixWrapper}>
               <button
@@ -464,9 +487,10 @@ export function DashboardView({
               <Send size={14} />
               <span className={s.broadcastSubmitText}>一斉送信</span>
             </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <main className={s.main}>
         {totalCount === 0 ? (

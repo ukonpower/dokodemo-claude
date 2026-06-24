@@ -6,6 +6,35 @@
   color: $dark-text-primary;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background-color: $dark-bg-secondary;
+  border-bottom: 1px solid $dark-border;
+  flex-wrap: wrap;
+
+  @include md-up {
+    padding: 0.4rem 1rem;
+  }
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -146,6 +175,17 @@
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+}
+
+.iconButtonActive {
+  background-color: $blue-500;
+  color: white;
+  border-color: $blue-500;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-blue-hover;
+    color: white;
   }
 }
 

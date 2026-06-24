@@ -512,6 +512,9 @@ function App() {
       <DashboardView
         socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
         isConnected={isConnected}
+        isReconnecting={isReconnecting}
+        connectionAttempts={connectionAttempts}
+        primaryInstance={aiCli.primaryInstance}
         worktrees={branchWorktree.worktrees}
         parentRepoPath={branchWorktree.parentRepoPath}
         currentRepo={repository.currentRepo}
@@ -524,6 +527,20 @@ function App() {
           setDashboardModeAndPersist(false);
           switchRepositoryFromList(path);
         }}
+        onOpenFileViewer={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('view', 'files');
+          window.open(url.toString(), '_blank');
+        }}
+        onStartCodeServer={editorLauncher.startCodeServer}
+        startingCodeServer={editorLauncher.startingCodeServer}
+        isLocalhost={editorLauncher.isLocalhost}
+        availableEditors={editorLauncher.availableEditors}
+        showEditorMenu={editorLauncher.showEditorMenu}
+        setShowEditorMenu={editorLauncher.setShowEditorMenu}
+        editorMenuRef={editorLauncher.editorMenuRef}
+        onOpenInEditor={editorLauncher.openInEditor}
+        remoteUrl={editorLauncher.remoteUrl}
       />
     );
   }
