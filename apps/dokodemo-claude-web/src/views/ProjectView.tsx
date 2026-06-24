@@ -30,6 +30,7 @@ import type { CommandSendSettings } from '../hooks/useAppSettings';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
+  PullState,
 } from '../hooks/useBranchWorktree';
 
 import AiOutput, { AiOutputRef } from '../components/AiOutput';
@@ -134,9 +135,8 @@ interface ProjectViewProps {
   onCreateBranch: (branchName: string, baseBranch?: string) => void;
   onRefreshBranches: () => void;
   onPullBranch: () => void;
-  isPulling: boolean;
-  pullError: { message: string; output?: string } | null;
-  onClearPullError: () => void;
+  pullState: PullState | null;
+  onClearPullState: () => void;
   onCreateWorktree: (
     branchName: string,
     baseBranch: string | undefined,
@@ -327,9 +327,8 @@ export function ProjectView({
   onCreateBranch,
   onRefreshBranches,
   onPullBranch,
-  isPulling,
-  pullError,
-  onClearPullError,
+  pullState,
+  onClearPullState,
   onCreateWorktree,
   onReorderWorktrees,
   worktreeSyncConfig,
@@ -705,9 +704,8 @@ export function ProjectView({
                 onCreateBranch={onCreateBranch}
                 onRefreshBranches={onRefreshBranches}
                 onPullBranch={onPullBranch}
-                isPulling={isPulling}
-                pullError={pullError}
-                onClearPullError={onClearPullError}
+                pullState={pullState}
+                onClearPullState={onClearPullState}
                 worktrees={worktrees}
                 isConnected={isConnected}
               />

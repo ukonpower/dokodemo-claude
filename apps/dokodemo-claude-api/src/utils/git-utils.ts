@@ -163,12 +163,17 @@ export async function switchBranch(
  * 現在のブランチを pull (--ff-only)
  * fast-forward 不可の場合は git 自身が失敗で抜けるため、
  * 作業ツリーが中途半端なマージ状態になることはない。
+ *
+ * onProgress を渡すと stdout/stderr のチャンクを逐次受け取れる
+ * （ストリーミング UI 用）。git は進捗情報を stderr に出すため、
+ * 進捗を見たい場合は --progress を付けて呼び出す。
  */
 export async function pullBranch(
-  repoPath: string
+  repoPath: string,
+  onProgress?: (chunk: string, stream: 'stdout' | 'stderr') => void
 ): Promise<{ success: boolean; message: string; output: string }> {
   return new Promise((resolve) => {
-    const gitProcess = spawn('git', ['pull', '--ff-only'], {
+    const gitProcess = spawn('git', ['pull', '--ff-only', '--progress'], {
       cwd: repoPath,
       env: cleanChildEnv(),
     });
@@ -176,11 +181,15 @@ export async function pullBranch(
     let stderr = '';
 
     gitProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
+      const text = data.toString();
+      stdout += text;
+      onProgress?.(text, 'stdout');
     });
 
     gitProcess.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const text = data.toString();
+      stderr += text;
+      onProgress?.(text, 'stderr');
     });
 
     const timeout = setTimeout(() => {
@@ -194,19 +203,16 @@ export async function pullBranch(
 
     gitProcess.on('exit', (code) => {
       clearTimeout(timeout);
-      if (code === 0) {
-        resolve({
-          success: true,
-          message: 'pull が完了しました',
-          output: stdout || stderr,
-        });
-      } else {
-        resolve({
-          success: false,
-          message: 'pull に失敗しました',
-          output: stderr || stdout,
-        });
-      }
+      const combinedOutput = [stdout, stderr]
+        .filter((s) => s.length > 0)
+        .join('\n')
+        .trim();
+      const output = combinedOutput || '(出力なし)';
+      resolve({
+        success: code === 0,
+        message: code === 0 ? 'pull が完了しました' : 'pull に失敗しました',
+        output,
+      });
     });
 
     gitProcess.on('error', (err) => {
