@@ -31,12 +31,12 @@ function getInputExpandedStorageKey(worktreePath: string): string {
 function readInputExpanded(worktreePath: string): boolean {
   try {
     const saved = localStorage.getItem(getInputExpandedStorageKey(worktreePath));
-    if (saved === 'true') return true;
     if (saved === 'false') return false;
+    if (saved === 'true') return true;
   } catch {
     /* noop */
   }
-  return false;
+  return true;
 }
 
 /**
@@ -79,6 +79,8 @@ interface WorktreeDashboardCardProps {
   ) => void;
   /** 自カードの xterm サイズに合わせて PTY をリサイズ */
   onResizeInstance: (rid: string, cols: number, rows: number) => void;
+  /** xterm から PTY への raw 入力（直接タイピング） */
+  onSendKeyInput: (rid: string, data: string) => void;
 }
 
 function WorktreeDashboardCard({
@@ -96,6 +98,7 @@ function WorktreeDashboardCard({
   onSendCommand,
   onAddToQueue,
   onResizeInstance,
+  onSendKeyInput,
 }: WorktreeDashboardCardProps) {
   // worktree 単位で独立した送信設定（キュー on/off, /clear, /commit, model 等）
   const [sendSettings, setSendSettings] = useScopedSendSettings(worktree.path);
@@ -259,6 +262,13 @@ function WorktreeDashboardCard({
     [onAddToQueue, rid]
   );
 
+  const handleKeyInput = useCallback(
+    (data: string) => {
+      onSendKeyInput(rid, data);
+    },
+    [onSendKeyInput, rid]
+  );
+
   return (
     <div ref={cardRef} className={s.card}>
       <header className={s.header}>
@@ -307,7 +317,8 @@ function WorktreeDashboardCard({
           <TerminalOut
             onTerminalReady={handleTerminalReady}
             onResize={handleTerminalResize}
-            disableStdin
+            onKeyInput={handleKeyInput}
+            disableStdin={!canSend}
             cursorBlink={false}
             fontSize={10}
           />

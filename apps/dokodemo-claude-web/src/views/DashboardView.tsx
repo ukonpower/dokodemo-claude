@@ -392,6 +392,14 @@ export function DashboardView({
     [dashboard]
   );
 
+  // xterm から PTY への raw 入力（直接タイピング）
+  const handleSendKeyInputToWorktree = useCallback(
+    (rid: string, data: string) => {
+      dashboard.sendCommand(rid, data, 'raw');
+    },
+    [dashboard]
+  );
+
   // 一斉送信: 即時送信
   const handleBroadcastSendCommand = useCallback(
     (command: string) => {
@@ -515,7 +523,7 @@ export function DashboardView({
           <button
             type="button"
             onClick={selectedCount === totalCount ? handleClearSelection : handleSelectAll}
-            className={s.selectionChip}
+            className={`${s.selectionChip} ${s.spOnlyButton}`}
             title={
               selectedCount === totalCount
                 ? '選択をすべて解除'
@@ -613,6 +621,7 @@ export function DashboardView({
                     onSendCommand={handleSendCommandToWorktree}
                     onAddToQueue={handleAddToQueueForWorktree}
                     onResizeInstance={handleResizeInstance}
+                    onSendKeyInput={handleSendKeyInputToWorktree}
                   />
                 );
               })}

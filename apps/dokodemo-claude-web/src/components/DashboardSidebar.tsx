@@ -1,18 +1,43 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowUpRight,
-  CheckSquare,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
   EyeOff,
-  Square,
+  ListChecks,
+  ListX,
   StickyNote,
 } from 'lucide-react';
 import type { GitWorktree } from '../types';
 import MarkdownViewer from './MarkdownViewer';
 import s from './DashboardSidebar.module.scss';
+
+interface MemoPopover {
+  rid: string;
+  top: number;
+  left: number;
+}
+
+// ビューポート内に収まるように、ボタン横（右側）に出すデフォルト位置 → 画面右に
+// はみ出すならボタンの左側に寄せる。下端も同様に上にせり上げる。
+function placePopoverNextTo(
+  anchor: DOMRect,
+  width = 320,
+  height = 280,
+  gap = 6
+): { top: number; left: number } {
+  let left = anchor.right + gap;
+  if (left + width > window.innerWidth - 8) {
+    left = Math.max(8, anchor.left - width - gap);
+  }
+  let top = anchor.top;
+  if (top + height > window.innerHeight - 8) {
+    top = Math.max(8, window.innerHeight - height - 8);
+  }
+  return { top, left };
+}
 
 interface DashboardSidebarProps {
   worktreesWithRid: Array<{ wt: GitWorktree; rid: string }>;
@@ -44,9 +69,8 @@ function DashboardSidebar({
   onOpenWorktreeInNormalView,
   onCollapse,
 }: DashboardSidebarProps) {
-  const [expandedMemoRids, setExpandedMemoRids] = useState<Set<string>>(
-    new Set()
-  );
+  const [memoPopover, setMemoPopover] = useState<MemoPopover | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const total = worktreesWithRid.length;
   const visibleCount = useMemo(
@@ -58,14 +82,54 @@ function DashboardSidebar({
     [worktreesWithRid, selectedRids]
   );
 
-  const toggleMemoExpand = (rid: string) => {
-    setExpandedMemoRids((prev) => {
-      const next = new Set(prev);
-      if (next.has(rid)) next.delete(rid);
-      else next.add(rid);
-      return next;
-    });
+  const activeMemoText = useMemo(() => {
+    if (!memoPopover) return '';
+    return (
+      worktreesWithRid.find((x) => x.rid === memoPopover.rid)?.wt.memo?.trim() ??
+      ''
+    );
+  }, [memoPopover, worktreesWithRid]);
+
+  const openMemoPopover = (
+    rid: string,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (memoPopover?.rid === rid) {
+      setMemoPopover(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { top, left } = placePopoverNextTo(rect);
+    setMemoPopover({ rid, top, left });
   };
+
+  // 外側クリック / Esc / スクロールでポップオーバーを閉じる
+  useEffect(() => {
+    if (!memoPopover) return;
+    const handleDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (popoverRef.current && target && popoverRef.current.contains(target)) {
+        return;
+      }
+      setMemoPopover(null);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMemoPopover(null);
+    };
+    const handleScroll = () => setMemoPopover(null);
+    // 開いた同じクリックイベントで閉じないように 1 tick 遅らせて bind
+    const timer = window.setTimeout(() => {
+      document.addEventListener('mousedown', handleDown);
+      document.addEventListener('keydown', handleKey);
+      window.addEventListener('scroll', handleScroll, true);
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('mousedown', handleDown);
+      document.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [memoPopover]);
 
   return (
     <aside className={s.sidebar}>
@@ -91,29 +155,43 @@ function DashboardSidebar({
           type="button"
           className={s.quickButton}
           onClick={() => onSetAllVisible(visibleCount !== total)}
-          title={visibleCount === total ? '全て非表示' : '全て表示'}
+          title={visibleCount === total ? '全て非表示にする' : '全て表示する'}
+          disabled={total === 0}
         >
           {visibleCount === total ? (
             <EyeOff size={12} aria-hidden />
           ) : (
             <Eye size={12} aria-hidden />
           )}
-          <span>表示</span>
+          <span className={s.quickLabel}>
+            {visibleCount === total ? '全て非表示' : '全て表示'}
+          </span>
+          <span className={s.quickCount}>
+            {visibleCount}/{total}
+          </span>
         </button>
         <button
           type="button"
           className={s.quickButton}
           onClick={selectedCount === total ? onClearSelection : onSelectAll}
           title={
-            selectedCount === total ? '一斉送信対象を全解除' : '全て一斉送信対象に'
+            selectedCount === total
+              ? '一斉送信対象を全解除'
+              : '全て一斉送信対象に'
           }
+          disabled={total === 0}
         >
           {selectedCount === total && total > 0 ? (
-            <CheckSquare size={12} aria-hidden />
+            <ListX size={12} aria-hidden />
           ) : (
-            <Square size={12} aria-hidden />
+            <ListChecks size={12} aria-hidden />
           )}
-          <span>送信</span>
+          <span className={s.quickLabel}>
+            {selectedCount === total && total > 0 ? '全て解除' : '全て選択'}
+          </span>
+          <span className={s.quickCount}>
+            {selectedCount}/{total}
+          </span>
         </button>
       </div>
 
@@ -126,7 +204,7 @@ function DashboardSidebar({
           const isSelected = selectedRids.has(rid);
           const memo = wt.memo?.trim() ?? '';
           const hasMemo = memo.length > 0;
-          const memoExpanded = expandedMemoRids.has(rid);
+          const memoOpen = memoPopover?.rid === rid;
 
           return (
             <li
@@ -165,13 +243,13 @@ function DashboardSidebar({
                 {hasMemo && (
                   <button
                     type="button"
-                    className={`${s.memoToggle} ${memoExpanded ? s.memoToggleOpen : ''}`}
-                    onClick={() => toggleMemoExpand(rid)}
-                    title={memoExpanded ? 'メモを閉じる' : 'メモを開く'}
-                    aria-expanded={memoExpanded}
+                    className={`${s.memoToggle} ${memoOpen ? s.memoToggleOpen : ''}`}
+                    onClick={(e) => openMemoPopover(rid, e)}
+                    title={memoOpen ? 'メモを閉じる' : 'メモを見る'}
+                    aria-expanded={memoOpen}
+                    aria-haspopup="dialog"
                   >
                     <StickyNote size={12} aria-hidden />
-                    <ChevronDown size={10} aria-hidden className={s.memoChevron} />
                   </button>
                 )}
                 <button
@@ -183,27 +261,24 @@ function DashboardSidebar({
                   <ArrowUpRight size={12} aria-hidden />
                 </button>
               </div>
-
-              {hasMemo && memoExpanded && (
-                <div className={s.memoBlock}>
-                  <MarkdownViewer content={memo} stopLinkPropagation />
-                </div>
-              )}
-              {hasMemo && !memoExpanded && (
-                <button
-                  type="button"
-                  className={s.memoPreview}
-                  onClick={() => toggleMemoExpand(rid)}
-                  title="メモを開く"
-                >
-                  {memo.replace(/\s+/g, ' ').slice(0, 80)}
-                  {memo.length > 80 ? '…' : ''}
-                </button>
-              )}
             </li>
           );
         })}
       </ul>
+
+      {memoPopover &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            className={s.memoPopover}
+            style={{ top: memoPopover.top, left: memoPopover.left }}
+            role="dialog"
+            aria-label="メモ"
+          >
+            <MarkdownViewer content={activeMemoText} stopLinkPropagation />
+          </div>,
+          document.body
+        )}
     </aside>
   );
 }

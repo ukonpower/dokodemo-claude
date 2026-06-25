@@ -63,10 +63,12 @@
 }
 
 .quickButton {
+  flex: 1;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.5rem;
   font-size: 0.7rem;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
@@ -74,11 +76,32 @@
   border-radius: $radius-sm;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
+  min-width: 0;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: $dark-bg-hover;
     color: $dark-text-primary;
+    border-color: $dark-border-light;
   }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.quickLabel {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.quickCount {
+  font-size: 0.62rem;
+  color: $dark-text-muted;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.3rem;
+  border-radius: $radius-sm;
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .list {
@@ -205,14 +228,7 @@
 
 .memoToggleOpen {
   color: $accent-blue;
-
-  .memoChevron {
-    transform: rotate(180deg);
-  }
-}
-
-.memoChevron {
-  transition: transform $transition-fast $transition-easing;
+  background-color: $dark-bg-tertiary;
 }
 
 .openButton {
@@ -233,34 +249,19 @@
   }
 }
 
-.memoPreview {
-  margin-top: 0.2rem;
-  margin-left: 1.8rem;
-  padding: 0;
-  font-size: 0.7rem;
-  color: $dark-text-muted;
-  text-align: left;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  @include truncate;
-
-  &:hover {
-    color: $dark-text-secondary;
-  }
-}
-
-.memoBlock {
-  margin-top: 0.3rem;
-  margin-left: 1.8rem;
-  padding: 0.4rem 0.5rem;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border;
-  border-radius: $radius-sm;
-  font-size: 0.72rem;
-  color: $dark-text-secondary;
-  max-height: 220px;
+.memoPopover {
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  max-height: 280px;
   overflow-y: auto;
+  padding: 0.5rem 0.7rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  font-size: 0.72rem;
+  color: $dark-text-primary;
 }
 
 .handle {
