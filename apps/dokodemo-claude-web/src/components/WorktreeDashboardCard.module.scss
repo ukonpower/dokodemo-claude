@@ -5,7 +5,11 @@
   border: 1px solid $dark-border;
   border-radius: $radius-md;
   overflow: hidden;
-  min-height: 320px;
+  // grid セル全体を使う。grid 側で grid-auto-rows が固定されているので、
+  // この height は「ビューポート基準の固定値」になり、入力欄の開閉や
+  // terminal の再 fit が card 高に波及しない（→ xterm の無限拡張を断つ）。
+  height: 100%;
+  min-height: 0;
 }
 
 .header {
@@ -16,6 +20,7 @@
   background-color: $dark-bg-tertiary;
   border-bottom: 1px solid $dark-border;
   min-height: 36px;
+  flex-shrink: 0;
 }
 
 .checkboxLabel {
@@ -112,11 +117,14 @@
   color: $dark-text-secondary;
   max-height: 180px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .terminalArea {
   flex: 1;
-  min-height: 160px;
+  // min-height で「内容より大きい高さ」を持たせると flex 親を押し広げる。
+  // 入力欄を畳んだ際、その押し広げが grid 行高再計算を誘発するので 0 にする。
+  min-height: 0;
   position: relative;
   background-color: $dark-bg-primary;
   overflow: hidden;
@@ -131,8 +139,31 @@
   font-family: $font-mono;
 }
 
+.inputToggleBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.15rem 0.5rem;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-top: 1px solid $dark-border;
+  color: $dark-text-muted;
+  font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}
+
 .inputArea {
   padding: 0.4rem 0.5rem 0.5rem;
   background-color: $dark-bg-tertiary;
-  border-top: 1px solid $dark-border;
+  flex-shrink: 0;
 }

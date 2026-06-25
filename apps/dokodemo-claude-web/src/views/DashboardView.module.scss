@@ -298,6 +298,10 @@
 .grid {
   display: grid;
   gap: 0.75rem;
+  // 行高をビューポート基準の固定値にする。1fr や auto を使うと
+  // 「入力欄を畳む → terminalArea が広がる → xterm 再 fit → PTY resize →
+  // 再描画 → grid 行高再計算」のループに入り、xterm が無限に拡張する。
+  grid-auto-rows: clamp(320px, 50vh, 560px);
 
   @include md-up {
     gap: 1rem;

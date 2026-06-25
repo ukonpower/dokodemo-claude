@@ -6,7 +6,13 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowUpRight, ChevronDown, StickyNote } from 'lucide-react';
+import {
+  ArrowUpRight,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  StickyNote,
+} from 'lucide-react';
 import TerminalOut from './TerminalOut';
 import TextInput from './CommandInput';
 import MarkdownViewer from './MarkdownViewer';
@@ -17,6 +23,21 @@ import type {
 } from '../types';
 import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
 import s from './WorktreeDashboardCard.module.scss';
+
+function getInputExpandedStorageKey(worktreePath: string): string {
+  return `dashboard-input-expanded-${encodeURIComponent(worktreePath)}`;
+}
+
+function readInputExpanded(worktreePath: string): boolean {
+  try {
+    const saved = localStorage.getItem(getInputExpandedStorageKey(worktreePath));
+    if (saved === 'true') return true;
+    if (saved === 'false') return false;
+  } catch {
+    /* noop */
+  }
+  return false;
+}
 
 /**
  * ターミナル制御シーケンスの応答をフィルタリング
@@ -97,6 +118,22 @@ function WorktreeDashboardCard({
   const [memoExpanded, setMemoExpanded] = useState(false);
   const memoText = worktree.memo?.trim() ?? '';
   const hasMemo = memoText.length > 0;
+
+  // 入力欄折りたたみ（worktree 単位で localStorage に保存）
+  const [inputExpanded, setInputExpanded] = useState<boolean>(() =>
+    readInputExpanded(worktree.path)
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        getInputExpandedStorageKey(worktree.path),
+        String(inputExpanded)
+      );
+    } catch {
+      /* noop */
+    }
+  }, [inputExpanded, worktree.path]);
 
   // IntersectionObserver で初回表示まで xterm をマウントしない
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -281,23 +318,40 @@ function WorktreeDashboardCard({
         )}
       </div>
 
-      <div className={s.inputArea}>
-        <TextInput
-          onSendCommand={handleSendCommand}
-          onAddToQueue={handleAddToQueue}
-          currentProvider={provider}
-          currentRepository={worktree.path}
-          isPrimary={hasPrimaryInstance}
-          disabled={!canSend}
-          inputDisabled={!canSend}
-          autoFocus={false}
-          sendSettings={sendSettings}
-          onSendSettingsChange={setSendSettings}
-          onPasteFile={onPasteFile}
-          isUploadingFile={isUploadingFile}
-          hideWorkflowControls
-        />
-      </div>
+      <button
+        type="button"
+        onClick={() => setInputExpanded((v) => !v)}
+        className={s.inputToggleBar}
+        title={inputExpanded ? 'Hide input' : 'Show input'}
+        aria-expanded={inputExpanded}
+      >
+        <MessageSquare size={12} aria-hidden />
+        <span>{inputExpanded ? 'Hide input' : 'Show input'}</span>
+        {inputExpanded ? (
+          <ChevronDown size={12} aria-hidden />
+        ) : (
+          <ChevronUp size={12} aria-hidden />
+        )}
+      </button>
+      {inputExpanded && (
+        <div className={s.inputArea}>
+          <TextInput
+            onSendCommand={handleSendCommand}
+            onAddToQueue={handleAddToQueue}
+            currentProvider={provider}
+            currentRepository={worktree.path}
+            isPrimary={hasPrimaryInstance}
+            disabled={!canSend}
+            inputDisabled={!canSend}
+            autoFocus={false}
+            sendSettings={sendSettings}
+            onSendSettingsChange={setSendSettings}
+            onPasteFile={onPasteFile}
+            isUploadingFile={isUploadingFile}
+            hideWorkflowControls
+          />
+        </div>
+      )}
     </div>
   );
 }
