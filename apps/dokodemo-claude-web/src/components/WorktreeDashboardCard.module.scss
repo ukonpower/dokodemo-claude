@@ -6,17 +6,6 @@
   border-radius: $radius-md;
   overflow: hidden;
   min-height: 320px;
-  transition: border-color $transition-fast $transition-easing;
-
-  &.current {
-    border-color: $accent-green;
-    box-shadow: 0 0 0 1px rgba($accent-green, 0.25);
-  }
-
-  &.selected {
-    border-color: $blue-500;
-    box-shadow: 0 0 0 1px rgba($blue-500, 0.4);
-  }
 }
 
 .header {
@@ -64,58 +53,6 @@
   letter-spacing: 0.02em;
 }
 
-.statusBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  padding: 0.1rem 0.4rem;
-  border-radius: $radius-sm;
-  white-space: nowrap;
-}
-
-.statusDot {
-  width: 6px;
-  height: 6px;
-  border-radius: $radius-full;
-  background-color: currentColor;
-  flex-shrink: 0;
-}
-
-.statusLabel {
-  font-weight: 500;
-}
-
-.statusReady {
-  background-color: rgba($accent-green, 0.15);
-  color: $accent-green;
-}
-
-.statusRunning {
-  background-color: rgba($color-warning, 0.15);
-  color: $color-warning;
-}
-
-.statusDone {
-  background-color: rgba($accent-green, 0.15);
-  color: $accent-green;
-}
-
-.statusNone {
-  background-color: rgba($gray-500, 0.15);
-  color: $gray-400;
-}
-
-.metric {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.7rem;
-  color: $dark-text-secondary;
-  font-family: $font-mono;
-  white-space: nowrap;
-}
-
 .openButton {
   display: inline-flex;
   align-items: center;
@@ -153,71 +90,9 @@
 }
 
 .inputArea {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
   padding: 0.4rem 0.5rem;
   background-color: $dark-bg-tertiary;
   border-top: 1px solid $dark-border;
-}
-
-.inputRow {
-  display: flex;
-  align-items: stretch;
-  gap: 0.3rem;
-}
-
-.textarea {
-  flex: 1;
-  resize: vertical;
-  min-height: 36px;
-  max-height: 120px;
-  padding: 0.35rem 0.5rem;
-  font-size: $font-size-xs;
-  font-family: $font-sans;
-  border: 1px solid $dark-border;
-  border-radius: $radius-sm;
-  background-color: $dark-bg-secondary;
-  color: $dark-text-primary;
-  outline: none;
-  transition: border-color $transition-fast $transition-easing;
-
-  &:focus {
-    border-color: $blue-500;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.sendButton {
-  @include flex-center;
-  width: 36px;
-  border: none;
-  border-radius: $radius-sm;
-  background-color: $blue-500;
-  color: white;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-
-  &:hover:not(:disabled) {
-    background-color: $accent-blue-hover;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
-.inputOptions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  color: $dark-text-secondary;
 }
 
 .queueToggle {

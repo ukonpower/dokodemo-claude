@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader } from 'lucide-react';
+import { Loader, Pause, Play, RotateCcw } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -217,7 +217,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
                 className={s.pauseButton}
                 title="一時停止"
               >
-                ⏸
+                <Pause size={12} />
               </button>
             )}
             {isPaused && onResume && (
@@ -226,7 +226,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
                 className={s.resumeButton}
                 title="再開"
               >
-                ▶
+                <Play size={12} />
               </button>
             )}
             {onReset && queue.length > 0 && (
@@ -235,7 +235,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
                 className={s.resetButton}
                 title="リセット"
               >
-                ↺
+                <RotateCcw size={12} />
               </button>
             )}
           </div>

@@ -4,7 +4,6 @@ import {
   useMemo,
   useState,
   type ChangeEvent,
-  type KeyboardEvent,
   type RefObject,
 } from 'react';
 import { Socket } from 'socket.io-client';
@@ -16,7 +15,6 @@ import {
   GitCommit,
   Minus,
   RefreshCw,
-  Send,
   Square,
 } from 'lucide-react';
 import type {
@@ -34,6 +32,7 @@ import { repositoryIdMap } from '../utils/repository-id-map';
 import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
 import RepoHeader from '../components/RepoHeader';
 import WorktreeDashboardCard from '../components/WorktreeDashboardCard';
+import DashboardPromptInput from '../components/DashboardPromptInput';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import s from './DashboardView.module.scss';
 
@@ -202,15 +201,6 @@ export function DashboardView({
     return map;
   }, [repoProcessStatuses]);
 
-  // rid -> RepoProcessStatus のマップ
-  const statusByRid = useMemo(() => {
-    const map = new Map<string, RepoProcessStatus>();
-    for (const status of repoProcessStatuses) {
-      map.set(status.rid, status);
-    }
-    return map;
-  }, [repoProcessStatuses]);
-
   const dashboard = useWorktreeDashboard(socket, worktrees, repoProvidersByRid);
 
   // 選択クリーンアップ: 存在しない rid を除去
@@ -286,16 +276,6 @@ export function DashboardView({
     setBroadcastDraft('');
     setToast(`${rids.length} 件の worktree に送信しました`);
   }, [broadcastDraft, broadcastPrefix, dashboard, selectedRids]);
-
-  const handleBroadcastKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleBroadcast();
-      }
-    },
-    [handleBroadcast]
-  );
 
   const handleColumnsChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     const v = e.target.value;
@@ -400,98 +380,6 @@ export function DashboardView({
         </div>
       </div>
 
-      {selectedCount > 0 && (
-        <section className={s.broadcastBar}>
-          <div className={s.broadcastInner}>
-          <div className={s.broadcastInputRow}>
-            <div className={s.prefixWrapper}>
-              <button
-                type="button"
-                onClick={() => setShowPrefixMenu((v) => !v)}
-                className={`${s.prefixButton} ${broadcastPrefix !== 'none' ? s.prefixActive : ''}`}
-                title="プレフィックス"
-              >
-                {broadcastPrefix === 'clear' ? (
-                  <>
-                    <Eraser size={14} aria-hidden />
-                    <span>/clear</span>
-                  </>
-                ) : broadcastPrefix === 'commit' ? (
-                  <>
-                    <GitCommit size={14} aria-hidden />
-                    <span>/commit</span>
-                  </>
-                ) : (
-                  <>
-                    <Minus size={14} aria-hidden />
-                    <span>プレフィックス</span>
-                  </>
-                )}
-                <ChevronDown size={14} aria-hidden />
-              </button>
-              {showPrefixMenu && (
-                <div className={s.prefixMenu}>
-                  {(
-                    [
-                      { v: 'none', label: 'なし', icon: Minus },
-                      { v: 'clear', label: '/clear（送信前）', icon: Eraser },
-                      { v: 'commit', label: '/commit（送信後）', icon: GitCommit },
-                    ] as Array<{
-                      v: BroadcastPrefix;
-                      label: string;
-                      icon: typeof Minus;
-                    }>
-                  ).map((opt) => {
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        type="button"
-                        key={opt.v}
-                        onClick={() => {
-                          setBroadcastPrefix(opt.v);
-                          setShowPrefixMenu(false);
-                        }}
-                        className={`${s.prefixMenuItem} ${broadcastPrefix === opt.v ? s.prefixMenuItemActive : ''}`}
-                      >
-                        <Icon size={14} aria-hidden />
-                        <span>{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <textarea
-              value={broadcastDraft}
-              onChange={(e) => setBroadcastDraft(e.target.value)}
-              onKeyDown={handleBroadcastKeyDown}
-              placeholder={
-                selectedCount === 0
-                  ? '一斉送信したい WT を上のチェックボックスで選択してください'
-                  : `${selectedCount} 件の worktree に一斉送信 (Ctrl+Enter)`
-              }
-              rows={2}
-              className={s.broadcastTextarea}
-            />
-            <button
-              type="button"
-              onClick={handleBroadcast}
-              disabled={
-                !isConnected ||
-                selectedCount === 0 ||
-                !broadcastDraft.trim()
-              }
-              className={s.broadcastSubmit}
-              title="一斉送信"
-            >
-              <Send size={14} />
-              <span className={s.broadcastSubmitText}>一斉送信</span>
-            </button>
-            </div>
-          </div>
-        </section>
-      )}
-
       <main className={s.main}>
         {totalCount === 0 ? (
           <div className={s.empty}>
@@ -500,23 +388,14 @@ export function DashboardView({
         ) : (
           <div className={s.grid} style={gridStyle}>
             {worktreesWithRid.map(({ wt, rid }) => {
-              const status = statusByRid.get(rid);
               const hasPrimary = dashboard.primaryInstances.has(rid);
-              const provider =
-                dashboard.primaryInstances.get(rid)?.provider ??
-                repoProvidersByRid.get(rid);
               return (
                 <WorktreeDashboardCard
                   key={wt.path}
                   worktree={wt}
                   rid={rid}
-                  isCurrent={wt.path === currentRepo}
                   selected={selectedRids.has(rid)}
-                  primaryProvider={provider}
-                  aiDisplayStatus={status?.displayAiStatus}
                   hasPrimaryInstance={hasPrimary}
-                  queuePending={status?.promptQueuePending ?? 0}
-                  diffSummary={dashboard.diffByRid.get(rid)}
                   messages={dashboard.outputByRid.get(rid) ?? []}
                   canSend={isConnected && hasPrimary}
                   onToggleSelected={handleToggleSelected}
@@ -529,6 +408,84 @@ export function DashboardView({
           </div>
         )}
       </main>
+
+      <section className={s.broadcastBar}>
+        <div className={s.broadcastInner}>
+          <DashboardPromptInput
+            value={broadcastDraft}
+            onChange={setBroadcastDraft}
+            onSubmit={handleBroadcast}
+            disabled={!isConnected || selectedCount === 0}
+            placeholder={
+              selectedCount === 0
+                ? '一斉送信したい WT を選択してください'
+                : `${selectedCount} 件の worktree に一斉送信 (Ctrl+Enter)`
+            }
+            submitLabel="一斉送信"
+            submitTitle={`${selectedCount} 件に一斉送信`}
+            size="md"
+            leadingExtras={
+              <div className={s.prefixWrapper}>
+                <button
+                  type="button"
+                  onClick={() => setShowPrefixMenu((v) => !v)}
+                  className={`${s.prefixButton} ${broadcastPrefix !== 'none' ? s.prefixActive : ''}`}
+                  title="プレフィックス"
+                >
+                  {broadcastPrefix === 'clear' ? (
+                    <>
+                      <Eraser size={14} aria-hidden />
+                      <span className={s.prefixLabel}>/clear</span>
+                    </>
+                  ) : broadcastPrefix === 'commit' ? (
+                    <>
+                      <GitCommit size={14} aria-hidden />
+                      <span className={s.prefixLabel}>/commit</span>
+                    </>
+                  ) : (
+                    <>
+                      <Minus size={14} aria-hidden />
+                      <span className={s.prefixLabel}>プレフィックス</span>
+                    </>
+                  )}
+                  <ChevronDown size={14} aria-hidden />
+                </button>
+                {showPrefixMenu && (
+                  <div className={s.prefixMenu}>
+                    {(
+                      [
+                        { v: 'none', label: 'なし', icon: Minus },
+                        { v: 'clear', label: '/clear（送信前）', icon: Eraser },
+                        { v: 'commit', label: '/commit（送信後）', icon: GitCommit },
+                      ] as Array<{
+                        v: BroadcastPrefix;
+                        label: string;
+                        icon: typeof Minus;
+                      }>
+                    ).map((opt) => {
+                      const Icon = opt.icon;
+                      return (
+                        <button
+                          type="button"
+                          key={opt.v}
+                          onClick={() => {
+                            setBroadcastPrefix(opt.v);
+                            setShowPrefixMenu(false);
+                          }}
+                          className={`${s.prefixMenuItem} ${broadcastPrefix === opt.v ? s.prefixMenuItemActive : ''}`}
+                        >
+                          <Icon size={14} aria-hidden />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            }
+          />
+        </div>
+      </section>
 
       {toast && (
         <div className={s.toast} role="status">
