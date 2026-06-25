@@ -29,6 +29,7 @@ import { HomeView, ProjectView, FileViewerView, DashboardView } from './views';
 // 差分詳細ビュー
 import DiffViewer from './components/DiffViewer';
 import RepositorySwitcher from './components/RepositorySwitcher';
+import ProjectSwitcherModal from './components/ProjectSwitcherModal';
 import { Socket } from 'socket.io-client';
 
 import s from './App.module.scss';
@@ -117,6 +118,9 @@ function App() {
 
   // npmスクリプト関連
   const [npmScripts, setNpmScripts] = useState<Record<string, string>>({});
+
+  // プロジェクト切り替えポップアップ
+  const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
 
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
@@ -380,6 +384,18 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileViewer.isActive]);
 
+  // Ctrl+R / Cmd+R でプロジェクト切り替えポップアップを開く
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key === 'r') {
+        e.preventDefault();
+        setIsProjectSwitcherOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   // ビュー別ページタイトル設定
   useEffect(() => {
     const repoInfo = repository.repositories.find((r) => r.path === repository.currentRepo);
@@ -436,9 +452,23 @@ function App() {
     [repository]
   );
 
+  // どのビューでも共通でレンダリングするプロジェクト切り替えポップアップ
+  const projectSwitcher = (
+    <ProjectSwitcherModal
+      isOpen={isProjectSwitcherOpen}
+      onClose={() => setIsProjectSwitcherOpen(false)}
+      repositories={repository.repositories}
+      currentRepo={repository.currentRepo}
+      lastAccessTimes={repository.lastAccessTimes}
+      repoProcessStatuses={repository.repoProcessStatuses}
+      onSwitchRepository={switchRepositoryFromList}
+    />
+  );
+
   // リポジトリが選択されていない場合はホーム画面
   if (!repository.currentRepo) {
     return (
+      <>
       <HomeView
         socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
         isConnected={isConnected}
@@ -464,6 +494,8 @@ function App() {
         onConfirmStopProcesses={repository.confirmStopProcesses}
         onCancelStopProcesses={repository.cancelStopProcesses}
       />
+      {projectSwitcher}
+      </>
     );
   }
 
@@ -473,18 +505,22 @@ function App() {
       repository.repositories.find((r) => r.path === repository.currentRepo)
         ?.name || '';
     return (
+      <>
       <FileViewerView
         fileViewer={fileViewer}
         repoName={repoName}
         diffSummary={gitDiff.diffSummary}
         rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
       />
+      {projectSwitcher}
+      </>
     );
   }
 
   // 差分詳細ビュー
   if (gitDiff.currentView === 'diff' && gitDiff.diffViewFilename) {
     return (
+      <>
       <div className={s.diffViewWrapper}>
         <DiffViewer
           rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
@@ -503,12 +539,15 @@ function App() {
           onSwitchRepository={switchRepositoryFromList}
         />
       </div>
+      {projectSwitcher}
+      </>
     );
   }
 
   // ダッシュボードビュー
   if (dashboardMode) {
     return (
+      <>
       <DashboardView
         socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
         isConnected={isConnected}
@@ -546,11 +585,14 @@ function App() {
         onOpenInEditor={editorLauncher.openInEditor}
         remoteUrl={editorLauncher.remoteUrl}
       />
+      {projectSwitcher}
+      </>
     );
   }
 
   // メイン画面（プロジェクトビュー）
   return (
+    <>
     <ProjectView
       socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
       isConnected={isConnected}
@@ -724,6 +766,8 @@ function App() {
       // ダッシュボード切替
       onOpenDashboard={() => setDashboardModeAndPersist(true)}
     />
+    {projectSwitcher}
+    </>
   );
 }
 
