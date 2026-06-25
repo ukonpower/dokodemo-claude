@@ -8,12 +8,14 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowUpRight, ChevronDown, StickyNote } from 'lucide-react';
 import TerminalOut from './TerminalOut';
-import DashboardPromptInput from './DashboardPromptInput';
+import TextInput from './CommandInput';
 import MarkdownViewer from './MarkdownViewer';
 import type {
   AiOutputLine,
+  AiProvider,
   GitWorktree,
 } from '../types';
+import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
 import s from './WorktreeDashboardCard.module.scss';
 
 /**
@@ -39,12 +41,20 @@ interface WorktreeDashboardCardProps {
   hasPrimaryInstance: boolean;
   messages: AiOutputLine[];
   canSend: boolean;
+  provider: AiProvider;
+  onPasteFile?: (file: File) => Promise<string | undefined>;
+  isUploadingFile: boolean;
   onToggleSelected: (rid: string) => void;
   onOpenInNormalView: (path: string) => void;
-  onSendPrompt: (
+  /** 個別カードからの即時送信 */
+  onSendCommand: (rid: string, command: string) => void;
+  /** 個別カードからのキュー追加 */
+  onAddToQueue: (
     rid: string,
-    prompt: string,
-    options: { addToQueue: boolean }
+    command: string,
+    sendClearBefore: boolean,
+    sendCommitAfter: boolean,
+    model?: string
   ) => void;
   /** 自カードの xterm サイズに合わせて PTY をリサイズ */
   onResizeInstance: (rid: string, cols: number, rows: number) => void;
@@ -57,11 +67,17 @@ function WorktreeDashboardCard({
   hasPrimaryInstance,
   messages,
   canSend,
+  provider,
+  onPasteFile,
+  isUploadingFile,
   onToggleSelected,
   onOpenInNormalView,
-  onSendPrompt,
+  onSendCommand,
+  onAddToQueue,
   onResizeInstance,
 }: WorktreeDashboardCardProps) {
+  // worktree 単位で独立した送信設定（キュー on/off, /clear, /commit, model 等）
+  const [sendSettings, setSendSettings] = useScopedSendSettings(worktree.path);
   // xterm.js インスタンス
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -76,10 +92,6 @@ function WorktreeDashboardCard({
   } | null>(null);
   // 直前に PTY へ送ったサイズ。同サイズの連続送信を抑止
   const lastSentSizeRef = useRef<string>('');
-
-  // 入力欄
-  const [draft, setDraft] = useState('');
-  const [addToQueue, setAddToQueue] = useState(true);
 
   // メモ折りたたみ
   const [memoExpanded, setMemoExpanded] = useState(false);
@@ -191,13 +203,24 @@ function WorktreeDashboardCard({
     }
   }, [messages]);
 
-  const handleSubmit = useCallback(() => {
-    if (!canSend) return;
-    const trimmed = draft.trim();
-    if (!trimmed) return;
-    onSendPrompt(rid, trimmed, { addToQueue });
-    setDraft('');
-  }, [canSend, draft, addToQueue, onSendPrompt, rid]);
+  const handleSendCommand = useCallback(
+    (command: string) => {
+      onSendCommand(rid, command);
+    },
+    [onSendCommand, rid]
+  );
+
+  const handleAddToQueue = useCallback(
+    (
+      command: string,
+      sendClearBefore: boolean,
+      sendCommitAfter: boolean,
+      model?: string
+    ) => {
+      onAddToQueue(rid, command, sendClearBefore, sendCommitAfter, model);
+    },
+    [onAddToQueue, rid]
+  );
 
   return (
     <div ref={cardRef} className={s.card}>
@@ -259,27 +282,20 @@ function WorktreeDashboardCard({
       </div>
 
       <div className={s.inputArea}>
-        <DashboardPromptInput
-          value={draft}
-          onChange={setDraft}
-          onSubmit={handleSubmit}
+        <TextInput
+          onSendCommand={handleSendCommand}
+          onAddToQueue={handleAddToQueue}
+          currentProvider={provider}
+          currentRepository={worktree.path}
+          isPrimary={hasPrimaryInstance}
           disabled={!canSend}
-          placeholder={
-            canSend ? 'プロンプトを入力 (Ctrl+Enter で送信)' : '送信不可'
-          }
-          submitLabel={addToQueue ? '追加' : '送信'}
-          submitTitle={addToQueue ? 'キューに追加 (Ctrl+Enter)' : '直接送信 (Ctrl+Enter)'}
-          bottomExtras={
-            <label className={s.queueToggle}>
-              <input
-                type="checkbox"
-                checked={addToQueue}
-                onChange={(e) => setAddToQueue(e.target.checked)}
-                disabled={!canSend}
-              />
-              <span>キューに追加</span>
-            </label>
-          }
+          inputDisabled={!canSend}
+          autoFocus={false}
+          sendSettings={sendSettings}
+          onSendSettingsChange={setSendSettings}
+          onPasteFile={onPasteFile}
+          isUploadingFile={isUploadingFile}
+          hideWorkflowControls
         />
       </div>
     </div>

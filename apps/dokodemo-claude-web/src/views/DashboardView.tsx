@@ -9,12 +9,8 @@ import {
 import { Socket } from 'socket.io-client';
 import {
   CheckSquare,
-  ChevronDown,
   ChevronLeft,
-  Eraser,
   Filter,
-  GitCommit,
-  Minus,
   PanelLeft,
   RefreshCw,
   Square,
@@ -35,12 +31,13 @@ import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
 import RepoHeader from '../components/RepoHeader';
 import RepositorySwitcher from '../components/RepositorySwitcher';
 import WorktreeDashboardCard from '../components/WorktreeDashboardCard';
-import DashboardPromptInput from '../components/DashboardPromptInput';
+import TextInput from '../components/CommandInput';
 import DashboardSidebar, {
   DashboardSidebarHandle,
 } from '../components/DashboardSidebar';
 import DashboardFilterModal from '../components/DashboardFilterModal';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
+import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
 
 interface DashboardViewProps {
@@ -57,6 +54,8 @@ interface DashboardViewProps {
   lastAccessTimes: Record<string, number>;
   appSettings: AppSettings;
   onSettingsChange: (settings: AppSettings) => void;
+  onPasteFile?: (file: File) => Promise<string | undefined>;
+  isUploadingFile: boolean;
   onSwitchToProjectView: () => void;
   onOpenWorktree: (path: string) => void;
   onSwitchRepository: (path: string) => void;
@@ -74,9 +73,9 @@ interface DashboardViewProps {
   remoteUrl: string | null;
 }
 
-type BroadcastPrefix = 'none' | 'clear' | 'commit';
-
 const COLUMN_OPTIONS: Array<'auto' | 1 | 2 | 3 | 4> = ['auto', 1, 2, 3, 4];
+
+const BROADCAST_REPO_KEY = '__dokodemo_broadcast__';
 
 function getColumnsStorageKey(repo: string): string {
   return `dokodemo-dashboard-columns-${repo}`;
@@ -179,6 +178,8 @@ export function DashboardView({
   lastAccessTimes,
   appSettings,
   onSettingsChange,
+  onPasteFile,
+  isUploadingFile,
   onSwitchToProjectView,
   onOpenWorktree,
   onSwitchRepository,
@@ -215,14 +216,15 @@ export function DashboardView({
   );
   const [showFilterModal, setShowFilterModal] = useState(false);
 
-  // 一斉送信入力
-  const [broadcastDraft, setBroadcastDraft] = useState('');
-  const [broadcastPrefix, setBroadcastPrefix] = useState<BroadcastPrefix>('none');
-  const [showPrefixMenu, setShowPrefixMenu] = useState(false);
+  // 一斉送信トースト
   const [toast, setToast] = useState<string | null>(null);
 
   // 設定モーダル
   const [showSettings, setShowSettings] = useState(false);
+
+  // 一斉送信バー専用の送信設定（worktree カード群とは独立）
+  const [broadcastSendSettings, setBroadcastSendSettings] =
+    useScopedSendSettings(BROADCAST_REPO_KEY);
 
   // 列数の永続化
   useEffect(() => {
@@ -356,14 +358,28 @@ export function DashboardView({
     [worktreesWithRid]
   );
 
-  // 個別 WT へのプロンプト送信
-  const handleSendPromptToWorktree = useCallback(
-    (rid: string, prompt: string, options: { addToQueue: boolean }) => {
-      if (options.addToQueue) {
-        dashboard.broadcastPrompt([rid], prompt, {});
-      } else {
-        dashboard.sendCommand(rid, prompt, 'prompt');
-      }
+  // 個別カードからの即時送信
+  const handleSendCommandToWorktree = useCallback(
+    (rid: string, command: string) => {
+      dashboard.sendCommand(rid, command, 'prompt');
+    },
+    [dashboard]
+  );
+
+  // 個別カードからのキュー追加
+  const handleAddToQueueForWorktree = useCallback(
+    (
+      rid: string,
+      command: string,
+      sendClearBefore: boolean,
+      sendCommitAfter: boolean,
+      model?: string
+    ) => {
+      dashboard.broadcastPrompt([rid], command, {
+        sendClearBefore,
+        sendCommitAfter,
+        model,
+      });
     },
     [dashboard]
   );
@@ -376,22 +392,44 @@ export function DashboardView({
     [dashboard]
   );
 
-  // 一斉送信
-  const handleBroadcast = useCallback(() => {
-    const trimmed = broadcastDraft.trim();
-    if (!trimmed) return;
-    if (selectedRids.size === 0) {
-      setToast('送信先 worktree を選択してください');
-      return;
-    }
-    const rids = Array.from(selectedRids);
-    dashboard.broadcastPrompt(rids, trimmed, {
-      sendClearBefore: broadcastPrefix === 'clear',
-      sendCommitAfter: broadcastPrefix === 'commit',
-    });
-    setBroadcastDraft('');
-    setToast(`${rids.length} 件の worktree に送信しました`);
-  }, [broadcastDraft, broadcastPrefix, dashboard, selectedRids]);
+  // 一斉送信: 即時送信
+  const handleBroadcastSendCommand = useCallback(
+    (command: string) => {
+      if (selectedRids.size === 0) {
+        setToast('送信先 worktree を選択してください');
+        return;
+      }
+      const rids = Array.from(selectedRids);
+      for (const rid of rids) {
+        dashboard.sendCommand(rid, command, 'prompt');
+      }
+      setToast(`${rids.length} 件の worktree に直接送信しました`);
+    },
+    [dashboard, selectedRids]
+  );
+
+  // 一斉送信: キュー追加
+  const handleBroadcastAddToQueue = useCallback(
+    (
+      command: string,
+      sendClearBefore: boolean,
+      sendCommitAfter: boolean,
+      model?: string
+    ) => {
+      if (selectedRids.size === 0) {
+        setToast('送信先 worktree を選択してください');
+        return;
+      }
+      const rids = Array.from(selectedRids);
+      dashboard.broadcastPrompt(rids, command, {
+        sendClearBefore,
+        sendCommitAfter,
+        model,
+      });
+      setToast(`${rids.length} 件の worktree のキューに追加しました`);
+    },
+    [dashboard, selectedRids]
+  );
 
   const handleColumnsChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     const v = e.target.value;
@@ -554,6 +592,10 @@ export function DashboardView({
             <div className={s.grid} style={gridStyle}>
               {visibleWorktreesWithRid.map(({ wt, rid }) => {
                 const hasPrimary = dashboard.primaryInstances.has(rid);
+                const provider =
+                  dashboard.primaryInstances.get(rid)?.provider ??
+                  repoProvidersByRid.get(rid) ??
+                  'claude';
                 return (
                   <WorktreeDashboardCard
                     key={wt.path}
@@ -563,9 +605,13 @@ export function DashboardView({
                     hasPrimaryInstance={hasPrimary}
                     messages={dashboard.outputByRid.get(rid) ?? []}
                     canSend={isConnected && hasPrimary}
+                    provider={provider}
+                    onPasteFile={onPasteFile}
+                    isUploadingFile={isUploadingFile}
                     onToggleSelected={handleToggleSelected}
                     onOpenInNormalView={onOpenWorktree}
-                    onSendPrompt={handleSendPromptToWorktree}
+                    onSendCommand={handleSendCommandToWorktree}
+                    onAddToQueue={handleAddToQueueForWorktree}
                     onResizeInstance={handleResizeInstance}
                   />
                 );
@@ -577,77 +623,26 @@ export function DashboardView({
 
       {selectedCount > 0 && (
         <section className={s.broadcastBar}>
-        <div className={s.broadcastInner}>
-          <DashboardPromptInput
-            value={broadcastDraft}
-            onChange={setBroadcastDraft}
-            onSubmit={handleBroadcast}
-            disabled={!isConnected}
-            placeholder={`${selectedCount} 件の worktree に一斉送信 (Ctrl+Enter)`}
-            submitLabel="一斉送信"
-            submitTitle={`${selectedCount} 件に一斉送信`}
-            size="md"
-            leadingExtras={
-              <div className={s.prefixWrapper}>
-                <button
-                  type="button"
-                  onClick={() => setShowPrefixMenu((v) => !v)}
-                  className={`${s.prefixButton} ${broadcastPrefix !== 'none' ? s.prefixActive : ''}`}
-                  title="プレフィックス"
-                >
-                  {broadcastPrefix === 'clear' ? (
-                    <>
-                      <Eraser size={14} aria-hidden />
-                      <span className={s.prefixLabel}>/clear</span>
-                    </>
-                  ) : broadcastPrefix === 'commit' ? (
-                    <>
-                      <GitCommit size={14} aria-hidden />
-                      <span className={s.prefixLabel}>/commit</span>
-                    </>
-                  ) : (
-                    <>
-                      <Minus size={14} aria-hidden />
-                      <span className={s.prefixLabel}>プレフィックス</span>
-                    </>
-                  )}
-                  <ChevronDown size={14} aria-hidden />
-                </button>
-                {showPrefixMenu && (
-                  <div className={s.prefixMenu}>
-                    {(
-                      [
-                        { v: 'none', label: 'なし', icon: Minus },
-                        { v: 'clear', label: '/clear（送信前）', icon: Eraser },
-                        { v: 'commit', label: '/commit（送信後）', icon: GitCommit },
-                      ] as Array<{
-                        v: BroadcastPrefix;
-                        label: string;
-                        icon: typeof Minus;
-                      }>
-                    ).map((opt) => {
-                      const Icon = opt.icon;
-                      return (
-                        <button
-                          type="button"
-                          key={opt.v}
-                          onClick={() => {
-                            setBroadcastPrefix(opt.v);
-                            setShowPrefixMenu(false);
-                          }}
-                          className={`${s.prefixMenuItem} ${broadcastPrefix === opt.v ? s.prefixMenuItemActive : ''}`}
-                        >
-                          <Icon size={14} aria-hidden />
-                          <span>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            }
-          />
-        </div>
+          <div className={s.broadcastInner}>
+            <div className={s.broadcastLabel}>
+              {selectedCount} 件の worktree に一斉送信
+            </div>
+            <TextInput
+              onSendCommand={handleBroadcastSendCommand}
+              onAddToQueue={handleBroadcastAddToQueue}
+              currentProvider="claude"
+              currentRepository={BROADCAST_REPO_KEY}
+              isPrimary
+              disabled={!isConnected || selectedCount === 0}
+              inputDisabled={!isConnected}
+              autoFocus={false}
+              sendSettings={broadcastSendSettings}
+              onSendSettingsChange={setBroadcastSendSettings}
+              onPasteFile={onPasteFile}
+              isUploadingFile={isUploadingFile}
+              hideWorkflowControls
+            />
+          </div>
         </section>
       )}
 

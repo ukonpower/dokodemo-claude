@@ -23,7 +23,11 @@ export interface UseWorktreeDashboardReturn {
   broadcastPrompt: (
     rids: string[],
     prompt: string,
-    options: { sendClearBefore?: boolean; sendCommitAfter?: boolean }
+    options: {
+      sendClearBefore?: boolean;
+      sendCommitAfter?: boolean;
+      model?: string;
+    }
   ) => void;
 }
 
@@ -242,7 +246,11 @@ export function useWorktreeDashboard(
     (
       rids: string[],
       prompt: string,
-      options: { sendClearBefore?: boolean; sendCommitAfter?: boolean }
+      options: {
+        sendClearBefore?: boolean;
+        sendCommitAfter?: boolean;
+        model?: string;
+      }
     ) => {
       if (!socket) return;
       for (const rid of rids) {
@@ -258,6 +266,7 @@ export function useWorktreeDashboard(
           prompt,
           sendClearBefore: options.sendClearBefore,
           isAutoCommit: options.sendCommitAfter,
+          model: options.model,
         });
       }
     },

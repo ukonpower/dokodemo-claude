@@ -523,6 +523,8 @@ function App() {
         lastAccessTimes={repository.lastAccessTimes}
         appSettings={appSettings.appSettings}
         onSettingsChange={appSettings.handleSettingsChange}
+        onPasteFile={fileManager.uploadFile}
+        isUploadingFile={fileManager.isUploadingFile}
         onSwitchToProjectView={() => setDashboardModeAndPersist(false)}
         onOpenWorktree={(path) => {
           setDashboardModeAndPersist(false);

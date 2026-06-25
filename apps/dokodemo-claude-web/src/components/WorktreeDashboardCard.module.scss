@@ -132,19 +132,7 @@
 }
 
 .inputArea {
-  padding: 0.4rem 0.5rem;
+  padding: 0.4rem 0.5rem 0.5rem;
   background-color: $dark-bg-tertiary;
   border-top: 1px solid $dark-border;
-}
-
-.queueToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  cursor: pointer;
-
-  input {
-    accent-color: $blue-500;
-    cursor: pointer;
-  }
 }

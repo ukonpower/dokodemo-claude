@@ -256,81 +256,16 @@
 .broadcastInner {
   max-width: 1400px;
   margin: 0 auto;
-}
-
-.prefixWrapper {
-  position: relative;
-  flex-shrink: 0;
-  display: flex;
-}
-
-.prefixButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0 0.6rem;
-  font-size: 0.75rem;
-  background-color: $dark-bg-tertiary;
-  color: $dark-text-secondary;
-  border: 1px solid $dark-border;
-  border-radius: $radius-md;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all $transition-fast $transition-easing;
-  margin-right: 0.3rem;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-  }
-}
-
-.prefixActive {
-  border-color: $accent-blue;
-  color: $accent-blue;
-}
-
-.prefixLabel {
-  @include sm-down {
-    display: none;
-  }
-}
-
-.prefixMenu {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  z-index: 100;
   display: flex;
   flex-direction: column;
-  min-width: 200px;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border;
-  border-radius: $radius-sm;
-  box-shadow: $shadow-md;
+  gap: 0.35rem;
 }
 
-.prefixMenuItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.7rem;
-  font-size: 0.75rem;
-  text-align: left;
-  background: transparent;
-  color: $dark-text-primary;
-  border: none;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-  }
-}
-
-.prefixMenuItemActive {
-  background-color: $dark-bg-hover;
+.broadcastLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
   color: $accent-blue;
+  letter-spacing: 0.02em;
 }
 
 .contentRow {
