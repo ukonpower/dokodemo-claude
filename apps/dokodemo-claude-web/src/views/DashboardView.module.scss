@@ -6,6 +6,18 @@
   color: $dark-text-primary;
   // 下部固定の broadcastBar 分の余白
   padding-bottom: env(safe-area-inset-bottom, 0);
+
+  // 画面端の固定 RepositorySwitcher（PC=下部 / モバイル=上部）分の余白
+  @include md-up {
+    // PC では root を画面高さに固定し、main 内部スクロールにする
+    height: 100vh;
+    min-height: 0;
+    padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0));
+  }
+
+  @include md-down {
+    padding-top: 3rem;
+  }
 }
 
 .toolbar {
@@ -133,13 +145,10 @@
   gap: 0.3rem;
   font-size: 0.75rem;
   color: $dark-text-secondary;
-}
 
-.columnsLabel {
-  display: none;
-
-  @include sm-up {
-    display: inline;
+  // スマホは grid が 1 列固定なので列選択 UI は非表示
+  @include md-down {
+    display: none;
   }
 }
 
@@ -212,6 +221,18 @@
   }
 }
 
+.pcOnlyButton {
+  @include md-down {
+    display: none;
+  }
+}
+
+.spOnlyButton {
+  @include md-up {
+    display: none;
+  }
+}
+
 .broadcastBar {
   position: sticky;
   bottom: 0;
@@ -222,7 +243,13 @@
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
 
   @include md-up {
-    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0));
+    // PC では root を 100vh 固定 + flex column で、最下端 3rem は
+    // 固定 RepositorySwitcher 用の余白として root padding で確保している。
+    // broadcastBar は通常の flex item として contentRow の下に並べる。
+    position: relative;
+    bottom: auto;
+    flex-shrink: 0;
+    padding: 0.6rem 1rem;
   }
 }
 
@@ -306,12 +333,30 @@
   color: $accent-blue;
 }
 
+.contentRow {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.sidebarSlot {
+  display: flex;
+  flex-shrink: 0;
+
+  // SP ではサイドバー自体を非表示。フィルタはツールバーのモーダルで代替
+  @include md-down {
+    display: none;
+  }
+}
+
 .main {
   flex: 1;
+  min-width: 0;
   padding: 0.75rem;
 
   @include md-up {
     padding: 1rem;
+    overflow-y: auto;
   }
 }
 

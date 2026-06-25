@@ -520,6 +520,7 @@ function App() {
         currentRepo={repository.currentRepo}
         repositories={repository.repositories}
         repoProcessStatuses={repository.repoProcessStatuses}
+        lastAccessTimes={repository.lastAccessTimes}
         appSettings={appSettings.appSettings}
         onSettingsChange={appSettings.handleSettingsChange}
         onSwitchToProjectView={() => setDashboardModeAndPersist(false)}
@@ -527,6 +528,7 @@ function App() {
           setDashboardModeAndPersist(false);
           switchRepositoryFromList(path);
         }}
+        onSwitchRepository={switchRepositoryFromList}
         onOpenFileViewer={() => {
           const url = new URL(window.location.href);
           url.searchParams.set('view', 'files');

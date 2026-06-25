@@ -1,0 +1,282 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
+  background-color: $dark-bg-secondary;
+  border-right: 1px solid $dark-border;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.titleArea {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $dark-text-primary;
+}
+
+.count {
+  font-size: 0.7rem;
+  color: $dark-text-muted;
+}
+
+.collapseButton {
+  @include flex-center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.quickButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.list {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem 0;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 1rem 0.6rem;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  text-align: center;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.itemHidden {
+  opacity: 0.45;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.visToggle {
+  @include flex-center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.visToggleOn {
+  color: $accent-blue;
+
+  &:hover {
+    color: $accent-blue;
+  }
+}
+
+.broadcastCheckLabel {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.broadcastCheck {
+  width: 14px;
+  height: 14px;
+  accent-color: $blue-500;
+  cursor: pointer;
+}
+
+.branchName {
+  flex: 1;
+  font-size: 0.75rem;
+  color: $dark-text-primary;
+  @include truncate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.mainTag {
+  font-size: 0.6rem;
+  padding: 0.02rem 0.25rem;
+  border-radius: $radius-sm;
+  background-color: $dark-bg-hover;
+  color: $dark-text-secondary;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.memoToggle {
+  @include flex-center;
+  gap: 0.1rem;
+  width: auto;
+  height: 22px;
+  padding: 0 0.3rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.memoToggleOpen {
+  color: $accent-blue;
+
+  .memoChevron {
+    transform: rotate(180deg);
+  }
+}
+
+.memoChevron {
+  transition: transform $transition-fast $transition-easing;
+}
+
+.openButton {
+  @include flex-center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.memoPreview {
+  margin-top: 0.2rem;
+  margin-left: 1.8rem;
+  padding: 0;
+  font-size: 0.7rem;
+  color: $dark-text-muted;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  @include truncate;
+
+  &:hover {
+    color: $dark-text-secondary;
+  }
+}
+
+.memoBlock {
+  margin-top: 0.3rem;
+  margin-left: 1.8rem;
+  padding: 0.4rem 0.5rem;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  font-size: 0.72rem;
+  color: $dark-text-secondary;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.handle {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 22px;
+  align-self: stretch;
+  background-color: $dark-bg-secondary;
+  border: none;
+  border-right: 1px solid $dark-border;
+  color: $dark-text-muted;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}

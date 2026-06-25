@@ -6,9 +6,10 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, StickyNote } from 'lucide-react';
 import TerminalOut from './TerminalOut';
 import DashboardPromptInput from './DashboardPromptInput';
+import MarkdownViewer from './MarkdownViewer';
 import type {
   AiOutputLine,
   GitWorktree,
@@ -79,6 +80,11 @@ function WorktreeDashboardCard({
   // 入力欄
   const [draft, setDraft] = useState('');
   const [addToQueue, setAddToQueue] = useState(true);
+
+  // メモ折りたたみ
+  const [memoExpanded, setMemoExpanded] = useState(false);
+  const memoText = worktree.memo?.trim() ?? '';
+  const hasMemo = memoText.length > 0;
 
   // IntersectionObserver で初回表示まで xterm をマウントしない
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -208,6 +214,18 @@ function WorktreeDashboardCard({
           {worktree.branch}
           {worktree.isMain && <span className={s.mainTag}>main</span>}
         </h3>
+        {hasMemo && (
+          <button
+            type="button"
+            onClick={() => setMemoExpanded((v) => !v)}
+            className={`${s.memoToggle} ${memoExpanded ? s.memoToggleOpen : ''}`}
+            title={memoExpanded ? 'メモを閉じる' : 'メモを開く'}
+            aria-expanded={memoExpanded}
+          >
+            <StickyNote size={12} aria-hidden />
+            <ChevronDown size={10} aria-hidden className={s.memoChevron} />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onOpenInNormalView(worktree.path)}
@@ -217,6 +235,12 @@ function WorktreeDashboardCard({
           <ArrowUpRight size={14} />
         </button>
       </header>
+
+      {hasMemo && memoExpanded && (
+        <div className={s.memoBlock}>
+          <MarkdownViewer content={memoText} stopLinkPropagation />
+        </div>
+      )}
 
       <div className={s.terminalArea}>
         {terminalMounted ? (
