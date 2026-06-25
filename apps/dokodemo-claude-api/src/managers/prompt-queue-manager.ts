@@ -390,10 +390,13 @@ export class PromptQueueManager extends EventEmitter {
         provider
       );
 
-      // コールドスタート時は CLI 起動完了を待ってから送信する
-      if (session.coldStart) {
-        await this.aiSessionAdapter.waitForSessionReady(session.id);
-      }
+      // CLI が入力受付可能になるまで待ってから送信する。
+      // ensure-primary-instance などで先に PTY を spawn 済みの場合
+      // coldStart=false が返るが、CLI 起動完了前に prompt を打ち込むと
+      // 取りこぼされるため、ここでも必ず ready を待機する
+      // （waitForSessionReady() は session.readyPromise を await するだけで、
+      // 既に ready 済みなら即座に resolve するためコストは無い）。
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
       await this.sendItemCommands(session.id, item, session.coldStart);
@@ -761,10 +764,13 @@ export class PromptQueueManager extends EventEmitter {
         provider
       );
 
-      // コールドスタート時は CLI 起動完了を待ってから送信する
-      if (session.coldStart) {
-        await this.aiSessionAdapter.waitForSessionReady(session.id);
-      }
+      // CLI が入力受付可能になるまで待ってから送信する。
+      // ensure-primary-instance などで先に PTY を spawn 済みの場合
+      // coldStart=false が返るが、CLI 起動完了前に prompt を打ち込むと
+      // 取りこぼされるため、ここでも必ず ready を待機する
+      // （waitForSessionReady() は session.readyPromise を await するだけで、
+      // 既に ready 済みなら即座に resolve するためコストは無い）。
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
       await this.sendItemCommands(session.id, item, session.coldStart);

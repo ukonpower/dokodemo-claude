@@ -43,6 +43,10 @@ export interface ActiveAiSession {
   createdAt: number;
   lastAccessedAt: number;
   outputHistory: AiOutputLine[];
+  // spawn 時に背景で開始する起動完了待ち。waitForSessionReady() はこの
+  // promise を await するだけ。複数の経路から ensureSession しても 1 回だけ
+  // 待機すれば済み、2 回目以降は即時 resolve となる。
+  readyPromise: Promise<void>;
 }
 
 export interface CreateInstanceOptions {
@@ -228,7 +232,13 @@ export class AISessionManager extends EventEmitter {
       createdAt: Date.now(),
       lastAccessedAt: Date.now(),
       outputHistory: [],
+      // 直後に startSessionReadyWatcher(session) で上書きする。readyPromise を
+      // ActiveAiSession に同梱しておくと、ensure-primary-instance 経由で作られた
+      // 直後の primary に対してキュー側が ensureSession→coldStart=false で待機を
+      // スキップし、CLI 起動中に prompt を打ち込んで取りこぼす race を防げる。
+      readyPromise: Promise.resolve(),
     };
+    session.readyPromise = this.startSessionReadyWatcher(session);
 
     let pendingOutput = '';
     let flushScheduled = false;
@@ -598,20 +608,14 @@ export class AISessionManager extends EventEmitter {
   }
 
   /**
-   * コールドスタート直後のセッションが入力受付可能になるまで待つ。
-   * PTY 出力が SESSION_READY_QUIET_PERIOD_MS 途切れたら初期描画完了とみなして
-   * resolve する。CLI が初期出力を始める前に誤判定しないよう最低
-   * SESSION_READY_MIN_WAIT_MS は待ち、出力が止まらない環境では
-   * SESSION_READY_MAX_WAIT_MS で打ち切る。
+   * spawn 直後のセッションに対して PTY 出力の静止を監視し、起動完了と
+   * 判定したら resolve する promise を生成する。
+   * 1 セッションにつき 1 度だけ呼び出し、結果を session.readyPromise として
+   * キャッシュする。waitForSessionReady() はこれを await するだけ。
    */
-  async waitForSessionReady(sessionId: string): Promise<void> {
-    const instanceId = this.sessionIdIndex.get(sessionId);
-    if (!instanceId) return;
-    const session = this.activeSessions.get(instanceId);
-    if (!session) return;
-
+  private startSessionReadyWatcher(session: ActiveAiSession): Promise<void> {
     const start = Date.now();
-    await new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
       const check = () => {
         const elapsed = Date.now() - start;
         // lastAccessedAt は PTY 出力受信のたびに更新される
@@ -632,6 +636,18 @@ export class AISessionManager extends EventEmitter {
       };
       setTimeout(check, SESSION_READY_POLL_INTERVAL_MS);
     });
+  }
+
+  /**
+   * セッションが入力受付可能になるまで待つ。spawn 時に開始した監視 promise を
+   * await するだけ。既に ready なら即座に resolve する。
+   */
+  async waitForSessionReady(sessionId: string): Promise<void> {
+    const instanceId = this.sessionIdIndex.get(sessionId);
+    if (!instanceId) return;
+    const session = this.activeSessions.get(instanceId);
+    if (!session) return;
+    await session.readyPromise;
   }
 
   /**
