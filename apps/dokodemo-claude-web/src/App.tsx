@@ -24,7 +24,7 @@ import {
 } from './hooks';
 
 // ビュー
-import { HomeView, ProjectView, FileViewerView } from './views';
+import { HomeView, ProjectView, FileViewerView, DashboardView } from './views';
 
 // 差分詳細ビュー
 import DiffViewer from './components/DiffViewer';
@@ -41,9 +41,24 @@ function App() {
   // URLからリポジトリを取得
   const urlParams = new URLSearchParams(window.location.search);
   const initialRepo = urlParams.get('repo') || '';
+  const initialViewFromUrl = urlParams.get('view');
 
   // リポジトリ管理
   const repository = useRepository(socket, initialRepo);
+
+  // ダッシュボードビューモードの状態管理
+  // URL に ?view=dashboard が付いていれば最優先で有効化、無ければ localStorage
+  // から前回の状態を復元する。ファイルビュワー (?view=files) や diff が
+  // アクティブなら下流の条件分岐で隠れるため、ここでは購読範囲のみ管理する。
+  const [dashboardMode, setDashboardMode] = useState<boolean>(() => {
+    if (initialViewFromUrl === 'dashboard') return true;
+    if (!initialRepo) return false;
+    try {
+      return localStorage.getItem(`dokodemo-view-mode-${initialRepo}`) === 'dashboard';
+    } catch {
+      return false;
+    }
+  });
 
   // アプリケーション設定
   const appSettings = useAppSettings(repository.currentRepo);
@@ -296,10 +311,16 @@ function App() {
 
       if (viewFromUrl === 'files') {
         // ファイルビュワーのpopstate対応はフック内で状態管理
-        // ここでは何もしない（URLから状態を復元するため）
+        setDashboardMode(false);
       } else if (viewFromUrl === 'diff' && fileFromUrl) {
+        setDashboardMode(false);
         gitDiff.handleDiffFileClick(fileFromUrl);
+      } else if (viewFromUrl === 'dashboard') {
+        setDashboardMode(true);
+        gitDiff.handleDiffViewBack();
+        fileViewer.clearState();
       } else {
+        setDashboardMode(false);
         gitDiff.handleDiffViewBack();
         fileViewer.clearState();
       }
@@ -308,6 +329,48 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [repository, gitDiff, fileViewer]);
+
+  // リポジトリ切り替え時にダッシュボードモードを localStorage から復元
+  useEffect(() => {
+    if (!repository.currentRepo) return;
+    try {
+      const saved = localStorage.getItem(
+        `dokodemo-view-mode-${repository.currentRepo}`
+      );
+      setDashboardMode(saved === 'dashboard');
+    } catch {
+      /* noop */
+    }
+  }, [repository.currentRepo]);
+
+  // ダッシュボードモード切替（URL と localStorage に反映）
+  const setDashboardModeAndPersist = useCallback(
+    (next: boolean) => {
+      setDashboardMode(next);
+      const repo = currentRepoRef.current;
+      if (repo) {
+        try {
+          localStorage.setItem(
+            `dokodemo-view-mode-${repo}`,
+            next ? 'dashboard' : 'project'
+          );
+        } catch {
+          /* noop */
+        }
+      }
+      // URL も同期（リポジトリ切替で消えるので個別管理）
+      const url = new URL(window.location.href);
+      if (next) {
+        url.searchParams.set('view', 'dashboard');
+      } else {
+        if (url.searchParams.get('view') === 'dashboard') {
+          url.searchParams.delete('view');
+        }
+      }
+      window.history.pushState({}, '', url.toString());
+    },
+    []
+  );
 
   // ファイルビュワーが開かれたらGit差分サマリーを取得
   useEffect(() => {
@@ -440,6 +503,49 @@ function App() {
           onSwitchRepository={switchRepositoryFromList}
         />
       </div>
+    );
+  }
+
+  // ダッシュボードビュー
+  if (dashboardMode) {
+    return (
+      <DashboardView
+        socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
+        isConnected={isConnected}
+        isReconnecting={isReconnecting}
+        connectionAttempts={connectionAttempts}
+        primaryInstance={aiCli.primaryInstance}
+        worktrees={branchWorktree.worktrees}
+        parentRepoPath={branchWorktree.parentRepoPath}
+        currentRepo={repository.currentRepo}
+        repositories={repository.repositories}
+        repoProcessStatuses={repository.repoProcessStatuses}
+        lastAccessTimes={repository.lastAccessTimes}
+        appSettings={appSettings.appSettings}
+        onSettingsChange={appSettings.handleSettingsChange}
+        onPasteFile={fileManager.uploadFile}
+        isUploadingFile={fileManager.isUploadingFile}
+        onSwitchToProjectView={() => setDashboardModeAndPersist(false)}
+        onOpenWorktree={(path) => {
+          setDashboardModeAndPersist(false);
+          switchRepositoryFromList(path);
+        }}
+        onSwitchRepository={switchRepositoryFromList}
+        onOpenFileViewer={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('view', 'files');
+          window.open(url.toString(), '_blank');
+        }}
+        onStartCodeServer={editorLauncher.startCodeServer}
+        startingCodeServer={editorLauncher.startingCodeServer}
+        isLocalhost={editorLauncher.isLocalhost}
+        availableEditors={editorLauncher.availableEditors}
+        showEditorMenu={editorLauncher.showEditorMenu}
+        setShowEditorMenu={editorLauncher.setShowEditorMenu}
+        editorMenuRef={editorLauncher.editorMenuRef}
+        onOpenInEditor={editorLauncher.openInEditor}
+        remoteUrl={editorLauncher.remoteUrl}
+      />
     );
   }
 
@@ -615,6 +721,8 @@ function App() {
       // WorktreeTabs はクリック時に setLastWorktreeForParent を先に呼ぶため、
       // ラッパー経由でも結果が変わらないことを担保している。
       onSwitchRepository={switchRepositoryFromList}
+      // ダッシュボード切替
+      onOpenDashboard={() => setDashboardModeAndPersist(true)}
     />
   );
 }

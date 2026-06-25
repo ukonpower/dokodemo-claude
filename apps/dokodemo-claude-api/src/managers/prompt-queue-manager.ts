@@ -21,6 +21,12 @@ const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 // 入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
 const COLD_START_ENTER_RETRY_MS = 600;
 
+// 送信から指定時間内に UserPromptSubmit hook が発火しなければ、CLI に届かなかった
+// or 本文が TUI ダイアログ（スラッシュコマンド等）に飲まれたと判断し、currentItem を
+// completed として次に進める。最長経路（/clear + /model + cold-start）の所要時間
+// 約 4.1s に対して十分な grace を取った 6s。
+const SEND_WATCHDOG_FROM_READY_MS = 6000;
+
 /**
  * AIセッションとのやり取りを抽象化するインターフェース
  */
@@ -35,8 +41,9 @@ export interface QueueAiSessionAdapter {
 
   /**
    * セッションにコマンドを送信
+   * 戻り値: PTY 書き込みに成功したかどうか（セッション/インスタンスが見つからなければ false）
    */
-  sendCommand(sessionId: string, command: string): void;
+  sendCommand(sessionId: string, command: string): boolean;
 
   /**
    * セッションを確保（存在しなければ作成）
@@ -390,13 +397,19 @@ export class PromptQueueManager extends EventEmitter {
         provider
       );
 
-      // コールドスタート時は CLI 起動完了を待ってから送信する
-      if (session.coldStart) {
-        await this.aiSessionAdapter.waitForSessionReady(session.id);
-      }
+      // CLI が入力受付可能になるまで待ってから送信する。
+      // ensure-primary-instance などで先に PTY を spawn 済みの場合
+      // coldStart=false が返るが、CLI 起動完了前に prompt を打ち込むと
+      // 取りこぼされるため、ここでも必ず ready を待機する
+      // （waitForSessionReady() は session.readyPromise を await するだけで、
+      // 既に ready 済みなら即座に resolve するためコストは無い）。
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
       await this.sendItemCommands(session.id, item, session.coldStart);
+
+      // processNextItem と同じく送信ウォッチドッグを仕掛ける
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -637,7 +650,8 @@ export class PromptQueueManager extends EventEmitter {
         await this.sendSlashCommand(
           session.id,
           '/dokodemo-claude-tools:workflow-plan-codexreview',
-          session.coldStart
+          session.coldStart,
+          { repositoryPath, provider, itemId: 'codex-review' }
         );
       } catch (error) {
         console.error('[PromptQueueManager] Codexレビューセッションエラー:', error);
@@ -664,7 +678,8 @@ export class PromptQueueManager extends EventEmitter {
         await this.sendSlashCommand(
           session.id,
           '/dokodemo-claude-tools:commit-push',
-          session.coldStart
+          session.coldStart,
+          { repositoryPath, provider, itemId: 'auto-commit' }
         );
       } catch (error) {
         console.error('[PromptQueueManager] セッション確保エラー:', error);
@@ -716,6 +731,87 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * 送信後 SEND_WATCHDOG_FROM_READY_MS 以内に UserPromptSubmit hook が発火しない
+   * ケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ / PTY write 失敗等）
+   * を検出して currentItem を completed として次へ進める。Stop hook 経路や
+   * forceSendItem / cancelCurrentItem / removeFromQueue で先に状態が変わって
+   * いれば全部 no-op に倒す。
+   */
+  private scheduleSendWatchdog(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string
+  ): void {
+    setTimeout(async () => {
+      const state = this.queues.get(this.getQueueKey(repositoryPath, provider));
+      if (!state) return;
+      if (state.currentItemId !== itemId) return;
+      if (!state.isProcessing) return;
+
+      // UserPromptSubmit が発火していれば primary は running 状態。送信成功と
+      // 判断して何もしない（Stop hook の到達を待つ）。
+      const aiBusy =
+        this.aiSessionAdapter?.isPrimaryAiBusy(repositoryPath, provider) ??
+        false;
+      if (aiBusy) return;
+
+      const item = state.queue.find((i) => i.id === itemId);
+      if (!item || item.status !== 'processing') return;
+
+      console.warn(
+        `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} は UserPromptSubmit を引き起こさなかったため completed として次へ進めます`
+      );
+      item.status = 'completed';
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+      await this.persistQueues();
+
+      this.emit('prompt-queue-processing-completed', {
+        repositoryPath,
+        provider,
+        itemId,
+        success: true,
+      });
+      this.emitQueueUpdated(repositoryPath, provider, state);
+
+      await this.processNextItem(repositoryPath, provider);
+    }, SEND_WATCHDOG_FROM_READY_MS);
+  }
+
+  /**
+   * PTY 書き込み失敗を即時に検出した際の状態巻き戻し。
+   * watchdog の completed パスと対になり、こちらは failed として倒す。
+   */
+  private async handleSendFailure(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string
+  ): Promise<void> {
+    const state = this.queues.get(this.getQueueKey(repositoryPath, provider));
+    if (!state || state.currentItemId !== itemId) return;
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item || item.status !== 'processing') return;
+
+    console.warn(
+      `[PromptQueueManager] PTY 書き込みに失敗したため ${itemId} を failed に倒します`
+    );
+    item.status = 'failed';
+    state.isProcessing = false;
+    state.currentItemId = undefined;
+    await this.persistQueues();
+
+    this.emit('prompt-queue-processing-completed', {
+      repositoryPath,
+      provider,
+      itemId,
+      success: false,
+    });
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    await this.processNextItem(repositoryPath, provider);
+  }
+
+  /**
    * 次のキューアイテムを処理
    */
   private async processNextItem(
@@ -755,19 +851,29 @@ export class PromptQueueManager extends EventEmitter {
       itemId: item.id,
     });
 
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
     try {
       const session = await this.aiSessionAdapter.ensureSession(
         repositoryPath,
         provider
       );
 
-      // コールドスタート時は CLI 起動完了を待ってから送信する
-      if (session.coldStart) {
-        await this.aiSessionAdapter.waitForSessionReady(session.id);
-      }
+      // CLI が入力受付可能になるまで待ってから送信する。
+      // ensure-primary-instance などで先に PTY を spawn 済みの場合
+      // coldStart=false が返るが、CLI 起動完了前に prompt を打ち込むと
+      // 取りこぼされるため、ここでも必ず ready を待機する
+      // （waitForSessionReady() は session.readyPromise を await するだけで、
+      // 既に ready 済みなら即座に resolve するためコストは無い）。
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
       await this.sendItemCommands(session.id, item, session.coldStart);
+
+      // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
+      // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
+      // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -782,6 +888,8 @@ export class PromptQueueManager extends EventEmitter {
         success: false,
       });
 
+      this.emitQueueUpdated(repositoryPath, provider, state);
+
       await this.processNextItem(repositoryPath, provider);
     }
   }
@@ -790,11 +898,18 @@ export class PromptQueueManager extends EventEmitter {
    * スラッシュコマンド（/commit-push 等）を送信する。
    * コールドスタート時は CLI 起動完了を待ってから送り、Enter 取りこぼし対策で
    * Enter を 1 回追加送信する。
+   * 最初の write が PTY 失敗で false を返した場合は、watchdog を待たず即時で
+   * failed に倒す（itemId にはセンチネル 'auto-commit' / 'codex-review' を渡す）。
    */
   private async sendSlashCommand(
     sessionId: string,
     command: string,
-    coldStart: boolean
+    coldStart: boolean,
+    failureContext?: {
+      repositoryPath: string;
+      provider: AiProvider;
+      itemId: string;
+    }
   ): Promise<void> {
     if (!this.aiSessionAdapter) return;
 
@@ -802,7 +917,15 @@ export class PromptQueueManager extends EventEmitter {
       await this.aiSessionAdapter.waitForSessionReady(sessionId);
     }
 
-    this.aiSessionAdapter.sendCommand(sessionId, command);
+    const ok = this.aiSessionAdapter.sendCommand(sessionId, command);
+    if (ok === false && failureContext) {
+      void this.handleSendFailure(
+        failureContext.repositoryPath,
+        failureContext.provider,
+        failureContext.itemId
+      );
+      return;
+    }
     setTimeout(() => {
       this.aiSessionAdapter?.sendCommand(sessionId, '\r');
       if (coldStart) {
@@ -825,7 +948,16 @@ export class PromptQueueManager extends EventEmitter {
 
     const sendPromptWithEnter = (delay: number = 0) => {
       setTimeout(() => {
-        this.aiSessionAdapter?.sendCommand(sessionId, item.prompt);
+        const ok = this.aiSessionAdapter?.sendCommand(sessionId, item.prompt);
+        if (ok === false) {
+          // PTY が死んでいる。watchdog (6s) を待たずに即時で失敗扱いにする
+          void this.handleSendFailure(
+            item.repositoryPath,
+            item.provider,
+            item.id
+          );
+          return;
+        }
         setTimeout(() => {
           this.aiSessionAdapter?.sendCommand(sessionId, '\r');
           // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
@@ -931,9 +1063,18 @@ export class PromptQueueManager extends EventEmitter {
     this.queues.clear();
     for (const state of result.value) {
       const key = this.getQueueKey(state.repositoryPath, state.provider);
-      // 復元時は処理中状態をリセット
+      // 前回プロセスで processing のまま残った item は、Stop hook を取り逃した
+      // 可能性があるので pending に巻き戻す。processing のまま放置されると
+      // processNextItem の pending フィルタから永久に外れ、キューが詰まる。
+      const restoredQueue = state.queue.map((item) =>
+        item.status === 'processing'
+          ? { ...item, status: 'pending' as const }
+          : item
+      );
+
       this.queues.set(key, {
         ...state,
+        queue: restoredQueue,
         isProcessing: false,
         currentItemId: undefined,
       });

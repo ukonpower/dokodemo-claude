@@ -67,6 +67,9 @@
 }
 
 .footerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
   background: none;
   border: none;

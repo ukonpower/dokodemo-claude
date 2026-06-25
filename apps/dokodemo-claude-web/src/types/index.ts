@@ -701,6 +701,17 @@ export interface ClientToServerEvents {
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
   }) => void;
+  /**
+   * 指定 rid のプライマリ AI インスタンスが無ければ作成する。
+   * switch-repo と違い、クライアントのアクティブ repo を変更しない。
+   * ダッシュボードから複数 worktree をまとめて起動する用途。
+   */
+  'ensure-primary-instance': (data: {
+    rid: string;
+    provider: AiProvider;
+    initialSize?: { cols: number; rows: number };
+    permissionMode?: PermissionMode;
+  }) => void;
   'close-ai-instance': (data: { instanceId: string }) => void;
   'rename-ai-instance': (data: { instanceId: string; displayName: string }) => void;
 
@@ -866,6 +877,7 @@ export interface ClientToServerEvents {
   // code-server関連イベント
   'get-code-server-url': (data: {
     rid: string; // リポジトリID（必須）
+    clientHost?: string; // クライアント側で見えているホスト（window.location.host）
   }) => void;
 
   // dokodemo-claude自身の更新関連イベント

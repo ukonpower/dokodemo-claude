@@ -45,3 +45,6 @@ export type { UseWebPushReturn } from './useWebPush';
 
 export { useCustomAiButtons } from './useCustomAiButtons';
 export type { UseCustomAiButtonsReturn } from './useCustomAiButtons';
+
+export { useWorktreeDashboard } from './useWorktreeDashboard';
+export type { UseWorktreeDashboardReturn } from './useWorktreeDashboard';

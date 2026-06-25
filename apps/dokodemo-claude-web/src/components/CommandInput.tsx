@@ -126,6 +126,8 @@ interface TextInputProps {
   isUploadingFile?: boolean;
   /** ワークフローファイルを開くハンドラ（オプション） */
   onOpenWorkflowFile?: (path: string) => void;
+  /** ワークフローコントロール（research/plan/Auto 等）とファイルリンクを非表示にする */
+  hideWorkflowControls?: boolean;
 }
 
 // ワークフロースキルの定義
@@ -179,6 +181,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       onPasteFile,
       isUploadingFile = false,
       onOpenWorkflowFile,
+      hideWorkflowControls = false,
     },
     ref
   ) => {
@@ -976,7 +979,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     return (
       <div className={s.root}>
         {/* ワークフローコントロール */}
-        {onAddToQueue && (
+        {onAddToQueue && !hideWorkflowControls && (
           <div className={s.workflowControls}>
             {/* 行1: スキル選択 + Auto */}
             <div className={s.skillRow}>
@@ -1063,7 +1066,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         )}
         {/* ファイルリンク（右寄せ・ワークフローコンテナの外） */}
-        {onAddToQueue && onOpenWorkflowFile && (
+        {onAddToQueue && onOpenWorkflowFile && !hideWorkflowControls && (
           <div className={s.fileLinks}>
             {WORKFLOW_SKILLS.filter((sk): sk is typeof sk & { file: string } => 'file' in sk).map((skill) => (
               <button

@@ -173,6 +173,24 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
     }
   });
 
+  // プライマリインスタンスを必要に応じて作成（active repo は変更しない）
+  // ダッシュボードで未起動の worktree を立ち上げるための専用エントリ
+  socket.on('ensure-primary-instance', async (data) => {
+    const { rid, provider, initialSize, permissionMode } = data;
+    try {
+      const repositoryPath = repositoryIdManager.getPath(rid);
+      await processManager.ensurePrimaryInstance(repositoryPath, provider, {
+        initialSize,
+        permissionMode,
+      });
+      // 起動済みなら no-op、新規作成なら ai-instance-created が emit されて
+      // フロントの primaryInstances が更新される
+      broadcastInstancesList(io, processManager, repositoryPath);
+    } catch (error) {
+      console.error('[ensure-primary-instance] failed:', error);
+    }
+  });
+
   // サブインスタンス作成
   socket.on('create-ai-instance', async (data) => {
     const { rid, provider, initialSize, permissionMode } = data;

@@ -166,7 +166,10 @@ export function useEditorLauncher(
       setStartingCodeServer(true);
       const rid = repositoryIdMap.getRid(currentRepo);
       if (!rid) return;
-      socket.emit('get-code-server-url', { rid });
+      socket.emit('get-code-server-url', {
+        rid,
+        clientHost: window.location.host,
+      });
     }
   }, [socket, currentRepo]);
 

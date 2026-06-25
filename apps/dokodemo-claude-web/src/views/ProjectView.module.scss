@@ -391,6 +391,35 @@
   flex-shrink: 0;
 }
 
+// ダッシュボード切替ボタン（WorktreeTabs の右隣）
+.dashboardButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+  }
+}
+
+.dashboardButtonIcon {
+  flex-shrink: 0;
+}
+
 // Claude CLI セクション
 .cliSection {
   background-color: $dark-bg-secondary;
