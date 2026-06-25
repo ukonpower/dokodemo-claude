@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
+import { promises as fs, statSync } from 'fs';
 import path from 'path';
 import type {
   GitBranch,
@@ -620,14 +620,35 @@ export async function deleteRemoteBranch(
 /**
  * 親リポジトリパスを取得（ワークツリーの場合は親を返す）
  */
+/**
+ * `repoPath/.git` が gitlink ファイル（git worktree の目印）であるかを返す。
+ * - ファイル: worktree
+ * - ディレクトリ: メインリポジトリ
+ * - 存在しない / 読み取り不可: false（worktree ではないとみなす）
+ */
+function isGitlinkAt(repoPath: string): boolean {
+  try {
+    return statSync(path.join(repoPath, '.git')).isFile();
+  } catch {
+    return false;
+  }
+}
+
 export function getMainRepoPath(repoPath: string): string {
+  // パス文字列だけでは worktree かメインリポジトリか確定できない
+  // （メインリポジトリの絶対パスに偶然 .dokodemo-worktrees が含まれるケースがあるため）
+  // `.git` が gitlink ファイルになっているもののみ worktree とみなす
+  if (!isGitlinkAt(repoPath)) {
+    return repoPath;
+  }
+
   // 旧構造: {親}/.worktrees/{ブランチ}
   if (repoPath.includes('/.worktrees/')) {
     return repoPath.split('/.worktrees/')[0];
   }
 
   // 新構造: {親}/../.dokodemo-worktrees/{プロジェクト名}/{ブランチ}
-  const match = repoPath.match(/^(.+?)\/\.dokodemo-worktrees\/([^/]+)\//);
+  const match = repoPath.match(/^(.+)\/\.dokodemo-worktrees\/([^/]+)\//);
   if (match) {
     // match[1]: {親}のパス, match[2]: プロジェクト名
     return path.resolve(match[1], match[2]);
@@ -645,6 +666,13 @@ export function getWorktreeInfo(repoPath: string): {
   parentRepoName?: string;
   worktreeBranch?: string;
 } {
+  // パス文字列のみで判定すると、メインリポジトリの絶対パスに偶然
+  // .dokodemo-worktrees が含まれるケース（dokodemo-claude を worktree 内で起動した時など）を
+  // worktree と誤判定してしまう。`.git` が gitlink ファイルになっているもののみ worktree とみなす。
+  if (!isGitlinkAt(repoPath)) {
+    return { isWorktree: false };
+  }
+
   // 旧構造チェック
   if (repoPath.includes('/.worktrees/')) {
     const parts = repoPath.split('/.worktrees/');
@@ -659,7 +687,7 @@ export function getWorktreeInfo(repoPath: string): {
   }
 
   // 新構造チェック: {親}/../.dokodemo-worktrees/{プロジェクト名}/{ブランチ}
-  const match = repoPath.match(/^(.+?)\/\.dokodemo-worktrees\/([^/]+)\/(.+)$/);
+  const match = repoPath.match(/^(.+)\/\.dokodemo-worktrees\/([^/]+)\/(.+)$/);
   if (match) {
     const parentRepoName = match[2]; // プロジェクト名
     const worktreeBranch = match[3]; // ブランチ名（スラッシュ含む可能性あり）

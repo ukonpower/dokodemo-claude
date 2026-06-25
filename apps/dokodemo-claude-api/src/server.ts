@@ -1031,7 +1031,10 @@ async function loadExistingRepos(): Promise<void> {
 processManager.on('ai-output', (data) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
 
-  emitToRepositoryClients(data.repositoryPath, 'ai-output-line', {
+  // ダッシュボードは複数 worktree の出力を同時に購読する必要があるため、
+  // 親リポジトリを共有する全クライアントへ配信する（通常表示側は rid で
+  // フィルタするので無関係な worktree の出力は無視される）。
+  emitToParentScopedClients(data.repositoryPath, 'ai-output-line', {
     rid,
     instanceId: data.instanceId,
     provider: data.provider,
@@ -1045,7 +1048,7 @@ processManager.on('ai-exit', (data) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
   const exitMessage = `\n=== ${providerName} 終了 (code: ${data.exitCode}, signal: ${data.signal}) ===\n`;
 
-  emitToRepositoryClients(data.repositoryPath, 'ai-output-line', {
+  emitToParentScopedClients(data.repositoryPath, 'ai-output-line', {
     rid,
     instanceId: data.instanceId,
     provider: data.provider,

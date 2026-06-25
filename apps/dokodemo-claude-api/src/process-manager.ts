@@ -167,7 +167,7 @@ export class ProcessManager extends EventEmitter {
         };
       },
       sendCommand: (sessionId: string, command: string) => {
-        this.aiSessionManager.sendInputBySessionId(sessionId, command);
+        return this.aiSessionManager.sendInputBySessionId(sessionId, command);
       },
       ensureSession: async (repositoryPath: string, provider: AiProvider) => {
         const repositoryName = path.basename(repositoryPath);
