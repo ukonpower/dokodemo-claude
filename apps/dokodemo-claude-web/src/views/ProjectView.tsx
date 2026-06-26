@@ -211,7 +211,6 @@ interface ProjectViewProps {
   isLocalhost: boolean;
   editorMenuRef: React.RefObject<HTMLDivElement | null>;
   onOpenInEditor: (editor: EditorType) => void;
-  onStartCodeServer: () => void;
   setShowEditorMenu: (show: boolean) => void;
   setShowPopupBlockedModal: (show: boolean) => void;
   onOpenBlockedUrl: () => void;
@@ -381,7 +380,6 @@ export function ProjectView({
   isLocalhost,
   editorMenuRef,
   onOpenInEditor,
-  onStartCodeServer,
   setShowEditorMenu,
   setShowPopupBlockedModal,
   onOpenBlockedUrl,
@@ -453,7 +451,6 @@ export function ProjectView({
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
         onOpenSettings={() => setShowSettingsModal(true)}
-        onStartCodeServer={onStartCodeServer}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}
         availableEditors={availableEditors}

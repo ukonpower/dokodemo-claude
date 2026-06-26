@@ -387,10 +387,10 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileViewer.isActive]);
 
-  // Ctrl+R / Cmd+R でプロジェクト切り替えポップアップを開く
+  // Ctrl+Shift+P / Cmd+Shift+P でプロジェクト切り替えポップアップを開く
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key === 'r') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         setIsProjectSwitcherOpen((open) => !open);
       }
@@ -593,7 +593,6 @@ function App() {
           url.searchParams.set('view', 'files');
           window.open(url.toString(), '_blank');
         }}
-        onStartCodeServer={editorLauncher.startCodeServer}
         startingCodeServer={editorLauncher.startingCodeServer}
         isLocalhost={editorLauncher.isLocalhost}
         availableEditors={editorLauncher.availableEditors}
@@ -738,7 +737,6 @@ function App() {
       isLocalhost={editorLauncher.isLocalhost}
       editorMenuRef={editorLauncher.editorMenuRef}
       onOpenInEditor={editorLauncher.openInEditor}
-      onStartCodeServer={editorLauncher.startCodeServer}
       setShowEditorMenu={editorLauncher.setShowEditorMenu}
       setShowPopupBlockedModal={editorLauncher.setShowPopupBlockedModal}
       onOpenBlockedUrl={editorLauncher.openBlockedUrl}

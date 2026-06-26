@@ -7,7 +7,7 @@ import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
 
 // エディタの型定義
-type EditorType = 'vscode' | 'cursor';
+type EditorType = 'vscode' | 'cursor' | 'code-server';
 
 interface EditorInfo {
   id: EditorType;
@@ -19,6 +19,7 @@ interface EditorInfo {
 const EDITORS: Omit<EditorInfo, 'available'>[] = [
   { id: 'vscode', name: 'VSCode', command: 'code' },
   { id: 'cursor', name: 'Cursor', command: 'cursor' },
+  { id: 'code-server', name: 'code-server', command: 'code-server' },
 ];
 
 /**

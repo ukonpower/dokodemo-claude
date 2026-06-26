@@ -48,6 +48,46 @@ dokodemo-workspace/
 └── CLAUDE.md                  # 開発ガイドライン
 ```
 
+### 主要エントリポイント
+
+調査時に毎回探さず、まずここを見る。
+
+**backend (`apps/dokodemo-claude-api/src/`)**
+- `server.ts` — Express + Socket.IO のエントリ。`/api`, `/hook`, `/socket.io` を束ねる
+- `code-server.ts` — code-server 連携
+- `utils/clean-env.ts` — env まわりの司令塔。`getApiListenPort()` / `getDokodemoApiBaseUrl()` / `getDokodemoMcpUrl()` / `cleanChildEnv()`（子プロセスへ `DC_*` を引き継がない）
+- `managers/` — `terminal-manager` (node-pty), `ai-session-manager` (Claude CLI セッション)
+- `handlers/` — REST/Socket イベント実装（`repository-handlers`, `diff-handlers`, `misc-handlers` 等）
+- `services/` — `plugin-manager-service`, `claude-hooks-service`
+
+**frontend (`apps/dokodemo-claude-web/src/`)**
+- `utils/backend-url.ts` — `BACKEND_URL` 定義（dev/prod とも `window.location.origin`、frontend にポートをハードコードしない）
+- `vite-env.d.ts` — Vite import.meta.env の型定義（`DC_API_URL` 等）
+- `hooks/`, `components/` — React UI
+
+**ルート**
+- `apps/dokodemo-claude-web/vite.config.ts` — dev サーバ proxy（`/api`, `/hook`, `/socket.io` → `DC_API_PORT`）
+- `scripts/setup-env.js` — `.env.example` → `.env` をコピーするだけのスクリプト
+
+## env 関連ファイルマップ
+
+env 周りを触る依頼で「どのファイルを見るか」迷ったら、ここを起点にする：
+
+| 役割 | ファイル |
+|------|----------|
+| 全 env 変数の定義・既定値・コメント | `.env.example`（ルート） |
+| `.env` 生成 | `scripts/setup-env.js`（`.env.example` をコピー） |
+| backend 側の env 解決（port/URL/MCP/子プロセス） | `apps/dokodemo-claude-api/src/utils/clean-env.ts` |
+| frontend 側の API URL | `apps/dokodemo-claude-web/src/utils/backend-url.ts` |
+| frontend 側 env の TS 型 | `apps/dokodemo-claude-web/src/vite-env.d.ts` |
+| dev proxy（`/api` 等 → Express） | `apps/dokodemo-claude-web/vite.config.ts` |
+| ポート規約 / `DC_*` 一覧 | このファイル下記「ポート割り当て」セクション |
+
+原則：
+- フロントは `window.location.origin` 経由でしか backend を叩かない（ポートは hardcode 禁止）
+- backend → 子プロセスへは `cleanChildEnv()` で `DC_*` を除外する
+- 新規 env を増やすときは `.env.example`・`clean-env.ts`（必要なら）・`vite-env.d.ts`（frontend で使うなら）の 3 点を揃える
+
 ## 開発コマンド
 
 ```bash
