@@ -53,6 +53,24 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
     await emitReposList(socket, repositories);
   });
 
+  // ディレクトリの存在確認（前回開いた worktree が削除されていないかの判定用）
+  socket.on('check-repo-path', async (data) => {
+    const { path: repoPath } = data;
+    if (!repoPath) {
+      socket.emit('repo-path-checked', { path: repoPath, exists: false });
+      return;
+    }
+    try {
+      const stat = await fs.stat(repoPath);
+      socket.emit('repo-path-checked', {
+        path: repoPath,
+        exists: stat.isDirectory(),
+      });
+    } catch {
+      socket.emit('repo-path-checked', { path: repoPath, exists: false });
+    }
+  });
+
   // リポジトリアクセス時刻の更新
   socket.on('update-repo-access', async (data) => {
     const { path: repoPath } = data;
