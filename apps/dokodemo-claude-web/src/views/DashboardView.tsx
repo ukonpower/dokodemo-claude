@@ -62,7 +62,6 @@ interface DashboardViewProps {
 
   // RepoHeader 用
   onOpenFileViewer: () => void;
-  onStartCodeServer: () => void;
   startingCodeServer: boolean;
   isLocalhost: boolean;
   availableEditors: EditorInfo[];
@@ -184,7 +183,6 @@ export function DashboardView({
   onOpenWorktree,
   onSwitchRepository,
   onOpenFileViewer,
-  onStartCodeServer,
   startingCodeServer,
   isLocalhost,
   availableEditors,
@@ -474,7 +472,6 @@ export function DashboardView({
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
         onOpenSettings={() => setShowSettings(true)}
-        onStartCodeServer={onStartCodeServer}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}
         availableEditors={availableEditors}
