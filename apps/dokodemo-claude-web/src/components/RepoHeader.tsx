@@ -1,5 +1,5 @@
 import { useState, type RefObject } from 'react';
-import { Code, ExternalLink, FolderOpen } from 'lucide-react';
+import { ExternalLink, FolderOpen } from 'lucide-react';
 import type { AiInstance, EditorInfo, EditorType, GitRepository } from '../types';
 import s from './RepoHeader.module.scss';
 
@@ -17,10 +17,9 @@ interface RepoHeaderProps {
   // ツールボタン
   onOpenFileViewer: () => void;
   onOpenSettings: () => void;
-  onStartCodeServer: () => void;
   startingCodeServer: boolean;
 
-  // エディタ起動 (localhost のみ)
+  // エディタ起動
   isLocalhost: boolean;
   availableEditors: EditorInfo[];
   showEditorMenu: boolean;
@@ -63,7 +62,6 @@ export function RepoHeader({
   currentRepo,
   onOpenFileViewer,
   onOpenSettings,
-  onStartCodeServer,
   startingCodeServer,
   isLocalhost,
   availableEditors,
@@ -74,6 +72,20 @@ export function RepoHeader({
   remoteUrl,
 }: RepoHeaderProps) {
   const [copiedPath, setCopiedPath] = useState(false);
+
+  // localhost からのアクセスでない場合、ローカルエディタ起動は意味がないので code-server だけ出す
+  const visibleEditors = isLocalhost
+    ? availableEditors
+    : availableEditors.filter((e) => e.id === 'code-server');
+
+  const handleEditorButtonClick = () => {
+    // 候補が1つだけならそのまま起動、複数あればドロップダウン表示
+    if (visibleEditors.length === 1) {
+      onOpenInEditor(visibleEditors[0].id);
+      return;
+    }
+    setShowEditorMenu(!showEditorMenu);
+  };
 
   return (
     <header className={s.header}>
@@ -143,28 +155,56 @@ export function RepoHeader({
                 <FolderOpen size={16} />
               </button>
 
-              {isLocalhost && (
+              {visibleEditors.length > 0 && (
                 <div className={s.editorDropdownWrapper} ref={editorMenuRef}>
                   <button
-                    onClick={() => setShowEditorMenu(!showEditorMenu)}
-                    disabled={!isConnected}
+                    onClick={handleEditorButtonClick}
+                    disabled={!isConnected || startingCodeServer}
                     className="btn-icon"
-                    title="エディタで開く"
+                    title={
+                      visibleEditors.length === 1
+                        ? `${visibleEditors[0].name}で開く`
+                        : 'エディタで開く'
+                    }
                   >
-                    <ExternalLink size={16} />
+                    {startingCodeServer ? (
+                      <svg
+                        className={s.spinnerAnimation}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className={s.opacity25}
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className={s.opacity75}
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    ) : (
+                      <ExternalLink size={16} />
+                    )}
                   </button>
 
-                  {showEditorMenu && availableEditors.length > 0 && (
+                  {showEditorMenu && visibleEditors.length > 1 && (
                     <div className={s.editorDropdown}>
                       <div className={s.editorDropdownList}>
-                        {availableEditors.map((editor) => (
+                        {visibleEditors.map((editor) => (
                           <button
                             key={editor.id}
                             onClick={() => onOpenInEditor(editor.id)}
                             className={`${s.editorItem} ${
                               editor.id === 'vscode'
                                 ? s.editorItemVscode
-                                : s.editorItemCursor
+                                : editor.id === 'cursor'
+                                  ? s.editorItemCursor
+                                  : s.editorItemCodeServer
                             }`}
                           >
                             {editor.id === 'vscode' ? (
@@ -175,13 +215,26 @@ export function RepoHeader({
                               >
                                 <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" />
                               </svg>
-                            ) : (
+                            ) : editor.id === 'cursor' ? (
                               <svg
                                 className={`${s.editorItemIcon} ${s.editorIconCursor}`}
                                 fill="currentColor"
                                 viewBox="0 0 24 24"
                               >
                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                              </svg>
+                            ) : (
+                              <svg
+                                className={`${s.editorItemIcon} ${s.editorIconCodeServer}`}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                viewBox="0 0 24 24"
+                              >
+                                <polyline points="16 18 22 12 16 6" />
+                                <polyline points="8 6 2 12 8 18" />
                               </svg>
                             )}
                             {editor.name}
@@ -192,37 +245,6 @@ export function RepoHeader({
                   )}
                 </div>
               )}
-
-              <button
-                onClick={onStartCodeServer}
-                disabled={!isConnected || startingCodeServer}
-                className="btn-icon"
-                title="code-server（ブラウザでVS Code起動）"
-              >
-                {startingCodeServer ? (
-                  <svg
-                    className={s.spinnerAnimation}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className={s.opacity25}
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className={s.opacity75}
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                ) : (
-                  <Code size={16} />
-                )}
-              </button>
             </div>
 
             <button onClick={onOpenSettings} className="btn-icon" title="設定">
