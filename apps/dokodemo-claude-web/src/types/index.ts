@@ -305,6 +305,8 @@ export interface ServerToClientEvents {
 
   'repos-list': (data: { repos: GitRepository[]; lastAccessTimes: Record<string, number> }) => void;
   'repos-process-status': (data: { statuses: RepoProcessStatus[] }) => void;
+  // パス存在確認の結果（worktree 復元前に削除済みでないかを判定するため）
+  'repo-path-checked': (data: { path: string; exists: boolean }) => void;
   'clone-status': (data: { status: string; message: string }) => void;
   'ai-output': (data: AiMessage) => void;
   'ai-output-line': (data: {
@@ -692,6 +694,8 @@ export interface ClientToServerEvents {
   }) => void;
   'list-repos': () => void;
   'update-repo-access': (data: { path: string }) => void;
+  // ディレクトリの存在確認（worktree の復元前チェック用）
+  'check-repo-path': (data: { path: string }) => void;
 
   // AI インスタンス操作
   'list-ai-instances': (data: { rid: string }) => void;
