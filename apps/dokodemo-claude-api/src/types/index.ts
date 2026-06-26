@@ -164,7 +164,8 @@ export interface ServerToClientEvents {
   'id-mapping': (data: IdMappingData) => void;
   'id-mapping-updated': (data: IdMappingData) => void;
 
-  'repos-list': (data: { repos: GitRepository[]; lastAccessTimes: Record<string, number> }) => void;
+  // repos はサーバー側で「最近開いた順」にソート済みで送信される
+  'repos-list': (data: { repos: GitRepository[] }) => void;
   'repos-process-status': (data: { statuses: RepoProcessStatus[] }) => void;
   // パス存在確認の結果（worktree 復元前に削除済みでないかを判定するため）
   'repo-path-checked': (data: { path: string; exists: boolean }) => void;

@@ -51,7 +51,6 @@ interface DashboardViewProps {
   currentRepo: string;
   repositories: GitRepository[];
   repoProcessStatuses: RepoProcessStatus[];
-  lastAccessTimes: Record<string, number>;
   appSettings: AppSettings;
   onSettingsChange: (settings: AppSettings) => void;
   onPasteFile?: (file: File) => Promise<string | undefined>;
@@ -174,7 +173,6 @@ export function DashboardView({
   currentRepo,
   repositories,
   repoProcessStatuses,
-  lastAccessTimes,
   appSettings,
   onSettingsChange,
   onPasteFile,
@@ -679,7 +677,6 @@ export function DashboardView({
       <RepositorySwitcher
         repositories={repositories}
         currentRepo={currentRepo}
-        lastAccessTimes={lastAccessTimes}
         repoProcessStatuses={repoProcessStatuses}
         onSwitchRepository={onSwitchRepository}
       />

@@ -18,10 +18,10 @@ function getDisplayName(repo: GitRepository): string {
 }
 
 interface RepositoryManagerProps {
+  // repositories はサーバー側で「最近開いた順」にソート済み
   repositories: GitRepository[];
   currentRepo: string;
   repoProcessStatuses: RepoProcessStatus[];
-  lastAccessTimes: Record<string, number>;
   onCloneRepository: (url: string, name: string) => void;
   onCreateRepository: (name: string) => void;
   onStopProcesses: (rid: string) => void;
@@ -33,7 +33,6 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   repositories,
   currentRepo,
   repoProcessStatuses,
-  lastAccessTimes,
   onCloneRepository,
   onCreateRepository,
   onStopProcesses,
@@ -77,26 +76,17 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     }
   };
 
-  // 検索クエリに基づいてリポジトリをフィルタリングし、最終アクセス順にソート
-  const filteredRepositories = repositories
-    .filter((repo) => {
-      if (!searchQuery.trim()) return true;
+  // 検索クエリに基づいてリポジトリをフィルタリング（並び順はサーバー側で確定済み）
+  const filteredRepositories = repositories.filter((repo) => {
+    if (!searchQuery.trim()) return true;
 
-      const query = searchQuery.toLowerCase();
-      const name = repo.name.toLowerCase();
-      const path = repo.path.toLowerCase();
-      const url = repo.url?.toLowerCase() || '';
+    const query = searchQuery.toLowerCase();
+    const name = repo.name.toLowerCase();
+    const path = repo.path.toLowerCase();
+    const url = repo.url?.toLowerCase() || '';
 
-      return (
-        name.includes(query) || path.includes(query) || url.includes(query)
-      );
-    })
-    .sort((a, b) => {
-      const timeA = lastAccessTimes[a.path] || 0;
-      const timeB = lastAccessTimes[b.path] || 0;
-
-      return timeB - timeA;
-    });
+    return name.includes(query) || path.includes(query) || url.includes(query);
+  });
 
   return (
     <div className={s.container}>
