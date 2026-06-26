@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .wrapper {
   position: relative;
 }
@@ -461,11 +463,11 @@
   margin-bottom: 0.375rem;
 
   .pullPopupError & {
-    color: lighten($color-error, 15%);
+    color: color.adjust($color-error, $lightness: 15%);
   }
 
   .pullPopupSuccess & {
-    color: lighten($color-success, 10%);
+    color: color.adjust($color-success, $lightness: 10%);
   }
 }
 
