@@ -94,8 +94,12 @@ export function useEditorLauncher(
     const handleAvailableEditors = (
       data: Parameters<ServerToClientEvents['available-editors']>[0]
     ) => {
+      // code-server は dokodemo-claude のコア機能のため、available 判定に関わらず常に選択肢に含める
+      // （ローカルエディタが検出されたときも code-server を選べるようにする）
       setAvailableEditors(
-        data.editors.filter((editor: EditorInfo) => editor.available)
+        data.editors.filter(
+          (editor: EditorInfo) => editor.available || editor.id === 'code-server'
+        )
       );
     };
 
