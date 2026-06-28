@@ -1174,6 +1174,7 @@ io.on('connection', (socket) => {
     registerAllHandlers(socket, {
       io,
       processManager,
+      persistenceService,
       repositories,
       reposDir: REPOS_DIR,
       projectRoot,

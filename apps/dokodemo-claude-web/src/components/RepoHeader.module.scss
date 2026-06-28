@@ -167,6 +167,56 @@
   position: relative;
 }
 
+.editorSplitButton {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.editorMainButton {
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+
+  &:hover:not(:disabled) {
+    color: white;
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.editorMainButtonHasDropdown {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+.editorDropdownToggle {
+  width: 1.25rem;
+  min-width: 1.25rem;
+  padding: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+
+  &:hover:not(:disabled) {
+    color: white;
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .editorDropdown {
   position: absolute;
   right: 0;

@@ -7,9 +7,9 @@ import s from './ProjectSwitcherModal.module.scss';
 interface ProjectSwitcherModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // repositories はサーバー側で「最近開いた順」にソート済み
   repositories: GitRepository[];
   currentRepo: string;
-  lastAccessTimes: Record<string, number>;
   repoProcessStatuses?: RepoProcessStatus[];
   onSwitchRepository: (path: string) => void;
 }
@@ -26,7 +26,6 @@ function ProjectSwitcherModal({
   onClose,
   repositories,
   currentRepo,
-  lastAccessTimes,
   repoProcessStatuses = [],
   onSwitchRepository,
 }: ProjectSwitcherModalProps) {
@@ -35,24 +34,16 @@ function ProjectSwitcherModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const sorted = useMemo(() => {
-    return [...repositories].sort((a, b) => {
-      const tA = lastAccessTimes[a.path] || 0;
-      const tB = lastAccessTimes[b.path] || 0;
-      return tB - tA;
-    });
-  }, [repositories, lastAccessTimes]);
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter((repo) => {
+    if (!q) return repositories;
+    return repositories.filter((repo) => {
       const display = getDisplayName(repo).toLowerCase();
       const path = repo.path.toLowerCase();
       const name = repo.name.toLowerCase();
       return display.includes(q) || path.includes(q) || name.includes(q);
     });
-  }, [sorted, query]);
+  }, [repositories, query]);
 
   useEffect(() => {
     if (isOpen) {

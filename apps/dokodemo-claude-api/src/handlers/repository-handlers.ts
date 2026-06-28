@@ -3,54 +3,73 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { HandlerContext } from './types.js';
 import type { GitRepository } from '../types/index.js';
+import { PersistenceService } from '../services/persistence-service.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
 
-// 最終アクセス時刻ファイルのパス
-const repoLastAccessFilePath = path.join(process.cwd(), 'repo-last-access.json');
+// 最終アクセス時刻を保存するファイル名（processes/ 配下に永続化）
+const REPO_LAST_ACCESS_FILE = 'repo-last-access.json';
 
 /**
  * 最終アクセス時刻を読み込む
  */
-async function loadRepoLastAccess(): Promise<Record<string, number>> {
-  try {
-    const data = await fs.readFile(repoLastAccessFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
+async function loadRepoLastAccess(
+  persistence: PersistenceService
+): Promise<Record<string, number>> {
+  const result = await persistence.load<Record<string, number>>(
+    REPO_LAST_ACCESS_FILE
+  );
+  if (!result.ok) return {};
+  return result.value ?? {};
 }
 
 /**
  * 最終アクセス時刻を保存する
  */
-async function saveRepoLastAccess(data: Record<string, number>): Promise<void> {
-  await fs.writeFile(repoLastAccessFilePath, JSON.stringify(data, null, 2));
+async function saveRepoLastAccess(
+  persistence: PersistenceService,
+  data: Record<string, number>
+): Promise<void> {
+  await persistence.save(REPO_LAST_ACCESS_FILE, data);
 }
 
 /**
- * リポジトリ一覧をlastAccessTimes付きで送信するヘルパー
+ * リポジトリ一覧を「最近開いた順」でソートして送信するヘルパー
+ *
+ * 並び順はサーバー側で確定させ、フロントは受け取った配列をそのまま描画する。
  */
 async function emitReposList(
   socket: HandlerContext['socket'],
-  repositories: GitRepository[]
+  repositories: GitRepository[],
+  persistence: PersistenceService
 ): Promise<void> {
-  const lastAccessTimes = await loadRepoLastAccess();
-  socket.emit('repos-list', { repos: repositories, lastAccessTimes });
+  const lastAccessTimes = await loadRepoLastAccess(persistence);
+  const sortedRepos = [...repositories].sort((a, b) => {
+    const tA = lastAccessTimes[a.path] || 0;
+    const tB = lastAccessTimes[b.path] || 0;
+    return tB - tA;
+  });
+  socket.emit('repos-list', { repos: sortedRepos });
 }
 
 /**
  * リポジトリ関連のSocket.IOイベントハンドラーを登録
  */
 export function registerRepositoryHandlers(ctx: HandlerContext): void {
-  const { socket, repositories, reposDir, processManager, loadExistingRepos } =
-    ctx;
+  const {
+    socket,
+    repositories,
+    reposDir,
+    processManager,
+    persistenceService,
+    loadExistingRepos,
+  } = ctx;
 
   // リポジトリ一覧の送信
   socket.on('list-repos', async () => {
     await loadExistingRepos();
-    await emitReposList(socket, repositories);
+    await emitReposList(socket, repositories, persistenceService);
   });
 
   // ディレクトリの存在確認（前回開いた worktree が削除されていないかの判定用）
@@ -75,9 +94,9 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
   socket.on('update-repo-access', async (data) => {
     const { path: repoPath } = data;
     try {
-      const lastAccessTimes = await loadRepoLastAccess();
+      const lastAccessTimes = await loadRepoLastAccess(persistenceService);
       lastAccessTimes[repoPath] = Date.now();
-      await saveRepoLastAccess(lastAccessTimes);
+      await saveRepoLastAccess(persistenceService, lastAccessTimes);
     } catch (error) {
       console.error('リポジトリアクセス時刻の更新エラー:', error);
     }
@@ -121,7 +140,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         message: `リポジトリ「${name}」を削除しました`,
         path: repoPath,
       });
-      emitReposList(socket, repositories);
+      emitReposList(socket, repositories, persistenceService);
     } catch {
       socket.emit('repo-deleted', {
         success: false,
@@ -198,7 +217,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         status: 'cloning',
       };
       repositories.push(newRepo);
-      emitReposList(socket, repositories);
+      emitReposList(socket, repositories, persistenceService);
 
       const gitProcess = spawn('git', ['clone', url, repoPath], {
         env: cleanChildEnv(),
@@ -213,7 +232,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
             success: false,
             message: `リポジトリ「${name}」のクローンがタイムアウトしました`,
           });
-          emitReposList(socket, repositories);
+          emitReposList(socket, repositories, persistenceService);
         }
       }, 600000);
 
@@ -237,7 +256,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
               message: `リポジトリ「${name}」のクローンに失敗しました`,
             });
           }
-          emitReposList(socket, repositories);
+          emitReposList(socket, repositories, persistenceService);
         }
       });
     } catch {
@@ -272,7 +291,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         status: 'creating',
       };
       repositories.push(newRepo);
-      emitReposList(socket, repositories);
+      emitReposList(socket, repositories, persistenceService);
 
       const gitInitProcess = spawn('git', ['init'], {
         cwd: repoPath,
@@ -288,7 +307,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
             success: false,
             message: `リポジトリ「${name}」の作成がタイムアウトしました`,
           });
-          emitReposList(socket, repositories);
+          emitReposList(socket, repositories, persistenceService);
         }
       }, 30000);
 
@@ -312,7 +331,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
               message: `リポジトリ「${name}」の作成に失敗しました`,
             });
           }
-          emitReposList(socket, repositories);
+          emitReposList(socket, repositories, persistenceService);
         }
       });
     } catch {

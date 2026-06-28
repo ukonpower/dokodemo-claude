@@ -165,7 +165,6 @@ data/temp/*
 data/
 
 # Runtime files (dokodemo-claude specific)
-apps/dokodemo-claude-api/repo-last-access.json
 apps/dokodemo-claude-api/uploads/
 
 # Nx

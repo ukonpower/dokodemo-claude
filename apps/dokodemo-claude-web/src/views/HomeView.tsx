@@ -21,11 +21,10 @@ interface HomeViewProps {
   connectionAttempts: number;
   isReconnecting: boolean;
 
-  // リポジトリ関連
+  // リポジトリ関連（repositories はサーバー側でソート済み）
   repositories: GitRepository[];
   currentRepo: string;
   repoProcessStatuses: RepoProcessStatus[];
-  lastAccessTimes: Record<string, number>;
 
   // リポジトリアクション
   onCloneRepository: (url: string, name: string) => void;
@@ -60,7 +59,6 @@ export function HomeView({
   repositories,
   currentRepo,
   repoProcessStatuses,
-  lastAccessTimes,
   onCloneRepository,
   onCreateRepository,
   onStopProcesses,
@@ -221,7 +219,6 @@ export function HomeView({
                   repositories={repositories}
                   currentRepo={currentRepo}
                   repoProcessStatuses={repoProcessStatuses}
-                  lastAccessTimes={lastAccessTimes}
                   onCloneRepository={onCloneRepository}
                   onCreateRepository={onCreateRepository}
                   onStopProcesses={onStopProcesses}
@@ -275,7 +272,6 @@ export function HomeView({
         <RepositorySwitcher
           repositories={repositories}
           currentRepo={currentRepo}
-          lastAccessTimes={lastAccessTimes}
           repoProcessStatuses={repoProcessStatuses}
           onSwitchRepository={onSwitchRepository}
         />

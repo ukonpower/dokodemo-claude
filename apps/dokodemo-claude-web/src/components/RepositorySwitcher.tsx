@@ -8,9 +8,9 @@ import ProjectAiStatusBadge from './ProjectAiStatusBadge';
 import s from './RepositorySwitcher.module.scss';
 
 interface RepositorySwitcherProps {
+  // repositories はサーバー側で「最近開いた順」にソート済み
   repositories: GitRepository[];
   currentRepo: string;
-  lastAccessTimes: Record<string, number>;
   repoProcessStatuses?: RepoProcessStatus[];
   onSwitchRepository: (path: string) => void;
 }
@@ -29,17 +29,9 @@ function getDisplayName(repo: GitRepository): string {
 const RepositorySwitcher: React.FC<RepositorySwitcherProps> = ({
   repositories,
   currentRepo,
-  lastAccessTimes,
   repoProcessStatuses = [],
   onSwitchRepository,
 }) => {
-  // 最近開いた順にソート（RepositoryManagerと同じ処理）
-  const sortedRepositories = [...repositories].sort((a, b) => {
-    const timeA = lastAccessTimes[a.path] || 0;
-    const timeB = lastAccessTimes[b.path] || 0;
-    return timeB - timeA;
-  });
-
   // リポジトリがない場合は表示しない
   if (repositories.length === 0) {
     return null;
@@ -58,7 +50,7 @@ const RepositorySwitcher: React.FC<RepositorySwitcherProps> = ({
         slidesPerView="auto"
         spaceBetween={6}
       >
-        {sortedRepositories.map((repo) => {
+        {repositories.map((repo) => {
           const isActive = currentRepo === repo.path;
           const status = processStatusByPath.get(repo.path);
 

@@ -59,10 +59,9 @@ interface ProjectViewProps {
   connectionAttempts: number;
   isReconnecting: boolean;
 
-  // リポジトリ関連
+  // リポジトリ関連（repositories はサーバー側でソート済み）
   repositories: GitRepository[];
   currentRepo: string;
-  lastAccessTimes: Record<string, number>;
   repoProcessStatuses: RepoProcessStatus[];
 
   // AI CLI関連
@@ -270,7 +269,6 @@ export function ProjectView({
   isReconnecting,
   repositories,
   currentRepo,
-  lastAccessTimes,
   repoProcessStatuses,
   aiInstances,
   activeInstance,
@@ -1044,7 +1042,6 @@ export function ProjectView({
       <RepositorySwitcher
         repositories={repositories}
         currentRepo={currentRepo}
-        lastAccessTimes={lastAccessTimes}
         repoProcessStatuses={repoProcessStatuses}
         onSwitchRepository={onSwitchRepository}
       />

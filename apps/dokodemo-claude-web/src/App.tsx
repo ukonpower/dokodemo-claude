@@ -477,7 +477,6 @@ function App() {
       onClose={() => setIsProjectSwitcherOpen(false)}
       repositories={repository.repositories}
       currentRepo={repository.currentRepo}
-      lastAccessTimes={repository.lastAccessTimes}
       repoProcessStatuses={repository.repoProcessStatuses}
       onSwitchRepository={switchRepositoryFromList}
     />
@@ -495,7 +494,6 @@ function App() {
         repositories={repository.repositories}
         currentRepo={repository.currentRepo}
         repoProcessStatuses={repository.repoProcessStatuses}
-        lastAccessTimes={repository.lastAccessTimes}
         onCloneRepository={repository.cloneRepository}
         onCreateRepository={repository.createRepository}
         onStopProcesses={repository.showStopProcessConfirmDialog}
@@ -552,7 +550,6 @@ function App() {
         <RepositorySwitcher
           repositories={repository.repositories}
           currentRepo={repository.currentRepo}
-          lastAccessTimes={repository.lastAccessTimes}
           repoProcessStatuses={repository.repoProcessStatuses}
           onSwitchRepository={switchRepositoryFromList}
         />
@@ -577,7 +574,6 @@ function App() {
         currentRepo={repository.currentRepo}
         repositories={repository.repositories}
         repoProcessStatuses={repository.repoProcessStatuses}
-        lastAccessTimes={repository.lastAccessTimes}
         appSettings={appSettings.appSettings}
         onSettingsChange={appSettings.handleSettingsChange}
         onPasteFile={fileManager.uploadFile}
@@ -617,7 +613,6 @@ function App() {
       isReconnecting={isReconnecting}
       repositories={repository.repositories}
       currentRepo={repository.currentRepo}
-      lastAccessTimes={repository.lastAccessTimes}
       repoProcessStatuses={repository.repoProcessStatuses}
       aiInstances={aiCli.aiInstances}
       activeInstance={aiCli.activeInstance}

@@ -34,7 +34,6 @@ export interface UseRepositoryReturn {
   currentRepo: string;
   currentRid: string | undefined;
   repoProcessStatuses: RepoProcessStatus[];
-  lastAccessTimes: Record<string, number>;
   isLoadingRepoData: boolean;
   isSwitchingRepo: boolean;
 
@@ -78,8 +77,6 @@ export function useRepository(
   const [repoProcessStatuses, setRepoProcessStatuses] = useState<
     RepoProcessStatus[]
   >([]);
-  // 最終アクセス時刻（バックエンドから取得）
-  const [lastAccessTimes, setLastAccessTimes] = useState<Record<string, number>>({});
   // 現在選択中のリポジトリ
   const [currentRepo, setCurrentRepo] = useState<string>(() => {
     if (initialRepo) return initialRepo;
@@ -176,14 +173,11 @@ export function useRepository(
       repositoryIdMap.update(data);
     };
 
-    // リポジトリ一覧
+    // リポジトリ一覧（サーバー側で「最近開いた順」にソート済み）
     const handleReposList = (
       data: Parameters<ServerToClientEvents['repos-list']>[0]
     ) => {
       setRepositories(data.repos);
-      if (data.lastAccessTimes) {
-        setLastAccessTimes(data.lastAccessTimes);
-      }
       socket.emit('get-repos-process-status');
     };
 
@@ -370,7 +364,6 @@ export function useRepository(
     currentRepo,
     currentRid,
     repoProcessStatuses,
-    lastAccessTimes,
     isLoadingRepoData,
     isSwitchingRepo,
     showStopProcessConfirm,

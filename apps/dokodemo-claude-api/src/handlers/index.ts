@@ -5,6 +5,7 @@ import type {
   GitRepository,
 } from '../types/index.js';
 import { ProcessManager } from '../process-manager.js';
+import { PersistenceService } from '../services/persistence-service.js';
 import type { HandlerContext, TypedSocket } from './types.js';
 import { registerRepositoryHandlers } from './repository-handlers.js';
 import { registerAiSessionHandlers } from './ai-session-handlers.js';
@@ -30,6 +31,7 @@ export type { HandlerContext, TypedSocket, TypedServer } from './types.js';
 export interface RegisterHandlersOptions {
   io: Server<ClientToServerEvents, ServerToClientEvents>;
   processManager: ProcessManager;
+  persistenceService: PersistenceService;
   repositories: GitRepository[];
   reposDir: string;
   projectRoot: string;
@@ -50,6 +52,7 @@ export function registerAllHandlers(
   const {
     io,
     processManager,
+    persistenceService,
     repositories,
     reposDir,
     projectRoot,
@@ -64,6 +67,7 @@ export function registerAllHandlers(
     io,
     socket,
     processManager,
+    persistenceService,
     repositories,
     reposDir,
     clientActiveRepositories,

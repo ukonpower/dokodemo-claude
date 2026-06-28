@@ -5,6 +5,7 @@ import type {
   GitRepository,
 } from '../types/index.js';
 import { ProcessManager } from '../process-manager.js';
+import { PersistenceService } from '../services/persistence-service.js';
 
 /**
  * Socket.IO サーバーの型
@@ -23,6 +24,7 @@ export interface HandlerContext {
   io: TypedServer;
   socket: TypedSocket;
   processManager: ProcessManager;
+  persistenceService: PersistenceService;
   repositories: GitRepository[];
   reposDir: string;
   clientActiveRepositories: Map<string, string>;
