@@ -20,6 +20,9 @@ interface MarkdownPanelProps {
   files: UploadedFileInfo[];
   onRefresh: () => void;
   onDelete: (filename: string) => void;
+  isMobile: boolean;
+  mobileView: 'list' | 'preview';
+  onMobileViewChange: (view: 'list' | 'preview') => void;
 }
 
 function getDisplayName(filename: string): string {
@@ -28,32 +31,20 @@ function getDisplayName(filename: string): string {
   );
 }
 
-const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
-
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   rid,
   files,
   onRefresh,
   onDelete,
+  isMobile,
+  mobileView,
+  onMobileViewChange,
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia(MOBILE_MEDIA_QUERY).matches
-      : false
-  );
-  const [mobileView, setMobileView] = useState<'list' | 'preview'>('list');
-
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   const selectedFile = useMemo(
     () => files.find((f) => f.id === selectedId) ?? null,
@@ -64,13 +55,13 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   useEffect(() => {
     if (files.length === 0) {
       setSelectedId(null);
-      setMobileView('list');
+      onMobileViewChange('list');
       return;
     }
     if (!files.some((f) => f.id === selectedId)) {
       setSelectedId(files[0].id);
     }
-  }, [files, selectedId]);
+  }, [files, selectedId, onMobileViewChange]);
 
   // 選択ファイルの内容を取得
   useEffect(() => {
@@ -145,10 +136,13 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     }
   }, [selectedFile, onDelete]);
 
-  const handleSelect = useCallback((id: string) => {
-    setSelectedId(id);
-    setMobileView('preview');
-  }, []);
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      onMobileViewChange('preview');
+    },
+    [onMobileViewChange]
+  );
 
   const showList = !isMobile || mobileView === 'list';
   const showPreview = !isMobile || mobileView === 'preview';
@@ -206,7 +200,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
             <div className={s.previewHeader}>
               {isMobile && (
                 <button
-                  onClick={() => setMobileView('list')}
+                  onClick={() => onMobileViewChange('list')}
                   className={s.backButton}
                   title="一覧へ戻る"
                   aria-label="一覧へ戻る"

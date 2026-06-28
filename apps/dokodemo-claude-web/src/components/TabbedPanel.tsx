@@ -56,7 +56,7 @@ const TABS: TabDef[] = [
   {
     id: 'md',
     label: 'MD',
-    activeColor: '#38bdf8',
+    activeColor: ACTIVE_COLOR,
     icon: <FileText size={ICON_SIZE} />,
   },
   {
@@ -100,6 +100,13 @@ function getStoredTab(repo: string): TabId {
 
 const INACTIVE_COLOR = '#6b7280';
 
+const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
+const MD_PREVIEW_HEIGHT = 400;
+const MD_LIST_HEADER = 24;
+const MD_LIST_PADDING = 16;
+const MD_LIST_ITEM_HEIGHT = 28;
+const MD_LIST_MIN_HEIGHT = 120;
+
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const { currentRepo, files } = props;
   const userFiles = useMemo(
@@ -117,6 +124,19 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     getStoredTab(currentRepo)
   );
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia(MOBILE_MEDIA_QUERY).matches
+      : false
+  );
+  const [mdView, setMdView] = useState<'list' | 'preview'>('list');
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(getCollapsedKey(currentRepo));
@@ -177,7 +197,20 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [currentRepo]);
 
-  const expandedHeight = activeTab === 'md' ? 400 : 180;
+  let expandedHeight = 180;
+  if (activeTab === 'md') {
+    if (isMobile && mdView === 'list') {
+      const listInner =
+        MD_LIST_PADDING +
+        Math.max(1, markdownFiles.length) * MD_LIST_ITEM_HEIGHT;
+      expandedHeight = Math.min(
+        MD_PREVIEW_HEIGHT,
+        Math.max(MD_LIST_MIN_HEIGHT, MD_LIST_HEADER + listInner)
+      );
+    } else {
+      expandedHeight = MD_PREVIEW_HEIGHT;
+    }
+  }
 
   return (
     <div
@@ -287,6 +320,9 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               files={markdownFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
+              isMobile={isMobile}
+              mobileView={mdView}
+              onMobileViewChange={setMdView}
             />
           )}
           {activeTab === 'git' && (
