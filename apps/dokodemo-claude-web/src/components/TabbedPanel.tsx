@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   Image as ImageIcon,
+  FileText,
 } from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
@@ -14,7 +15,7 @@ import type {
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
 
-type TabId = 'files' | 'preview' | 'git';
+type TabId = 'files' | 'preview' | 'md' | 'git';
 
 const STORAGE_KEY_PREFIX = 'dokodemo-tabbed-panel-active';
 const COLLAPSED_KEY_PREFIX = 'dokodemo-tabbed-panel-collapsed';
@@ -48,6 +49,12 @@ const TABS: TabDef[] = [
     label: 'Preview',
     activeColor: '#fbbf24',
     icon: <ImageIcon size={ICON_SIZE} />,
+  },
+  {
+    id: 'md',
+    label: 'MD',
+    activeColor: '#38bdf8',
+    icon: <FileText size={ICON_SIZE} />,
   },
   {
     id: 'git',
@@ -93,11 +100,15 @@ const INACTIVE_COLOR = '#6b7280';
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const { currentRepo, files } = props;
   const userFiles = useMemo(
-    () => files.filter((f) => f.source === 'user'),
+    () => files.filter((f) => f.source === 'user' && f.type !== 'markdown'),
     [files]
   );
   const previewFiles = useMemo(
-    () => files.filter((f) => f.source === 'claude'),
+    () => files.filter((f) => f.source === 'claude' && f.type !== 'markdown'),
+    [files]
+  );
+  const markdownFiles = useMemo(
+    () => files.filter((f) => f.type === 'markdown'),
     [files]
   );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
@@ -263,6 +274,16 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               onDelete={props.onDeleteFile}
               readOnly
               emptyMessage="Claude がアップロードした画像がここに表示されます"
+            />
+          )}
+          {activeTab === 'md' && (
+            <FileManager
+              rid={props.rid}
+              files={markdownFiles}
+              onRefresh={props.onRefreshFiles}
+              onDelete={props.onDeleteFile}
+              readOnly
+              emptyMessage="Claude が送信した Markdown がここに表示されます"
             />
           )}
           {activeTab === 'git' && (

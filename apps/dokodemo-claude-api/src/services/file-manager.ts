@@ -108,6 +108,8 @@ class FileManager {
       '.mp4': 'video/mp4',
       '.webm': 'video/webm',
       '.mov': 'video/quicktime',
+      '.md': 'text/markdown',
+      '.markdown': 'text/markdown',
     };
     return mimeMap[ext] || 'application/octet-stream';
   }
@@ -115,6 +117,7 @@ class FileManager {
   private getFileType(mimeType: string): FileType {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType === 'text/markdown') return 'markdown';
     return 'other';
   }
 

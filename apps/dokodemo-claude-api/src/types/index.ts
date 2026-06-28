@@ -1035,7 +1035,7 @@ export interface PushSubscriptionJSON {
 
 // アップロードファイル情報の型定義
 export type FileSource = 'user' | 'claude';
-export type FileType = 'image' | 'video' | 'other';
+export type FileType = 'image' | 'video' | 'markdown' | 'other';
 
 export interface UploadedFileInfo {
   id: string;
