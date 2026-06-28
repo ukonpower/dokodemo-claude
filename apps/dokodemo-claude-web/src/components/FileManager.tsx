@@ -6,6 +6,7 @@ import {
   Copy as CopyIcon,
   Check,
   Trash2,
+  Download,
 } from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '../types';
@@ -157,6 +158,30 @@ const FileManager: React.FC<FileManagerProps> = ({
       if (window.confirm('このファイルを削除しますか？')) onDelete(filename);
     },
     [onDelete]
+  );
+
+  const handleDownload = useCallback(
+    async (file: UploadedFileInfo) => {
+      const url = `${BACKEND_URL}/api/media/${rid}/${file.filename}`;
+      const displayName =
+        file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') ||
+        file.filename;
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = displayName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+      } catch {
+        window.open(url, '_blank');
+      }
+    },
+    [rid]
   );
 
   const handleLightboxDelete = useCallback(
@@ -331,6 +356,14 @@ const FileManager: React.FC<FileManagerProps> = ({
                 ) : (
                   <CopyIcon className={s.actionIcon} strokeWidth={2} />
                 )}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
+                className={`${s.actionButton} ${s.downloadButton}`}
+                title="ダウンロード"
+                aria-label="ダウンロード"
+              >
+                <Download className={s.actionIcon} strokeWidth={2} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(file.filename); }}
