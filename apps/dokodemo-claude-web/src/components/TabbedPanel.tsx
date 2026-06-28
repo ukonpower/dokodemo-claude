@@ -14,6 +14,7 @@ import type {
 } from '../types';
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
+import MarkdownPanel from './MarkdownPanel';
 
 type TabId = 'files' | 'preview' | 'md' | 'git';
 
@@ -174,6 +175,8 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [currentRepo]);
 
+  const expandedHeight = activeTab === 'md' ? 400 : 150;
+
   return (
     <div
       className={s.root}
@@ -181,7 +184,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         backgroundColor: '#1a1b1e',
         borderRadius: 8,
         border: '1px solid #2d2e32',
-        height: isCollapsed ? 32 : 150,
+        height: isCollapsed ? 32 : expandedHeight,
         transition: 'height 0.2s ease',
       }}
     >
@@ -277,13 +280,11 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             />
           )}
           {activeTab === 'md' && (
-            <FileManager
+            <MarkdownPanel
               rid={props.rid}
               files={markdownFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
-              readOnly
-              emptyMessage="Claude が送信した Markdown がここに表示されます"
             />
           )}
           {activeTab === 'git' && (
