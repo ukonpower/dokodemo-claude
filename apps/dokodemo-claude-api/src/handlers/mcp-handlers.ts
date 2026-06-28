@@ -252,6 +252,48 @@ const TOOL_DEFS = [
     },
   },
 
+  // --- markdown ---
+  {
+    name: 'markdown_send',
+    description:
+      'Markdown 本文を dokodemo-claude のファイル領域へ「受信」として送る。' +
+      '送信即 Web UI の受信タブへ表示され、サムネをクリックすると整形済み Markdown ビューア + コピー ボタンで読める。' +
+      'ターミナル出力では崩れがちな長文の手順書・要約・差分メモなどを共有する用途。最大 1MB。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rid: {
+          type: 'string',
+          description: '送信先リポジトリの rid（repository_id ツールで取得）',
+        },
+        content: {
+          type: 'string',
+          description:
+            'Markdown 本文（必須）。コードブロック・テーブル・見出し等がそのまま整形表示される。',
+        },
+        title: {
+          type: 'string',
+          description: 'UI 表示タイトル（任意）。受信タブのカード上部・ビューア見出しに使われる',
+        },
+        description: {
+          type: 'string',
+          description: '補足説明（任意）。ビューア内にタイトル下で表示される',
+        },
+        filename: {
+          type: 'string',
+          description:
+            'UI に表示する元ファイル名（任意）。省略時は title から生成。拡張子無しなら .md が補完される',
+        },
+        source: {
+          type: 'string',
+          enum: ['claude', 'user'],
+          description: "由来（既定 'claude'）",
+        },
+      },
+      required: ['rid', 'content'],
+    },
+  },
+
   // --- preview ---
   {
     name: 'preview_upload',
@@ -383,6 +425,22 @@ async function dispatch(
       );
     case 'terminal_close':
       return actions.closeTerminalAction(str(args.terminalId), deps);
+    case 'markdown_send':
+      return actions.sendMarkdown(
+        str(args.rid),
+        {
+          content: str(args.content),
+          filename: typeof args.filename === 'string' ? args.filename : undefined,
+          title: typeof args.title === 'string' ? args.title : undefined,
+          description:
+            typeof args.description === 'string' ? args.description : undefined,
+          source:
+            args.source === 'user' || args.source === 'claude'
+              ? (args.source as FileSource)
+              : undefined,
+        },
+        deps
+      );
     case 'preview_upload':
       return actions.uploadPreview(
         str(args.rid),

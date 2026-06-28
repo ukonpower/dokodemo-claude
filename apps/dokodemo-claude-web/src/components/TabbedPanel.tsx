@@ -1,20 +1,24 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  Paperclip,
+  Send,
+  Inbox,
   GitBranch,
   ChevronDown,
   ChevronRight,
-  Image as ImageIcon,
+  FileText,
+  RefreshCw,
+  Upload,
 } from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
   UploadedFileInfo,
   GitDiffSummary,
 } from '../types';
-import FileManager from './FileManager';
+import FileManager, { type FileManagerHandle } from './FileManager';
 import DiffSummary from './DiffSummary';
+import MarkdownPanel from './MarkdownPanel';
 
-type TabId = 'files' | 'preview' | 'git';
+type TabId = 'files' | 'preview' | 'md' | 'git';
 
 const STORAGE_KEY_PREFIX = 'dokodemo-tabbed-panel-active';
 const COLLAPSED_KEY_PREFIX = 'dokodemo-tabbed-panel-collapsed';
@@ -36,23 +40,31 @@ interface TabDef {
 
 const ICON_SIZE = 12;
 
+const ACTIVE_COLOR = '#e5e7eb';
+
 const TABS: TabDef[] = [
   {
     id: 'files',
-    label: 'ファイル',
-    activeColor: '#a78bfa',
-    icon: <Paperclip size={ICON_SIZE} />,
+    label: '送信',
+    activeColor: ACTIVE_COLOR,
+    icon: <Send size={ICON_SIZE} />,
   },
   {
     id: 'preview',
-    label: 'Preview',
-    activeColor: '#fbbf24',
-    icon: <ImageIcon size={ICON_SIZE} />,
+    label: '受信',
+    activeColor: ACTIVE_COLOR,
+    icon: <Inbox size={ICON_SIZE} />,
+  },
+  {
+    id: 'md',
+    label: 'MD',
+    activeColor: ACTIVE_COLOR,
+    icon: <FileText size={ICON_SIZE} />,
   },
   {
     id: 'git',
     label: 'Git',
-    activeColor: '#4ade80',
+    activeColor: ACTIVE_COLOR,
     icon: <GitBranch size={ICON_SIZE} />,
   },
 ];
@@ -90,19 +102,52 @@ function getStoredTab(repo: string): TabId {
 
 const INACTIVE_COLOR = '#6b7280';
 
+const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
+const MD_PREVIEW_HEIGHT = 400;
+const MD_LIST_PADDING = 16;
+const MD_LIST_ITEM_HEIGHT = 28;
+const MD_LIST_MIN_HEIGHT = 120;
+
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const { currentRepo, files } = props;
   const userFiles = useMemo(
-    () => files.filter((f) => f.source === 'user'),
+    () =>
+      files
+        .filter((f) => f.source === 'user' && f.type !== 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
     [files]
   );
   const previewFiles = useMemo(
-    () => files.filter((f) => f.source === 'claude'),
+    () =>
+      files
+        .filter((f) => f.source === 'claude' && f.type !== 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
+    [files]
+  );
+  const markdownFiles = useMemo(
+    () =>
+      files
+        .filter((f) => f.type === 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
     [files]
   );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
     getStoredTab(currentRepo)
   );
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia(MOBILE_MEDIA_QUERY).matches
+      : false
+  );
+  const [mdView, setMdView] = useState<'list' | 'preview'>('list');
+  const filesManagerRef = useRef<FileManagerHandle>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(getCollapsedKey(currentRepo));
@@ -163,6 +208,37 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [currentRepo]);
 
+  let expandedHeight = 180;
+  if (activeTab === 'md') {
+    if (isMobile && mdView === 'list') {
+      const listInner =
+        MD_LIST_PADDING +
+        Math.max(1, markdownFiles.length) * MD_LIST_ITEM_HEIGHT;
+      expandedHeight = Math.min(
+        MD_PREVIEW_HEIGHT,
+        Math.max(MD_LIST_MIN_HEIGHT, listInner)
+      );
+    } else {
+      expandedHeight = MD_PREVIEW_HEIGHT;
+    }
+  }
+
+  // アクティブタブ毎のカウント / 更新ハンドラ / ローディング状態
+  let activeCount: number | null = null;
+  let activeOnRefresh: () => void = props.onRefreshFiles;
+  let activeIsLoading = false;
+  if (activeTab === 'files') {
+    activeCount = userFiles.length;
+  } else if (activeTab === 'preview') {
+    activeCount = previewFiles.length;
+  } else if (activeTab === 'md') {
+    activeCount = markdownFiles.length;
+  } else if (activeTab === 'git') {
+    activeCount = props.diffSummary ? props.diffSummary.files.length : null;
+    activeOnRefresh = props.onRefreshDiffSummary;
+    activeIsLoading = props.diffSummaryLoading;
+  }
+
   return (
     <div
       className={s.root}
@@ -170,7 +246,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         backgroundColor: '#1a1b1e',
         borderRadius: 8,
         border: '1px solid #2d2e32',
-        height: isCollapsed ? 32 : 150,
+        height: isCollapsed ? 32 : expandedHeight,
         transition: 'height 0.2s ease',
       }}
     >
@@ -242,6 +318,40 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             </button>
           );
         })}
+
+        {/* 右側のスペーサー + アクション */}
+        {!isCollapsed && (
+          <>
+            <div className={s.spacer} />
+            <div className={s.tabBarActions}>
+              {activeCount !== null && activeCount > 0 && (
+                <span className={s.tabBarCount}>{activeCount}</span>
+              )}
+              {activeTab === 'files' && (
+                <button
+                  onClick={() => filesManagerRef.current?.pickFiles()}
+                  className={s.tabBarAction}
+                  title="ファイルを追加"
+                  aria-label="ファイルを追加"
+                >
+                  <Upload size={11} />
+                </button>
+              )}
+              <button
+                onClick={activeOnRefresh}
+                disabled={activeIsLoading}
+                className={s.tabBarAction}
+                title="更新"
+                aria-label="更新"
+              >
+                <RefreshCw
+                  size={11}
+                  className={activeIsLoading ? s.spinning : ''}
+                />
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* タブコンテンツ */}
@@ -249,6 +359,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         <div style={{ backgroundColor: '#25262b' }} className={s.tabContent}>
           {activeTab === 'files' && (
             <FileManager
+              ref={filesManagerRef}
               rid={props.rid}
               files={userFiles}
               onRefresh={props.onRefreshFiles}
@@ -263,6 +374,16 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               onDelete={props.onDeleteFile}
               readOnly
               emptyMessage="Claude がアップロードした画像がここに表示されます"
+            />
+          )}
+          {activeTab === 'md' && (
+            <MarkdownPanel
+              rid={props.rid}
+              files={markdownFiles}
+              onDelete={props.onDeleteFile}
+              isMobile={isMobile}
+              mobileView={mdView}
+              onMobileViewChange={setMdView}
             />
           )}
           {activeTab === 'git' && (

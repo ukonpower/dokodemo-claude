@@ -1,12 +1,21 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import {
-  RefreshCw,
-  Plus,
   File as FileIcon,
+  FileText,
   Copy as CopyIcon,
   Check,
   Trash2,
   Download,
+  Inbox,
+  Upload,
 } from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '../types';
@@ -14,6 +23,8 @@ import { BACKEND_URL } from '../utils/backend-url';
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import ImageLightbox from './ImageLightbox';
 import type { LightboxItem } from './ImageLightbox';
+import MarkdownLightbox from './MarkdownLightbox';
+import EmptyState from './EmptyState';
 import s from './FileManager.module.scss';
 
 interface FileManagerProps {
@@ -25,26 +36,33 @@ interface FileManagerProps {
   emptyMessage?: string;
 }
 
+export interface FileManagerHandle {
+  pickFiles: () => void;
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-const FileManager: React.FC<FileManagerProps> = ({
-  rid,
-  files,
-  onRefresh,
-  onDelete,
-  readOnly = false,
-  emptyMessage,
-}) => {
+function getDisplayName(filename: string): string {
+  return (
+    filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') || filename
+  );
+}
+
+const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function FileManager(
+  { rid, files, onRefresh, onDelete, readOnly = false, emptyMessage },
+  ref
+) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [markdownFile, setMarkdownFile] = useState<UploadedFileInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { copiedText, copyToClipboard } = useCopyToClipboard();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -54,6 +72,16 @@ const FileManager: React.FC<FileManagerProps> = ({
   useEffect(() => {
     isTouchDevice.current = window.matchMedia('(hover: none)').matches;
   }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      pickFiles: () => {
+        if (!readOnly) fileInputRef.current?.click();
+      },
+    }),
+    [readOnly]
+  );
 
   useEffect(() => {
     if (activeItemId === null) return;
@@ -75,7 +103,7 @@ const FileManager: React.FC<FileManagerProps> = ({
     return mediaFiles.map((f) => ({
       id: f.id,
       filename: f.filename,
-      imageUrl: `${BACKEND_URL}/api/media/${rid}/${f.filename}`,
+      imageUrl: `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(f.filename)}`,
       copyPath: f.path,
       type: f.type as 'image' | 'video',
       title: f.title,
@@ -162,17 +190,14 @@ const FileManager: React.FC<FileManagerProps> = ({
 
   const handleDownload = useCallback(
     async (file: UploadedFileInfo) => {
-      const url = `${BACKEND_URL}/api/media/${rid}/${file.filename}`;
-      const displayName =
-        file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') ||
-        file.filename;
+      const url = `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(file.filename)}`;
       try {
         const response = await fetch(url);
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objectUrl;
-        link.download = displayName;
+        link.download = file.filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -203,6 +228,14 @@ const FileManager: React.FC<FileManagerProps> = ({
 
   const handleItemClick = useCallback((file: UploadedFileInfo) => {
     if (file.type === 'other') return;
+    if (file.type === 'markdown') {
+      if (isTouchDevice.current && activeItemId !== file.id) {
+        setActiveItemId(file.id);
+      } else {
+        setMarkdownFile(file);
+      }
+      return;
+    }
     const idx = getLightboxIndex(file);
     if (idx < 0) return;
     if (isTouchDevice.current && activeItemId !== file.id) {
@@ -213,26 +246,41 @@ const FileManager: React.FC<FileManagerProps> = ({
   }, [activeItemId, openLightbox, getLightboxIndex]);
 
   const closeLightbox = useCallback(() => { setLightboxOpen(false); }, []);
+  const closeMarkdownLightbox = useCallback(() => { setMarkdownFile(null); }, []);
 
   const getThumbnailUrl = useCallback(
-    (filename: string) => `${BACKEND_URL}/api/media/${rid}/${filename}`,
+    (filename: string) =>
+      `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(filename)}`,
     [rid]
   );
 
+  const enableDrop = !readOnly;
+
   return (
-    <div className={s.container}>
-      <div className={s.headerRow}>
-        <span className={s.fileCount}>
-          {files.length > 0 ? `${files.length} 件` : ''}
-        </span>
-        <button
-          onClick={onRefresh}
-          className={s.refreshButton}
-          title="更新"
-        >
-          <RefreshCw size={10} className={s.refreshIcon} />
-        </button>
-      </div>
+    <div
+      className={`${s.container} ${
+        enableDrop && isDragging ? s.containerDragging : ''
+      }`}
+      onDragOver={enableDrop ? handleDragOver : undefined}
+      onDragLeave={enableDrop ? handleDragLeave : undefined}
+      onDrop={enableDrop ? handleDrop : undefined}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        onChange={handleFileSelect}
+        className={s.hiddenInput}
+      />
+
+      {isUploading && (
+        <div className={s.uploadProgress}>
+          <div
+            className={s.uploadProgressFill}
+            style={{ width: `${uploadProgress ?? 0}%` }}
+          />
+        </div>
+      )}
 
       {uploadError && (
         <div className={s.errorBox}>
@@ -240,57 +288,49 @@ const FileManager: React.FC<FileManagerProps> = ({
         </div>
       )}
 
+      {readOnly && files.length === 0 && emptyMessage ? (
+        <EmptyState
+          icon={<Inbox size={20} strokeWidth={1.75} />}
+          message={emptyMessage}
+        />
+      ) : !readOnly && files.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!isUploading) fileInputRef.current?.click();
+          }}
+          className={`${s.dropZone} ${isDragging ? s.dropZoneDragging : ''} ${
+            isUploading ? s.dropZoneDisabled : ''
+          }`}
+        >
+          <EmptyState
+            icon={<Upload size={20} strokeWidth={1.75} />}
+            message="ファイルをアップロード"
+            hint="ドラッグ&ドロップ または クリックで選択"
+          />
+        </button>
+      ) : (
       <div ref={gridRef} className={s.grid}>
-        {/* アップロードボックス（readOnly のときは非表示） */}
-        {!readOnly && (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`${s.uploadBox} ${
-              isDragging ? s.uploadBoxDragging : s.uploadBoxDefault
-            } ${isUploading ? s.uploadBoxDisabled : ''}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className={s.hiddenInput}
-            />
-            {isUploading ? (
-              <div className={s.progressContainer}>
-                <div className={s.progressBar}>
-                  <div className={s.progressFill} style={{ width: `${uploadProgress ?? 0}%` }} />
-                </div>
-                <span className={s.progressText}>
-                  {uploadProgress ?? 0}%
-                </span>
-              </div>
-            ) : (
-              <Plus size={16} className={s.plusIcon} />
-            )}
-          </div>
-        )}
-
-        {readOnly && files.length === 0 && emptyMessage && (
-          <div className={s.emptyHint}>{emptyMessage}</div>
-        )}
-
         {/* ファイルサムネイル */}
         {files.map((file) => {
           const isActive = activeItemId === file.id;
           const isMedia = file.type === 'image' || file.type === 'video';
+          const isMarkdown = file.type === 'markdown';
+          const isClickable = isMedia || isMarkdown;
+          const displayName = getDisplayName(file.filename);
+          const tooltip = file.title
+            ? `${file.title}\n${displayName}`
+            : displayName;
           return (
           <div
             key={file.id}
             className={s.thumbnailCard}
+            title={tooltip}
           >
             <button
               onClick={() => handleItemClick(file)}
-              className={`${s.thumbnailButton} ${isMedia ? s.thumbnailButtonMedia : s.thumbnailButtonOther}`}
-              aria-label={`${file.title || file.filename}`}
+              className={`${s.thumbnailButton} ${isClickable ? s.thumbnailButtonMedia : s.thumbnailButtonOther}`}
+              aria-label={`${file.title || displayName}`}
             >
               {file.type === 'video' ? (
                 <>
@@ -311,17 +351,24 @@ const FileManager: React.FC<FileManagerProps> = ({
               ) : file.type === 'image' ? (
                 <img
                   src={getThumbnailUrl(file.filename)}
-                  alt={file.title || file.filename}
+                  alt={file.title || displayName}
                   className={s.mediaFill}
                   loading="lazy"
                   draggable={false}
                 />
+              ) : file.type === 'markdown' ? (
+                <div className={s.otherFileContent}>
+                  <FileText size={20} className={s.otherFileIcon} />
+                  <span className={s.otherFileName}>
+                    {file.title ||
+                      file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') ||
+                      file.filename}
+                  </span>
+                  <span className={s.otherFileSize}>MD</span>
+                </div>
               ) : (
                 <div className={s.otherFileContent}>
                   <FileIcon size={20} className={s.otherFileIcon} />
-                  <span className={s.otherFileName}>
-                    {file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') || file.filename}
-                  </span>
                   <span className={s.otherFileSize}>
                     {formatFileSize(file.size)}
                   </span>
@@ -331,9 +378,9 @@ const FileManager: React.FC<FileManagerProps> = ({
 
             {/* ホバーオーバーレイ */}
             <div
-              onClick={() => { if (isMedia) handleItemClick(file); }}
+              onClick={() => { if (isClickable) handleItemClick(file); }}
               className={`${s.hoverOverlay} ${
-                isMedia ? s.hoverOverlayMedia : ''
+                isClickable ? s.hoverOverlayMedia : ''
               } ${
                 isActive ? s.hoverOverlayActive : s.hoverOverlayInactive
               }`}
@@ -375,18 +422,18 @@ const FileManager: React.FC<FileManagerProps> = ({
               </button>
             </div>
 
-            {/* タイトル表示 */}
-            {file.title && (
-              <div className={`${s.titleOverlay} ${
-                isActive ? s.titleOverlayActive : s.titleOverlayInactive
-              }`}>
+            {/* ファイル名 (常時表示) */}
+            <div className={s.nameLabel}>
+              {file.title && (
                 <div className={s.titleText}>{file.title}</div>
-              </div>
-            )}
+              )}
+              <div className={s.filenameText}>{displayName}</div>
+            </div>
           </div>
           );
         })}
       </div>
+      )}
 
       <ImageLightbox
         items={lightboxItems}
@@ -398,8 +445,16 @@ const FileManager: React.FC<FileManagerProps> = ({
         onDelete={handleLightboxDelete}
         copiedPath={copiedText}
       />
+
+      <MarkdownLightbox
+        rid={rid}
+        file={markdownFile}
+        isOpen={markdownFile !== null}
+        onClose={closeMarkdownLightbox}
+        onDelete={onDelete}
+      />
     </div>
   );
-};
+});
 
 export default FileManager;

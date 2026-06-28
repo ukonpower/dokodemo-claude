@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import type { UploadedFileInfo, FileSource, FileType } from '../types/index.js';
 
 const METADATA_FILENAME = 'metadata.json';
@@ -97,6 +98,54 @@ class FileManager {
     await this.writeMetadata(rid, metadata);
   }
 
+  /**
+   * 受け取った元ファイル名から保存用の安全なベース名を作る。
+   * パス区切りや NUL・制御文字を `_` に置換し、空になったら `file` を返す。
+   * 拡張子は基本そのまま残す（呼び出し側でハッシュ付与時にも保持される）。
+   */
+  private sanitizeFilename(originalname: string): string {
+    const base = path.basename(originalname);
+    // パス区切り・コロン・NUL・その他制御文字を `_` に置換
+    const replaced = base.replace(/[\\/:\x00-\x1f]/g, '_');
+    // 先頭の `.` 連続は隠しファイル扱いを避けるために除去
+    const trimmed = replaced.replace(/^\.+/, '');
+    return trimmed.length > 0 ? trimmed : 'file';
+  }
+
+  /**
+   * `originalname` を保存ディレクトリ上で衝突しないファイル名へ解決する。
+   * 既存ファイルと同名なら拡張子の手前に `_<8桁hash>` を付ける（必要なら複数回試行）。
+   */
+  private async resolveFilename(
+    rid: string,
+    originalname: string
+  ): Promise<string> {
+    const sanitized = this.sanitizeFilename(originalname);
+    const dirPath = this.getRepositoryUploadsPath(rid);
+
+    const exists = async (name: string): Promise<boolean> => {
+      try {
+        await fs.access(path.join(dirPath, name));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!(await exists(sanitized))) return sanitized;
+
+    const ext = path.extname(sanitized);
+    const stem = sanitized.slice(0, sanitized.length - ext.length) || 'file';
+
+    // 衝突したらハッシュ付きで再試行（理論上ほぼ一発で抜けるが念のためループ）
+    for (let i = 0; i < 8; i++) {
+      const candidate = `${stem}_${uuidv4().substring(0, 8)}${ext}`;
+      if (!(await exists(candidate))) return candidate;
+    }
+    // 念のためのフォールバック（実際には到達しない想定）
+    return `${stem}_${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
+  }
+
   private getMimeType(filename: string): string {
     const ext = path.extname(filename).toLowerCase();
     const mimeMap: Record<string, string> = {
@@ -108,6 +157,8 @@ class FileManager {
       '.mp4': 'video/mp4',
       '.webm': 'video/webm',
       '.mov': 'video/quicktime',
+      '.md': 'text/markdown',
+      '.markdown': 'text/markdown',
     };
     return mimeMap[ext] || 'application/octet-stream';
   }
@@ -115,6 +166,7 @@ class FileManager {
   private getFileType(mimeType: string): FileType {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType === 'text/markdown') return 'markdown';
     return 'other';
   }
 
@@ -122,7 +174,6 @@ class FileManager {
     rid: string,
     file: {
       tmpPath: string;
-      filename: string;
       originalname: string;
       mimetype: string;
       size: number;
@@ -152,22 +203,23 @@ class FileManager {
     try {
       await this.ensureUploadsDir(rid);
 
+      const filename = await this.resolveFilename(rid, file.originalname);
       const finalPath = path.join(
         this.getRepositoryUploadsPath(rid),
-        file.filename
+        filename
       );
 
       await fs.rename(file.tmpPath, finalPath);
 
-      await this.updateFileMetadata(rid, file.filename, {
+      await this.updateFileMetadata(rid, filename, {
         source,
         title: options?.title,
         description: options?.description,
       });
 
       const fileInfo: UploadedFileInfo = {
-        id: path.parse(file.filename).name,
-        filename: file.filename,
+        id: filename,
+        filename,
         path: finalPath,
         rid,
         uploadedAt: Date.now(),
@@ -227,7 +279,7 @@ class FileManager {
         };
 
         files.push({
-          id: path.parse(filename).name,
+          id: filename,
           filename,
           path: filePath,
           rid,

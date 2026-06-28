@@ -61,7 +61,12 @@ const MIME: Record<string, string> = {
   '.webm': 'video/webm',
   '.mov': 'video/quicktime',
   '.pdf': 'application/pdf',
+  '.md': 'text/markdown',
+  '.markdown': 'text/markdown',
 };
+
+// Markdown 1 件あたりの最大サイズ（テキストなので 1MB あれば十分）
+const MAX_MARKDOWN_BYTES = 1 * 1024 * 1024;
 
 /**
  * rid(wtid) → 実在する worktree の絶対パス。実在しなければ null。
@@ -500,6 +505,75 @@ export async function uploadPreview(
   const result = await savePreviewFile(deps.io, rid, body, {
     originalname,
     mimetype,
+    source,
+    title: input.title,
+    description: input.description,
+  });
+  if (!result.success) throw new ActionError(400, result.message);
+  return { success: true, message: result.message, file: result.file };
+}
+
+// ---------------------------------------------------------------------------
+// markdown
+// ---------------------------------------------------------------------------
+
+export interface SendMarkdownInput {
+  /** Markdown 本文（必須） */
+  content: string;
+  /** UI 表示用の元ファイル名（省略時は title から生成、なければ markdown.md） */
+  filename?: string;
+  /** UI に出すタイトル */
+  title?: string;
+  /** 補足説明 */
+  description?: string;
+  /** 由来。既定 'claude' */
+  source?: FileSource;
+}
+
+function slugifyForFilename(input: string): string {
+  return (
+    input
+      .normalize('NFKD')
+      // 半角英数・ハイフン・アンダースコア・日本語以外をハイフンに置換
+      .replace(/[^A-Za-z0-9_\-぀-ゟ゠-ヿ一-龯]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || 'markdown'
+  );
+}
+
+export async function sendMarkdown(
+  rid: string,
+  input: SendMarkdownInput,
+  deps: ActionDeps
+): Promise<object> {
+  if (!rid) throw new ActionError(400, 'rid が必要です');
+  if (typeof input.content !== 'string' || input.content.length === 0) {
+    throw new ActionError(400, 'content（markdown 本文）は必須です');
+  }
+  const body = Buffer.from(input.content, 'utf-8');
+  if (body.length > MAX_MARKDOWN_BYTES) {
+    throw new ActionError(
+      400,
+      `markdown が大きすぎます。最大 ${MAX_MARKDOWN_BYTES / 1024 / 1024}MB`
+    );
+  }
+
+  const baseName =
+    input.filename && input.filename.trim() !== ''
+      ? input.filename
+      : input.title && input.title.trim() !== ''
+        ? `${slugifyForFilename(input.title)}.md`
+        : 'markdown.md';
+  const originalname = /\.(md|markdown)$/i.test(baseName)
+    ? baseName
+    : `${baseName}.md`;
+
+  const source: FileSource = input.source === 'user' ? 'user' : 'claude';
+
+  const result = await savePreviewFile(deps.io, rid, body, {
+    originalname,
+    mimetype: 'text/markdown',
     source,
     title: input.title,
     description: input.description,
