@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
-  Paperclip,
+  Send,
+  Inbox,
   GitBranch,
   ChevronDown,
   ChevronRight,
-  Image as ImageIcon,
 } from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
@@ -36,23 +36,25 @@ interface TabDef {
 
 const ICON_SIZE = 12;
 
+const ACTIVE_COLOR = '#e5e7eb';
+
 const TABS: TabDef[] = [
   {
     id: 'files',
-    label: 'ファイル',
-    activeColor: '#a78bfa',
-    icon: <Paperclip size={ICON_SIZE} />,
+    label: '送信',
+    activeColor: ACTIVE_COLOR,
+    icon: <Send size={ICON_SIZE} />,
   },
   {
     id: 'preview',
-    label: 'Preview',
-    activeColor: '#fbbf24',
-    icon: <ImageIcon size={ICON_SIZE} />,
+    label: '受信',
+    activeColor: ACTIVE_COLOR,
+    icon: <Inbox size={ICON_SIZE} />,
   },
   {
     id: 'git',
     label: 'Git',
-    activeColor: '#4ade80',
+    activeColor: ACTIVE_COLOR,
     icon: <GitBranch size={ICON_SIZE} />,
   },
 ];
@@ -170,7 +172,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         backgroundColor: '#1a1b1e',
         borderRadius: 8,
         border: '1px solid #2d2e32',
-        height: isCollapsed ? 32 : 150,
+        height: isCollapsed ? 32 : 180,
         transition: 'height 0.2s ease',
       }}
     >
