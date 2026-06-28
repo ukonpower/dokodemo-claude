@@ -98,14 +98,10 @@ function createTusServer(io: TypedServer): TusServer {
         throw { status_code: 400, body: 'rid is required in metadata' };
       }
 
-      const ext = path.extname(originalname).toLowerCase();
-      const filename = `${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
-
       const result = await fileManager.saveFile(
         rid,
         {
           tmpPath: path.join(fileManager.getTusStorePath(), upload.id),
-          filename,
           originalname,
           mimetype,
           size: upload.offset,
@@ -150,8 +146,6 @@ export async function savePreviewFile(
   }
 ): Promise<{ success: boolean; message: string; file?: UploadedFileInfo }> {
   const ext = path.extname(meta.originalname).toLowerCase();
-  const filename = `${Date.now()}_${uuidv4().substring(0, 8)}${ext}`;
-
   const tmpPath = path.join(os.tmpdir(), `dokodemo-preview-${uuidv4()}${ext}`);
   await fs.writeFile(tmpPath, body);
 
@@ -159,7 +153,6 @@ export async function savePreviewFile(
     rid,
     {
       tmpPath,
-      filename,
       originalname: meta.originalname,
       mimetype: meta.mimetype.split(';')[0].trim(),
       size: body.length,

@@ -33,6 +33,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function getDisplayName(filename: string): string {
+  return (
+    filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') || filename
+  );
+}
+
 const FileManager: React.FC<FileManagerProps> = ({
   rid,
   files,
@@ -78,7 +84,7 @@ const FileManager: React.FC<FileManagerProps> = ({
     return mediaFiles.map((f) => ({
       id: f.id,
       filename: f.filename,
-      imageUrl: `${BACKEND_URL}/api/media/${rid}/${f.filename}`,
+      imageUrl: `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(f.filename)}`,
       copyPath: f.path,
       type: f.type as 'image' | 'video',
       title: f.title,
@@ -165,17 +171,14 @@ const FileManager: React.FC<FileManagerProps> = ({
 
   const handleDownload = useCallback(
     async (file: UploadedFileInfo) => {
-      const url = `${BACKEND_URL}/api/media/${rid}/${file.filename}`;
-      const displayName =
-        file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') ||
-        file.filename;
+      const url = `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(file.filename)}`;
       try {
         const response = await fetch(url);
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objectUrl;
-        link.download = displayName;
+        link.download = file.filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -227,7 +230,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   const closeMarkdownLightbox = useCallback(() => { setMarkdownFile(null); }, []);
 
   const getThumbnailUrl = useCallback(
-    (filename: string) => `${BACKEND_URL}/api/media/${rid}/${filename}`,
+    (filename: string) =>
+      `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(filename)}`,
     [rid]
   );
 
@@ -296,15 +300,20 @@ const FileManager: React.FC<FileManagerProps> = ({
           const isMedia = file.type === 'image' || file.type === 'video';
           const isMarkdown = file.type === 'markdown';
           const isClickable = isMedia || isMarkdown;
+          const displayName = getDisplayName(file.filename);
+          const tooltip = file.title
+            ? `${file.title}\n${displayName}`
+            : displayName;
           return (
           <div
             key={file.id}
             className={s.thumbnailCard}
+            title={tooltip}
           >
             <button
               onClick={() => handleItemClick(file)}
               className={`${s.thumbnailButton} ${isClickable ? s.thumbnailButtonMedia : s.thumbnailButtonOther}`}
-              aria-label={`${file.title || file.filename}`}
+              aria-label={`${file.title || displayName}`}
             >
               {file.type === 'video' ? (
                 <>
@@ -325,7 +334,7 @@ const FileManager: React.FC<FileManagerProps> = ({
               ) : file.type === 'image' ? (
                 <img
                   src={getThumbnailUrl(file.filename)}
-                  alt={file.title || file.filename}
+                  alt={file.title || displayName}
                   className={s.mediaFill}
                   loading="lazy"
                   draggable={false}
@@ -343,9 +352,6 @@ const FileManager: React.FC<FileManagerProps> = ({
               ) : (
                 <div className={s.otherFileContent}>
                   <FileIcon size={20} className={s.otherFileIcon} />
-                  <span className={s.otherFileName}>
-                    {file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') || file.filename}
-                  </span>
                   <span className={s.otherFileSize}>
                     {formatFileSize(file.size)}
                   </span>
@@ -399,14 +405,13 @@ const FileManager: React.FC<FileManagerProps> = ({
               </button>
             </div>
 
-            {/* タイトル表示 */}
-            {file.title && (
-              <div className={`${s.titleOverlay} ${
-                isActive ? s.titleOverlayActive : s.titleOverlayInactive
-              }`}>
+            {/* ファイル名 (常時表示) */}
+            <div className={s.nameLabel}>
+              {file.title && (
                 <div className={s.titleText}>{file.title}</div>
-              </div>
-            )}
+              )}
+              <div className={s.filenameText}>{displayName}</div>
+            </div>
           </div>
           );
         })}
