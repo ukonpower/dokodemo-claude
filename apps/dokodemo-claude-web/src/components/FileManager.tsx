@@ -75,7 +75,7 @@ const FileManager: React.FC<FileManagerProps> = ({
     return mediaFiles.map((f) => ({
       id: f.id,
       filename: f.filename,
-      imageUrl: `${BACKEND_URL}/api/media/${rid}/${f.filename}`,
+      imageUrl: `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(f.filename)}`,
       copyPath: f.path,
       type: f.type as 'image' | 'video',
       title: f.title,
@@ -162,17 +162,14 @@ const FileManager: React.FC<FileManagerProps> = ({
 
   const handleDownload = useCallback(
     async (file: UploadedFileInfo) => {
-      const url = `${BACKEND_URL}/api/media/${rid}/${file.filename}`;
-      const displayName =
-        file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') ||
-        file.filename;
+      const url = `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(file.filename)}`;
       try {
         const response = await fetch(url);
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objectUrl;
-        link.download = displayName;
+        link.download = file.filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -215,7 +212,8 @@ const FileManager: React.FC<FileManagerProps> = ({
   const closeLightbox = useCallback(() => { setLightboxOpen(false); }, []);
 
   const getThumbnailUrl = useCallback(
-    (filename: string) => `${BACKEND_URL}/api/media/${rid}/${filename}`,
+    (filename: string) =>
+      `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(filename)}`,
     [rid]
   );
 
@@ -319,9 +317,7 @@ const FileManager: React.FC<FileManagerProps> = ({
               ) : (
                 <div className={s.otherFileContent}>
                   <FileIcon size={20} className={s.otherFileIcon} />
-                  <span className={s.otherFileName}>
-                    {file.filename.replace(/^\d+_[a-f0-9]+/, '').replace(/^_/, '') || file.filename}
-                  </span>
+                  <span className={s.otherFileName}>{file.filename}</span>
                   <span className={s.otherFileSize}>
                     {formatFileSize(file.size)}
                   </span>
