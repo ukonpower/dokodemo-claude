@@ -1,13 +1,21 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import {
-  RefreshCw,
-  Plus,
   File as FileIcon,
   FileText,
   Copy as CopyIcon,
   Check,
   Trash2,
   Download,
+  Inbox,
+  Upload,
 } from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '../types';
@@ -16,6 +24,7 @@ import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
 import ImageLightbox from './ImageLightbox';
 import type { LightboxItem } from './ImageLightbox';
 import MarkdownLightbox from './MarkdownLightbox';
+import EmptyState from './EmptyState';
 import s from './FileManager.module.scss';
 
 interface FileManagerProps {
@@ -25,6 +34,10 @@ interface FileManagerProps {
   onDelete: (filename: string) => void;
   readOnly?: boolean;
   emptyMessage?: string;
+}
+
+export interface FileManagerHandle {
+  pickFiles: () => void;
 }
 
 function formatFileSize(bytes: number): string {
@@ -39,14 +52,10 @@ function getDisplayName(filename: string): string {
   );
 }
 
-const FileManager: React.FC<FileManagerProps> = ({
-  rid,
-  files,
-  onRefresh,
-  onDelete,
-  readOnly = false,
-  emptyMessage,
-}) => {
+const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function FileManager(
+  { rid, files, onRefresh, onDelete, readOnly = false, emptyMessage },
+  ref
+) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -63,6 +72,16 @@ const FileManager: React.FC<FileManagerProps> = ({
   useEffect(() => {
     isTouchDevice.current = window.matchMedia('(hover: none)').matches;
   }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      pickFiles: () => {
+        if (!readOnly) fileInputRef.current?.click();
+      },
+    }),
+    [readOnly]
+  );
 
   useEffect(() => {
     if (activeItemId === null) return;
@@ -235,20 +254,33 @@ const FileManager: React.FC<FileManagerProps> = ({
     [rid]
   );
 
+  const enableDrop = !readOnly;
+
   return (
-    <div className={s.container}>
-      <div className={s.headerRow}>
-        <span className={s.fileCount}>
-          {files.length > 0 ? `${files.length} 件` : ''}
-        </span>
-        <button
-          onClick={onRefresh}
-          className={s.refreshButton}
-          title="更新"
-        >
-          <RefreshCw size={10} className={s.refreshIcon} />
-        </button>
-      </div>
+    <div
+      className={`${s.container} ${
+        enableDrop && isDragging ? s.containerDragging : ''
+      }`}
+      onDragOver={enableDrop ? handleDragOver : undefined}
+      onDragLeave={enableDrop ? handleDragLeave : undefined}
+      onDrop={enableDrop ? handleDrop : undefined}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        onChange={handleFileSelect}
+        className={s.hiddenInput}
+      />
+
+      {isUploading && (
+        <div className={s.uploadProgress}>
+          <div
+            className={s.uploadProgressFill}
+            style={{ width: `${uploadProgress ?? 0}%` }}
+          />
+        </div>
+      )}
 
       {uploadError && (
         <div className={s.errorBox}>
@@ -256,44 +288,29 @@ const FileManager: React.FC<FileManagerProps> = ({
         </div>
       )}
 
+      {readOnly && files.length === 0 && emptyMessage ? (
+        <EmptyState
+          icon={<Inbox size={20} strokeWidth={1.75} />}
+          message={emptyMessage}
+        />
+      ) : !readOnly && files.length === 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (!isUploading) fileInputRef.current?.click();
+          }}
+          className={`${s.dropZone} ${isDragging ? s.dropZoneDragging : ''} ${
+            isUploading ? s.dropZoneDisabled : ''
+          }`}
+        >
+          <EmptyState
+            icon={<Upload size={20} strokeWidth={1.75} />}
+            message="ファイルをアップロード"
+            hint="ドラッグ&ドロップ または クリックで選択"
+          />
+        </button>
+      ) : (
       <div ref={gridRef} className={s.grid}>
-        {/* アップロードボックス（readOnly のときは非表示） */}
-        {!readOnly && (
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`${s.uploadBox} ${
-              isDragging ? s.uploadBoxDragging : s.uploadBoxDefault
-            } ${isUploading ? s.uploadBoxDisabled : ''}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className={s.hiddenInput}
-            />
-            {isUploading ? (
-              <div className={s.progressContainer}>
-                <div className={s.progressBar}>
-                  <div className={s.progressFill} style={{ width: `${uploadProgress ?? 0}%` }} />
-                </div>
-                <span className={s.progressText}>
-                  {uploadProgress ?? 0}%
-                </span>
-              </div>
-            ) : (
-              <Plus size={16} className={s.plusIcon} />
-            )}
-          </div>
-        )}
-
-        {readOnly && files.length === 0 && emptyMessage && (
-          <div className={s.emptyHint}>{emptyMessage}</div>
-        )}
-
         {/* ファイルサムネイル */}
         {files.map((file) => {
           const isActive = activeItemId === file.id;
@@ -416,6 +433,7 @@ const FileManager: React.FC<FileManagerProps> = ({
           );
         })}
       </div>
+      )}
 
       <ImageLightbox
         items={lightboxItems}
@@ -437,6 +455,6 @@ const FileManager: React.FC<FileManagerProps> = ({
       />
     </div>
   );
-};
+});
 
 export default FileManager;

@@ -6,50 +6,6 @@
   min-height: 100%;
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.headerTitle {
-  color: #9ca3af;
-  font-size: 11px;
-  font-weight: 500;
-  font-family: Inter, sans-serif;
-}
-
-.headerCount {
-  color: #6b7280;
-  font-size: 10px;
-  font-family: Inter, sans-serif;
-}
-
-.refreshButton {
-  @include flex-center;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background-color: #1a1b1e;
-  border: 1px solid #3a3b40;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-}
-
-.refreshIcon {
-  color: #6b7280;
-}
-
-.spinning {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -83,17 +39,6 @@
 
 .spinnerPath {
   opacity: 0.75;
-}
-
-.emptyCenter {
-  @include flex-center;
-  flex: 1;
-}
-
-.emptyText {
-  color: #4b5563;
-  font-size: 11px;
-  font-family: Inter, sans-serif;
 }
 
 .fileList {

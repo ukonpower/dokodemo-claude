@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import type { GitDiffFile, GitDiffSummary } from '../types';
+import EmptyState from './EmptyState';
 import s from './DiffSummary.module.scss';
 
 interface DiffSummaryProps {
@@ -50,31 +51,6 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
 
   return (
     <div className={s.container}>
-      {/* ヘッダー行 */}
-      <div className={s.headerRow}>
-        <div className={s.headerLeft}>
-          <span className={s.headerTitle}>
-            Git Diff
-          </span>
-          {summary && summary.files.length > 0 && (
-            <span className={s.headerCount}>
-              {summary.files.length}ファイル
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className={s.refreshButton}
-          title="更新"
-        >
-          <RefreshCw
-            size={10}
-            className={`${s.refreshIcon} ${isLoading ? s.spinning : ''}`}
-          />
-        </button>
-      </div>
-
       {/* エラー表示 */}
       {error && (
         <div className={s.errorBox}>
@@ -94,11 +70,10 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
 
       {/* 差分なし */}
       {!isLoading && !error && summary && summary.files.length === 0 && (
-        <div className={s.emptyCenter}>
-          <span className={s.emptyText}>
-            変更されたファイルはありません
-          </span>
-        </div>
+        <EmptyState
+          icon={<GitBranch size={20} strokeWidth={1.75} />}
+          message="変更されたファイルはありません"
+        />
       )}
 
       {/* ファイル一覧 */}

@@ -26,38 +26,6 @@
   border-right: none;
 }
 
-.leftHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 8px;
-  height: 24px;
-  border-bottom: 1px solid #2d2e32;
-}
-
-.fileCount {
-  font-size: 10px;
-  color: #6b7280;
-  font-family: Inter, sans-serif;
-}
-
-.refreshButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: #2d2e32;
-    color: #e5e7eb;
-  }
-}
-
 .list {
   flex: 1;
   overflow-y: auto;
@@ -65,15 +33,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-.emptyHint {
-  padding: 12px 8px;
-  font-size: 11px;
-  color: #6b7280;
-  text-align: center;
-  font-family: Inter, sans-serif;
-  line-height: 1.5;
 }
 
 .listItem {
@@ -252,12 +211,3 @@
   color: #f87171;
 }
 
-.emptyPreview {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #6b7280;
-  font-family: Inter, sans-serif;
-}

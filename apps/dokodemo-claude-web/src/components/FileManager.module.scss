@@ -1,37 +1,32 @@
 .container {
+  position: relative;
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 100%;
-}
-
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fileCount {
-  font-size: 10px;
-  font-weight: 500;
-  color: #6b7280;
-  font-family: Inter, sans-serif;
-}
-
-.refreshButton {
-  @include flex-center;
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background-color: #1a1b1e;
-  border: 1px solid #3a3b40;
-  cursor: pointer;
   transition: background-color $transition-fast $transition-easing;
 }
 
-.refreshIcon {
-  color: #6b7280;
+.containerDragging {
+  background-color: rgba(59, 130, 246, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45);
+}
+
+.uploadProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.uploadProgressFill {
+  height: 100%;
+  background-color: $blue-500;
+  transition: width 0.2s;
 }
 
 .errorBox {
@@ -50,71 +45,42 @@
   gap: 6px;
 }
 
-.uploadBox {
-  @include flex-center;
-  width: 80px;
-  height: 80px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: border-color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
-}
-
-.emptyHint {
-  font-size: 11px;
-  color: #6b7280;
-  font-family: Inter, sans-serif;
-  padding: 8px 0;
-  line-height: 1.5;
-}
-
-.uploadBoxDefault {
-  border: 1px dashed #3a3b40;
+.dropZone {
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-color: #3a3b40;
+  }
 }
 
-.uploadBoxDragging {
-  border: 1px solid $blue-500;
-  background-color: rgba(59, 130, 246, 0.1);
+.dropZoneDragging {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-color: $blue-500;
 }
 
-.uploadBoxDisabled {
-  opacity: 0.5;
+.dropZoneDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
   pointer-events: none;
 }
 
 .hiddenInput {
   display: none;
-}
-
-.progressContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.progressBar {
-  width: 48px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: #333;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background-color: $blue-500;
-  border-radius: 2px;
-  transition: width 0.2s;
-}
-
-.progressText {
-  font-size: 10px;
-  color: #6b7280;
-}
-
-.plusIcon {
-  color: #6b7280;
 }
 
 .thumbnailCard {

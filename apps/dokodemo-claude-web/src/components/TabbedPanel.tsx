@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Send,
   Inbox,
@@ -6,13 +6,15 @@ import {
   ChevronDown,
   ChevronRight,
   FileText,
+  RefreshCw,
+  Upload,
 } from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
   UploadedFileInfo,
   GitDiffSummary,
 } from '../types';
-import FileManager from './FileManager';
+import FileManager, { type FileManagerHandle } from './FileManager';
 import DiffSummary from './DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
 
@@ -102,7 +104,6 @@ const INACTIVE_COLOR = '#6b7280';
 
 const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
 const MD_PREVIEW_HEIGHT = 400;
-const MD_LIST_HEADER = 24;
 const MD_LIST_PADDING = 16;
 const MD_LIST_ITEM_HEIGHT = 28;
 const MD_LIST_MIN_HEIGHT = 120;
@@ -110,15 +111,24 @@ const MD_LIST_MIN_HEIGHT = 120;
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const { currentRepo, files } = props;
   const userFiles = useMemo(
-    () => files.filter((f) => f.source === 'user' && f.type !== 'markdown'),
+    () =>
+      files
+        .filter((f) => f.source === 'user' && f.type !== 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
     [files]
   );
   const previewFiles = useMemo(
-    () => files.filter((f) => f.source === 'claude' && f.type !== 'markdown'),
+    () =>
+      files
+        .filter((f) => f.source === 'claude' && f.type !== 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
     [files]
   );
   const markdownFiles = useMemo(
-    () => files.filter((f) => f.type === 'markdown'),
+    () =>
+      files
+        .filter((f) => f.type === 'markdown')
+        .sort((a, b) => b.uploadedAt - a.uploadedAt),
     [files]
   );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
@@ -130,6 +140,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
       : false
   );
   const [mdView, setMdView] = useState<'list' | 'preview'>('list');
+  const filesManagerRef = useRef<FileManagerHandle>(null);
 
   useEffect(() => {
     const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
@@ -205,11 +216,27 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         Math.max(1, markdownFiles.length) * MD_LIST_ITEM_HEIGHT;
       expandedHeight = Math.min(
         MD_PREVIEW_HEIGHT,
-        Math.max(MD_LIST_MIN_HEIGHT, MD_LIST_HEADER + listInner)
+        Math.max(MD_LIST_MIN_HEIGHT, listInner)
       );
     } else {
       expandedHeight = MD_PREVIEW_HEIGHT;
     }
+  }
+
+  // アクティブタブ毎のカウント / 更新ハンドラ / ローディング状態
+  let activeCount: number | null = null;
+  let activeOnRefresh: () => void = props.onRefreshFiles;
+  let activeIsLoading = false;
+  if (activeTab === 'files') {
+    activeCount = userFiles.length;
+  } else if (activeTab === 'preview') {
+    activeCount = previewFiles.length;
+  } else if (activeTab === 'md') {
+    activeCount = markdownFiles.length;
+  } else if (activeTab === 'git') {
+    activeCount = props.diffSummary ? props.diffSummary.files.length : null;
+    activeOnRefresh = props.onRefreshDiffSummary;
+    activeIsLoading = props.diffSummaryLoading;
   }
 
   return (
@@ -291,6 +318,40 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             </button>
           );
         })}
+
+        {/* 右側のスペーサー + アクション */}
+        {!isCollapsed && (
+          <>
+            <div className={s.spacer} />
+            <div className={s.tabBarActions}>
+              {activeCount !== null && activeCount > 0 && (
+                <span className={s.tabBarCount}>{activeCount}</span>
+              )}
+              {activeTab === 'files' && (
+                <button
+                  onClick={() => filesManagerRef.current?.pickFiles()}
+                  className={s.tabBarAction}
+                  title="ファイルを追加"
+                  aria-label="ファイルを追加"
+                >
+                  <Upload size={11} />
+                </button>
+              )}
+              <button
+                onClick={activeOnRefresh}
+                disabled={activeIsLoading}
+                className={s.tabBarAction}
+                title="更新"
+                aria-label="更新"
+              >
+                <RefreshCw
+                  size={11}
+                  className={activeIsLoading ? s.spinning : ''}
+                />
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* タブコンテンツ */}
@@ -298,6 +359,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         <div style={{ backgroundColor: '#25262b' }} className={s.tabContent}>
           {activeTab === 'files' && (
             <FileManager
+              ref={filesManagerRef}
               rid={props.rid}
               files={userFiles}
               onRefresh={props.onRefreshFiles}
@@ -318,7 +380,6 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
             <MarkdownPanel
               rid={props.rid}
               files={markdownFiles}
-              onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
               isMobile={isMobile}
               mobileView={mdView}

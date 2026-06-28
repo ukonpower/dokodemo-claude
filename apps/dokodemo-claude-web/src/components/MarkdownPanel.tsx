@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  RefreshCw,
   Copy as CopyIcon,
   Check,
   Trash2,
@@ -13,12 +12,12 @@ import type { UploadedFileInfo } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
 import MarkdownViewer from './MarkdownViewer';
 import MarkdownLightbox from './MarkdownLightbox';
+import EmptyState from './EmptyState';
 import s from './MarkdownPanel.module.scss';
 
 interface MarkdownPanelProps {
   rid: string;
   files: UploadedFileInfo[];
-  onRefresh: () => void;
   onDelete: (filename: string) => void;
   isMobile: boolean;
   mobileView: 'list' | 'preview';
@@ -34,7 +33,6 @@ function getDisplayName(filename: string): string {
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   rid,
   files,
-  onRefresh,
   onDelete,
   isMobile,
   mobileView,
@@ -152,24 +150,12 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       {/* 左ペイン: ファイル一覧 */}
       {showList && (
       <div className={`${s.leftPane} ${isMobile ? s.paneMobile : ''}`}>
-        <div className={s.leftHeader}>
-          <span className={s.fileCount}>
-            {files.length > 0 ? `${files.length} 件` : ''}
-          </span>
-          <button
-            onClick={onRefresh}
-            className={s.refreshButton}
-            title="更新"
-            aria-label="更新"
-          >
-            <RefreshCw size={10} />
-          </button>
-        </div>
         <div className={s.list}>
           {files.length === 0 ? (
-            <div className={s.emptyHint}>
-              Claude が送信した Markdown がここに表示されます
-            </div>
+            <EmptyState
+              icon={<FileText size={20} strokeWidth={1.75} />}
+              message="Markdown はまだありません"
+            />
           ) : (
             files.map((file) => {
               const displayName = getDisplayName(file.filename);
@@ -277,11 +263,14 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
             </div>
           </>
         ) : (
-          <div className={s.emptyPreview}>
-            {isMobile
-              ? '一覧から Markdown を選択してください'
-              : '左側から Markdown を選択してください'}
-          </div>
+          <EmptyState
+            icon={<FileText size={20} strokeWidth={1.75} />}
+            message={
+              isMobile
+                ? '一覧から Markdown を選択'
+                : '左側から Markdown を選択'
+            }
+          />
         )}
       </div>
       )}
