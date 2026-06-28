@@ -5,6 +5,11 @@
   overflow: hidden;
 }
 
+.rootMobile {
+  // モバイル時はリスト or プレビューのどちらか一方のみ表示
+  // 表示中ペインは flex で全幅を取る
+}
+
 .leftPane {
   display: flex;
   flex-direction: column;
@@ -13,6 +18,12 @@
   border-right: 1px solid #2d2e32;
   background-color: #1e1f23;
   min-height: 0;
+}
+
+.paneMobile {
+  width: auto;
+  flex: 1;
+  border-right: none;
 }
 
 .leftHeader {
@@ -124,11 +135,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 10px;
-  height: 30px;
+  padding: 8px 10px;
+  min-height: 38px;
   border-bottom: 1px solid #2d2e32;
   background-color: #1e1f23;
   flex-shrink: 0;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid #3a3b40;
+  color: #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: #2d2e32;
+    color: #f3f4f6;
+  }
 }
 
 .previewTitleWrap {

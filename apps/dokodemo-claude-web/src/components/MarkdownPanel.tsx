@@ -7,6 +7,7 @@ import {
   Download,
   Maximize2,
   FileText,
+  ChevronLeft,
 } from 'lucide-react';
 import type { UploadedFileInfo } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
@@ -27,6 +28,8 @@ function getDisplayName(filename: string): string {
   );
 }
 
+const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
+
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   rid,
   files,
@@ -38,6 +41,19 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia(MOBILE_MEDIA_QUERY).matches
+      : false
+  );
+  const [mobileView, setMobileView] = useState<'list' | 'preview'>('list');
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const selectedFile = useMemo(
     () => files.find((f) => f.id === selectedId) ?? null,
@@ -48,6 +64,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   useEffect(() => {
     if (files.length === 0) {
       setSelectedId(null);
+      setMobileView('list');
       return;
     }
     if (!files.some((f) => f.id === selectedId)) {
@@ -128,10 +145,19 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     }
   }, [selectedFile, onDelete]);
 
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id);
+    setMobileView('preview');
+  }, []);
+
+  const showList = !isMobile || mobileView === 'list';
+  const showPreview = !isMobile || mobileView === 'preview';
+
   return (
-    <div className={s.root}>
+    <div className={`${s.root} ${isMobile ? s.rootMobile : ''}`}>
       {/* 左ペイン: ファイル一覧 */}
-      <div className={s.leftPane}>
+      {showList && (
+      <div className={`${s.leftPane} ${isMobile ? s.paneMobile : ''}`}>
         <div className={s.leftHeader}>
           <span className={s.fileCount}>
             {files.length > 0 ? `${files.length} 件` : ''}
@@ -158,7 +184,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
               return (
                 <button
                   key={file.id}
-                  onClick={() => setSelectedId(file.id)}
+                  onClick={() => handleSelect(file.id)}
                   className={`${s.listItem} ${isActive ? s.listItemActive : ''}`}
                   title={file.title ? `${file.title}\n${displayName}` : displayName}
                 >
@@ -170,12 +196,24 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* 右ペイン: プレビュー */}
-      <div className={s.rightPane}>
+      {showPreview && (
+      <div className={`${s.rightPane} ${isMobile ? s.paneMobile : ''}`}>
         {selectedFile ? (
           <>
             <div className={s.previewHeader}>
+              {isMobile && (
+                <button
+                  onClick={() => setMobileView('list')}
+                  className={s.backButton}
+                  title="一覧へ戻る"
+                  aria-label="一覧へ戻る"
+                >
+                  <ChevronLeft size={14} strokeWidth={2.25} />
+                </button>
+              )}
               <div className={s.previewTitleWrap}>
                 <span className={s.previewTitle}>
                   {selectedFile.title || getDisplayName(selectedFile.filename)}
@@ -245,9 +283,14 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
             </div>
           </>
         ) : (
-          <div className={s.emptyPreview}>左側から Markdown を選択してください</div>
+          <div className={s.emptyPreview}>
+            {isMobile
+              ? '一覧から Markdown を選択してください'
+              : '左側から Markdown を選択してください'}
+          </div>
         )}
       </div>
+      )}
 
       <MarkdownLightbox
         rid={rid}
