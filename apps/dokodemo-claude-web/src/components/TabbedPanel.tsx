@@ -5,6 +5,7 @@ import {
   GitBranch,
   ChevronDown,
   ChevronRight,
+  FileText,
 } from 'lucide-react';
 import s from './TabbedPanel.module.scss';
 import type {
@@ -13,8 +14,9 @@ import type {
 } from '../types';
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
+import MarkdownPanel from './MarkdownPanel';
 
-type TabId = 'files' | 'preview' | 'git';
+type TabId = 'files' | 'preview' | 'md' | 'git';
 
 const STORAGE_KEY_PREFIX = 'dokodemo-tabbed-panel-active';
 const COLLAPSED_KEY_PREFIX = 'dokodemo-tabbed-panel-collapsed';
@@ -50,6 +52,12 @@ const TABS: TabDef[] = [
     label: '受信',
     activeColor: ACTIVE_COLOR,
     icon: <Inbox size={ICON_SIZE} />,
+  },
+  {
+    id: 'md',
+    label: 'MD',
+    activeColor: '#38bdf8',
+    icon: <FileText size={ICON_SIZE} />,
   },
   {
     id: 'git',
@@ -95,11 +103,15 @@ const INACTIVE_COLOR = '#6b7280';
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
   const { currentRepo, files } = props;
   const userFiles = useMemo(
-    () => files.filter((f) => f.source === 'user'),
+    () => files.filter((f) => f.source === 'user' && f.type !== 'markdown'),
     [files]
   );
   const previewFiles = useMemo(
-    () => files.filter((f) => f.source === 'claude'),
+    () => files.filter((f) => f.source === 'claude' && f.type !== 'markdown'),
+    [files]
+  );
+  const markdownFiles = useMemo(
+    () => files.filter((f) => f.type === 'markdown'),
     [files]
   );
   const [activeTab, setActiveTab] = useState<TabId>(() =>
@@ -165,6 +177,8 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [currentRepo]);
 
+  const expandedHeight = activeTab === 'md' ? 400 : 180;
+
   return (
     <div
       className={s.root}
@@ -172,7 +186,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         backgroundColor: '#1a1b1e',
         borderRadius: 8,
         border: '1px solid #2d2e32',
-        height: isCollapsed ? 32 : 180,
+        height: isCollapsed ? 32 : expandedHeight,
         transition: 'height 0.2s ease',
       }}
     >
@@ -265,6 +279,14 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               onDelete={props.onDeleteFile}
               readOnly
               emptyMessage="Claude がアップロードした画像がここに表示されます"
+            />
+          )}
+          {activeTab === 'md' && (
+            <MarkdownPanel
+              rid={props.rid}
+              files={markdownFiles}
+              onRefresh={props.onRefreshFiles}
+              onDelete={props.onDeleteFile}
             />
           )}
           {activeTab === 'git' && (
