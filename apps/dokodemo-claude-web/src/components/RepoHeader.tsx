@@ -1,5 +1,5 @@
 import { useState, type RefObject } from 'react';
-import { ExternalLink, FolderOpen } from 'lucide-react';
+import { ChevronDown, ExternalLink, FolderOpen } from 'lucide-react';
 import type { AiInstance, EditorInfo, EditorType, GitRepository } from '../types';
 import s from './RepoHeader.module.scss';
 
@@ -73,17 +73,24 @@ export function RepoHeader({
 }: RepoHeaderProps) {
   const [copiedPath, setCopiedPath] = useState(false);
 
-  // localhost からのアクセスでない場合、ローカルエディタ起動は意味がないので code-server だけ出す
-  const visibleEditors = isLocalhost
-    ? availableEditors
-    : availableEditors.filter((e) => e.id === 'code-server');
+  // メインボタンは code-server を直接起動する。
+  // localhost からのアクセス時のみ、右側のドロップダウンに vscode / cursor を出す
+  const codeServerEditor = availableEditors.find((e) => e.id === 'code-server');
+  const localEditors = isLocalhost
+    ? availableEditors.filter((e) => e.id !== 'code-server')
+    : [];
+  const hasEditorButton = !!codeServerEditor || localEditors.length > 0;
+  // メインボタンが押すべきエディタ（基本は code-server だが、無ければ最初のローカルエディタ）
+  const primaryEditor: EditorInfo | undefined = codeServerEditor ?? localEditors[0];
+  const dropdownEditors = codeServerEditor ? localEditors : localEditors.slice(1);
 
   const handleEditorButtonClick = () => {
-    // 候補が1つだけならそのまま起動、複数あればドロップダウン表示
-    if (visibleEditors.length === 1) {
-      onOpenInEditor(visibleEditors[0].id);
-      return;
+    if (primaryEditor) {
+      onOpenInEditor(primaryEditor.id);
     }
+  };
+
+  const handleDropdownToggle = () => {
     setShowEditorMenu(!showEditorMenu);
   };
 
@@ -155,47 +162,60 @@ export function RepoHeader({
                 <FolderOpen size={16} />
               </button>
 
-              {visibleEditors.length > 0 && (
+              {hasEditorButton && primaryEditor && (
                 <div className={s.editorDropdownWrapper} ref={editorMenuRef}>
-                  <button
-                    onClick={handleEditorButtonClick}
-                    disabled={!isConnected || startingCodeServer}
-                    className="btn-icon"
-                    title={
-                      visibleEditors.length === 1
-                        ? `${visibleEditors[0].name}で開く`
-                        : 'エディタで開く'
-                    }
-                  >
-                    {startingCodeServer ? (
-                      <svg
-                        className={s.spinnerAnimation}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className={s.opacity25}
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className={s.opacity75}
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    ) : (
-                      <ExternalLink size={16} />
-                    )}
-                  </button>
+                  <div className={s.editorSplitButton}>
+                    <button
+                      onClick={handleEditorButtonClick}
+                      disabled={!isConnected || startingCodeServer}
+                      className={`btn-icon ${s.editorMainButton} ${
+                        dropdownEditors.length > 0 ? s.editorMainButtonHasDropdown : ''
+                      }`}
+                      title={`${primaryEditor.name}で開く`}
+                    >
+                      {startingCodeServer ? (
+                        <svg
+                          className={s.spinnerAnimation}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className={s.opacity25}
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className={s.opacity75}
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        <ExternalLink size={16} />
+                      )}
+                    </button>
 
-                  {showEditorMenu && visibleEditors.length > 1 && (
+                    {dropdownEditors.length > 0 && (
+                      <button
+                        onClick={handleDropdownToggle}
+                        disabled={!isConnected}
+                        className={`btn-icon ${s.editorDropdownToggle}`}
+                        title="別のエディタで開く"
+                        aria-haspopup="menu"
+                        aria-expanded={showEditorMenu}
+                      >
+                        <ChevronDown size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {showEditorMenu && dropdownEditors.length > 0 && (
                     <div className={s.editorDropdown}>
                       <div className={s.editorDropdownList}>
-                        {visibleEditors.map((editor) => (
+                        {dropdownEditors.map((editor) => (
                           <button
                             key={editor.id}
                             onClick={() => onOpenInEditor(editor.id)}
