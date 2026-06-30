@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { GitRepository, RepoProcessStatus } from '../types';
+import { fuzzyMatch } from '../utils/fuzzy-match';
 import ProjectAiStatusBadge from './ProjectAiStatusBadge';
 import s from './ProjectSwitcherModal.module.scss';
 
@@ -14,11 +15,56 @@ interface ProjectSwitcherModalProps {
   onSwitchRepository: (path: string) => void;
 }
 
+interface ScoredRepo {
+  repo: GitRepository;
+  // display 上のマッチ位置（ハイライト用）。空ならハイライト無し。
+  matches: number[];
+}
+
 function getDisplayName(repo: GitRepository): string {
   if (repo.isWorktree && repo.parentRepoName && repo.worktreeBranch) {
     return `${repo.parentRepoName} / ${repo.worktreeBranch}`;
   }
   return repo.name;
+}
+
+// display にマッチした index 集合からハイライト付き要素を組み立てる。
+function renderHighlighted(text: string, matches: number[]) {
+  if (matches.length === 0) return text;
+  const set = new Set(matches);
+  const nodes: React.ReactNode[] = [];
+  let buf = '';
+  let bufHit = false;
+  const flush = (i: number) => {
+    if (!buf) return;
+    nodes.push(
+      bufHit ? (
+        <mark key={`m-${i}-${buf}`} className={s.itemMatch}>
+          {buf}
+        </mark>
+      ) : (
+        <Fragment key={`t-${i}-${buf}`}>{buf}</Fragment>
+      )
+    );
+    buf = '';
+  };
+  for (let i = 0; i < text.length; i++) {
+    const hit = set.has(i);
+    if (i === 0) {
+      buf = text[i];
+      bufHit = hit;
+      continue;
+    }
+    if (hit === bufHit) {
+      buf += text[i];
+    } else {
+      flush(i);
+      buf = text[i];
+      bufHit = hit;
+    }
+  }
+  flush(text.length);
+  return nodes;
 }
 
 function ProjectSwitcherModal({
@@ -34,15 +80,27 @@ function ProjectSwitcherModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return repositories;
-    return repositories.filter((repo) => {
-      const display = getDisplayName(repo).toLowerCase();
-      const path = repo.path.toLowerCase();
-      const name = repo.name.toLowerCase();
-      return display.includes(q) || path.includes(q) || name.includes(q);
+  const filtered = useMemo<ScoredRepo[]>(() => {
+    const q = query.trim();
+    if (!q) return repositories.map((repo) => ({ repo, matches: [] }));
+
+    const scored: { repo: GitRepository; score: number; matches: number[]; order: number }[] = [];
+    repositories.forEach((repo, order) => {
+      const display = getDisplayName(repo);
+      const displayMatch = fuzzyMatch(q, display);
+      // path はハイライトしないが、display で取れない場合の救済として併用する。
+      // 表示上は display のマッチだけ強調するため、path 経由ヒット時は matches を空にする。
+      const pathMatch = displayMatch ? null : fuzzyMatch(q, repo.path);
+      if (displayMatch) {
+        scored.push({ repo, score: displayMatch.score + 50, matches: displayMatch.matches, order });
+      } else if (pathMatch) {
+        scored.push({ repo, score: pathMatch.score, matches: [], order });
+      }
     });
+
+    // スコア降順、同点は元の「最近開いた順」を保持。
+    scored.sort((a, b) => (b.score - a.score) || (a.order - b.order));
+    return scored.map(({ repo, matches }) => ({ repo, matches }));
   }, [repositories, query]);
 
   useEffect(() => {
@@ -88,7 +146,7 @@ function ProjectSwitcherModal({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const target = filtered[selectedIndex];
-      if (target) submit(target.path);
+      if (target) submit(target.repo.path);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -120,13 +178,14 @@ function ProjectSwitcherModal({
           {filtered.length === 0 && (
             <li className={s.empty}>該当するプロジェクトがありません</li>
           )}
-          {filtered.map((repo, i) => {
+          {filtered.map(({ repo, matches }, i) => {
             const isCurrent = currentRepo === repo.path;
             const isSelected = i === selectedIndex;
             const status = statusByPath.get(repo.path);
             const classes = [s.item];
             if (isSelected) classes.push(s.itemSelected);
             if (isCurrent) classes.push(s.itemCurrent);
+            const display = getDisplayName(repo);
             return (
               <li
                 key={repo.path}
@@ -136,7 +195,7 @@ function ProjectSwitcherModal({
                 onClick={() => submit(repo.path)}
                 title={repo.path}
               >
-                <span className={s.itemName}>{getDisplayName(repo)}</span>
+                <span className={s.itemName}>{renderHighlighted(display, matches)}</span>
                 {isCurrent && <span className={s.itemCurrentTag}>現在</span>}
                 <span className={s.itemBadge}>
                   <ProjectAiStatusBadge
