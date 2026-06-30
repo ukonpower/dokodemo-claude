@@ -20,7 +20,10 @@ import {
   createWorktree,
   deleteWorktree,
 } from '../utils/git-utils.js';
-import { addWorktreeIds } from '../handlers/branch-handlers.js';
+import {
+  buildWorktreesListPayload,
+  invalidatePrCache,
+} from '../handlers/branch-handlers.js';
 import { emitIdMappingUpdated } from '../handlers/id-mapping-helpers.js';
 import { stripAnsi } from '../utils/strip-ansi.js';
 import { savePreviewFile } from '../handlers/file-upload-handlers.js';
@@ -177,14 +180,13 @@ export async function createWorktreeAction(
     savedMemo = memoResult.value;
   }
 
-  const prid = repositoryIdManager.tryGetId(parentRepoPath);
+  invalidatePrCache(parentRepoPath);
   await emitIdMappingUpdated(io, deps.getRepositories());
   const worktrees = await getWorktrees(parentRepoPath);
-  io.emit('worktrees-list', {
-    worktrees: addWorktreeIds(worktrees, parentRepoPath),
-    prid,
-    parentRepoPath,
-  });
+  io.emit(
+    'worktrees-list',
+    await buildWorktreesListPayload(worktrees, parentRepoPath)
+  );
 
   return {
     ...result,
@@ -225,16 +227,15 @@ export async function deleteWorktreeAction(
   // 削除したワークツリーのメモも掃除する
   await processManager.worktreeMemoManager.remove(worktreePath);
 
-  const prid = repositoryIdManager.tryGetId(parentRepoPath);
+  invalidatePrCache(parentRepoPath);
   await emitIdMappingUpdated(io, deps.getRepositories());
   const worktrees = (await getWorktrees(parentRepoPath)).filter(
     (w) => w.path !== worktreePath
   );
-  io.emit('worktrees-list', {
-    worktrees: addWorktreeIds(worktrees, parentRepoPath),
-    prid,
-    parentRepoPath,
-  });
+  io.emit(
+    'worktrees-list',
+    await buildWorktreesListPayload(worktrees, parentRepoPath)
+  );
 
   return result;
 }
@@ -274,13 +275,11 @@ export async function setWorktreeMemo(
   }
 
   const parentRepoPath = getMainRepoPath(worktreePath);
-  const prid = repositoryIdManager.tryGetId(parentRepoPath);
   const worktrees = await getWorktrees(parentRepoPath);
-  io.emit('worktrees-list', {
-    worktrees: addWorktreeIds(worktrees, parentRepoPath),
-    prid,
-    parentRepoPath,
-  });
+  io.emit(
+    'worktrees-list',
+    await buildWorktreesListPayload(worktrees, parentRepoPath)
+  );
 
   return { success: true, rid: wtid, memo: result.value };
 }

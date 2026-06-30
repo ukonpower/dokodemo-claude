@@ -77,6 +77,17 @@ export interface GitWorktree {
   isMain: boolean; // メインワークツリーかどうか
   parentRepoPath: string; // 親リポジトリのパス
   memo?: string; // ワークツリーのメモ（本文のみ。URLは表示時に自動リンク化）
+  prInfo?: GitWorktreePrInfo; // 紐付く GitHub PR 情報（gh CLI 経由で取得）
+}
+
+// GitHub PR 情報（worktree のブランチに紐付く 1 件分）
+export interface GitWorktreePrInfo {
+  number: number;
+  state: 'OPEN' | 'MERGED' | 'CLOSED';
+  isDraft: boolean;
+  title: string;
+  url: string;
+  mergedAt: string | null;
 }
 
 export interface WorktreeCreateRequest {
