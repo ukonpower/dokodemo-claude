@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
@@ -408,6 +408,10 @@ export function ProjectView({
   const textInputRef = useRef<TextInputRef>(null);
   const aiOutputRef = useRef<AiOutputRef>(null);
 
+  // TabbedPanel 展開時の上乗せ高さ（px）。cliSection の min-height に加算し、
+  // xterm の高さを維持したまま下方向にパネルが伸びるようにする
+  const [panelExtraHeight, setPanelExtraHeight] = useState(0);
+
   // ハンドラ
   const handleSendCommand = useCallback(
     (command: string) => {
@@ -543,7 +547,10 @@ export function ProjectView({
           })()}
 
           {/* AI CLI セクション */}
-          <section className={s.cliSection}>
+          <section
+            className={s.cliSection}
+            style={{ '--panel-extra-height': `${panelExtraHeight}px` } as React.CSSProperties}
+          >
             <div className={s.cliTabBar}>
               <AiInstanceTabs
                 instances={aiInstances}
@@ -702,6 +709,7 @@ export function ProjectView({
                     diffSummaryError={diffSummaryError}
                     onRefreshDiffSummary={onRefreshDiffSummary}
                     onDiffFileClick={onDiffFileClick}
+                    onExpandedExtraHeightChange={setPanelExtraHeight}
                   />
                 </div>
               )}

@@ -102,6 +102,12 @@
   min-width: 0;
 }
 
+.itemMatch {
+  background: transparent;
+  color: $blue-500;
+  font-weight: 700;
+}
+
 .itemCurrentTag {
   font-size: 0.6rem;
   padding: 0.05rem 0.3rem;
