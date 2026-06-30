@@ -168,7 +168,14 @@ export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'repos-process-status': (data: { statuses: RepoProcessStatus[] }) => void;
   // パス存在確認の結果（worktree 復元前に削除済みでないかを判定するため）
-  'repo-path-checked': (data: { path: string; exists: boolean }) => void;
+  // exists=false かつ path が worktree っぽい場合、親リポジトリの導出結果を
+  // 同時に返す（クライアントは round trip 1 回でフォールバック先を決められる）
+  'repo-path-checked': (data: {
+    path: string;
+    exists: boolean;
+    fallbackParentPath?: string;
+    fallbackParentExists?: boolean;
+  }) => void;
   'ai-output': (data: AiMessage) => void;
   'ai-output-line': (data: {
     rid: string;
