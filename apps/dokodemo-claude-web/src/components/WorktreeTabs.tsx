@@ -18,7 +18,12 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { GitWorktree, GitBranch, WorktreeSyncEntry } from '../types';
+import type {
+  GitWorktree,
+  GitWorktreePrInfo,
+  GitBranch,
+  WorktreeSyncEntry,
+} from '../types';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
@@ -32,6 +37,62 @@ const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
   ...transform,
   y: 0,
 });
+
+/**
+ * PR バッジに使う状態色クラスを決める。
+ * - Draft は state OPEN でも灰色扱い
+ * - MERGED > CLOSED の順で評価
+ */
+function getPrStateClass(
+  pr: GitWorktreePrInfo,
+  styles: typeof s
+): string {
+  if (pr.isDraft && pr.state === 'OPEN') return styles.draft;
+  if (pr.state === 'OPEN') return styles.open;
+  if (pr.state === 'MERGED') return styles.merged;
+  return styles.closed;
+}
+
+function getPrStateLabel(pr: GitWorktreePrInfo): string {
+  if (pr.isDraft && pr.state === 'OPEN') return 'Draft';
+  if (pr.state === 'OPEN') return 'Open';
+  if (pr.state === 'MERGED') return 'Merged';
+  return 'Closed';
+}
+
+interface PrBadgeProps {
+  pr: GitWorktreePrInfo;
+  compact: boolean;
+}
+
+/**
+ * PR 番号と状態色ドットを並べた小さなバッジ。
+ * クリックは親 <a> の遷移を抑止して PR の URL を新規タブで開く。
+ */
+function PrBadge({ pr, compact }: PrBadgeProps) {
+  const tooltip = `#${pr.number} ${getPrStateLabel(pr)}\n${pr.title}`;
+  return (
+    <a
+      href={pr.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      draggable={false}
+      title={tooltip}
+      onClick={(e) => {
+        // PR URL を新規タブで開く（タブ切り替えは抑止）
+        e.stopPropagation();
+      }}
+      onMouseDown={(e) => {
+        // dnd-kit のドラッグセンサー発火を抑止
+        e.stopPropagation();
+      }}
+      className={`${s.prBadge} ${compact ? s.compact : ''}`}
+    >
+      <span className={s.prNumber}>#{pr.number}</span>
+      <span className={`${s.prStateDot} ${getPrStateClass(pr, s)}`} />
+    </a>
+  );
+}
 
 interface SortableWorktreeTabProps {
   wt: GitWorktree;
@@ -104,6 +165,7 @@ function SortableWorktreeTab({
             📝
           </span>
         )}
+        {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
         {isActive && (
           <span
             className={`${s.activeDot} ${compact ? s.compact : s.normal}`}
@@ -423,6 +485,9 @@ function WorktreeTabs({
                 <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
                   {mainWorktree.branch}
                 </span>
+                {mainWorktree.prInfo && (
+                  <PrBadge pr={mainWorktree.prInfo} compact={compact} />
+                )}
                 {isWorktreeActive(mainWorktree) && (
                   <span className={`${s.activeDot} ${compact ? s.compact : s.normal}`}></span>
                 )}

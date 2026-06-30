@@ -257,6 +257,63 @@
   flex-shrink: 0;
 }
 
+// PR バッジ：PR 番号 + 状態色ドット
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
+  padding: 0.05em 0.4em;
+  font-family: $font-mono;
+  font-size: 0.75em;
+  line-height: 1.2;
+  color: $gray-300;
+  background-color: rgba($gray-700, 0.5);
+  border-radius: $radius;
+  flex-shrink: 0;
+
+  &.compact {
+    margin-left: 0.25rem;
+    padding: 0 0.3em;
+    font-size: 0.7em;
+  }
+}
+
+.prNumber {
+  font-weight: 500;
+}
+
+.prStateDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+
+  // OPEN (緑) — GitHub の open PR と合わせる
+  &.open {
+    background-color: #3fb950;
+    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.4);
+  }
+
+  // MERGED (紫)
+  &.merged {
+    background-color: #a371f7;
+    box-shadow: 0 0 0 1px rgba(163, 113, 247, 0.4);
+  }
+
+  // CLOSED (赤)
+  &.closed {
+    background-color: #f85149;
+    box-shadow: 0 0 0 1px rgba(248, 81, 73, 0.4);
+  }
+
+  // DRAFT (灰)
+  &.draft {
+    background-color: #8b949e;
+    box-shadow: 0 0 0 1px rgba(139, 148, 158, 0.4);
+  }
+}
+
 .activeDot {
   background-color: $blue-500;
   border-radius: 9999px;
