@@ -35,22 +35,44 @@ async function saveRepoLastAccess(
 }
 
 /**
- * リポジトリ一覧を「最近開いた順」でソートして送信するヘルパー
- *
- * 並び順はサーバー側で確定させ、フロントは受け取った配列をそのまま描画する。
+ * リポジトリ一覧を「最近開いた順」でソートして返す
+ */
+async function buildSortedRepos(
+  repositories: GitRepository[],
+  persistence: PersistenceService
+): Promise<GitRepository[]> {
+  const lastAccessTimes = await loadRepoLastAccess(persistence);
+  return [...repositories].sort((a, b) => {
+    const tA = lastAccessTimes[a.path] || 0;
+    const tB = lastAccessTimes[b.path] || 0;
+    return tB - tA;
+  });
+}
+
+/**
+ * リポジトリ一覧を呼び出し元のソケットだけに送信
+ * （接続直後の初期化など、特定のクライアントが要求した場合に使う）
  */
 async function emitReposList(
   socket: HandlerContext['socket'],
   repositories: GitRepository[],
   persistence: PersistenceService
 ): Promise<void> {
-  const lastAccessTimes = await loadRepoLastAccess(persistence);
-  const sortedRepos = [...repositories].sort((a, b) => {
-    const tA = lastAccessTimes[a.path] || 0;
-    const tB = lastAccessTimes[b.path] || 0;
-    return tB - tA;
-  });
+  const sortedRepos = await buildSortedRepos(repositories, persistence);
   socket.emit('repos-list', { repos: sortedRepos });
+}
+
+/**
+ * リポジトリ一覧を全クライアントへブロードキャスト
+ * （アクセス時刻の更新・追加・削除など、全タブで揃えたい変化に使う）
+ */
+async function broadcastReposList(
+  io: HandlerContext['io'],
+  repositories: GitRepository[],
+  persistence: PersistenceService
+): Promise<void> {
+  const sortedRepos = await buildSortedRepos(repositories, persistence);
+  io.emit('repos-list', { repos: sortedRepos });
 }
 
 /**
@@ -91,12 +113,14 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
   });
 
   // リポジトリアクセス時刻の更新
+  // 保存後に全クライアントへ並び順を即時反映する（タブ間で順序が割れないように）
   socket.on('update-repo-access', async (data) => {
     const { path: repoPath } = data;
     try {
       const lastAccessTimes = await loadRepoLastAccess(persistenceService);
       lastAccessTimes[repoPath] = Date.now();
       await saveRepoLastAccess(persistenceService, lastAccessTimes);
+      await broadcastReposList(ctx.io, repositories, persistenceService);
     } catch (error) {
       console.error('リポジトリアクセス時刻の更新エラー:', error);
     }
@@ -132,6 +156,17 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
       repositories.splice(repoIndex, 1);
       await processManager.cleanupRepositoryProcesses(repoPath);
 
+      // 永続化済みのアクセス時刻からも削除し、ゴミが残らないようにする
+      try {
+        const lastAccessTimes = await loadRepoLastAccess(persistenceService);
+        if (repoPath in lastAccessTimes) {
+          delete lastAccessTimes[repoPath];
+          await saveRepoLastAccess(persistenceService, lastAccessTimes);
+        }
+      } catch (error) {
+        console.error('リポジトリアクセス時刻のクリーンアップエラー:', error);
+      }
+
       // 全クライアントに最新の id-mapping を通知
       await emitIdMappingUpdated(ctx.io, repositories);
 
@@ -140,7 +175,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         message: `リポジトリ「${name}」を削除しました`,
         path: repoPath,
       });
-      emitReposList(socket, repositories, persistenceService);
+      await broadcastReposList(ctx.io, repositories, persistenceService);
     } catch {
       socket.emit('repo-deleted', {
         success: false,
@@ -217,7 +252,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         status: 'cloning',
       };
       repositories.push(newRepo);
-      emitReposList(socket, repositories, persistenceService);
+      void broadcastReposList(ctx.io, repositories, persistenceService);
 
       const gitProcess = spawn('git', ['clone', url, repoPath], {
         env: cleanChildEnv(),
@@ -232,7 +267,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
             success: false,
             message: `リポジトリ「${name}」のクローンがタイムアウトしました`,
           });
-          emitReposList(socket, repositories, persistenceService);
+          void broadcastReposList(ctx.io, repositories, persistenceService);
         }
       }, 600000);
 
@@ -256,7 +291,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
               message: `リポジトリ「${name}」のクローンに失敗しました`,
             });
           }
-          emitReposList(socket, repositories, persistenceService);
+          void broadcastReposList(ctx.io, repositories, persistenceService);
         }
       });
     } catch {
@@ -291,7 +326,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
         status: 'creating',
       };
       repositories.push(newRepo);
-      emitReposList(socket, repositories, persistenceService);
+      void broadcastReposList(ctx.io, repositories, persistenceService);
 
       const gitInitProcess = spawn('git', ['init'], {
         cwd: repoPath,
@@ -307,7 +342,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
             success: false,
             message: `リポジトリ「${name}」の作成がタイムアウトしました`,
           });
-          emitReposList(socket, repositories, persistenceService);
+          void broadcastReposList(ctx.io, repositories, persistenceService);
         }
       }, 30000);
 
@@ -331,7 +366,7 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
               message: `リポジトリ「${name}」の作成に失敗しました`,
             });
           }
-          emitReposList(socket, repositories, persistenceService);
+          void broadcastReposList(ctx.io, repositories, persistenceService);
         }
       });
     } catch {

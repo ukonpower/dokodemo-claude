@@ -188,7 +188,10 @@ function broadcastRepoProcessStatuses(): void {
 }
 
 // グローバル状態
-let repositories: GitRepository[] = [];
+// 参照は固定し、中身だけ loadExistingRepos がミューテーションする。
+// （ハンドラは接続時に repositories を destructure してキャッシュしているため、
+// 配列ごと差し替えるとハンドラ側がスタれた参照を見続けてしまう）
+const repositories: GitRepository[] = [];
 
 // HTTPS/HTTP 切り替えフラグ
 const USE_HTTPS = process.env.DC_USE_HTTPS !== 'false';
@@ -1004,10 +1007,13 @@ async function ensureReposDir(): Promise<void> {
 }
 
 // 既存リポジトリの読み込み
+// ハンドラが repositories の参照をキャッシュしているため、配列ごと差し替えず
+// 中身だけ更新する（length=0 → push）。
 async function loadExistingRepos(): Promise<void> {
+  let nextRepos: GitRepository[] = [];
   try {
     const entries = await fs.readdir(REPOS_DIR, { withFileTypes: true });
-    repositories = entries
+    nextRepos = entries
       .filter(
         (entry) => entry.isDirectory() && entry.name !== '.dokodemo-worktrees'
       )
@@ -1023,8 +1029,10 @@ async function loadExistingRepos(): Promise<void> {
         };
       });
   } catch {
-    repositories = [];
+    nextRepos = [];
   }
+  repositories.length = 0;
+  repositories.push(...nextRepos);
 }
 
 // ProcessManagerのイベントハンドラー設定
