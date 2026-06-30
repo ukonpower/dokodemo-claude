@@ -421,6 +421,8 @@
 }
 
 // Claude CLI セクション
+// --panel-extra-height: TabbedPanel 展開時の追加高さ（px）。
+// xterm の高さを維持しつつ下方向にパネルが伸びるよう min-height に加算する
 .cliSection {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
@@ -428,7 +430,8 @@
   border: 1px solid $dark-border-light;
   display: flex;
   flex-direction: column;
-  min-height: 27.5rem;
+  min-height: calc(27.5rem + var(--panel-extra-height, 0px));
+  transition: min-height 0.2s ease;
 
   // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
   @include sm-down {
@@ -441,7 +444,7 @@
 
   @include sm-up {
     flex: 3 1 0%;
-    min-height: 900px;
+    min-height: calc(900px + var(--panel-extra-height, 0px));
   }
 }
 

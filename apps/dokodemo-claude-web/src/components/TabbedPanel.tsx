@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   Send,
   Inbox,
@@ -85,6 +85,10 @@ interface TabbedPanelProps {
   diffSummaryError: string | null;
   onRefreshDiffSummary: () => void;
   onDiffFileClick: (filename: string) => void;
+
+  // 展開差分（折りたたみ時 32px との差）の親通知
+  // 親側で上位コンテナの高さに加算することで、展開時に xterm の高さが縮まないようにする
+  onExpandedExtraHeightChange?: (extraHeight: number) => void;
 }
 
 function getStoredTab(repo: string): TabId {
@@ -108,8 +112,10 @@ const MD_LIST_PADDING = 16;
 const MD_LIST_ITEM_HEIGHT = 28;
 const MD_LIST_MIN_HEIGHT = 120;
 
+const COLLAPSED_HEIGHT = 32;
+
 const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
-  const { currentRepo, files } = props;
+  const { currentRepo, files, onExpandedExtraHeightChange } = props;
   const userFiles = useMemo(
     () =>
       files
@@ -239,6 +245,16 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
     activeIsLoading = props.diffSummaryLoading;
   }
 
+  // 展開時に親へ「上乗せ高さ（=expandedHeight - COLLAPSED_HEIGHT）」を通知
+  // 折りたたみ時は 0
+  // useLayoutEffect を使うことで、TabbedPanel の height 変化と cliSection の min-height 変化を
+  // 同じ paint cycle で開始させ、アニメ中に xterm の高さがズレるのを防ぐ
+  useLayoutEffect(() => {
+    if (!onExpandedExtraHeightChange) return;
+    const extra = isCollapsed ? 0 : Math.max(0, expandedHeight - COLLAPSED_HEIGHT);
+    onExpandedExtraHeightChange(extra);
+  }, [isCollapsed, expandedHeight, onExpandedExtraHeightChange]);
+
   return (
     <div
       className={s.root}
@@ -246,7 +262,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         backgroundColor: '#1a1b1e',
         borderRadius: 8,
         border: '1px solid #2d2e32',
-        height: isCollapsed ? 32 : expandedHeight,
+        height: isCollapsed ? COLLAPSED_HEIGHT : expandedHeight,
         transition: 'height 0.2s ease',
       }}
     >
@@ -255,7 +271,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
         className={`${s.tabBar} ${isCollapsed ? s.collapsed : ''}`}
         style={{
           backgroundColor: '#1e1f23',
-          height: 32,
+          height: COLLAPSED_HEIGHT,
           padding: '0 4px',
           borderBottom: isCollapsed ? 'none' : '1px solid #2d2e32',
         }}
