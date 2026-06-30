@@ -83,6 +83,17 @@ export interface GitWorktree {
   isMain: boolean; // メインワークツリーかどうか
   parentRepoPath: string; // 親リポジトリのパス
   memo?: string; // ワークツリーのメモ（本文のみ。URLは表示時に自動リンク化）
+  prInfo?: GitWorktreePrInfo; // 紐付く GitHub PR 情報（gh CLI 経由で取得）
+}
+
+// GitHub PR 情報（worktree のブランチに紐付く 1 件分）
+export interface GitWorktreePrInfo {
+  number: number;
+  state: 'OPEN' | 'MERGED' | 'CLOSED';
+  isDraft: boolean;
+  title: string;
+  url: string;
+  mergedAt: string | null;
 }
 
 export interface WorktreeCreateRequest {
@@ -307,7 +318,14 @@ export interface ServerToClientEvents {
   'repos-list': (data: { repos: GitRepository[] }) => void;
   'repos-process-status': (data: { statuses: RepoProcessStatus[] }) => void;
   // パス存在確認の結果（worktree 復元前に削除済みでないかを判定するため）
-  'repo-path-checked': (data: { path: string; exists: boolean }) => void;
+  // exists=false かつ path が worktree っぽい場合、親リポジトリの導出結果を
+  // 同時に返す（クライアントは round trip 1 回でフォールバック先を決められる）
+  'repo-path-checked': (data: {
+    path: string;
+    exists: boolean;
+    fallbackParentPath?: string;
+    fallbackParentExists?: boolean;
+  }) => void;
   'clone-status': (data: { status: string; message: string }) => void;
   'ai-output': (data: AiMessage) => void;
   'ai-output-line': (data: {

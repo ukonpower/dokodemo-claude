@@ -8,6 +8,7 @@ import { repositoryIdMap } from './utils/repository-id-map';
 import {
   getLastWorktreeForParent,
   setLastWorktreeForParent,
+  pruneStaleLastWorktreeRefs,
 } from './utils/last-tab-storage';
 
 // フック
@@ -129,6 +130,9 @@ function App() {
   const currentRepoRef = useRef(repository.currentRepo);
   const primaryProviderRef = useRef<typeof primaryProvider>(primaryProvider);
   const activeInstanceIdRef = useRef(activeInstance?.instanceId);
+  // useEffect 依存に repository 全体を入れると毎レンダリングで effect が
+  // 再発火するため、最新の switchRepository だけを ref 経由で参照する。
+  const switchRepositoryRef = useRef(repository.switchRepository);
 
   useEffect(() => {
     currentRepoRef.current = repository.currentRepo;
@@ -139,6 +143,9 @@ function App() {
   useEffect(() => {
     activeInstanceIdRef.current = activeInstance?.instanceId;
   }, [activeInstance]);
+  useEffect(() => {
+    switchRepositoryRef.current = repository.switchRepository;
+  }, [repository.switchRepository]);
 
   // active instance が決まったら履歴を取得
   useEffect(() => {
@@ -165,13 +172,50 @@ function App() {
 
     // リポジトリが選択されている場合は各種情報を取得
     const currentPath = currentRepoRef.current;
-    if (currentPath) {
-      socket.emit('switch-repo', {
-        path: currentPath,
-        initialSize: aiTerminalSize || undefined,
-        permissionMode: appSettings.appSettings.permissionMode,
-      });
-    }
+    if (!currentPath) return;
+
+    // URL の `?repo=<path>` 経由で復元された path は、ユーザがその worktree を
+    // ブラウザに開いたまま削除した結果として実体が消えている可能性がある。
+    // そのまま `switch-repo` を投げると node-pty が cwd 不存在で失敗し、
+    // UI が「何もできない」状態のまま残ってしまうため、事前に存在確認する。
+    // - 存在する → 通常どおり switch-repo
+    // - 存在しない & 親リポを推測できる → 親リポへフォールバック
+    // - それ以外 → URL を消してホームへ戻す
+    const switchOptions = {
+      initialSize: aiTerminalSize || undefined,
+      permissionMode: appSettings.appSettings.permissionMode,
+    } as const;
+
+    const handler = (
+      data: Parameters<ServerToClientEvents['repo-path-checked']>[0]
+    ) => {
+      if (data.path !== currentPath) return;
+      socket.off('repo-path-checked', handler);
+
+      if (data.exists) {
+        socket.emit('switch-repo', { path: currentPath, ...switchOptions });
+        return;
+      }
+
+      // 削除済み worktree への参照を localStorage からも掃除する
+      // （`last-worktree-for-parent` の親→最終 worktree マップが
+      // この path を指したままだと、後でホーム経由で開き直しても再び
+      // 同じ broken state に飛んでしまう）
+      pruneStaleLastWorktreeRefs(currentPath);
+
+      if (data.fallbackParentPath && data.fallbackParentExists) {
+        switchRepositoryRef.current(data.fallbackParentPath);
+      } else {
+        // 親も推測できない/存在しない場合はホームへ戻す
+        switchRepositoryRef.current('');
+      }
+    };
+    socket.on('repo-path-checked', handler);
+    socket.emit('check-repo-path', { path: currentPath });
+
+    return () => {
+      socket.off('repo-path-checked', handler);
+    };
   }, [socket, isConnected, aiTerminalSize, appSettings.appSettings.permissionMode]);
 
   // Socket追加イベントリスナー

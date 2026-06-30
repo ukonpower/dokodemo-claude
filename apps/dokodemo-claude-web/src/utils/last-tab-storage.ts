@@ -41,6 +41,35 @@ export function setLastWorktreeForParent(
   }
 }
 
+/**
+ * 親→最終 worktree マップから、指定の worktree を値として持つ
+ * エントリを「親自身を指すように」掃除する。
+ *
+ * 削除済み worktree への参照が残ったままだと、ホーム経由で親リポを
+ * 開き直しても last-worktree restore で再びその死んだ path に飛ばさ
+ * れてしまうため、削除を検知した時点で掃除する必要がある。
+ */
+export function pruneStaleLastWorktreeRefs(deletedWorktreePath: string): void {
+  if (!deletedWorktreePath) return;
+  try {
+    const raw = localStorage.getItem(LAST_WORKTREE_KEY);
+    if (!raw) return;
+    const map = JSON.parse(raw) as Record<string, string>;
+    let mutated = false;
+    for (const [parentPath, lastPath] of Object.entries(map)) {
+      if (lastPath === deletedWorktreePath) {
+        map[parentPath] = parentPath;
+        mutated = true;
+      }
+    }
+    if (mutated) {
+      localStorage.setItem(LAST_WORKTREE_KEY, JSON.stringify(map));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface SavedAiTab {
   provider: AiProvider;
   isPrimary: boolean;

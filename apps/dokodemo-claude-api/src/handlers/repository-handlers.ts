@@ -54,6 +54,50 @@ async function emitReposList(
 }
 
 /**
+ * 削除済みの worktree パスから親リポジトリを推測する。
+ *
+ * `getMainRepoPath` は `.git` の gitlink 判定をするが、worktree が既に
+ * 削除されたケースではディレクトリ自体が存在しないため判定できない。
+ * このため純粋にパス文字列だけで親を推測する。誤った推測を避けるため、
+ * 推測結果が実在しなければ `fallbackParentExists: false` を返し、
+ * クライアント側で home へ戻すなどの判断ができるようにする。
+ */
+async function resolveDeletedWorktreeFallback(repoPath: string): Promise<{
+  fallbackParentPath?: string;
+  fallbackParentExists?: boolean;
+}> {
+  let parentPath: string | undefined;
+
+  // 旧構造: {親}/.worktrees/{ブランチ}
+  if (repoPath.includes('/.worktrees/')) {
+    const head = repoPath.split('/.worktrees/')[0];
+    if (head) parentPath = head;
+  }
+
+  // 新構造: {親_dir}/.dokodemo-worktrees/{プロジェクト名}/{ブランチ}
+  if (!parentPath) {
+    const match = repoPath.match(
+      /^(.+)\/\.dokodemo-worktrees\/([^/]+)\/[^/]+/
+    );
+    if (match) {
+      parentPath = path.resolve(match[1], match[2]);
+    }
+  }
+
+  if (!parentPath || parentPath === repoPath) return {};
+
+  let fallbackParentExists = false;
+  try {
+    const stat = await fs.stat(parentPath);
+    fallbackParentExists = stat.isDirectory();
+  } catch {
+    fallbackParentExists = false;
+  }
+
+  return { fallbackParentPath: parentPath, fallbackParentExists };
+}
+
+/**
  * リポジトリ関連のSocket.IOイベントハンドラーを登録
  */
 export function registerRepositoryHandlers(ctx: HandlerContext): void {
@@ -73,6 +117,9 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
   });
 
   // ディレクトリの存在確認（前回開いた worktree が削除されていないかの判定用）
+  // exists=false の場合、パス形状から worktree の親リポジトリを推測し、
+  // その親リポの存在確認結果も同梱する。クライアントは「削除済み worktree
+  // → 親リポへ自動フォールバック」を 1 往復で実現できる。
   socket.on('check-repo-path', async (data) => {
     const { path: repoPath } = data;
     if (!repoPath) {
@@ -81,12 +128,24 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
     }
     try {
       const stat = await fs.stat(repoPath);
+      const exists = stat.isDirectory();
+      if (exists) {
+        socket.emit('repo-path-checked', { path: repoPath, exists: true });
+        return;
+      }
+      const fallback = await resolveDeletedWorktreeFallback(repoPath);
       socket.emit('repo-path-checked', {
         path: repoPath,
-        exists: stat.isDirectory(),
+        exists: false,
+        ...fallback,
       });
     } catch {
-      socket.emit('repo-path-checked', { path: repoPath, exists: false });
+      const fallback = await resolveDeletedWorktreeFallback(repoPath);
+      socket.emit('repo-path-checked', {
+        path: repoPath,
+        exists: false,
+        ...fallback,
+      });
     }
   });
 
