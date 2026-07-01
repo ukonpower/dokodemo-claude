@@ -258,11 +258,8 @@ export function useBranchWorktree(
       setWorktreeCreateSuccessNonce((n) => n + 1);
 
       if (data.worktree?.path) {
-        const newWorktreePath = data.worktree.path;
-        // 最終アクセス時刻をバックエンドに送信
-        socket.emit('update-repo-access', { path: newWorktreePath });
-
-        onSwitchRepository(newWorktreePath);
+        // 最終アクセス時刻は onSwitchRepository → useRepository の useEffect [currentRepo] 経路で emit される
+        onSwitchRepository(data.worktree.path);
       }
     };
 
