@@ -192,7 +192,18 @@ function BranchSelector({
     }, 3000);
   };
 
-  const localBranches = branches.filter((b) => !b.remote);
+  // デフォルトブランチ（main/master）を常に一番上に表示する。
+  // それ以外は元の並び順を安定的に維持する。
+  const isDefaultBranch = (name: string): boolean =>
+    name === 'main' || name === 'master';
+  const localBranches = branches
+    .filter((b) => !b.remote)
+    .sort((a, b) => {
+      const aDefault = isDefaultBranch(a.name);
+      const bDefault = isDefaultBranch(b.name);
+      if (aDefault === bDefault) return 0;
+      return aDefault ? -1 : 1;
+    });
   const remoteBranches = branches.filter((b) => b.remote);
 
   return (
