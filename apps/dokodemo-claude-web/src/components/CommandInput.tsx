@@ -137,7 +137,15 @@ const WORKFLOW_SKILLS = [
   { value: 'plan', label: 'Plan', command: '/dokodemo-claude-tools:workflow-plan', file: '.workflow-tools/plan.md' },
   { value: 'codex-review', label: 'Review', command: '/dokodemo-claude-tools:workflow-plan-codexreview', file: '.workflow-tools/plan-review.md' },
   { value: 'implement', label: 'Implement', command: '/dokodemo-claude-tools:workflow-implement' },
+  { value: 'worktree', label: 'Worktree', command: '/dokodemo-claude-tools:worktree-manage' },
 ] as const;
+
+// Worktree スキルはワークフローパイプライン（research→plan→...）とは別枠として
+// Auto の右側に独立配置するため、メインのスキルグループとは分けて扱う
+const WORKTREE_SKILL = WORKFLOW_SKILLS.find(
+  (s): s is Extract<(typeof WORKFLOW_SKILLS)[number], { command: string }> =>
+    s.value === 'worktree'
+);
 
 // モデルの表示名マッピング
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
@@ -984,7 +992,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             {/* 行1: スキル選択 + Auto */}
             <div className={s.skillRow}>
               <div className={s.skillGroup}>
-                {WORKFLOW_SKILLS.map((skill) => (
+                {WORKFLOW_SKILLS.filter((skill) => skill.value !== 'worktree').map((skill) => (
                   <button
                     key={skill.value}
                     type="button"
@@ -1017,6 +1025,27 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   </>
                 )}
               </div>
+              {/* Worktree: パイプラインとは別枠として Auto の右側に独立配置 */}
+              {WORKTREE_SKILL && (
+                <div className={s.worktreeGroup}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (workflowSkill === WORKTREE_SKILL.value) {
+                        onSendCommand(formatSkillCommand(WORKTREE_SKILL.command));
+                        handleSettingChange('workflowSkill', '');
+                      } else {
+                        handleSettingChange('workflowSkill', WORKTREE_SKILL.value);
+                      }
+                    }}
+                    disabled={disabled}
+                    className={`${s.skillButton} ${s.worktreeButton} ${workflowSkill === WORKTREE_SKILL.value ? s.active : ''}`}
+                    title={`Workflow: ${WORKTREE_SKILL.label}${workflowSkill === WORKTREE_SKILL.value ? '（もう一度クリックで実行）' : ''}`}
+                  >
+                    {WORKTREE_SKILL.label}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Autoオプション（Auto選択時のみ展開、プライマリ限定） */}

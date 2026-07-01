@@ -20,6 +20,8 @@
 .skillRow {
   display: flex;
   align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
 }
 
 .skillGroup {
@@ -80,6 +82,21 @@
   height: 1rem;
   background-color: $dark-border-light;
   margin: 0 0.125rem;
+}
+
+// Worktree ボタンをワークフローパイプラインとは別枠のピルとして独立配置
+.worktreeGroup {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background-color: $dark-bg-secondary;
+  border-radius: $radius-lg;
+  padding: 0.125rem;
+  border: 1px solid $dark-border;
+}
+
+.worktreeButton {
+  flex: initial;
 }
 
 .autoOptions {
