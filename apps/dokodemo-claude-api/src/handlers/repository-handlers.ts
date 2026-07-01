@@ -13,14 +13,18 @@ const REPO_LAST_ACCESS_FILE = 'repo-last-access.json';
 
 /**
  * 最終アクセス時刻を読み込む
+ *
+ * 読み込みに失敗（ファイル破損・パースエラー・I/O エラー）した場合は null を返す。
+ * 呼び出し元はこの結果を save に流用してはならない（既存データを上書きしてしまうため）。
+ * 「ファイルが存在しない」だけは正常系として空オブジェクトを返す。
  */
 async function loadRepoLastAccess(
   persistence: PersistenceService
-): Promise<Record<string, number>> {
+): Promise<Record<string, number> | null> {
   const result = await persistence.load<Record<string, number>>(
     REPO_LAST_ACCESS_FILE
   );
-  if (!result.ok) return {};
+  if (!result.ok) return null;
   return result.value ?? {};
 }
 
@@ -44,7 +48,9 @@ async function emitReposList(
   repositories: GitRepository[],
   persistence: PersistenceService
 ): Promise<void> {
-  const lastAccessTimes = await loadRepoLastAccess(persistence);
+  // 読み込み失敗時はソートキー無しとして扱い、配列順そのままで返す。
+  // ここで {} を保存し直してはいけない（破損ファイルを正常データで上書きしてしまう）。
+  const lastAccessTimes = (await loadRepoLastAccess(persistence)) ?? {};
   const sortedRepos = [...repositories].sort((a, b) => {
     const tA = lastAccessTimes[a.path] || 0;
     const tB = lastAccessTimes[b.path] || 0;
@@ -154,6 +160,14 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
     const { path: repoPath } = data;
     try {
       const lastAccessTimes = await loadRepoLastAccess(persistenceService);
+      // 読み込み失敗時は save をスキップ。空オブジェクトで上書きすると
+      // 全リポジトリのアクセス履歴が消えてソート順がリセットされてしまう。
+      if (lastAccessTimes === null) {
+        console.error(
+          'リポジトリアクセス時刻の読み込みに失敗したため更新をスキップしました'
+        );
+        return;
+      }
       lastAccessTimes[repoPath] = Date.now();
       await saveRepoLastAccess(persistenceService, lastAccessTimes);
     } catch (error) {

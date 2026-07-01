@@ -315,9 +315,7 @@ export function useRepository(
       }
 
       if (path) {
-        // 最終アクセス時刻をバックエンドに送信
-        socket.emit('update-repo-access', { path });
-
+        // 最終アクセス時刻の更新は useEffect [currentRepo] 経路に一本化（多重 emit を防ぐ）
         setIsSwitchingRepo(true);
         socket.emit('switch-repo', {
           path,

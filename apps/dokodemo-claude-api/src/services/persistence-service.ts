@@ -9,6 +9,12 @@ import { Result, Ok, Err } from '../utils/result.js';
 import { PersistenceError } from '../utils/errors.js';
 
 export class PersistenceService {
+  // ファイル単位の書き込みチェーン。同一ファイルへの save が並行したとき、
+  // 直前の save 完了を待ってから次が走るようにして lost update を防ぐ。
+  private readonly writeChains = new Map<string, Promise<unknown>>();
+  // tmp ファイル名のサフィックスを衝突なく一意化するためのカウンタ
+  private tmpCounter = 0;
+
   constructor(private readonly processesDir: string) {}
 
   /**
@@ -16,6 +22,25 @@ export class PersistenceService {
    */
   private getFilePath(filename: string): string {
     return path.join(this.processesDir, filename);
+  }
+
+  /**
+   * 同一ファイルへの操作を順次直列化する
+   */
+  private serializeWrite<T>(
+    filePath: string,
+    op: () => Promise<T>
+  ): Promise<T> {
+    const prev = this.writeChains.get(filePath) ?? Promise.resolve();
+    const next = prev.then(op, op);
+    this.writeChains.set(filePath, next);
+    const cleanup = (): void => {
+      if (this.writeChains.get(filePath) === next) {
+        this.writeChains.delete(filePath);
+      }
+    };
+    next.then(cleanup, cleanup);
+    return next;
   }
 
   /**
@@ -64,6 +89,9 @@ export class PersistenceService {
 
   /**
    * JSONファイルに保存する
+   *
+   * 書き込みは tmp ファイル経由の rename で原子的に行い、同一ファイルへの
+   * 並行 save は serializeWrite でチェーン化して lost update を防ぐ。
    */
   async save<T>(
     filename: string,
@@ -71,19 +99,23 @@ export class PersistenceService {
   ): Promise<Result<void, PersistenceError>> {
     const filePath = this.getFilePath(filename);
 
-    try {
-      // ディレクトリが存在することを確認
-      await fs.mkdir(this.processesDir, { recursive: true });
+    return this.serializeWrite(filePath, async () => {
+      const tmpPath = `${filePath}.tmp.${process.pid}.${++this
+        .tmpCounter}`;
+      try {
+        await fs.mkdir(this.processesDir, { recursive: true });
 
-      // JSON形式で保存（整形あり）
-      const json = JSON.stringify(data, null, 2);
-      await fs.writeFile(filePath, json, 'utf-8');
+        const json = JSON.stringify(data, null, 2);
+        await fs.writeFile(tmpPath, json, 'utf-8');
+        await fs.rename(tmpPath, filePath);
 
-      return Ok(undefined);
-    } catch (e) {
-      console.error(`[PersistenceService] 書き込みエラー: ${filePath}`, e);
-      return Err(PersistenceError.writeFailed(filePath, e));
-    }
+        return Ok(undefined);
+      } catch (e) {
+        await fs.unlink(tmpPath).catch(() => {});
+        console.error(`[PersistenceService] 書き込みエラー: ${filePath}`, e);
+        return Err(PersistenceError.writeFailed(filePath, e));
+      }
+    });
   }
 
   /**
