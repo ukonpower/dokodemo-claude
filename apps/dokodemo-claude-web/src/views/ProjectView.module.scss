@@ -5,12 +5,8 @@
   background-color: $dark-bg-primary;
   display: flex;
   flex-direction: column;
+  // 画面下部固定の RepositorySwitcher 分の余白
   padding-bottom: 3rem;
-
-  @media (max-width: 679px) {
-    padding-bottom: 0;
-    padding-top: 3rem;
-  }
 }
 
 // ヘッダー

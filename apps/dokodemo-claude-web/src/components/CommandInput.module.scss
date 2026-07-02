@@ -617,21 +617,35 @@
 
 .modelDropdown {
   position: fixed;
-  width: 7rem;
+  width: 12rem;
+  max-height: 20rem;
+  overflow-y: auto;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius;
   box-shadow: $shadow-lg;
-  overflow: hidden;
   z-index: 9999;
 }
 
+.modelOptionRow {
+  display: flex;
+  align-items: stretch;
+
+  &:hover .modelOptionDelete {
+    opacity: 1;
+  }
+}
+
 .modelOption {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.375rem 0.5rem;
   font-size: $font-size-xs;
   line-height: 1rem;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: background-color $transition-fast $transition-easing;
   background: none;
   border: none;
@@ -648,6 +662,115 @@
     &:hover {
       background-color: $dark-bg-hover;
     }
+  }
+}
+
+.modelOptionDelete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition-fast $transition-easing, color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $accent-red;
+  }
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+.modelHint {
+  padding: 0.25rem 0.5rem;
+  font-size: 10px;
+  color: $dark-text-muted;
+}
+
+.modelDropdownSeparator {
+  border-top: 1px solid $dark-border-light;
+  margin: 0.25rem 0;
+}
+
+.modelAddTrigger {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem;
+}
+
+.modelAddInput {
+  width: 100%;
+  padding: 0.25rem 0.375rem;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+  }
+}
+
+.modelAddActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+
+.modelAddCancel {
+  padding: 0.25rem 0.5rem;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddSubmit {
+  padding: 0.25rem 0.5rem;
+  font-size: $font-size-xs;
+  color: white;
+  background-color: $accent-blue;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { CustomAiButton, CustomAiButtonScope } from '../types';
+import { useModelOptions } from '../hooks/useModelOptions';
 import s from './KeyboardButtons.module.scss';
 
 interface KeyboardButtonsProps {
@@ -15,7 +16,7 @@ interface KeyboardButtonsProps {
   onSendPreview?: () => void;
   onSendMode?: () => void;
   onSendAltT?: () => void;
-  onChangeModel?: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
+  onChangeModel?: (model: string) => void;
   onSendCommit?: () => void;
   currentProvider?: string;
   providerInfo?: {
@@ -230,6 +231,11 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   const [showAux, setShowAux] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>(null);
 
+  // モデル選択肢（組み込み + API 取得 + カスタム）。
+  // 即時 /model 送信メニューのため「未指定」（空値）は除外する。
+  const { options: modelOptions } = useModelOptions();
+  const selectableModels = modelOptions.filter((o) => o.value !== '');
+
   const isClaude = currentProvider === 'claude';
 
   const hasAuxRowButtons = Boolean(
@@ -346,10 +352,17 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
                     </button>
                     {showModelMenu && (
                       <div className={s.modelMenu}>
-                        <button type="button" onClick={() => { onChangeModel('default'); setShowModelMenu(false); }} className={s.modelMenuItem}>Default</button>
-                        <button type="button" onClick={() => { onChangeModel('Opus'); setShowModelMenu(false); }} className={s.modelMenuItem}>Opus</button>
-                        <button type="button" onClick={() => { onChangeModel('Sonnet'); setShowModelMenu(false); }} className={s.modelMenuItem}>Sonnet</button>
-                        <button type="button" onClick={() => { onChangeModel('OpusPlan'); setShowModelMenu(false); }} className={s.modelMenuItem}>OpusPlan</button>
+                        {selectableModels.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { onChangeModel(opt.value); setShowModelMenu(false); }}
+                            className={s.modelMenuItem}
+                            title={opt.value}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
