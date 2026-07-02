@@ -90,7 +90,7 @@ interface ProjectViewProps {
   onSendResume: () => void;
   onSendUsage: () => void;
   onSendMode: () => void;
-  onChangeModel: (model: 'default' | 'Opus' | 'Sonnet' | 'OpusPlan') => void;
+  onChangeModel: (model: string) => void;
   onChangePrimaryProvider: (provider: AiProvider) => void;
   onRestartCli: () => void;
   onClearHistory: () => void;
