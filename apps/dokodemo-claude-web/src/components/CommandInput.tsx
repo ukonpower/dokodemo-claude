@@ -7,6 +7,8 @@ import React, {
   useCallback,
 } from 'react';
 import type { AiProvider } from '../types';
+import { useModelOptions } from '../hooks/useModelOptions';
+import { resolveModelLabel } from '../utils/models';
 import s from './CommandInput.module.scss';
 
 // --- インデント / リスト継続ヘルパー ---
@@ -147,18 +149,6 @@ const WORKTREE_SKILL = WORKFLOW_SKILLS.find(
     s.value === 'worktree'
 );
 
-// モデルの表示名マッピング
-const MODEL_DISPLAY_NAMES: Record<string, string> = {
-  '': '未指定',
-  default: 'Default',
-  Opus: 'Opus',
-  Sonnet: 'Sonnet',
-  OpusPlan: 'OpusPlan',
-};
-
-// モデル選択肢の表示順
-const MODEL_OPTIONS = ['', 'default', 'Opus', 'Sonnet', 'OpusPlan'] as const;
-
 /**
  * TextInputの公開メソッド
  */
@@ -288,8 +278,16 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
 
+    // モデル選択肢（組み込み + API 取得 + カスタム）
+    const { options: modelOptions, anthropicStatus, addCustomModel, removeCustomModel } =
+      useModelOptions();
+
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+    // カスタムモデル追加フォームの開閉と入力値
+    const [isAddModelOpen, setIsAddModelOpen] = useState(false);
+    const [newModelId, setNewModelId] = useState('');
+    const [newModelName, setNewModelName] = useState('');
     const modelDropdownRef = useRef<HTMLDivElement>(null);
     const modelButtonRef = useRef<HTMLButtonElement>(null);
     const [dropdownPosition, setDropdownPosition] = useState({
@@ -310,6 +308,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
     };
 
+    // カスタムモデル追加フォームの送信
+    const handleAddCustomModel = () => {
+      const id = newModelId.trim();
+      if (!id) return;
+      addCustomModel(id, newModelName.trim() || undefined);
+      // 追加したモデルを選択状態にする
+      handleSettingChange('model', id);
+      setNewModelId('');
+      setNewModelName('');
+      setIsAddModelOpen(false);
+    };
+
     // モデルドロップダウン外クリックで閉じる & 位置計算
     useEffect(() => {
       const updatePosition = () => {
@@ -328,6 +338,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           !modelDropdownRef.current.contains(event.target as Node)
         ) {
           setIsModelDropdownOpen(false);
+          setIsAddModelOpen(false);
         }
       };
 
@@ -1387,7 +1398,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       className={`${s.modelButton} ${model ? s.active : ''}`}
                       title="モデル選択"
                     >
-                      {MODEL_DISPLAY_NAMES[model] ?? '未指定'}
+                      {resolveModelLabel(model, modelOptions)}
                       <svg
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
                         fill="none"
@@ -1412,21 +1423,121 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                           transform: 'translateY(-100%)',
                         }}
                       >
-                        {MODEL_OPTIONS.map((modelOption) => (
-                          <button
-                            key={modelOption || 'unset'}
-                            type="button"
-                            onClick={() => {
-                              handleSettingChange('model', modelOption);
-                              setIsModelDropdownOpen(false);
-                            }}
-                            className={`${s.modelOption} ${
-                              model === modelOption ? s.selected : ''
-                            }`}
+                        {modelOptions.map((opt) => (
+                          <div
+                            key={opt.value || 'unset'}
+                            className={s.modelOptionRow}
                           >
-                            {MODEL_DISPLAY_NAMES[modelOption]}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleSettingChange('model', opt.value);
+                                setIsModelDropdownOpen(false);
+                                setIsAddModelOpen(false);
+                              }}
+                              className={`${s.modelOption} ${
+                                model === opt.value ? s.selected : ''
+                              }`}
+                              title={opt.value || '未指定'}
+                            >
+                              {opt.label}
+                            </button>
+                            {opt.source === 'custom' && (
+                              <button
+                                type="button"
+                                onClick={() => removeCustomModel(opt.value)}
+                                className={s.modelOptionDelete}
+                                title="このカスタムモデルを削除"
+                                aria-label="カスタムモデルを削除"
+                              >
+                                <svg
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         ))}
+
+                        {/* API 取得状態の注記 */}
+                        {anthropicStatus === 'unconfigured' && (
+                          <div className={s.modelHint}>API未設定</div>
+                        )}
+                        {anthropicStatus === 'error' && (
+                          <div className={s.modelHint}>API取得失敗</div>
+                        )}
+
+                        <div className={s.modelDropdownSeparator} />
+
+                        {/* カスタムモデル追加 */}
+                        {isAddModelOpen ? (
+                          <div className={s.modelAddForm}>
+                            <input
+                              type="text"
+                              value={newModelId}
+                              onChange={(e) => setNewModelId(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddCustomModel();
+                                }
+                              }}
+                              placeholder="モデルID（必須）"
+                              className={s.modelAddInput}
+                              autoFocus
+                            />
+                            <input
+                              type="text"
+                              value={newModelName}
+                              onChange={(e) => setNewModelName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddCustomModel();
+                                }
+                              }}
+                              placeholder="表示名（任意）"
+                              className={s.modelAddInput}
+                            />
+                            <div className={s.modelAddActions}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsAddModelOpen(false);
+                                  setNewModelId('');
+                                  setNewModelName('');
+                                }}
+                                className={s.modelAddCancel}
+                              >
+                                キャンセル
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleAddCustomModel}
+                                disabled={!newModelId.trim()}
+                                className={s.modelAddSubmit}
+                              >
+                                追加
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setIsAddModelOpen(true)}
+                            className={s.modelAddTrigger}
+                          >
+                            ＋ カスタムモデルを追加…
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

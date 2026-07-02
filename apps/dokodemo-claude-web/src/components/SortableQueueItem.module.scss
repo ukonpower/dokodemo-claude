@@ -372,13 +372,50 @@
   gap: 4px;
 }
 
+.modelCell {
+  position: relative;
+
+  &:hover .modelCellDelete {
+    opacity: 1;
+  }
+}
+
+.modelCellDelete {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: white;
+  background-color: $accent-red;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $accent-red-hover;
+  }
+}
+
 .modelButton {
+  width: 100%;
   padding: 4px 8px;
   font-size: 11px;
   border-radius: $radius;
   border: 1px solid;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modelButtonActive {
@@ -394,6 +431,78 @@
 
   &:hover {
     background-color: $dark-bg-hover;
+  }
+}
+
+.modelAddTrigger {
+  width: 100%;
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  text-align: left;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.modelAddInput {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+  }
+}
+
+.modelAddActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.modelAddCancel {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddSubmit {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: white;
+  background-color: $accent-blue;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

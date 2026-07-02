@@ -3,19 +3,8 @@ import { X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '../types';
+import { useModelOptions } from '../hooks/useModelOptions';
 import s from './SortableQueueItem.module.scss';
-
-// モデルの表示名マッピング
-const MODEL_DISPLAY_NAMES: Record<string, string> = {
-  '': '未指定',
-  default: 'Default',
-  Opus: 'Opus',
-  Sonnet: 'Sonnet',
-  OpusPlan: 'OpusPlan',
-};
-
-// モデル選択肢の表示順
-const MODEL_OPTIONS = ['', 'default', 'Opus', 'Sonnet', 'OpusPlan'] as const;
 
 // 編集モードコンポーネントのProps
 interface EditModeContentProps {
@@ -61,6 +50,25 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
 }) => {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const optionsRef = useRef<HTMLDivElement>(null);
+
+  // モデル選択肢（組み込み + API 取得 + カスタム）
+  const { options: modelOptions, addCustomModel, removeCustomModel } =
+    useModelOptions();
+
+  // カスタムモデル追加フォームの状態
+  const [isAddModelOpen, setIsAddModelOpen] = useState(false);
+  const [newModelId, setNewModelId] = useState('');
+  const [newModelName, setNewModelName] = useState('');
+
+  const handleAddCustomModel = () => {
+    const id = newModelId.trim();
+    if (!id) return;
+    addCustomModel(id, newModelName.trim() || undefined);
+    setEditModel(id);
+    setNewModelId('');
+    setNewModelName('');
+    setIsAddModelOpen(false);
+  };
 
   // オプションメニュー外クリックで閉じる
   useEffect(() => {
@@ -257,21 +265,83 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     モデル
                   </div>
                   <div className={s.modelGrid}>
-                    {MODEL_OPTIONS.map((modelOption) => (
-                      <button
-                        key={modelOption || 'unset'}
-                        type="button"
-                        onClick={() => setEditModel(modelOption)}
-                        className={`${s.modelButton} ${
-                          editModel === modelOption
-                            ? s.modelButtonActive
-                            : s.modelButtonInactive
-                        }`}
-                      >
-                        {MODEL_DISPLAY_NAMES[modelOption]}
-                      </button>
+                    {modelOptions.map((opt) => (
+                      <div key={opt.value || 'unset'} className={s.modelCell}>
+                        <button
+                          type="button"
+                          onClick={() => setEditModel(opt.value)}
+                          className={`${s.modelButton} ${
+                            editModel === opt.value
+                              ? s.modelButtonActive
+                              : s.modelButtonInactive
+                          }`}
+                          title={opt.value || '未指定'}
+                        >
+                          {opt.label}
+                        </button>
+                        {opt.source === 'custom' && (
+                          <button
+                            type="button"
+                            onClick={() => removeCustomModel(opt.value)}
+                            className={s.modelCellDelete}
+                            title="このカスタムモデルを削除"
+                            aria-label="カスタムモデルを削除"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
+
+                  {/* カスタムモデル追加 */}
+                  {isAddModelOpen ? (
+                    <div className={s.modelAddForm}>
+                      <input
+                        type="text"
+                        value={newModelId}
+                        onChange={(e) => setNewModelId(e.target.value)}
+                        placeholder="モデルID（必須）"
+                        className={s.modelAddInput}
+                      />
+                      <input
+                        type="text"
+                        value={newModelName}
+                        onChange={(e) => setNewModelName(e.target.value)}
+                        placeholder="表示名（任意）"
+                        className={s.modelAddInput}
+                      />
+                      <div className={s.modelAddActions}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddModelOpen(false);
+                            setNewModelId('');
+                            setNewModelName('');
+                          }}
+                          className={s.modelAddCancel}
+                        >
+                          キャンセル
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddCustomModel}
+                          disabled={!newModelId.trim()}
+                          className={s.modelAddSubmit}
+                        >
+                          追加
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModelOpen(true)}
+                      className={s.modelAddTrigger}
+                    >
+                      ＋ カスタムモデルを追加…
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
