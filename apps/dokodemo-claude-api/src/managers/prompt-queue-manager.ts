@@ -96,6 +96,11 @@ export class PromptQueueManager extends EventEmitter {
   // AI 判断の abort（キー = queueKey）
   private loopJudgeAborts: Map<string, AbortController> = new Map();
 
+  // 送信世代（キー = queueKey）。送信ごとにインクリメントし、watchdog が自分の
+  // 世代と照合する。ループアイテムは周回をまたいで同じ itemId を使い回すため、
+  // itemId の一致だけでは前の周回の watchdog（stale）を弾けない。
+  private sendGenerations: Map<string, number> = new Map();
+
   constructor(
     private readonly persistenceService: PersistenceService,
     aiSessionAdapter?: QueueAiSessionAdapter
@@ -465,6 +470,16 @@ export class PromptQueueManager extends EventEmitter {
     return Ok(undefined);
   }
 
+  private bumpSendGeneration(
+    repositoryPath: string,
+    provider: AiProvider
+  ): number {
+    const key = this.getQueueKey(repositoryPath, provider);
+    const generation = (this.sendGenerations.get(key) ?? 0) + 1;
+    this.sendGenerations.set(key, generation);
+    return generation;
+  }
+
   private clearLoopTimer(repositoryPath: string, provider: AiProvider): void {
     const key = this.getQueueKey(repositoryPath, provider);
     const timer = this.loopTimers.get(key);
@@ -627,10 +642,11 @@ export class PromptQueueManager extends EventEmitter {
       await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
+      const generation = this.bumpSendGeneration(repositoryPath, provider);
       await this.sendItemCommands(session.id, item, session.coldStart);
 
       // processNextItem と同じく送信ウォッチドッグを仕掛ける
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -998,6 +1014,7 @@ export class PromptQueueManager extends EventEmitter {
         controller.abort();
         this.loopJudgeAborts.delete(key);
       }
+      this.sendGenerations.delete(key);
       this.queues.delete(key);
     }
 
@@ -1016,6 +1033,7 @@ export class PromptQueueManager extends EventEmitter {
       controller.abort();
     }
     this.loopJudgeAborts.clear();
+    this.sendGenerations.clear();
 
     await this.persistQueues();
     this.queues.clear();
@@ -1032,10 +1050,16 @@ export class PromptQueueManager extends EventEmitter {
   private scheduleSendWatchdog(
     repositoryPath: string,
     provider: AiProvider,
-    itemId: string
+    itemId: string,
+    generation: number
   ): void {
     setTimeout(async () => {
-      const state = this.queues.get(this.getQueueKey(repositoryPath, provider));
+      const key = this.getQueueKey(repositoryPath, provider);
+      // 世代が進んでいたらこの watchdog は過去の送信の見張り（stale）。
+      // ループ再投入で同じ itemId のまま次の送信が始まった直後
+      // （UserPromptSubmit 到達前）に誤爆するのを防ぐ。
+      if (this.sendGenerations.get(key) !== generation) return;
+      const state = this.queues.get(key);
       if (!state) return;
       if (state.currentItemId !== itemId) return;
       if (!state.isProcessing) return;
@@ -1049,6 +1073,31 @@ export class PromptQueueManager extends EventEmitter {
 
       const item = state.queue.find((i) => i.id === itemId);
       if (!item || item.status !== 'processing') return;
+
+      // ループアイテムを completed で終わらせると再投入経路が無く黙って死ぬため、
+      // 安全側として承認待ちの pending に戻して停止する（フック未達や送信取り
+      // こぼしの疑いがある状況で、自動再送を続けるのは危険）。
+      if (item.loop) {
+        console.warn(
+          `[PromptQueueManager] 送信ウォッチドッグ: ループアイテム ${itemId} の UserPromptSubmit を確認できなかったため承認待ちに倒します`
+        );
+        item.status = 'pending';
+        item.loop.awaitingUserApproval = true;
+        item.loop.lastJudgeReason =
+          '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
+        state.isProcessing = false;
+        state.currentItemId = undefined;
+        await this.persistQueues();
+
+        this.emit('loop-approval-required', {
+          repositoryPath,
+          provider,
+          itemId,
+          iteration: item.loop.iteration - 1,
+        });
+        this.emitQueueUpdated(repositoryPath, provider, state);
+        return;
+      }
 
       console.warn(
         `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} は UserPromptSubmit を引き起こさなかったため completed として次へ進めます`
@@ -1185,12 +1234,13 @@ export class PromptQueueManager extends EventEmitter {
       await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
+      const generation = this.bumpSendGeneration(repositoryPath, provider);
       await this.sendItemCommands(session.id, item, session.coldStart);
 
       // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
       // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
