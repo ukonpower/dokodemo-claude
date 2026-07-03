@@ -97,3 +97,51 @@
   composes: footerButton;
   color: $gray-500;
 }
+
+// ループ終了バナー（AI 判断の理由表示）
+.loopEndBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: $radius;
+  border: 1px solid #1e3a5f;
+  margin-bottom: 6px;
+  background-color: #172032;
+  color: #93c5fd;
+}
+
+.loopEndHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.loopEndTitle {
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.loopEndClose {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border: none;
+  border-radius: $radius;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.loopEndReason {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader, Pause, Play, RotateCcw } from 'lucide-react';
+import { Loader, Pause, Play, RotateCcw, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import type { PromptQueueItem } from '../types';
+import type { LoopEndInfo } from '../hooks/usePromptQueue';
 import SortableQueueItem from './SortableQueueItem';
 import type { EditLoopSettings } from './SortableQueueItem';
 import LoopStatusBar from './LoopStatusBar';
@@ -44,6 +45,8 @@ interface PromptQueueProps {
   onCancelCurrentItem?: () => void;
   onStopLoop?: (itemId: string) => void;
   onApproveLoop?: (itemId: string, approved: boolean) => void;
+  loopEndInfo?: LoopEndInfo | null;
+  onDismissLoopEnd?: () => void;
 }
 
 const PromptQueue: React.FC<PromptQueueProps> = ({
@@ -62,6 +65,8 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
   onRequeue,
   onStopLoop,
   onApproveLoop,
+  loopEndInfo,
+  onDismissLoopEnd,
 }) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
@@ -153,19 +158,49 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
     }
   };
 
+  // ループ終了バナー（AI 判断の理由表示）。
+  // 新しいループが動いている間は LoopStatusBar を優先して表示しない
+  const loopEndBanner =
+    loopEndInfo && !loopItem ? (
+      <div className={s.loopEndBanner}>
+        <div className={s.loopEndHeader}>
+          <span className={s.loopEndTitle}>
+            🔁 ループ終了
+            {loopEndInfo.endedBy === 'ai-judge' ? '（AI 判断）' : ''}
+          </span>
+          {onDismissLoopEnd && (
+            <button
+              type="button"
+              onClick={onDismissLoopEnd}
+              className={s.loopEndClose}
+              title="閉じる"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        <div className={s.loopEndReason}>{loopEndInfo.reason}</div>
+      </div>
+    ) : null;
+
   // 空状態
   if (queue.length === 0 && !isProcessing) {
     return (
-      <div className={s.emptyState}>
-        <span className={s.emptyText}>
-          キューは空です
-        </span>
+      <div>
+        {loopEndBanner}
+        <div className={s.emptyState}>
+          <span className={s.emptyText}>
+            キューは空です
+          </span>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={s.root}>
+      {loopEndBanner}
+
       {/* ループアイテムの状態バー（存在時のみ） */}
       {loopItem && (
         <LoopStatusBar

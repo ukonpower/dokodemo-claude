@@ -27,6 +27,7 @@ import type {
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import type { CommandSendSettings } from '../hooks/useAppSettings';
+import type { LoopEndInfo } from '../hooks/usePromptQueue';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
@@ -193,6 +194,8 @@ interface ProjectViewProps {
   onRequeueItem: (itemId: string) => void;
   onStopLoop: (itemId: string) => void;
   onApproveLoop: (itemId: string, approved: boolean) => void;
+  loopEndInfo: LoopEndInfo | null;
+  onDismissLoopEnd: () => void;
 
   // ファイル管理関連
   files: UploadedFileInfo[];
@@ -372,6 +375,8 @@ export function ProjectView({
   onRequeueItem,
   onStopLoop,
   onApproveLoop,
+  loopEndInfo,
+  onDismissLoopEnd,
   files,
   isUploadingFile,
   onRefreshFiles,
@@ -645,8 +650,9 @@ export function ProjectView({
                       onOpenWorkflowFile={onOpenWorkflowFile}
                     />
                   </div>
-                  {/* キューリスト（プライマリがアクティブな時のみ表示） */}
-                  {activeInstance?.isPrimary && promptQueue.length > 0 && (
+                  {/* キューリスト（プライマリがアクティブな時のみ表示。ループ終了バナーがある間も表示） */}
+                  {activeInstance?.isPrimary &&
+                    (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.desktopQueue}>
                       <PromptQueue
                         queue={promptQueue}
@@ -664,6 +670,8 @@ export function ProjectView({
                         onRequeue={onRequeueItem}
                         onStopLoop={onStopLoop}
                         onApproveLoop={onApproveLoop}
+                        loopEndInfo={loopEndInfo}
+                        onDismissLoopEnd={onDismissLoopEnd}
                       />
                     </div>
                   )}
@@ -698,8 +706,9 @@ export function ProjectView({
                   />
                 </div>
 
-                {/* キューリスト（モバイル: 操作ボタンの下に表示、プライマリ時のみ） */}
-                {activeInstance?.isPrimary && promptQueue.length > 0 && (
+                {/* キューリスト（モバイル: 操作ボタンの下に表示、プライマリ時のみ。ループ終了バナーがある間も表示） */}
+                {activeInstance?.isPrimary &&
+                  (promptQueue.length > 0 || loopEndInfo) && (
                   <div className={s.mobileQueue}>
                     <PromptQueue
                       queue={promptQueue}
@@ -717,6 +726,8 @@ export function ProjectView({
                       onRequeue={onRequeueItem}
                       onStopLoop={onStopLoop}
                       onApproveLoop={onApproveLoop}
+                      loopEndInfo={loopEndInfo}
+                      onDismissLoopEnd={onDismissLoopEnd}
                     />
                   </div>
                 )}

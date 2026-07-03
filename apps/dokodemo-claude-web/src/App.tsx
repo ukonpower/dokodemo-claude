@@ -753,6 +753,8 @@ function App() {
       onRequeueItem={promptQueue.requeueItem}
       onStopLoop={promptQueue.stopLoop}
       onApproveLoop={promptQueue.approveLoopContinuation}
+      loopEndInfo={promptQueue.loopEndInfo}
+      onDismissLoopEnd={promptQueue.dismissLoopEnd}
       // ファイル管理関連
       files={fileManager.files}
       isUploadingFile={fileManager.isUploadingFile}

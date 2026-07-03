@@ -15,6 +15,17 @@ export interface LoopSettings {
 }
 
 /**
+ * ループ終了時の情報（AI 判断の理由表示用）。
+ * アイテムはループ終了時にキューから消えるため、理由をここに退避して
+ * バナー表示する。
+ */
+export interface LoopEndInfo {
+  reason: string;
+  endedBy: 'ai-judge' | 'user';
+  endedAt: number;
+}
+
+/**
  * usePromptQueue フックの戻り値
  */
 export interface UsePromptQueueReturn {
@@ -51,6 +62,10 @@ export interface UsePromptQueueReturn {
   stopLoop: (itemId: string) => void;
   approveLoopContinuation: (itemId: string, approved: boolean) => void;
 
+  // ループ終了情報（AI 判断の理由バナー表示用）
+  loopEndInfo: LoopEndInfo | null;
+  dismissLoopEnd: () => void;
+
   // クリア関数（リポジトリ切り替え時用）
   clearState: () => void;
 }
@@ -71,6 +86,7 @@ export function usePromptQueue(
   const [currentItemId, setCurrentItemId] = useState<string | undefined>(
     undefined
   );
+  const [loopEndInfo, setLoopEndInfo] = useState<LoopEndInfo | null>(null);
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -163,7 +179,8 @@ export function usePromptQueue(
       }
     };
 
-    // ループ終了通知（keep it minimal — 現状はキュー再取得のみ）
+    // ループ終了通知: キュー再取得 + 理由があればバナー表示用に退避
+    // （終了時はアイテムがキューから消えるため、reason はここでしか拾えない）
     const handleLoopEnded = (
       data: Parameters<ServerToClientEvents['prompt-loop-ended']>[0]
     ) => {
@@ -172,6 +189,13 @@ export function usePromptQueue(
         data.rid === currentRid &&
         data.provider === currentProviderRef.current
       ) {
+        if (data.reason) {
+          setLoopEndInfo({
+            reason: data.reason,
+            endedBy: data.endedBy,
+            endedAt: Date.now(),
+          });
+        }
         const provider = currentProviderRef.current;
         if (currentRid && provider) {
           socket.emit('get-prompt-queue', { rid: currentRid, provider });
@@ -210,6 +234,11 @@ export function usePromptQueue(
       if (!rid) return;
       const provider = currentProviderRef.current;
       if (!provider) return;
+
+      // 新しいループを開始するとき、前回のループ終了バナーは古い情報なので消す
+      if (loop) {
+        setLoopEndInfo(null);
+      }
 
       socket.emit('add-to-prompt-queue', {
         rid,
@@ -381,12 +410,17 @@ export function usePromptQueue(
     [socket, currentRepo]
   );
 
+  const dismissLoopEnd = useCallback(() => {
+    setLoopEndInfo(null);
+  }, []);
+
   // 状態クリア
   const clearState = useCallback(() => {
     setPromptQueue([]);
     setIsQueueProcessing(false);
     setIsQueuePaused(false);
     setCurrentItemId(undefined);
+    setLoopEndInfo(null);
   }, []);
 
   return {
@@ -406,6 +440,8 @@ export function usePromptQueue(
     requeueItem,
     stopLoop,
     approveLoopContinuation,
+    loopEndInfo,
+    dismissLoopEnd,
     clearState,
   };
 }
