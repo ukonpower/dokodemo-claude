@@ -4,7 +4,10 @@
  * ループ元のプロンプト（目標）と、直近のセッション出力・開始時コミットからの diff
  * を Agent SDK の query() に流し、continue: boolean を判定させる。
  *
- * ANTHROPIC_API_KEY が必須（Claude Code CLI のログイン認証は使えない）。
+ * 認証は Claude Code CLI のログイン（サブスクリプション）を使う。
+ * Agent SDK は内部で Claude Code CLI を spawn するため、env に API キーが
+ * 無ければ CLI のログイン認証情報に自動フォールバックする。API キーが
+ * 環境にあると API 従量課金が優先されてしまうので、明示的に除外する。
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
@@ -73,10 +76,12 @@ export async function judgeLoop(
   abortController: AbortController
 ): Promise<LoopJudgeVerdict> {
   const prompt = buildJudgePrompt(input);
-  const env = cleanChildEnv();
-  if (!env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY が設定されていません');
-  }
+  // API キー系を除外して、spawn される Claude Code CLI に
+  // ログイン認証（サブスクリプション）を使わせる
+  const env = cleanChildEnv({
+    ANTHROPIC_API_KEY: undefined,
+    ANTHROPIC_AUTH_TOKEN: undefined,
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const options: any = {
