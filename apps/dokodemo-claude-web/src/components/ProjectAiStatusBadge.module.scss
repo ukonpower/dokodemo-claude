@@ -1,25 +1,26 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.45rem;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
   border: 1px solid transparent;
   border-radius: 9999px;
-  font-size: $font-size-xs;
-  font-weight: 600;
   line-height: 1;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.label {
-  text-transform: lowercase;
-  letter-spacing: 0.01em;
+.spinIcon {
+  animation: badge-spin 1s linear infinite;
 }
 
-.ready {
-  background-color: rgba($dark-bg-tertiary, 0.9);
-  border-color: rgba($dark-border-focus, 0.8);
-  color: $gray-300;
+@keyframes badge-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .running {

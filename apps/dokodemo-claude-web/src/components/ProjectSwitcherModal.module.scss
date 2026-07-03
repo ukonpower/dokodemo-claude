@@ -12,8 +12,11 @@
 .modal {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 560px;
+  // コンテンツに応じた可変幅。min/max で暴れすぎないよう制御し、
+  // スマホ幅では overlay の padding 内（100%）に収める。
+  width: max-content;
+  min-width: min(20rem, 100%);
+  max-width: min(560px, 100%);
   max-height: 70vh;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border;
