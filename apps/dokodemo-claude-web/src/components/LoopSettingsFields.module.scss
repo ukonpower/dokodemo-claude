@@ -1,0 +1,124 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.fieldCaption {
+  font-size: 10px;
+  color: $dark-text-muted;
+}
+
+// 判断方式のセグメントボタン
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+}
+
+.segmentButton {
+  flex: 1;
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: $font-size-xs;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.segmentActive {
+  background-color: $accent-blue;
+  color: white;
+
+  &:hover {
+    color: white;
+  }
+}
+
+// 数値ステッパー
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  overflow: hidden;
+}
+
+.stepperButton {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 40px;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    color: $dark-text-muted;
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.stepperValue {
+  @include flex-center;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stepperInput {
+  width: 3.5rem;
+  padding: 4px 0;
+  font-size: $font-size-sm;
+  text-align: center;
+  color: $dark-text-primary;
+  background: transparent;
+  border: none;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.stepperSuffix {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  white-space: nowrap;
+}

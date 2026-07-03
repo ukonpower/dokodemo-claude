@@ -76,6 +76,12 @@
   padding: 2px 6px;
   font-family: Inter, sans-serif;
   cursor: pointer;
+  touch-action: manipulation;
+
+  // モバイルではタップターゲットを広げる
+  @include sm-down {
+    padding: 8px 10px;
+  }
 }
 
 .cancelButton {
@@ -119,6 +125,9 @@
 }
 
 .loopEndTitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: $font-size-xs;
   font-weight: 600;
 }
@@ -126,7 +135,8 @@
 .loopEndClose {
   display: flex;
   align-items: center;
-  padding: 2px;
+  padding: 6px;
+  margin: -4px;
   border: none;
   border-radius: $radius;
   background: transparent;

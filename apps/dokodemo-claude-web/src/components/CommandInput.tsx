@@ -6,10 +6,17 @@ import React, {
   forwardRef,
   useCallback,
 } from 'react';
+import { Repeat } from 'lucide-react';
 import type { AiProvider } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
 import { resolveModelLabel } from '../utils/models';
+import LoopSettingsFields from './LoopSettingsFields';
+import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './CommandInput.module.scss';
+
+/** fixed 配置のドロップダウンが画面外にはみ出さないよう left を収める */
+const clampDropdownLeft = (left: number, width: number) =>
+  Math.max(8, Math.min(left, window.innerWidth - width - 8));
 
 // --- インデント / リスト継続ヘルパー ---
 const INDENT = '  '; // 2 スペース
@@ -310,6 +317,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [loopPopoverPosition, setLoopPopoverPosition] = useState({
       top: 0,
       left: 0,
+      width: 300,
     });
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
@@ -347,6 +355,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
     };
 
+    // ループ設定フィールドの変更を送信設定のキーへ展開して反映
+    const handleLoopSettingsChange = (next: LoopSettingsValue) => {
+      if (onSendSettingsChange && sendSettings) {
+        onSendSettingsChange({
+          ...sendSettings,
+          loopJudge: next.judge,
+          loopJudgeEveryN: next.judgeEveryN,
+          loopIntervalMin: Math.round(next.intervalSec / 60),
+        });
+      }
+    };
+
     // カスタムモデル追加フォームの送信
     const handleAddCustomModel = () => {
       const id = newModelId.trim();
@@ -366,7 +386,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           const rect = modelButtonRef.current.getBoundingClientRect();
           setDropdownPosition({
             top: rect.top - 4, // ボタンの上に表示（余白4px）
-            left: rect.left,
+            left: clampDropdownLeft(rect.left, 192), // 12rem
           });
         }
       };
@@ -400,9 +420,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       const updatePosition = () => {
         if (loopButtonRef.current) {
           const rect = loopButtonRef.current.getBoundingClientRect();
+          // 画面幅が狭い場合は左右 8px を確保した幅に収める
+          const width = Math.min(300, window.innerWidth - 16);
           setLoopPopoverPosition({
             top: rect.top - 4,
-            left: rect.left,
+            left: clampDropdownLeft(rect.left, width),
+            width,
           });
         }
       };
@@ -1468,7 +1491,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     /commit
                   </button>
 
-                  {/* 🔁 ループ */}
+                  {/* ループ */}
                   <div className={s.modelDropdownWrapper} ref={loopPopoverRef}>
                     <button
                       ref={loopButtonRef}
@@ -1476,11 +1499,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       onClick={() => setIsLoopPopoverOpen(!isLoopPopoverOpen)}
                       disabled={disabled}
                       className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
-                      title="🔁 ループ: 完了後に同じプロンプトを繰り返し送信"
+                      title="ループ: 完了後に同じプロンプトを繰り返し送信"
                     >
-                      🔁{' '}
+                      <Repeat size={12} />
                       {loopEnabled
-                        ? `${loopJudge === 'ai' ? 'AI' : loopJudge === 'user' ? '確認' : '無限'}・${loopJudgeEveryN}周`
+                        ? loopJudge === 'none'
+                          ? '無限'
+                          : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
                         : 'ループ'}
                     </button>
 
@@ -1490,98 +1515,45 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                         style={{
                           top: `${loopPopoverPosition.top}px`,
                           left: `${loopPopoverPosition.left}px`,
+                          width: `${loopPopoverPosition.width}px`,
                           transform: 'translateY(-100%)',
-                          minWidth: '260px',
                         }}
                       >
-                        <div className={s.loopPopoverRow}>
-                          <label className={s.loopToggleLabel}>
-                            <input
-                              type="checkbox"
-                              checked={loopEnabled}
-                              onChange={(e) =>
-                                handleSettingChange(
-                                  'loopEnabled',
-                                  e.target.checked
-                                )
-                              }
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSettingChange('loopEnabled', !loopEnabled)
+                          }
+                          className={s.loopToggleRow}
+                        >
+                          <span className={s.loopToggleText}>
+                            <Repeat size={13} />
+                            ループ送信
+                          </span>
+                          <div
+                            className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}
+                          >
+                            <div
+                              className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
                             />
-                            <span>ループ有効化</span>
-                          </label>
+                          </div>
+                        </button>
+                        <div className={s.loopPopoverHint}>
+                          完了後に同じプロンプトを繰り返し送信します
                         </div>
 
                         <div className={s.modelDropdownSeparator} />
 
-                        <div className={s.loopPopoverRow}>
-                          <div className={s.loopFieldLabel}>判断方式</div>
-                          <div className={s.loopRadioGroup}>
-                            {(['none', 'ai', 'user'] as const).map((judge) => (
-                              <label
-                                key={judge}
-                                className={s.loopRadioLabel}
-                              >
-                                <input
-                                  type="radio"
-                                  name="loop-judge"
-                                  value={judge}
-                                  checked={loopJudge === judge}
-                                  onChange={() =>
-                                    handleSettingChange('loopJudge', judge)
-                                  }
-                                  disabled={!loopEnabled}
-                                />
-                                <span>
-                                  {judge === 'none'
-                                    ? '無限（判断なし）'
-                                    : judge === 'ai'
-                                      ? 'AI 判断'
-                                      : 'ユーザー確認'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {loopJudge !== 'none' && (
-                          <div className={s.loopPopoverRow}>
-                            <div className={s.loopFieldLabel}>判断間隔</div>
-                            <div className={s.loopFieldControl}>
-                              <input
-                                type="number"
-                                min={1}
-                                value={loopJudgeEveryN}
-                                onChange={(e) =>
-                                  handleSettingChange(
-                                    'loopJudgeEveryN',
-                                    Math.max(1, Number(e.target.value) || 1)
-                                  )
-                                }
-                                disabled={!loopEnabled}
-                                className={s.loopNumberInput}
-                              />
-                              <span>周ごとに判断</span>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className={s.loopPopoverRow}>
-                          <div className={s.loopFieldLabel}>再送待機</div>
-                          <div className={s.loopFieldControl}>
-                            <input
-                              type="number"
-                              min={0}
-                              value={loopIntervalMin}
-                              onChange={(e) =>
-                                handleSettingChange(
-                                  'loopIntervalMin',
-                                  Math.max(0, Number(e.target.value) || 0)
-                                )
-                              }
-                              disabled={!loopEnabled}
-                              className={s.loopNumberInput}
-                            />
-                            <span>分</span>
-                          </div>
+                        <div className={s.loopPopoverBody}>
+                          <LoopSettingsFields
+                            value={{
+                              judge: loopJudge,
+                              judgeEveryN: loopJudgeEveryN,
+                              intervalSec: loopIntervalMin * 60,
+                            }}
+                            disabled={!loopEnabled}
+                            onChange={handleLoopSettingsChange}
+                          />
                         </div>
                       </div>
                     )}

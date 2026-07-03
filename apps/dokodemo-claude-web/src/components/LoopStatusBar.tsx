@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader } from 'lucide-react';
+import { Loader, Repeat } from 'lucide-react';
 import type { PromptQueueItem } from '../types';
 import s from './LoopStatusBar.module.scss';
 
@@ -16,7 +16,7 @@ interface LoopStatusBarProps {
  *
  * 表示状態は優先順に:
  * 1. 確認待ち（警告色 + 継続/終了ボタン）
- * 2. AI 判断中（🔍 + スピナー）
+ * 2. AI 判断中（スピナー）
  * 3. 待機中（カウントダウン + 今すぐ/停止）
  * 4. 実行中（周回数 + 停止）
  */
@@ -30,6 +30,8 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   const loop = loopItem.loop;
   const nextSendAt = loop?.nextSendAt;
   const [now, setNow] = useState<number>(() => 0);
+  // AI 判断理由の展開状態（モバイルでは hover が使えないためタップで切り替える）
+  const [isReasonExpanded, setIsReasonExpanded] = useState(false);
 
   // カウントダウン更新: nextSendAt がセットされている間だけ 1 秒おきに now を更新
   useEffect(() => {
@@ -69,7 +71,7 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
     >
       <div className={s.mainRow}>
         <div className={s.leftGroup}>
-          <span className={s.icon}>🔁</span>
+          <Repeat size={13} className={s.icon} />
           {isAwaitingApproval ? (
             <span className={s.text}>
               {loop.iteration - 1}周完了。継続しますか？
@@ -78,7 +80,7 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
             <>
               <Loader size={12} className={s.spinIcon} />
               <span className={s.text}>
-                🔍 AI 判断中 ({loop.iteration - 1}周目完了後)
+                AI 判断中 ({loop.iteration - 1}周目完了後)
               </span>
             </>
           ) : isCountingDown ? (
@@ -133,9 +135,14 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
       </div>
 
       {loop.lastJudgeReason && (
-        <div className={s.reason} title={loop.lastJudgeReason}>
+        <button
+          type="button"
+          onClick={() => setIsReasonExpanded(!isReasonExpanded)}
+          className={`${s.reason} ${isReasonExpanded ? s.reasonExpanded : ''}`}
+          title={loop.lastJudgeReason}
+        >
           {loop.lastJudgeReason}
-        </div>
+        </button>
       )}
     </div>
   );

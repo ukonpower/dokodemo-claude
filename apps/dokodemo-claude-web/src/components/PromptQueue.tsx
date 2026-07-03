@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader, Pause, Play, RotateCcw, X } from 'lucide-react';
+import { Loader, Pause, Play, Repeat, RotateCcw, X } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -165,7 +165,8 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
       <div className={s.loopEndBanner}>
         <div className={s.loopEndHeader}>
           <span className={s.loopEndTitle}>
-            🔁 ループ終了
+            <Repeat size={12} />
+            ループ終了
             {loopEndInfo.endedBy === 'ai-judge' ? '（AI 判断）' : ''}
           </span>
           {onDismissLoopEnd && (
@@ -175,7 +176,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
               className={s.loopEndClose}
               title="閉じる"
             >
-              <X size={12} />
+              <X size={14} />
             </button>
           )}
         </div>

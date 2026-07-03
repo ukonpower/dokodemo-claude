@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Repeat, X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import LoopSettingsFields from './LoopSettingsFields';
+import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './SortableQueueItem.module.scss';
 
 // ループ設定の編集用型
-export interface EditLoopSettings {
-  judge: 'ai' | 'user' | 'none';
-  judgeEveryN: number;
-  intervalSec: number;
-}
+export type EditLoopSettings = LoopSettingsValue;
 
 // 編集モードコンポーネントのProps
 interface EditModeContentProps {
@@ -61,6 +59,14 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
 }) => {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const optionsRef = useRef<HTMLDivElement>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
+  // ドロップダウンは fixed 配置（狭いキュー領域でも他セクションに隠れないように）
+  const [dropdownPos, setDropdownPos] = useState({
+    top: 0,
+    left: 0,
+    width: 260,
+    maxHeight: 400,
+  });
 
   // モデル選択肢（組み込み + API 取得 + カスタム）
   const { options: modelOptions, addCustomModel, removeCustomModel } =
@@ -81,8 +87,24 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
     setIsAddModelOpen(false);
   };
 
-  // オプションメニュー外クリックで閉じる
+  // オプションメニュー外クリックで閉じる + fixed 配置の位置計算
   useEffect(() => {
+    const updatePosition = () => {
+      if (optionsButtonRef.current) {
+        const rect = optionsButtonRef.current.getBoundingClientRect();
+        const width = Math.min(280, window.innerWidth - 16);
+        setDropdownPos({
+          top: rect.top - 4,
+          left: Math.max(
+            8,
+            Math.min(rect.left, window.innerWidth - width - 8)
+          ),
+          width,
+          maxHeight: Math.max(160, rect.top - 16),
+        });
+      }
+    };
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         optionsRef.current &&
@@ -92,10 +114,15 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
       }
     };
     if (isOptionsOpen) {
+      updatePosition();
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [isOptionsOpen]);
 
@@ -144,6 +171,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
         {/* 左側: オプションボタン */}
         <div className={s.optionsWrapper} ref={optionsRef}>
           <button
+            ref={optionsButtonRef}
             type="button"
             onClick={() => setIsOptionsOpen(!isOptionsOpen)}
             className={`${s.optionsButton} ${
@@ -188,7 +216,16 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
 
           {/* オプションドロップダウン */}
           {isOptionsOpen && (
-            <div className={s.optionsDropdown}>
+            <div
+              className={s.optionsDropdown}
+              style={{
+                top: `${dropdownPos.top}px`,
+                left: `${dropdownPos.left}px`,
+                width: `${dropdownPos.width}px`,
+                maxHeight: `${dropdownPos.maxHeight}px`,
+                transform: 'translateY(-100%)',
+              }}
+            >
               <div className={s.optionsDropdownInner}>
                 {/* /clear オプション */}
                 <button
@@ -271,10 +308,13 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                 {/* セパレーター */}
                 <div className={s.optionsSeparator} />
 
-                {/* 🔁 ループ設定 */}
+                {/* ループ設定 */}
                 <div className={s.loopSection}>
                   <div className={s.loopSectionHeader}>
-                    <div className={s.loopSectionTitle}>🔁 ループ</div>
+                    <div className={s.loopSectionTitle}>
+                      <Repeat size={12} />
+                      ループ
+                    </div>
                     {editLoop && (
                       <button
                         type="button"
@@ -301,69 +341,10 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     )}
                   </div>
                   {editLoop && (
-                    <div className={s.loopFieldsWrapper}>
-                      <div className={s.loopField}>
-                        <span className={s.loopFieldLabel}>判断方式</span>
-                        <select
-                          value={editLoop.judge}
-                          onChange={(e) =>
-                            setEditLoop({
-                              ...editLoop,
-                              judge: e.target.value as
-                                | 'ai'
-                                | 'user'
-                                | 'none',
-                            })
-                          }
-                          className={s.loopSelect}
-                        >
-                          <option value="none">無限（判断なし）</option>
-                          <option value="ai">AI 判断</option>
-                          <option value="user">ユーザー確認</option>
-                        </select>
-                      </div>
-                      {editLoop.judge !== 'none' && (
-                        <div className={s.loopField}>
-                          <span className={s.loopFieldLabel}>判断間隔</span>
-                          <input
-                            type="number"
-                            min={1}
-                            value={editLoop.judgeEveryN}
-                            onChange={(e) =>
-                              setEditLoop({
-                                ...editLoop,
-                                judgeEveryN: Math.max(
-                                  1,
-                                  Number(e.target.value) || 1
-                                ),
-                              })
-                            }
-                            className={s.loopNumberInput}
-                          />
-                          <span className={s.loopFieldSuffix}>
-                            周ごとに判断
-                          </span>
-                        </div>
-                      )}
-                      <div className={s.loopField}>
-                        <span className={s.loopFieldLabel}>再送待機</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={Math.floor(editLoop.intervalSec / 60)}
-                          onChange={(e) =>
-                            setEditLoop({
-                              ...editLoop,
-                              intervalSec:
-                                Math.max(0, Number(e.target.value) || 0) *
-                                60,
-                            })
-                          }
-                          className={s.loopNumberInput}
-                        />
-                        <span className={s.loopFieldSuffix}>分</span>
-                      </div>
-                    </div>
+                    <LoopSettingsFields
+                      value={editLoop}
+                      onChange={setEditLoop}
+                    />
                   )}
                 </div>
 
@@ -654,7 +635,8 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
                 )}
                 {item.loop && (
                   <span className={s.viewTag}>
-                    🔁 {item.loop.iteration}周目
+                    <Repeat size={10} />
+                    {item.loop.iteration}周目
                   </span>
                 )}
               </div>
@@ -726,7 +708,8 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
           {/* ループバッジ */}
           {item.loop && (
             <span className={s.viewTag} title="ループアイテム">
-              🔁 {item.loop.iteration}周目
+              <Repeat size={10} />
+              {item.loop.iteration}周目
             </span>
           )}
 

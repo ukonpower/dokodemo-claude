@@ -43,7 +43,7 @@
 }
 
 .icon {
-  font-size: $font-size-sm;
+  flex-shrink: 0;
 }
 
 .text {
@@ -71,6 +71,11 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+
+  // モバイルでは折り返して全幅に広げ、タップしやすくする
+  @include sm-down {
+    width: 100%;
+  }
 }
 
 .actionButton,
@@ -78,16 +83,23 @@
 .endButton,
 .stopButton {
   font-size: $font-size-xs;
-  padding: 2px 10px;
+  padding: 4px 12px;
+  min-height: 28px;
   border-radius: $radius;
   border: 1px solid $dark-border-light;
   background-color: transparent;
   color: inherit;
   cursor: pointer;
+  touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+  }
+
+  @include sm-down {
+    flex: 1;
+    min-height: 38px;
   }
 }
 
@@ -111,16 +123,24 @@
   }
 }
 
+// AI 判断理由。タップ / クリックで全文表示に切り替える
 .reason {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  text-align: left;
   font-size: $font-size-xs;
   color: $dark-text-muted;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+  touch-action: manipulation;
+}
 
-  &:hover {
-    white-space: normal;
-    overflow: visible;
-  }
+.reasonExpanded {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
