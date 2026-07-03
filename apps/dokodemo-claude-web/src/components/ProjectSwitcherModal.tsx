@@ -165,7 +165,9 @@ function ProjectSwitcherModal({
       e.preventDefault();
       const target = filtered[selectedIndex];
       if (target) {
-        if (e.shiftKey) {
+        // Cmd/Ctrl + Enter で別タブ（VSCode の「横で開く」やブラウザの
+        // Cmd/Ctrl+クリック新規タブと同じ修飾キーに合わせる）
+        if (e.metaKey || e.ctrlKey) {
           openInNewTab(target.repo.path);
         } else {
           submit(target.repo.path);
@@ -196,7 +198,7 @@ function ProjectSwitcherModal({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <span className={s.hint}>↑↓ 選択 / Enter 切替 / ⇧Enter 別タブ / Esc 閉じる</span>
+          <span className={s.hint}>↑↓ 選択 / Enter 切替 / ⌘/Ctrl+Enter 別タブ / Esc 閉じる</span>
         </div>
         <ul ref={listRef} className={s.list}>
           {filtered.length === 0 && (
@@ -217,8 +219,8 @@ function ProjectSwitcherModal({
                 className={classes.join(' ')}
                 onMouseEnter={() => setSelectedIndex(i)}
                 onClick={(e) => {
-                  // Shift / Ctrl / Cmd + クリックで別タブ表示
-                  if (e.shiftKey || e.metaKey || e.ctrlKey) {
+                  // Cmd/Ctrl + クリックで別タブ表示（ブラウザの新規タブ操作と同じ）
+                  if (e.metaKey || e.ctrlKey) {
                     openInNewTab(repo.path);
                   } else {
                     submit(repo.path);
