@@ -740,6 +740,7 @@ function App() {
       promptQueue={promptQueue.promptQueue}
       isQueueProcessing={promptQueue.isQueueProcessing}
       isQueuePaused={promptQueue.isQueuePaused}
+      currentQueueItemId={promptQueue.currentItemId}
       onAddToQueue={promptQueue.addToQueue}
       onRemoveFromQueue={promptQueue.removeFromQueue}
       onUpdateQueue={promptQueue.updateQueue}
@@ -750,6 +751,8 @@ function App() {
       onForceSend={promptQueue.forceSend}
       onReorderQueue={promptQueue.reorderQueue}
       onRequeueItem={promptQueue.requeueItem}
+      onStopLoop={promptQueue.stopLoop}
+      onApproveLoop={promptQueue.approveLoopContinuation}
       // ファイル管理関連
       files={fileManager.files}
       isUploadingFile={fileManager.isUploadingFile}

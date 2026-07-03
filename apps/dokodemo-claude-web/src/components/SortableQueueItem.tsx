@@ -6,6 +6,13 @@ import type { PromptQueueItem } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
 import s from './SortableQueueItem.module.scss';
 
+// ループ設定の編集用型
+export interface EditLoopSettings {
+  judge: 'ai' | 'user' | 'none';
+  judgeEveryN: number;
+  intervalSec: number;
+}
+
 // 編集モードコンポーネントのProps
 interface EditModeContentProps {
   item: PromptQueueItem;
@@ -21,10 +28,12 @@ interface EditModeContentProps {
   editSendClearBefore: boolean;
   editIsAutoCommit: boolean;
   editModel: string;
+  editLoop: EditLoopSettings | null;
   setEditPrompt: (prompt: string) => void;
   setEditSendClearBefore: (value: boolean) => void;
   setEditIsAutoCommit: (value: boolean) => void;
   setEditModel: (value: string) => void;
+  setEditLoop: (value: EditLoopSettings | null) => void;
   onCancelEdit: () => void;
   onSaveEdit: (itemId: string) => void;
 }
@@ -41,10 +50,12 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
   editSendClearBefore,
   editIsAutoCommit,
   editModel,
+  editLoop,
   setEditPrompt,
   setEditSendClearBefore,
   setEditIsAutoCommit,
   setEditModel,
+  setEditLoop,
   onCancelEdit,
   onSaveEdit,
 }) => {
@@ -92,7 +103,8 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
   const activeOptionsCount =
     (editSendClearBefore ? 1 : 0) +
     (editIsAutoCommit ? 1 : 0) +
-    (editModel ? 1 : 0);
+    (editModel ? 1 : 0) +
+    (editLoop ? 1 : 0);
 
   return (
     <>
@@ -259,6 +271,105 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                 {/* セパレーター */}
                 <div className={s.optionsSeparator} />
 
+                {/* 🔁 ループ設定 */}
+                <div className={s.loopSection}>
+                  <div className={s.loopSectionHeader}>
+                    <div className={s.loopSectionTitle}>🔁 ループ</div>
+                    {editLoop && (
+                      <button
+                        type="button"
+                        onClick={() => setEditLoop(null)}
+                        className={s.loopClearButton}
+                      >
+                        ループ解除
+                      </button>
+                    )}
+                    {!editLoop && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditLoop({
+                            judge: 'none',
+                            judgeEveryN: 1,
+                            intervalSec: 0,
+                          })
+                        }
+                        className={s.loopEnableButton}
+                      >
+                        ループ化
+                      </button>
+                    )}
+                  </div>
+                  {editLoop && (
+                    <div className={s.loopFieldsWrapper}>
+                      <div className={s.loopField}>
+                        <span className={s.loopFieldLabel}>判断方式</span>
+                        <select
+                          value={editLoop.judge}
+                          onChange={(e) =>
+                            setEditLoop({
+                              ...editLoop,
+                              judge: e.target.value as
+                                | 'ai'
+                                | 'user'
+                                | 'none',
+                            })
+                          }
+                          className={s.loopSelect}
+                        >
+                          <option value="none">無限（判断なし）</option>
+                          <option value="ai">AI 判断</option>
+                          <option value="user">ユーザー確認</option>
+                        </select>
+                      </div>
+                      {editLoop.judge !== 'none' && (
+                        <div className={s.loopField}>
+                          <span className={s.loopFieldLabel}>判断間隔</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={editLoop.judgeEveryN}
+                            onChange={(e) =>
+                              setEditLoop({
+                                ...editLoop,
+                                judgeEveryN: Math.max(
+                                  1,
+                                  Number(e.target.value) || 1
+                                ),
+                              })
+                            }
+                            className={s.loopNumberInput}
+                          />
+                          <span className={s.loopFieldSuffix}>
+                            周ごとに判断
+                          </span>
+                        </div>
+                      )}
+                      <div className={s.loopField}>
+                        <span className={s.loopFieldLabel}>再送待機</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={Math.floor(editLoop.intervalSec / 60)}
+                          onChange={(e) =>
+                            setEditLoop({
+                              ...editLoop,
+                              intervalSec:
+                                Math.max(0, Number(e.target.value) || 0) *
+                                60,
+                            })
+                          }
+                          className={s.loopNumberInput}
+                        />
+                        <span className={s.loopFieldSuffix}>分</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* セパレーター */}
+                <div className={s.optionsSeparator} />
+
                 {/* モデル選択 */}
                 <div className={s.modelSection}>
                   <div className={s.modelLabel}>
@@ -378,6 +489,7 @@ interface SortableQueueItemProps {
   editSendClearBefore: boolean;
   editIsAutoCommit: boolean;
   editModel: string;
+  editLoop: EditLoopSettings | null;
   canRemove: boolean;
   canEdit: boolean;
   canView: boolean;
@@ -395,6 +507,7 @@ interface SortableQueueItemProps {
   setEditSendClearBefore: (value: boolean) => void;
   setEditIsAutoCommit: (value: boolean) => void;
   setEditModel: (value: string) => void;
+  setEditLoop: (value: EditLoopSettings | null) => void;
 }
 
 /**
@@ -409,6 +522,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   editSendClearBefore,
   editIsAutoCommit,
   editModel,
+  editLoop,
   canRemove,
   canEdit,
   canView,
@@ -424,6 +538,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   setEditSendClearBefore,
   setEditIsAutoCommit,
   setEditModel,
+  setEditLoop,
 }) => {
   const {
     attributes,
@@ -537,6 +652,11 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
                     /commit
                   </span>
                 )}
+                {item.loop && (
+                  <span className={s.viewTag}>
+                    🔁 {item.loop.iteration}周目
+                  </span>
+                )}
               </div>
               <div className={s.viewActions}>
                 {canRequeue && (
@@ -566,10 +686,12 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
           editSendClearBefore={editSendClearBefore}
           editIsAutoCommit={editIsAutoCommit}
           editModel={editModel}
+          editLoop={editLoop}
           setEditPrompt={setEditPrompt}
           setEditSendClearBefore={setEditSendClearBefore}
           setEditIsAutoCommit={setEditIsAutoCommit}
           setEditModel={setEditModel}
+          setEditLoop={setEditLoop}
           onCancelEdit={onCancelEdit}
           onSaveEdit={onSaveEdit}
         />
@@ -600,6 +722,13 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
               {truncatePrompt(item.prompt)}
             </p>
           </div>
+
+          {/* ループバッジ */}
+          {item.loop && (
+            <span className={s.viewTag} title="ループアイテム">
+              🔁 {item.loop.iteration}周目
+            </span>
+          )}
 
           {/* ステータスバッジ */}
           <span

@@ -531,6 +531,15 @@ export interface ServerToClientEvents {
   'prompt-queue-reset': (data: { success: boolean; message: string }) => void;
   'queue-item-cancelled': (data: { success: boolean; message: string }) => void;
 
+  // プロンプトループ関連イベント
+  'prompt-loop-ended': (data: {
+    rid?: string;
+    provider: AiProvider;
+    itemId: string;
+    reason?: string;
+    endedBy: 'ai-judge' | 'user';
+  }) => void;
+
   // ファイル関連イベント
   'files-list': (data: { rid: string; files: UploadedFileInfo[] }) => void;
   'file-uploaded': (data: {
@@ -833,6 +842,11 @@ export interface ClientToServerEvents {
     isAutoCommit?: boolean;
     isCodexReview?: boolean;
     model?: string;
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    };
   }) => void;
   'remove-from-prompt-queue': (data: {
     rid: string;
@@ -848,6 +862,12 @@ export interface ClientToServerEvents {
     isAutoCommit?: boolean;
     isCodexReview?: boolean;
     model?: string;
+    // null: ループ解除 / 値あり: 設定を差し替え（iteration 等の状態は維持）
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    } | null;
   }) => void;
   'get-prompt-queue': (data: {
     rid: string;
@@ -887,6 +907,19 @@ export interface ClientToServerEvents {
   'cancel-current-queue-item': (data: {
     rid: string;
     provider: AiProvider;
+  }) => void;
+
+  // プロンプトループ関連イベント
+  'stop-prompt-loop': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+  }) => void;
+  'approve-loop-continuation': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+    approved: boolean;
   }) => void;
 
   // ファイル関連イベント
@@ -965,6 +998,22 @@ export interface CodeServer {
   startedAt?: number;
 }
 
+// プロンプトループ関連の型定義
+// キューに投入したプロンプトを Stop hook 着弾のたびに末尾へ再投入し、
+// 同じプロンプトを繰り返し実行する（自走）ためのアイテム内部状態
+export interface PromptLoopState {
+  judge: 'ai' | 'user' | 'none';
+  judgeEveryN: number; // 何周ごとに判断（judge !== 'none' のとき有効、1以上）
+  intervalSec: number; // 再送待機秒数（0 = 即時）
+  iteration: number; // 現在の周回番号（1始まり、サーバ側で加算）
+  startedAt: number;
+  startedAtCommit?: string; // ループ開始時 HEAD（AI 判断の diff 起点）
+  nextSendAt?: number; // インターバル待機中の次回送信予定 epoch ms
+  pendingJudge?: boolean; // この周の送信前に AI 判断が必要
+  awaitingUserApproval?: boolean;
+  lastJudgeReason?: string;
+}
+
 // プロンプトキュー関連の型定義
 export interface PromptQueueItem {
   id: string;
@@ -977,6 +1026,7 @@ export interface PromptQueueItem {
   isAutoCommit?: boolean; // 完了後に自動的に/commitを実行するか
   isCodexReview?: boolean; // 完了後にCodexレビューを自動実行するか
   model?: string; // 使用するモデル（例: 'opus', 'sonnet', 'haiku'）
+  loop?: PromptLoopState; // 設定されているとループアイテムとして扱う
 }
 
 export interface PromptQueueState {

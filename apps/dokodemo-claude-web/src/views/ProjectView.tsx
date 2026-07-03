@@ -159,11 +159,17 @@ interface ProjectViewProps {
   promptQueue: PromptQueueItem[];
   isQueueProcessing: boolean;
   isQueuePaused: boolean;
+  currentQueueItemId?: string;
   onAddToQueue: (
     command: string,
     sendClearBefore: boolean,
     sendCommitAfter: boolean,
-    model?: string
+    model?: string,
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    }
   ) => void;
   onRemoveFromQueue: (itemId: string) => void;
   onUpdateQueue: (
@@ -171,7 +177,12 @@ interface ProjectViewProps {
     prompt: string,
     sendClearBefore: boolean,
     isAutoCommit: boolean,
-    model?: string
+    model?: string,
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    } | null
   ) => void;
   onPauseQueue: () => void;
   onResumeQueue: () => void;
@@ -180,6 +191,8 @@ interface ProjectViewProps {
   onForceSend: (itemId: string) => void;
   onReorderQueue: (reorderedQueue: PromptQueueItem[]) => void;
   onRequeueItem: (itemId: string) => void;
+  onStopLoop: (itemId: string) => void;
+  onApproveLoop: (itemId: string, approved: boolean) => void;
 
   // ファイル管理関連
   files: UploadedFileInfo[];
@@ -346,6 +359,7 @@ export function ProjectView({
   promptQueue,
   isQueueProcessing,
   isQueuePaused,
+  currentQueueItemId,
   onAddToQueue,
   onRemoveFromQueue,
   onUpdateQueue,
@@ -356,6 +370,8 @@ export function ProjectView({
   onForceSend,
   onReorderQueue,
   onRequeueItem,
+  onStopLoop,
+  onApproveLoop,
   files,
   isUploadingFile,
   onRefreshFiles,
@@ -431,9 +447,14 @@ export function ProjectView({
       command: string,
       sendClearBefore: boolean,
       sendCommitAfter: boolean,
-      model?: string
+      model?: string,
+      loop?: {
+        judge: 'ai' | 'user' | 'none';
+        judgeEveryN: number;
+        intervalSec: number;
+      }
     ) => {
-      onAddToQueue(command, sendClearBefore, sendCommitAfter, model);
+      onAddToQueue(command, sendClearBefore, sendCommitAfter, model, loop);
       aiOutputRef.current?.scrollToBottom();
     },
     [onAddToQueue]
@@ -631,6 +652,7 @@ export function ProjectView({
                         queue={promptQueue}
                         isProcessing={isQueueProcessing}
                         isPaused={isQueuePaused}
+                        currentItemId={currentQueueItemId}
                         onRemove={onRemoveFromQueue}
                         onUpdate={onUpdateQueue}
                         onReorder={onReorderQueue}
@@ -640,6 +662,8 @@ export function ProjectView({
                         onCancelCurrentItem={onCancelCurrentItem}
                         onForceSend={onForceSend}
                         onRequeue={onRequeueItem}
+                        onStopLoop={onStopLoop}
+                        onApproveLoop={onApproveLoop}
                       />
                     </div>
                   )}
@@ -681,6 +705,7 @@ export function ProjectView({
                       queue={promptQueue}
                       isProcessing={isQueueProcessing}
                       isPaused={isQueuePaused}
+                      currentItemId={currentQueueItemId}
                       onRemove={onRemoveFromQueue}
                       onUpdate={onUpdateQueue}
                       onReorder={onReorderQueue}
@@ -690,6 +715,8 @@ export function ProjectView({
                       onCancelCurrentItem={onCancelCurrentItem}
                       onForceSend={onForceSend}
                       onRequeue={onRequeueItem}
+                      onStopLoop={onStopLoop}
+                      onApproveLoop={onApproveLoop}
                     />
                   </div>
                 )}

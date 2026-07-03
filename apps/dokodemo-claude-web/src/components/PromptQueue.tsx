@@ -17,19 +17,23 @@ import {
 } from '@dnd-kit/sortable';
 import type { PromptQueueItem } from '../types';
 import SortableQueueItem from './SortableQueueItem';
+import type { EditLoopSettings } from './SortableQueueItem';
+import LoopStatusBar from './LoopStatusBar';
 import s from './PromptQueue.module.scss';
 
 interface PromptQueueProps {
   queue: PromptQueueItem[];
   isProcessing: boolean;
   isPaused: boolean;
+  currentItemId?: string;
   onRemove?: (itemId: string) => void;
   onUpdate?: (
     itemId: string,
     prompt: string,
     sendClearBefore: boolean,
     isAutoCommit: boolean,
-    model?: string
+    model?: string,
+    loop?: EditLoopSettings | null
   ) => void;
   onReorder?: (reorderedQueue: PromptQueueItem[]) => void;
   onPause?: () => void;
@@ -38,12 +42,15 @@ interface PromptQueueProps {
   onRequeue?: (itemId: string) => void;
   onReset?: () => void;
   onCancelCurrentItem?: () => void;
+  onStopLoop?: (itemId: string) => void;
+  onApproveLoop?: (itemId: string, approved: boolean) => void;
 }
 
 const PromptQueue: React.FC<PromptQueueProps> = ({
   queue,
   isProcessing,
   isPaused,
+  currentItemId,
   onRemove,
   onUpdate,
   onReorder,
@@ -53,13 +60,20 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
   onCancelCurrentItem,
   onForceSend,
   onRequeue,
+  onStopLoop,
+  onApproveLoop,
 }) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [editSendClearBefore, setEditSendClearBefore] = useState(false);
   const [editIsAutoCommit, setEditIsAutoCommit] = useState(false);
   const [editModel, setEditModel] = useState('');
+  const [editLoop, setEditLoop] = useState<EditLoopSettings | null>(null);
   const [viewingItemId, setViewingItemId] = useState<string | null>(null);
+
+  // ループアイテムを検索（1キューに1つまで）
+  const loopItem = queue.find((i) => i.loop);
+  const isJudging = currentItemId === 'loop-judge';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -76,6 +90,15 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
     setEditSendClearBefore(item.sendClearBefore ?? false);
     setEditIsAutoCommit(item.isAutoCommit ?? false);
     setEditModel(item.model ?? '');
+    setEditLoop(
+      item.loop
+        ? {
+            judge: item.loop.judge,
+            judgeEveryN: item.loop.judgeEveryN,
+            intervalSec: item.loop.intervalSec,
+          }
+        : null
+    );
   };
 
   const cancelEdit = () => {
@@ -84,11 +107,30 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
     setEditSendClearBefore(false);
     setEditIsAutoCommit(false);
     setEditModel('');
+    setEditLoop(null);
   };
 
   const saveEdit = (itemId: string) => {
     if (onUpdate && editPrompt.trim()) {
-      onUpdate(itemId, editPrompt, editSendClearBefore, editIsAutoCommit, editModel);
+      // 編集対象アイテムの元 loop 状態を確認して差分を判定
+      const original = queue.find((i) => i.id === itemId);
+      const hadLoop = !!original?.loop;
+      let loopUpdate: EditLoopSettings | null | undefined;
+      if (editLoop) {
+        loopUpdate = editLoop;
+      } else if (hadLoop) {
+        loopUpdate = null; // ループ解除
+      } else {
+        loopUpdate = undefined; // 変更なし
+      }
+      onUpdate(
+        itemId,
+        editPrompt,
+        editSendClearBefore,
+        editIsAutoCommit,
+        editModel,
+        loopUpdate
+      );
       cancelEdit();
     }
   };
@@ -124,6 +166,17 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
 
   return (
     <div className={s.root}>
+      {/* ループアイテムの状態バー（存在時のみ） */}
+      {loopItem && (
+        <LoopStatusBar
+          loopItem={loopItem}
+          isJudging={isJudging}
+          onStopLoop={onStopLoop}
+          onApprove={onApproveLoop}
+          onForceSend={onForceSend}
+        />
+      )}
+
       {/* キューアイテム一覧 */}
       <DndContext
         sensors={sensors}
@@ -156,6 +209,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
                   editSendClearBefore={editSendClearBefore}
                   editIsAutoCommit={editIsAutoCommit}
                   editModel={editModel}
+                  editLoop={editLoop}
                   canRemove={canRemove}
                   canEdit={canEdit}
                   canView={canView}
@@ -173,6 +227,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
                   setEditSendClearBefore={setEditSendClearBefore}
                   setEditIsAutoCommit={setEditIsAutoCommit}
                   setEditModel={setEditModel}
+                  setEditLoop={setEditLoop}
                 />
               );
             })}

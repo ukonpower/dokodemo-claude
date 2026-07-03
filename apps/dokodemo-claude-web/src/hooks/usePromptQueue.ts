@@ -8,6 +8,12 @@ import type {
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 
+export interface LoopSettings {
+  judge: 'ai' | 'user' | 'none';
+  judgeEveryN: number;
+  intervalSec: number;
+}
+
 /**
  * usePromptQueue フックの戻り値
  */
@@ -16,13 +22,15 @@ export interface UsePromptQueueReturn {
   promptQueue: PromptQueueItem[];
   isQueueProcessing: boolean;
   isQueuePaused: boolean;
+  currentItemId: string | undefined;
 
   // アクション
   addToQueue: (
     command: string,
     sendClearBefore: boolean,
     sendCommitAfter: boolean,
-    model?: string
+    model?: string,
+    loop?: LoopSettings
   ) => void;
   removeFromQueue: (itemId: string) => void;
   updateQueue: (
@@ -30,7 +38,8 @@ export interface UsePromptQueueReturn {
     prompt: string,
     sendClearBefore: boolean,
     isAutoCommit: boolean,
-    model?: string
+    model?: string,
+    loop?: LoopSettings | null
   ) => void;
   pauseQueue: () => void;
   resumeQueue: () => void;
@@ -39,6 +48,8 @@ export interface UsePromptQueueReturn {
   forceSend: (itemId: string) => void;
   reorderQueue: (reorderedQueue: PromptQueueItem[]) => void;
   requeueItem: (itemId: string) => void;
+  stopLoop: (itemId: string) => void;
+  approveLoopContinuation: (itemId: string, approved: boolean) => void;
 
   // クリア関数（リポジトリ切り替え時用）
   clearState: () => void;
@@ -57,6 +68,9 @@ export function usePromptQueue(
   const [promptQueue, setPromptQueue] = useState<PromptQueueItem[]>([]);
   const [isQueueProcessing, setIsQueueProcessing] = useState<boolean>(false);
   const [isQueuePaused, setIsQueuePaused] = useState<boolean>(false);
+  const [currentItemId, setCurrentItemId] = useState<string | undefined>(
+    undefined
+  );
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -85,6 +99,7 @@ export function usePromptQueue(
         setPromptQueue(data.queue);
         setIsQueueProcessing(data.isProcessing);
         setIsQueuePaused(data.isPaused);
+        setCurrentItemId(data.currentItemId);
       }
     };
 
@@ -148,11 +163,28 @@ export function usePromptQueue(
       }
     };
 
+    // ループ終了通知（keep it minimal — 現状はキュー再取得のみ）
+    const handleLoopEnded = (
+      data: Parameters<ServerToClientEvents['prompt-loop-ended']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (
+        data.rid === currentRid &&
+        data.provider === currentProviderRef.current
+      ) {
+        const provider = currentProviderRef.current;
+        if (currentRid && provider) {
+          socket.emit('get-prompt-queue', { rid: currentRid, provider });
+        }
+      }
+    };
+
     socket.on('prompt-queue-updated', handlePromptQueueUpdated);
     socket.on('prompt-added-to-queue', handlePromptAddedToQueue);
     socket.on('prompt-removed-from-queue', handlePromptRemovedFromQueue);
     socket.on('prompt-queue-processing-started', handleProcessingStarted);
     socket.on('prompt-queue-processing-completed', handleProcessingCompleted);
+    socket.on('prompt-loop-ended', handleLoopEnded);
 
     return () => {
       socket.off('prompt-queue-updated', handlePromptQueueUpdated);
@@ -160,6 +192,7 @@ export function usePromptQueue(
       socket.off('prompt-removed-from-queue', handlePromptRemovedFromQueue);
       socket.off('prompt-queue-processing-started', handleProcessingStarted);
       socket.off('prompt-queue-processing-completed', handleProcessingCompleted);
+      socket.off('prompt-loop-ended', handleLoopEnded);
     };
   }, [socket]);
 
@@ -169,7 +202,8 @@ export function usePromptQueue(
       command: string,
       sendClearBefore: boolean,
       sendCommitAfter: boolean,
-      model?: string
+      model?: string,
+      loop?: LoopSettings
     ) => {
       if (!socket || !currentRepo) return;
       const rid = repositoryIdMap.getRid(currentRepo);
@@ -184,6 +218,7 @@ export function usePromptQueue(
         sendClearBefore,
         isAutoCommit: sendCommitAfter,
         model,
+        loop,
       });
     },
     [socket, currentRepo]
@@ -211,7 +246,8 @@ export function usePromptQueue(
       prompt: string,
       sendClearBefore: boolean,
       isAutoCommit: boolean,
-      model?: string
+      model?: string,
+      loop?: LoopSettings | null
     ) => {
       if (!socket || !currentRepo) return;
       const rid = repositoryIdMap.getRid(currentRepo);
@@ -226,6 +262,7 @@ export function usePromptQueue(
         sendClearBefore,
         isAutoCommit,
         model,
+        loop,
       });
     },
     [socket, currentRepo]
@@ -315,17 +352,48 @@ export function usePromptQueue(
     [socket, currentRepo]
   );
 
+  const stopLoop = useCallback(
+    (itemId: string) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      const provider = currentProviderRef.current;
+      if (!provider) return;
+      socket.emit('stop-prompt-loop', { rid, provider, itemId });
+    },
+    [socket, currentRepo]
+  );
+
+  const approveLoopContinuation = useCallback(
+    (itemId: string, approved: boolean) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      const provider = currentProviderRef.current;
+      if (!provider) return;
+      socket.emit('approve-loop-continuation', {
+        rid,
+        provider,
+        itemId,
+        approved,
+      });
+    },
+    [socket, currentRepo]
+  );
+
   // 状態クリア
   const clearState = useCallback(() => {
     setPromptQueue([]);
     setIsQueueProcessing(false);
     setIsQueuePaused(false);
+    setCurrentItemId(undefined);
   }, []);
 
   return {
     promptQueue,
     isQueueProcessing,
     isQueuePaused,
+    currentItemId,
     addToQueue,
     removeFromQueue,
     updateQueue,
@@ -336,6 +404,8 @@ export function usePromptQueue(
     forceSend,
     reorderQueue,
     requeueItem,
+    stopLoop,
+    approveLoopContinuation,
     clearState,
   };
 }

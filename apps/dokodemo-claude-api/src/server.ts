@@ -1161,6 +1161,52 @@ processManager.on('prompt-queue-processing-completed', (data) => {
   );
 });
 
+processManager.on('prompt-loop-ended', (data) => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath);
+  emitToRepositoryClients(data.repositoryPath, 'prompt-loop-ended', {
+    provider: data.provider,
+    itemId: data.itemId,
+    reason: data.reason,
+    endedBy: data.endedBy,
+    rid,
+  });
+
+  // Push 通知（既存の handleAiHookEvent 経路とは独立の送信経路）
+  const wpService = getWebPushService();
+  if (wpService) {
+    const repoName = data.repositoryPath.split('/').filter(Boolean).pop() || '';
+    const url = `/?repo=${encodeURIComponent(data.repositoryPath)}`;
+    const body = (data.reason || 'ループが終了しました').slice(0, 150);
+    wpService
+      .sendNotification({
+        title: `🔁 [${repoName}] ループ終了`,
+        body,
+        url,
+        eventType: 'LoopEnded',
+      })
+      .catch((err) => {
+        console.error('Web Push通知の送信に失敗:', err);
+      });
+  }
+});
+
+processManager.on('loop-approval-required', (data) => {
+  const wpService = getWebPushService();
+  if (!wpService) return;
+  const repoName = data.repositoryPath.split('/').filter(Boolean).pop() || '';
+  const url = `/?repo=${encodeURIComponent(data.repositoryPath)}`;
+  wpService
+    .sendNotification({
+      title: `🔁 [${repoName}] ループ確認待ち`,
+      body: `${data.iteration}周完了。継続しますか？`,
+      url,
+      eventType: 'LoopApproval',
+    })
+    .catch((err) => {
+      console.error('Web Push通知の送信に失敗:', err);
+    });
+});
+
 processManager.on('ai-execution-status-changed', () => {
   broadcastRepoProcessStatuses();
 });

@@ -546,3 +546,75 @@
     cursor: not-allowed;
   }
 }
+
+/* 🔁 ループ編集セクション */
+.loopSection {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loopSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loopSectionTitle {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  font-weight: 600;
+}
+
+.loopEnableButton,
+.loopClearButton {
+  font-size: $font-size-xs;
+  padding: 2px 8px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.loopFieldsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loopField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+.loopFieldLabel {
+  min-width: 5rem;
+  color: $dark-text-muted;
+}
+
+.loopFieldSuffix {
+  color: $dark-text-muted;
+}
+
+.loopSelect,
+.loopNumberInput {
+  padding: 2px 6px;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+}
+
+.loopNumberInput {
+  width: 4rem;
+}

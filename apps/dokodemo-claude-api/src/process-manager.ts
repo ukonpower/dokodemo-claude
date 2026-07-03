@@ -218,6 +218,30 @@ export class ProcessManager extends EventEmitter {
         if (!primary || primary.provider !== provider) return false;
         return this.getAiExecutionStatus(primary.instanceId) === 'running';
       },
+      getPrimaryOutputTail: (repositoryPath: string, provider: AiProvider) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary || primary.provider !== provider) return '';
+        const history = this.aiSessionManager.getOutputHistory(
+          primary.instanceId
+        );
+        // ANSI 除去 + 末尾 200 行 + 8000 文字上限
+        // ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex
+        // で警告になるため、new RegExp + String.fromCharCode で組み立てる
+        const ESC = String.fromCharCode(0x1b);
+        const BEL = String.fromCharCode(0x07);
+        const ansiRegex = new RegExp(
+          `${ESC}\\[[0-9;?]*[A-Za-z]|${ESC}\\][^${BEL}]*${BEL}`,
+          'g'
+        );
+        const stripAnsi = (s: string): string => s.replace(ansiRegex, '');
+        const lines = history.map((h) => stripAnsi(h.content));
+        const tailLines = lines.slice(-200).join('\n');
+        return tailLines.length > 8000
+          ? tailLines.slice(-8000)
+          : tailLines;
+      },
     });
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
       this.emit('prompt-queue-updated', data)
@@ -227,6 +251,12 @@ export class ProcessManager extends EventEmitter {
     );
     this.promptQueueManager.on('prompt-queue-processing-completed', (data) =>
       this.emit('prompt-queue-processing-completed', data)
+    );
+    this.promptQueueManager.on('prompt-loop-ended', (data) =>
+      this.emit('prompt-loop-ended', data)
+    );
+    this.promptQueueManager.on('loop-approval-required', (data) =>
+      this.emit('loop-approval-required', data)
     );
   }
 
@@ -731,13 +761,18 @@ export class ProcessManager extends EventEmitter {
     sendClearBefore?: boolean,
     isAutoCommit?: boolean,
     model?: string,
-    isCodexReview?: boolean
+    isCodexReview?: boolean,
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    }
   ): Promise<PromptQueueItem> {
     const result = await this.promptQueueManager.addToQueue(
       repositoryPath,
       provider,
       prompt,
-      { sendClearBefore, isAutoCommit, model, isCodexReview }
+      { sendClearBefore, isAutoCommit, model, isCodexReview, loop }
     );
     if (!result.ok) {
       throw new Error(result.error.message);
@@ -867,15 +902,50 @@ export class ProcessManager extends EventEmitter {
     sendClearBefore?: boolean,
     isAutoCommit?: boolean,
     model?: string,
-    isCodexReview?: boolean
+    isCodexReview?: boolean,
+    loop?:
+      | {
+          judge: 'ai' | 'user' | 'none';
+          judgeEveryN: number;
+          intervalSec: number;
+        }
+      | null
   ): Promise<boolean> {
     const result = await this.promptQueueManager.updateItem(
       repositoryPath,
       provider,
       itemId,
-      { prompt, sendClearBefore, isAutoCommit, model, isCodexReview }
+      { prompt, sendClearBefore, isAutoCommit, model, isCodexReview, loop }
     );
     return result.ok && result.value;
+  }
+
+  async stopPromptLoop(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.stopLoop(
+      repositoryPath,
+      provider,
+      itemId
+    );
+    return result.ok;
+  }
+
+  async approveLoopContinuation(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    approved: boolean
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.approveLoopContinuation(
+      repositoryPath,
+      provider,
+      itemId,
+      approved
+    );
+    return result.ok;
   }
 
   async resetPromptQueue(

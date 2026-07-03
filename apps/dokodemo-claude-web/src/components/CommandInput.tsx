@@ -86,7 +86,12 @@ interface TextInputProps {
     command: string,
     sendClearBefore: boolean,
     sendCommitAfter: boolean,
-    model?: string
+    model?: string,
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    }
   ) => void;
   /** 現在のプロバイダー */
   currentProvider?: AiProvider;
@@ -110,6 +115,10 @@ interface TextInputProps {
     autoTarget?: 'plan' | 'implement';
     autoReview?: boolean;
     autoClear?: boolean;
+    loopEnabled?: boolean;
+    loopJudge?: 'ai' | 'user' | 'none';
+    loopJudgeEveryN?: number;
+    loopIntervalMin?: number;
   };
   /** 送信設定の更新ハンドラ */
   onSendSettingsChange?: (settings: {
@@ -121,6 +130,10 @@ interface TextInputProps {
     autoTarget?: 'plan' | 'implement';
     autoReview?: boolean;
     autoClear?: boolean;
+    loopEnabled?: boolean;
+    loopJudge?: 'ai' | 'user' | 'none';
+    loopJudgeEveryN?: number;
+    loopIntervalMin?: number;
   }) => void;
   /** クリップボードから画像をペーストした時のハンドラ（オプション）。成功時にパスを返す */
   onPasteFile?: (file: File) => Promise<string | undefined>;
@@ -274,6 +287,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const sendCommitAfter = sendSettings?.sendCommit ?? false;
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
+
+    // ループ設定（キュー ON 時のみ有効）
+    const loopEnabled = addToQueue && (sendSettings?.loopEnabled ?? false);
+    const loopJudge = sendSettings?.loopJudge ?? 'none';
+    const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
+    const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
     // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
@@ -284,6 +303,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+    // ループ設定ポップオーバー開閉状態
+    const [isLoopPopoverOpen, setIsLoopPopoverOpen] = useState(false);
+    const loopPopoverRef = useRef<HTMLDivElement>(null);
+    const loopButtonRef = useRef<HTMLButtonElement>(null);
+    const [loopPopoverPosition, setLoopPopoverPosition] = useState({
+      top: 0,
+      left: 0,
+    });
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -297,8 +324,20 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // チェックボックスの状態変更ハンドラ
     const handleSettingChange = (
-      key: 'addToQueue' | 'sendClear' | 'sendCommit' | 'model' | 'workflowSkill' | 'autoTarget' | 'autoReview' | 'autoClear',
-      value: boolean | string
+      key:
+        | 'addToQueue'
+        | 'sendClear'
+        | 'sendCommit'
+        | 'model'
+        | 'workflowSkill'
+        | 'autoTarget'
+        | 'autoReview'
+        | 'autoClear'
+        | 'loopEnabled'
+        | 'loopJudge'
+        | 'loopJudgeEveryN'
+        | 'loopIntervalMin',
+      value: boolean | string | number
     ) => {
       if (onSendSettingsChange && sendSettings) {
         onSendSettingsChange({
@@ -355,6 +394,41 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         window.removeEventListener('resize', updatePosition);
       };
     }, [isModelDropdownOpen]);
+
+    // ループ設定ポップオーバーの外側クリック・位置計算
+    useEffect(() => {
+      const updatePosition = () => {
+        if (loopButtonRef.current) {
+          const rect = loopButtonRef.current.getBoundingClientRect();
+          setLoopPopoverPosition({
+            top: rect.top - 4,
+            left: rect.left,
+          });
+        }
+      };
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          loopPopoverRef.current &&
+          !loopPopoverRef.current.contains(event.target as Node)
+        ) {
+          setIsLoopPopoverOpen(false);
+        }
+      };
+
+      if (isLoopPopoverOpen) {
+        updatePosition();
+        document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+      }
+
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }, [isLoopPopoverOpen]);
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -468,11 +542,19 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
         // キュー追加モードの場合
         if (addToQueue && onAddToQueue) {
+          const loopArg = loopEnabled
+            ? {
+                judge: loopJudge,
+                judgeEveryN: loopJudgeEveryN,
+                intervalSec: loopIntervalMin * 60,
+              }
+            : undefined;
           onAddToQueue(
             finalCommand,
             sendClearBefore,
             sendCommitAfter,
-            model || undefined
+            model || undefined,
+            loopArg
           );
         } else {
           // 通常のコマンド送信
@@ -1385,6 +1467,125 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   >
                     /commit
                   </button>
+
+                  {/* 🔁 ループ */}
+                  <div className={s.modelDropdownWrapper} ref={loopPopoverRef}>
+                    <button
+                      ref={loopButtonRef}
+                      type="button"
+                      onClick={() => setIsLoopPopoverOpen(!isLoopPopoverOpen)}
+                      disabled={disabled}
+                      className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
+                      title="🔁 ループ: 完了後に同じプロンプトを繰り返し送信"
+                    >
+                      🔁{' '}
+                      {loopEnabled
+                        ? `${loopJudge === 'ai' ? 'AI' : loopJudge === 'user' ? '確認' : '無限'}・${loopJudgeEveryN}周`
+                        : 'ループ'}
+                    </button>
+
+                    {isLoopPopoverOpen && (
+                      <div
+                        className={s.modelDropdown}
+                        style={{
+                          top: `${loopPopoverPosition.top}px`,
+                          left: `${loopPopoverPosition.left}px`,
+                          transform: 'translateY(-100%)',
+                          minWidth: '260px',
+                        }}
+                      >
+                        <div className={s.loopPopoverRow}>
+                          <label className={s.loopToggleLabel}>
+                            <input
+                              type="checkbox"
+                              checked={loopEnabled}
+                              onChange={(e) =>
+                                handleSettingChange(
+                                  'loopEnabled',
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            <span>ループ有効化</span>
+                          </label>
+                        </div>
+
+                        <div className={s.modelDropdownSeparator} />
+
+                        <div className={s.loopPopoverRow}>
+                          <div className={s.loopFieldLabel}>判断方式</div>
+                          <div className={s.loopRadioGroup}>
+                            {(['none', 'ai', 'user'] as const).map((judge) => (
+                              <label
+                                key={judge}
+                                className={s.loopRadioLabel}
+                              >
+                                <input
+                                  type="radio"
+                                  name="loop-judge"
+                                  value={judge}
+                                  checked={loopJudge === judge}
+                                  onChange={() =>
+                                    handleSettingChange('loopJudge', judge)
+                                  }
+                                  disabled={!loopEnabled}
+                                />
+                                <span>
+                                  {judge === 'none'
+                                    ? '無限（判断なし）'
+                                    : judge === 'ai'
+                                      ? 'AI 判断'
+                                      : 'ユーザー確認'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {loopJudge !== 'none' && (
+                          <div className={s.loopPopoverRow}>
+                            <div className={s.loopFieldLabel}>判断間隔</div>
+                            <div className={s.loopFieldControl}>
+                              <input
+                                type="number"
+                                min={1}
+                                value={loopJudgeEveryN}
+                                onChange={(e) =>
+                                  handleSettingChange(
+                                    'loopJudgeEveryN',
+                                    Math.max(1, Number(e.target.value) || 1)
+                                  )
+                                }
+                                disabled={!loopEnabled}
+                                className={s.loopNumberInput}
+                              />
+                              <span>周ごとに判断</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={s.loopPopoverRow}>
+                          <div className={s.loopFieldLabel}>再送待機</div>
+                          <div className={s.loopFieldControl}>
+                            <input
+                              type="number"
+                              min={0}
+                              value={loopIntervalMin}
+                              onChange={(e) =>
+                                handleSettingChange(
+                                  'loopIntervalMin',
+                                  Math.max(0, Number(e.target.value) || 0)
+                                )
+                              }
+                              disabled={!loopEnabled}
+                              className={s.loopNumberInput}
+                            />
+                            <span>分</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* モデル選択 */}
                   <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>

@@ -216,6 +216,20 @@ export interface CodeServer {
 }
 
 
+// プロンプトループ関連の型定義（backend と手動同期）
+export interface PromptLoopState {
+  judge: 'ai' | 'user' | 'none';
+  judgeEveryN: number;
+  intervalSec: number;
+  iteration: number;
+  startedAt: number;
+  startedAtCommit?: string;
+  nextSendAt?: number;
+  pendingJudge?: boolean;
+  awaitingUserApproval?: boolean;
+  lastJudgeReason?: string;
+}
+
 // プロンプトキュー関連の型定義
 export interface PromptQueueItem {
   id: string;
@@ -226,7 +240,9 @@ export interface PromptQueueItem {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   sendClearBefore?: boolean; // プロンプト送信前に/clearを実行するか
   isAutoCommit?: boolean; // 完了後に自動的に/commitを実行するか
+  isCodexReview?: boolean; // 完了後にCodexレビューを自動実行するか
   model?: string; // 使用するモデル（例: 'opus', 'sonnet', 'haiku'）
+  loop?: PromptLoopState;
 }
 
 export interface PromptQueueState {
@@ -650,6 +666,15 @@ export interface ServerToClientEvents {
     success: boolean;
   }) => void;
 
+  // プロンプトループ関連イベント
+  'prompt-loop-ended': (data: {
+    rid?: string;
+    provider: AiProvider;
+    itemId: string;
+    reason?: string;
+    endedBy: 'ai-judge' | 'user';
+  }) => void;
+
   // ファイル関連イベント
   'files-list': (data: { rid: string; files: UploadedFileInfo[] }) => void;
   'file-uploaded': (data: {
@@ -919,7 +944,13 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isCodexReview?: boolean;
     model?: string;
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    };
   }) => void;
   'remove-from-prompt-queue': (data: {
     rid: string; // リポジトリID（必須）
@@ -933,7 +964,13 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isCodexReview?: boolean;
     model?: string;
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+    } | null;
   }) => void;
   'get-prompt-queue': (data: {
     rid: string; // リポジトリID（必須）
@@ -973,6 +1010,19 @@ export interface ClientToServerEvents {
   'cancel-current-queue-item': (data: {
     rid: string; // リポジトリID（必須）
     provider: AiProvider;
+  }) => void;
+
+  // プロンプトループ関連イベント
+  'stop-prompt-loop': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+  }) => void;
+  'approve-loop-continuation': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+    approved: boolean;
   }) => void;
 
   // ファイル関連イベント

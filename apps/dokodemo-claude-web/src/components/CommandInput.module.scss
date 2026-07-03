@@ -839,3 +839,67 @@
   height: 0.875rem;
   margin-right: 0.25rem;
 }
+
+/* プロンプトループ設定ポップオーバー */
+.loopPopoverRow {
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.loopToggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  cursor: pointer;
+}
+
+.loopFieldLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.loopFieldControl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+.loopRadioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.loopRadioLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  cursor: pointer;
+
+  input:disabled + span {
+    color: $dark-text-muted;
+    cursor: default;
+  }
+}
+
+.loopNumberInput {
+  width: 4rem;
+  padding: 0.125rem 0.375rem;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}

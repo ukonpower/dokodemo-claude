@@ -146,6 +146,16 @@ export class QueueError extends AppError {
       cause
     );
   }
+
+  static loopAlreadyExists(repositoryPath: string): QueueError {
+    return new QueueError(
+      `既にループアイテムが登録されています（1キューにつき1つまで）: ${repositoryPath}`
+    );
+  }
+
+  static loopBusy(reason: string): QueueError {
+    return new QueueError(`ループ操作を実行できません: ${reason}`);
+  }
 }
 
 /**
