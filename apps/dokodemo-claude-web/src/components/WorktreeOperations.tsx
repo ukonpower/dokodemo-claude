@@ -29,7 +29,7 @@ function DevServerList({ ports }: { ports: DetectedPortInfo[] }) {
     <div className={s.devServers}>
       <span className={s.sectionLabel}>ports</span>
       {ports.map((p) => {
-        const url = `http://${hostname}:${p.port}`;
+        const url = `${window.location.protocol}//${hostname}:${p.port}`;
         return (
           <a
             key={`${p.terminalId}-${p.port}`}
