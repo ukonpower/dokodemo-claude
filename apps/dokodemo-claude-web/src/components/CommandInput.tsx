@@ -1062,6 +1062,94 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     const providerInfo = getProviderInfo();
 
+    // インデント（モバイル）とアップロードのボタンは、送信セクションが
+    // 1カラム（簡易）か 2カラム（プライマリ＋キュー）かで配置先が変わるため、
+    // 共通の JSX として切り出して使い回す。
+    const indentButtons = (
+      <>
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => handleTabKey('outdent')}
+          disabled={isInputDisabled}
+          className={`${s.historyButton} ${s.mobileOnly}`}
+          title="アウトデント (Shift+Tab)"
+          aria-label="アウトデント"
+        >
+          <svg
+            className={s.historyIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 19l-7-7 7-7M20 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => handleTabKey('indent')}
+          disabled={isInputDisabled}
+          className={`${s.historyButton} ${s.mobileOnly}`}
+          title="インデント (Tab)"
+          aria-label="インデント"
+        >
+          <svg
+            className={s.historyIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 5l7 7-7 7M13 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </>
+    );
+
+    const uploadButton = onPasteFile ? (
+      <>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelected}
+          className={s.hiddenFileInput}
+        />
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          disabled={disabled || isUploadingFile}
+          className={s.historyButton}
+          title="ファイルをアップロード（末尾にパスを追加）"
+          aria-label="ファイルをアップロード"
+        >
+          <svg
+            className={s.historyIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+            />
+          </svg>
+        </button>
+      </>
+    ) : null;
+
     return (
       <div className={s.root}>
         {/* ワークフローコントロール */}
@@ -1296,97 +1384,22 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         </form>
 
-        {/* テキストエリア下のツールバー（インデント / ファイルアップロード） */}
-        <div className={s.inputToolbar}>
-          <div className={s.toolbarLeft}>
-            <button
-              type="button"
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={() => handleTabKey('outdent')}
-              disabled={isInputDisabled}
-              className={`${s.historyButton} ${s.mobileOnly}`}
-              title="アウトデント (Shift+Tab)"
-              aria-label="アウトデント"
-            >
-              <svg
-                className={s.historyIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 19l-7-7 7-7M20 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={() => handleTabKey('indent')}
-              disabled={isInputDisabled}
-              className={`${s.historyButton} ${s.mobileOnly}`}
-              title="インデント (Tab)"
-              aria-label="インデント"
-            >
-              <svg
-                className={s.historyIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 5l7 7-7 7M13 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+        {/* テキストエリア下のツールバー（簡易送信時のみ。プライマリ＋キューでは
+            下の 2 カラム composer に統合し、アップロードを右カラム上部へ移す） */}
+        {!(onAddToQueue && isPrimary) && (
+          <div className={s.inputToolbar}>
+            <div className={s.toolbarLeft}>{indentButtons}</div>
+            <div className={s.toolbarRight}>{uploadButton}</div>
           </div>
-          <div className={s.toolbarRight}>
-            {onPasteFile && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelected}
-                  className={s.hiddenFileInput}
-                />
-                <button
-                  type="button"
-                  onClick={handleUploadClick}
-                  disabled={disabled || isUploadingFile}
-                  className={s.historyButton}
-                  title="ファイルをアップロード（末尾にパスを追加）"
-                  aria-label="ファイルをアップロード"
-                >
-                  <svg
-                    className={s.historyIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* 送信セクション（プライマリのみキューUIあり） */}
         {onAddToQueue && isPrimary && (
           <div className={s.sendSection}>
-            <div className={s.sendOptionsBar}>
+            {/* 左カラム: インデント（モバイル）＋オプショングリッド */}
+            <div className={s.composerMain}>
+              <div className={s.toolbarLeft}>{indentButtons}</div>
+              <div className={s.sendOptionsBar}>
               {/* 送信モード切替（即送信 / キュー）セグメント */}
               <div
                 className={s.modeSegment}
@@ -1426,12 +1439,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 </button>
               </div>
 
-              {/* キューオプション（キューON時のみ表示） */}
+              {/* キューオプション（キューON時のみ表示。モード固定サイズの下段に折り返す） */}
               {addToQueue && (
-                <>
-                  <div className={s.optionDivider} />
-
+                <div className={s.optionGrid}>
                   {/* モデル選択（頻繁に使うため先頭に配置） */}
+                  <div className={s.optGroup}>
                   <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
                     <button
                       ref={modelButtonRef}
@@ -1444,7 +1456,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       title="モデル選択"
                     >
                       <span className={s.optLabel}>モデル</span>
-                      {resolveModelLabel(model, modelOptions)}
+                      <span className={s.optValue}>
+                        {resolveModelLabel(model, modelOptions)}
+                      </span>
                       <svg
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
                         fill="none"
@@ -1587,12 +1601,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       </div>
                     )}
                   </div>
+                  </div>
 
-                  <div className={s.optionDivider} />
-
-                  {/* 送信前後の修飾（前:/clear ・ 後:/commit） */}
-                  <div className={s.optionCluster}>
-                    {/* /clear（送信前） */}
+                  {/* /clear（送信前） */}
+                  <div className={s.optGroup}>
                     <button
                       type="button"
                       onClick={() =>
@@ -1604,8 +1616,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     >
                       <span className={s.optLabel}>前</span>/clear
                     </button>
+                  </div>
 
-                    {/* /commit（完了後） */}
+                  {/* /commit（完了後） */}
+                  <div className={s.optGroup}>
                     <button
                       type="button"
                       onClick={() =>
@@ -1619,9 +1633,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     </button>
                   </div>
 
-                  <div className={s.optionDivider} />
-
-                  {/* ループ（タップで下のアコーディオンを開閉） */}
+                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に） */}
+                  <div className={`${s.optGroup} ${s.optGroupWide}`}>
                   <button
                     type="button"
                     onClick={() => setIsLoopExpanded(!isLoopExpanded)}
@@ -1649,12 +1662,15 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       />
                     </svg>
                   </button>
-                </>
+                  </div>
+                </div>
               )}
+              </div>
             </div>
 
-            {/* 送信ボタン（入力の下・右端の固定位置） */}
-            <div className={s.sendActionRow}>
+            {/* 右カラム: アップロード（上）＋送信（下・縦に伸びる固定位置） */}
+            <div className={s.composerAside}>
+              <div className={s.toolbarRight}>{uploadButton}</div>
               <button
                 type="button"
                 onClick={sendCommand}
