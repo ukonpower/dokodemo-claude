@@ -157,6 +157,8 @@ export interface DetectedPortInfo {
   port: number;
   pid: number;
   command: string;
+  // 実際に待ち受けているプロトコル（TLS ハンドシェイクの成否で判定）
+  protocol: 'http' | 'https';
 }
 
 // エディタ関連の型定義
