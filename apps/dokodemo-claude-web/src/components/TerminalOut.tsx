@@ -672,6 +672,22 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     return result;
   }, []);
 
+  // タッチの起点がスクロールUI（xterm のスクロールバー/トラック、または右端の
+  // カスタムスクロールハンドル）かどうかを判定する。スクロールUI上の長押しは
+  // スクロール位置の保持や慣性スクロールの停止が目的のため、コピペモード
+  // （テキスト選択オーバーレイ）の起動対象から除外する。
+  const isScrollUiTarget = useCallback(
+    (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false;
+      // xterm のスクロールバー領域（.xterm-scroll-area も viewport 配下）
+      if (target.closest('.xterm-viewport')) return true;
+      // 右端のカスタムスクロールハンドル
+      if (target.closest(`.${s.scrollHandle}`)) return true;
+      return false;
+    },
+    []
+  );
+
   // 長押しタイマーをキャンセル
   const cancelLongPress = useCallback(() => {
     if (longPressTimer.current) {
@@ -731,8 +747,8 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       } else if (e.touches.length === 1) {
         isTwoFingerScroll.current = false;
 
-        // iOS: 長押し検出開始
-        if (isIOS) {
+        // iOS: 長押し検出開始（スクロールUI起点の長押しはコピペモードを起動しない）
+        if (isIOS && !isScrollUiTarget(e.target)) {
           longPressTouchPos.current = {
             x: e.touches[0].clientX,
             y: e.touches[0].clientY,
@@ -746,7 +762,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         }
       }
     },
-    [isIOS, cancelLongPress, getVisibleText]
+    [isIOS, cancelLongPress, getVisibleText, isScrollUiTarget]
   );
 
   // 二本指スクロールの移動を処理 & 長押しキャンセル

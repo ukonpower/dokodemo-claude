@@ -134,6 +134,24 @@ function ProjectSwitcherModal({
     onClose();
   };
 
+  // 選択したプロジェクトを別タブ（新規タブ）で開く。
+  // 現在のタブは今のプロジェクトのまま維持する。
+  // URL はオリジンを含む現在の href を基点に `?repo=<path>` を組み立てる
+  // （ポートはハードコードしない）。他リポジトリ固有のビュー状態はクリアする。
+  const openInNewTab = (path: string) => {
+    const url = new URL(window.location.href);
+    if (path) {
+      url.searchParams.set('repo', path);
+    } else {
+      url.searchParams.delete('repo');
+    }
+    url.searchParams.delete('view');
+    url.searchParams.delete('file');
+    url.searchParams.delete('fullscreen');
+    window.open(url.toString(), '_blank', 'noopener');
+    onClose();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -146,7 +164,15 @@ function ProjectSwitcherModal({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const target = filtered[selectedIndex];
-      if (target) submit(target.repo.path);
+      if (target) {
+        // Cmd/Ctrl + Enter で別タブ（VSCode の「横で開く」やブラウザの
+        // Cmd/Ctrl+クリック新規タブと同じ修飾キーに合わせる）
+        if (e.metaKey || e.ctrlKey) {
+          openInNewTab(target.repo.path);
+        } else {
+          submit(target.repo.path);
+        }
+      }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -172,7 +198,7 @@ function ProjectSwitcherModal({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <span className={s.hint}>↑↓ 選択 / Enter 切替 / Esc 閉じる</span>
+          <span className={s.hint}>↑↓ 選択 / Enter 切替 / ⌘/Ctrl+Enter 別タブ / Esc 閉じる</span>
         </div>
         <ul ref={listRef} className={s.list}>
           {filtered.length === 0 && (
@@ -192,7 +218,14 @@ function ProjectSwitcherModal({
                 data-index={i}
                 className={classes.join(' ')}
                 onMouseEnter={() => setSelectedIndex(i)}
-                onClick={() => submit(repo.path)}
+                onClick={(e) => {
+                  // Cmd/Ctrl + クリックで別タブ表示（ブラウザの新規タブ操作と同じ）
+                  if (e.metaKey || e.ctrlKey) {
+                    openInNewTab(repo.path);
+                  } else {
+                    submit(repo.path);
+                  }
+                }}
                 title={repo.path}
               >
                 <span className={s.itemName}>{renderHighlighted(display, matches)}</span>

@@ -6,10 +6,17 @@ import React, {
   forwardRef,
   useCallback,
 } from 'react';
+import { Repeat } from 'lucide-react';
 import type { AiProvider } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
 import { resolveModelLabel } from '../utils/models';
+import LoopSettingsFields from './LoopSettingsFields';
+import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './CommandInput.module.scss';
+
+/** fixed 配置のドロップダウンが画面外にはみ出さないよう left を収める */
+const clampDropdownLeft = (left: number, width: number) =>
+  Math.max(8, Math.min(left, window.innerWidth - width - 8));
 
 // --- インデント / リスト継続ヘルパー ---
 const INDENT = '  '; // 2 スペース
@@ -86,7 +93,13 @@ interface TextInputProps {
     command: string,
     sendClearBefore: boolean,
     sendCommitAfter: boolean,
-    model?: string
+    model?: string,
+    loop?: {
+      judge: 'ai' | 'user' | 'none';
+      judgeEveryN: number;
+      intervalSec: number;
+      judgeCriteria?: string;
+    }
   ) => void;
   /** 現在のプロバイダー */
   currentProvider?: AiProvider;
@@ -110,6 +123,11 @@ interface TextInputProps {
     autoTarget?: 'plan' | 'implement';
     autoReview?: boolean;
     autoClear?: boolean;
+    loopEnabled?: boolean;
+    loopJudge?: 'ai' | 'user' | 'none';
+    loopJudgeEveryN?: number;
+    loopIntervalMin?: number;
+    loopJudgeCriteria?: string;
   };
   /** 送信設定の更新ハンドラ */
   onSendSettingsChange?: (settings: {
@@ -121,6 +139,11 @@ interface TextInputProps {
     autoTarget?: 'plan' | 'implement';
     autoReview?: boolean;
     autoClear?: boolean;
+    loopEnabled?: boolean;
+    loopJudge?: 'ai' | 'user' | 'none';
+    loopJudgeEveryN?: number;
+    loopIntervalMin?: number;
+    loopJudgeCriteria?: string;
   }) => void;
   /** クリップボードから画像をペーストした時のハンドラ（オプション）。成功時にパスを返す */
   onPasteFile?: (file: File) => Promise<string | undefined>;
@@ -274,6 +297,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const sendCommitAfter = sendSettings?.sendCommit ?? false;
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
+
+    // ループ設定（キュー ON 時のみ有効）
+    const loopEnabled = addToQueue && (sendSettings?.loopEnabled ?? false);
+    const loopJudge = sendSettings?.loopJudge ?? 'none';
+    const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
+    const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
+    const loopJudgeCriteria = sendSettings?.loopJudgeCriteria ?? '';
     // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
@@ -284,6 +314,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+    // ループ設定アコーディオンの開閉状態
+    const [isLoopExpanded, setIsLoopExpanded] = useState(false);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -297,13 +329,39 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // チェックボックスの状態変更ハンドラ
     const handleSettingChange = (
-      key: 'addToQueue' | 'sendClear' | 'sendCommit' | 'model' | 'workflowSkill' | 'autoTarget' | 'autoReview' | 'autoClear',
-      value: boolean | string
+      key:
+        | 'addToQueue'
+        | 'sendClear'
+        | 'sendCommit'
+        | 'model'
+        | 'workflowSkill'
+        | 'autoTarget'
+        | 'autoReview'
+        | 'autoClear'
+        | 'loopEnabled'
+        | 'loopJudge'
+        | 'loopJudgeEveryN'
+        | 'loopIntervalMin'
+        | 'loopJudgeCriteria',
+      value: boolean | string | number
     ) => {
       if (onSendSettingsChange && sendSettings) {
         onSendSettingsChange({
           ...sendSettings,
           [key]: value,
+        });
+      }
+    };
+
+    // ループ設定フィールドの変更を送信設定のキーへ展開して反映
+    const handleLoopSettingsChange = (next: LoopSettingsValue) => {
+      if (onSendSettingsChange && sendSettings) {
+        onSendSettingsChange({
+          ...sendSettings,
+          loopJudge: next.judge,
+          loopJudgeEveryN: next.judgeEveryN,
+          loopIntervalMin: Math.round(next.intervalSec / 60),
+          loopJudgeCriteria: next.judgeCriteria,
         });
       }
     };
@@ -327,7 +385,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           const rect = modelButtonRef.current.getBoundingClientRect();
           setDropdownPosition({
             top: rect.top - 4, // ボタンの上に表示（余白4px）
-            left: rect.left,
+            left: clampDropdownLeft(rect.left, 192), // 12rem
           });
         }
       };
@@ -468,11 +526,20 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
         // キュー追加モードの場合
         if (addToQueue && onAddToQueue) {
+          const loopArg = loopEnabled
+            ? {
+                judge: loopJudge,
+                judgeEveryN: loopJudgeEveryN,
+                intervalSec: loopIntervalMin * 60,
+                judgeCriteria: loopJudgeCriteria.trim() || undefined,
+              }
+            : undefined;
           onAddToQueue(
             finalCommand,
             sendClearBefore,
             sendCommitAfter,
-            model || undefined
+            model || undefined,
+            loopArg
           );
         } else {
           // 通常のコマンド送信
@@ -995,6 +1062,94 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     const providerInfo = getProviderInfo();
 
+    // インデント（モバイル）とアップロードのボタンは、送信セクションが
+    // 1カラム（簡易）か 2カラム（プライマリ＋キュー）かで配置先が変わるため、
+    // 共通の JSX として切り出して使い回す。
+    const indentButtons = (
+      <>
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => handleTabKey('outdent')}
+          disabled={isInputDisabled}
+          className={`${s.historyButton} ${s.mobileOnly}`}
+          title="アウトデント (Shift+Tab)"
+          aria-label="アウトデント"
+        >
+          <svg
+            className={s.historyIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 19l-7-7 7-7M20 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => handleTabKey('indent')}
+          disabled={isInputDisabled}
+          className={`${s.historyButton} ${s.mobileOnly}`}
+          title="インデント (Tab)"
+          aria-label="インデント"
+        >
+          <svg
+            className={s.historyIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 5l7 7-7 7M13 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </>
+    );
+
+    const uploadButton = onPasteFile ? (
+      <>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelected}
+          className={s.hiddenFileInput}
+        />
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          disabled={disabled || isUploadingFile}
+          className={s.uploadButton}
+          title="ファイルをアップロード（末尾にパスを追加）"
+          aria-label="ファイルをアップロード"
+        >
+          <svg
+            className={s.uploadIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+            />
+          </svg>
+        </button>
+      </>
+    ) : null;
+
     return (
       <div className={s.root}>
         {/* ワークフローコントロール */}
@@ -1206,11 +1361,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onClick={navigateHistoryUp}
               disabled={isInputDisabled || loadHistory().length === 0}
-              className={s.historyButton}
+              className={s.historyNavButton}
               title="前の履歴"
               aria-label="前の履歴"
             >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
@@ -1218,87 +1373,47 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onClick={navigateHistoryDown}
               disabled={isInputDisabled || historyIndex === -1}
-              className={s.historyButton}
+              className={s.historyNavButton}
               title="次の履歴"
               aria-label="次の履歴"
             >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
         </form>
 
-        {/* テキストエリア下のツールバー（インデント / ファイルアップロード） */}
-        <div className={s.inputToolbar}>
-          <div className={s.toolbarLeft}>
-            <button
-              type="button"
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={() => handleTabKey('outdent')}
-              disabled={isInputDisabled}
-              className={`${s.historyButton} ${s.mobileOnly}`}
-              title="アウトデント (Shift+Tab)"
-              aria-label="アウトデント"
-            >
-              <svg
-                className={s.historyIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 19l-7-7 7-7M20 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={() => handleTabKey('indent')}
-              disabled={isInputDisabled}
-              className={`${s.historyButton} ${s.mobileOnly}`}
-              title="インデント (Tab)"
-              aria-label="インデント"
-            >
-              <svg
-                className={s.historyIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 5l7 7-7 7M13 5l7 7-7 7"
-                />
-              </svg>
-            </button>
+        {/* テキストエリア下のツールバー（簡易送信時のみ。プライマリ＋キューでは
+            下の 2 カラム composer に統合し、アップロードを右カラム上部へ移す） */}
+        {!(onAddToQueue && isPrimary) && (
+          <div className={s.inputToolbar}>
+            <div className={s.toolbarLeft}>{indentButtons}</div>
+            <div className={s.toolbarRight}>{uploadButton}</div>
           </div>
-          <div className={s.toolbarRight}>
-            {onPasteFile && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelected}
-                  className={s.hiddenFileInput}
-                />
+        )}
+
+        {/* 送信セクション（プライマリのみキューUIあり） */}
+        {onAddToQueue && isPrimary && (
+          <div className={s.sendSection}>
+            {/* 上ライン: インデント（左）＋アップロード・送信（右寄せ） */}
+            <div className={s.sendTopRow}>
+              <div className={s.toolbarLeft}>{indentButtons}</div>
+              <div className={s.sendTopRowActions}>
+                <div className={s.toolbarRight}>{uploadButton}</div>
                 <button
                   type="button"
-                  onClick={handleUploadClick}
-                  disabled={disabled || isUploadingFile}
-                  className={s.historyButton}
-                  title="ファイルをアップロード（末尾にパスを追加）"
-                  aria-label="ファイルをアップロード"
+                  onClick={sendCommand}
+                  disabled={disabled}
+                  className={s.submitButton}
+                  title={
+                    addToQueue
+                      ? 'キューに追加 (Ctrl+Enter)'
+                      : '送信 (Ctrl+Enter)'
+                  }
                 >
                   <svg
-                    className={s.historyIcon}
+                    className={s.submitIcon}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1307,86 +1422,62 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                      d="M5 10l7-7m0 0l7 7m-7-7v18"
                     />
                   </svg>
+                  <span className={s.submitText}>
+                    {addToQueue ? '追加' : '送信'}
+                  </span>
                 </button>
-              </>
-            )}
-          </div>
-        </div>
+              </div>
+            </div>
 
-        {/* 送信セクション（プライマリのみキューUIあり） */}
-        {onAddToQueue && isPrimary && (
-          <div className={s.sendSection}>
+            {/* オプション: 送信モード切替＋修飾グリッド（全幅） */}
             <div className={s.sendOptionsBar}>
-              {/* キュートグル */}
-              <button
-                type="button"
-                onClick={() => handleSettingChange('addToQueue', !addToQueue)}
-                disabled={disabled}
-                className={`${s.queueToggle} ${addToQueue ? s.active : ''}`}
-                title={
-                  addToQueue
-                    ? 'キューに追加モード: ON'
-                    : 'キューに追加モード: OFF'
-                }
+              {/* 送信モード切替（即送信 / キュー）セグメント */}
+              <div
+                className={s.modeSegment}
+                role="group"
+                aria-label="送信モード"
               >
-                <svg
-                  className={s.queueIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <button
+                  type="button"
+                  onClick={() => handleSettingChange('addToQueue', false)}
+                  disabled={disabled}
+                  className={`${s.modeButton} ${!addToQueue ? s.active : ''}`}
+                  title="即送信: 入力をそのまま AI へ送る"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-                キュー
-                <div
-                  className={`${s.toggleTrack} ${addToQueue ? s.on : s.off}`}
+                  即送信
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSettingChange('addToQueue', true)}
+                  disabled={disabled}
+                  className={`${s.modeButton} ${addToQueue ? s.active : ''}`}
+                  title="キュー: 送信予約リストに追加（clear / commit / ループ等の設定が使える）"
                 >
-                  <div
-                    className={`${s.toggleThumb} ${addToQueue ? s.on : s.off}`}
-                  />
-                </div>
-              </button>
+                  <svg
+                    className={s.queueIcon}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                  キュー
+                </button>
+              </div>
 
-              {/* キューオプション（キューON時のみ表示） */}
+              {/* キューオプション（キューON時のみ表示。モード固定サイズの下段に折り返す） */}
               {addToQueue && (
-                <>
-                  <div className={s.optionDivider} />
-
-                  {/* /clear */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendClear', !sendClearBefore)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
-                    title="/clear: 送信前にコンテキストをクリア"
-                  >
-                    /clear
-                  </button>
-
-                  {/* /commit */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendCommit', !sendCommitAfter)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
-                    title="/commit: 完了後に自動コミット"
-                  >
-                    /commit
-                  </button>
-
-                  {/* モデル選択 */}
+                <div className={s.optionGrid}>
+                  {/* モデル選択（頻繁に使うため先頭に配置） */}
+                  <div className={s.optGroup}>
                   <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
                     <button
                       ref={modelButtonRef}
@@ -1398,7 +1489,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       className={`${s.modelButton} ${model ? s.active : ''}`}
                       title="モデル選択"
                     >
-                      {resolveModelLabel(model, modelOptions)}
+                      <span className={s.optLabel}>モデル</span>
+                      <span className={s.optValue}>
+                        {resolveModelLabel(model, modelOptions)}
+                      </span>
                       <svg
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
                         fill="none"
@@ -1541,38 +1635,108 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       </div>
                     )}
                   </div>
-                </>
-              )}
-            </div>
+                  </div>
 
-            {/* 送信ボタン */}
+                  {/* /clear（送信前） */}
+                  <div className={s.optGroup}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSettingChange('sendClear', !sendClearBefore)
+                      }
+                      disabled={disabled}
+                      className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
+                      title="/clear: 送信前にコンテキストをクリア"
+                    >
+                      <span className={s.optLabel}>前</span>/clear
+                    </button>
+                  </div>
+
+                  {/* /commit（完了後） */}
+                  <div className={s.optGroup}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSettingChange('sendCommit', !sendCommitAfter)
+                      }
+                      disabled={disabled}
+                      className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
+                      title="/commit: 完了後に自動コミット"
+                    >
+                      <span className={s.optLabel}>後</span>/commit
+                    </button>
+                  </div>
+
+                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に） */}
+                  <div className={`${s.optGroup} ${s.optGroupWide}`}>
+                  <button
+                    type="button"
+                    onClick={() => setIsLoopExpanded(!isLoopExpanded)}
+                    disabled={disabled}
+                    className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
+                    title="ループ: 完了後に同じプロンプトを繰り返し送信"
+                  >
+                    <Repeat size={12} />
+                    {loopEnabled
+                      ? loopJudge === 'none'
+                        ? '無限'
+                        : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
+                      : 'ループ'}
+                    <svg
+                      className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+                  </div>
+                </div>
+              )}
+              </div>
+          </div>
+        )}
+
+        {/* ループ設定アコーディオン（送信バーの直下に展開） */}
+        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
+          <div className={s.loopAccordion}>
             <button
               type="button"
-              onClick={sendCommand}
-              disabled={disabled}
-              className={s.submitButton}
-              title={
-                addToQueue ? 'キューに追加 (Ctrl+Enter)' : '送信 (Ctrl+Enter)'
-              }
+              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
+              className={s.loopToggleRow}
             >
-              {/* 常に矢印アイコンを表示 */}
-              <svg
-                className={s.submitIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 10l7-7m0 0l7 7m-7-7v18"
-                />
-              </svg>
-              <span className={s.submitText}>
-                {addToQueue ? '追加' : '送信'}
+              <span className={s.loopToggleText}>
+                <Repeat size={13} />
+                ループ送信
               </span>
+              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
+                <div
+                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
+                />
+              </div>
             </button>
+            <div className={s.loopAccordionHint}>
+              完了後に同じプロンプトを繰り返し送信します
+            </div>
+
+            <div className={s.loopAccordionBody}>
+              <LoopSettingsFields
+                value={{
+                  judge: loopJudge,
+                  judgeEveryN: loopJudgeEveryN,
+                  intervalSec: loopIntervalMin * 60,
+                  judgeCriteria: loopJudgeCriteria,
+                }}
+                disabled={!loopEnabled}
+                onChange={handleLoopSettingsChange}
+              />
+            </div>
           </div>
         )}
 

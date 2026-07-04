@@ -444,47 +444,133 @@
   height: 0.75rem;
 }
 
-.sendSection {
+// 添付ファイル／履歴ナビボタン: 押しやすい大きめのタップ領域で統一する
+.uploadButton,
+.historyNavButton {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.sendOptionsBar {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: $radius-md;
-  padding: 0.25rem;
-  overflow-x: auto;
+  color: $dark-text-muted;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
 
-  @include lg-up {
-    flex: initial;
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
   }
 }
 
-.queueToggle {
+.uploadIcon,
+.historyNavIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.sendSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+// 上ライン: インデント（左）＋アップロード・送信（右寄せ）
+.sendTopRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+}
+
+// 上ライン右側: アップロード＋送信をまとめて右に寄せる
+.sendTopRowActions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.sendOptionsBar {
+  min-width: 0;
+  // モード切替（固定サイズ）を上、修飾グループ（モデル/clear/commit/ループ）を
+  // 下段のグリッドに折り返す縦積み構成。
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.375rem;
+}
+
+// 修飾グループの下段グリッド。
+// 上段: モデル | /clear | /commit（3 等幅セル）、下段: ループ（全幅）
+.optionGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+
+// 全幅セル（ループ）。グリッドの全カラムをまたぐ
+.optGroupWide {
+  grid-column: 1 / -1;
+}
+
+// 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
+// これにより折り返してもグループ単位で整い、宙ぶらりんな区切り線が出ない。
+.modeSegment,
+.optGroup {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.125rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  padding: 0.125rem;
+}
+
+.modeButton {
+  // 即送信 / キューは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
+  flex: 0 0 auto;
+  min-width: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
   border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
   background: none;
   border: none;
   cursor: pointer;
-  flex-shrink: 0;
-  white-space: nowrap;
+
+  @include sm-down {
+    min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+  }
 
   &.active {
     background-color: $dark-bg-hover;
     color: $dark-text-primary;
+    box-shadow: $shadow-sm;
   }
 
   &:not(.active) {
@@ -494,6 +580,27 @@
       color: $dark-text-primary;
     }
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ボタン内の説明ラベル（前 / 後 / モデル）
+.optLabel {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+// モデル名など可変長の値。チップ幅を超えたら省略記号で丸める
+.optValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .queueIcon {
@@ -545,8 +652,12 @@
 }
 
 .optionButton {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   padding: 0.25rem 0.5rem;
   border-radius: $radius;
   font-size: $font-size-xs;
@@ -555,8 +666,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  flex-shrink: 0;
   white-space: nowrap;
+  touch-action: manipulation;
+
+  @include sm-down {
+    min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+  }
 
   &.active {
     background-color: $accent-blue;
@@ -574,12 +691,16 @@
 
 .modelDropdownWrapper {
   position: relative;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .modelButton {
+  width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
   border-radius: $radius;
@@ -590,6 +711,13 @@
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  touch-action: manipulation;
+
+  @include sm-down {
+    min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+  }
 
   &.active {
     background-color: $dark-bg-hover;
@@ -606,6 +734,7 @@
 }
 
 .modelDropdownIcon {
+  flex-shrink: 0;
   width: 0.75rem;
   height: 0.75rem;
   transition: transform $transition-fast $transition-easing;
@@ -779,14 +908,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 1.75rem;
-  padding: 0 0.75rem;
+  min-height: 2.25rem;
+  padding: 0 1rem;
   background-color: $accent-blue;
   border: 1px solid $accent-blue;
-  border-radius: $radius;
-  font-size: $font-size-xs;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   color: white;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
@@ -838,4 +967,65 @@
   width: 0.875rem;
   height: 0.875rem;
   margin-right: 0.25rem;
+}
+
+/* プロンプトループ設定アコーディオン（送信バー直下にインライン展開） */
+.loopAccordion {
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  overflow: hidden;
+  transform-origin: top;
+  // 開いた瞬間に上からスライドして展開するアニメーション
+  animation: loopAccordionOpen $transition-normal $transition-easing;
+
+  // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
+  @include lg-up {
+    max-width: 22rem;
+  }
+}
+
+@keyframes loopAccordionOpen {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 360px;
+  }
+}
+
+.loopToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 0.75rem 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.loopToggleText {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $dark-text-primary;
+}
+
+.loopAccordionHint {
+  padding: 0 0.75rem 0.5rem;
+  font-size: 10px;
+  color: $dark-text-muted;
+}
+
+.loopAccordionBody {
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid $dark-border-light;
 }

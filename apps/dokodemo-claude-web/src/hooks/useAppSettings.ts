@@ -17,6 +17,12 @@ export interface CommandSendSettings {
   autoTarget?: 'plan' | 'implement';
   autoReview?: boolean;
   autoClear?: boolean;
+  // プロンプトループ設定（キュー ON 時のみ有効）
+  loopEnabled?: boolean;
+  loopJudge?: 'ai' | 'user' | 'none';
+  loopJudgeEveryN?: number;
+  loopIntervalMin?: number; // 分単位（0 = 即時）
+  loopJudgeCriteria?: string; // AI 判断時の判定基準（終了条件）
 }
 
 /**

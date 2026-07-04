@@ -45,7 +45,7 @@ const ACTIVE_COLOR = '#e5e7eb';
 const TABS: TabDef[] = [
   {
     id: 'files',
-    label: '送信',
+    label: '添付',
     activeColor: ACTIVE_COLOR,
     icon: <Send size={ICON_SIZE} />,
   },

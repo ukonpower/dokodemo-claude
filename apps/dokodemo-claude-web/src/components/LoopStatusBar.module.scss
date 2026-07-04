@@ -1,0 +1,146 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  margin-bottom: 6px;
+  background-color: $dark-bg-secondary;
+  color: $dark-text-primary;
+}
+
+.warning {
+  background-color: #402410;
+  border-color: #8b5a2b;
+  color: #fed7aa;
+}
+
+.info {
+  background-color: #172032;
+  border-color: #1e3a5f;
+  color: #93c5fd;
+}
+
+.normal {
+  background-color: $dark-bg-secondary;
+}
+
+.mainRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.leftGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.text {
+  font-size: $font-size-xs;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  // モバイルでは折り返して全幅に広げ、タップしやすくする
+  @include sm-down {
+    width: 100%;
+  }
+}
+
+.actionButton,
+.continueButton,
+.endButton,
+.stopButton {
+  font-size: $font-size-xs;
+  padding: 4px 12px;
+  min-height: 28px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  @include sm-down {
+    flex: 1;
+    min-height: 38px;
+  }
+}
+
+.continueButton {
+  background-color: $accent-blue;
+  border-color: $accent-blue;
+  color: white;
+
+  &:hover {
+    background-color: $accent-blue-hover;
+  }
+}
+
+.endButton,
+.stopButton {
+  color: #f87171;
+  border-color: #7f1d1d;
+
+  &:hover {
+    background-color: #2a1215;
+  }
+}
+
+// AI 判断理由。タップ / クリックで全文表示に切り替える
+.reason {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.reasonExpanded {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
