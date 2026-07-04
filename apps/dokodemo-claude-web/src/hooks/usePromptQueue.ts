@@ -12,6 +12,7 @@ export interface LoopSettings {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
   intervalSec: number;
+  judgeCriteria?: string;
 }
 
 /**

@@ -220,6 +220,7 @@ export interface CodeServer {
 export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
+  judgeCriteria?: string;
   intervalSec: number;
   iteration: number;
   startedAt: number;
@@ -950,6 +951,7 @@ export interface ClientToServerEvents {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     };
   }) => void;
   'remove-from-prompt-queue': (data: {
@@ -970,6 +972,7 @@ export interface ClientToServerEvents {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     } | null;
   }) => void;
   'get-prompt-queue': (data: {

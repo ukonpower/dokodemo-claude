@@ -190,6 +190,7 @@ export class PromptQueueManager extends EventEmitter {
         judge: 'ai' | 'user' | 'none';
         judgeEveryN: number;
         intervalSec: number;
+        judgeCriteria?: string;
       };
     }
   ): Promise<Result<PromptQueueItem, QueueError>> {
@@ -211,6 +212,7 @@ export class PromptQueueManager extends EventEmitter {
           judge: options.loop.judge,
           judgeEveryN: Math.max(1, Math.floor(options.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(options.loop.intervalSec)),
+          judgeCriteria: options.loop.judgeCriteria?.trim() || undefined,
           iteration: 1,
           startedAt: now,
           startedAtCommit: this.getHeadCommit(repositoryPath),
@@ -313,11 +315,12 @@ export class PromptQueueManager extends EventEmitter {
       isAutoCommit?: boolean;
       isCodexReview?: boolean;
       model?: string;
-      // null: ループ解除 / 値あり: 設定 3 項目を差し替え（iteration 等の状態は維持）
+      // null: ループ解除 / 値あり: 設定項目を差し替え（iteration 等の状態は維持）
       loop?: {
         judge: 'ai' | 'user' | 'none';
         judgeEveryN: number;
         intervalSec: number;
+        judgeCriteria?: string;
       } | null;
     }
   ): Promise<Result<boolean, QueueError>> {
@@ -356,7 +359,7 @@ export class PromptQueueManager extends EventEmitter {
         this.clearLoopTimer(repositoryPath, provider);
         this.abortLoopJudge(repositoryPath, provider);
       } else if (item.loop) {
-        // 既存ループの設定 3 項目のみ差し替え
+        // 既存ループの設定項目のみ差し替え
         item.loop.judge = updates.loop.judge;
         item.loop.judgeEveryN = Math.max(
           1,
@@ -366,6 +369,7 @@ export class PromptQueueManager extends EventEmitter {
           0,
           Math.floor(updates.loop.intervalSec)
         );
+        item.loop.judgeCriteria = updates.loop.judgeCriteria?.trim() || undefined;
       } else {
         // 新規ループ化。1 キュー 1 ループ制限をチェック
         const hasLoop = state.queue.some((i) => i.loop);
@@ -376,6 +380,7 @@ export class PromptQueueManager extends EventEmitter {
           judge: updates.loop.judge,
           judgeEveryN: Math.max(1, Math.floor(updates.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(updates.loop.intervalSec)),
+          judgeCriteria: updates.loop.judgeCriteria?.trim() || undefined,
           iteration: 1,
           startedAt: Date.now(),
           startedAtCommit: this.getHeadCommit(repositoryPath),
@@ -1430,6 +1435,7 @@ export class PromptQueueManager extends EventEmitter {
           {
             cwd: repositoryPath,
             loopPrompt: item.prompt,
+            judgeCriteria: item.loop!.judgeCriteria,
             iteration: item.loop!.iteration - 1,
             startedAtCommit: item.loop!.startedAtCommit,
             outputTail,

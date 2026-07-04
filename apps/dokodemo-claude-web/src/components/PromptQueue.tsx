@@ -101,6 +101,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
             judge: item.loop.judge,
             judgeEveryN: item.loop.judgeEveryN,
             intervalSec: item.loop.intervalSec,
+            judgeCriteria: item.loop.judgeCriteria ?? '',
           }
         : null
     );

@@ -332,6 +332,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                             judge: 'none',
                             judgeEveryN: 1,
                             intervalSec: 0,
+                            judgeCriteria: '',
                           })
                         }
                         className={s.loopEnableButton}

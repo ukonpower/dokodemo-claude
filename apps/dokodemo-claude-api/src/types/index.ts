@@ -846,6 +846,7 @@ export interface ClientToServerEvents {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     };
   }) => void;
   'remove-from-prompt-queue': (data: {
@@ -867,6 +868,7 @@ export interface ClientToServerEvents {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     } | null;
   }) => void;
   'get-prompt-queue': (data: {
@@ -1004,6 +1006,7 @@ export interface CodeServer {
 export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number; // 何周ごとに判断（judge !== 'none' のとき有効、1以上）
+  judgeCriteria?: string; // AI 判断時のユーザー指定判定基準（終了条件）
   intervalSec: number; // 再送待機秒数（0 = 即時）
   iteration: number; // 現在の周回番号（1始まり、サーバ側で加算）
   startedAt: number;

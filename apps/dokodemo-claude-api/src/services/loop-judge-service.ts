@@ -21,6 +21,7 @@ export interface LoopJudgeVerdict {
 export interface LoopJudgeInput {
   cwd: string;
   loopPrompt: string;
+  judgeCriteria?: string; // ユーザー指定の判定基準（終了条件）
   iteration: number;
   startedAtCommit?: string;
   outputTail: string;
@@ -47,6 +48,15 @@ function buildJudgePrompt(input: LoopJudgeInput): string {
     '## ループプロンプト（目標）',
     input.loopPrompt,
     '',
+    ...(input.judgeCriteria
+      ? [
+          '## ユーザー指定の判定基準（終了条件）',
+          input.judgeCriteria,
+          '',
+          'この判定基準を最優先で適用してください。満たされていれば continue: false としてください。',
+          '',
+        ]
+      : []),
     `## 完了周回数: ${input.iteration}`,
     diffHint,
     '',

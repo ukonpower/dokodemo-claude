@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import s from './LoopSettingsFields.module.scss';
 
-// ループ設定の値（判断方式・判断間隔・再送待機秒数）
+// ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準）
 export interface LoopSettingsValue {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
   intervalSec: number;
+  judgeCriteria: string;
 }
 
 // 判断方式の選択肢とキャプション
@@ -144,6 +145,21 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             suffix="周ごと"
             disabled={disabled}
             onChange={(n) => onChange({ ...value, judgeEveryN: n })}
+          />
+        </div>
+      )}
+
+      {/* AI 判断の判定基準（任意） */}
+      {value.judge === 'ai' && (
+        <div className={s.field}>
+          <div className={s.fieldLabel}>判定基準（任意）</div>
+          <textarea
+            value={value.judgeCriteria}
+            onChange={(e) => onChange({ ...value, judgeCriteria: e.target.value })}
+            disabled={disabled}
+            placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
+            rows={2}
+            className={s.criteriaTextarea}
           />
         </div>
       )}

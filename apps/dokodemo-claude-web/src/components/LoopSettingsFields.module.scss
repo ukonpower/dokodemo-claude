@@ -122,3 +122,26 @@
   color: $dark-text-muted;
   white-space: nowrap;
 }
+
+// AI 判断の判定基準テキストエリア
+.criteriaTextarea {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $dark-text-primary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  resize: vertical;
+
+  &::placeholder {
+    color: $dark-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+  }
+}

@@ -98,6 +98,7 @@ interface TextInputProps {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     }
   ) => void;
   /** 現在のプロバイダー */
@@ -126,6 +127,7 @@ interface TextInputProps {
     loopJudge?: 'ai' | 'user' | 'none';
     loopJudgeEveryN?: number;
     loopIntervalMin?: number;
+    loopJudgeCriteria?: string;
   };
   /** 送信設定の更新ハンドラ */
   onSendSettingsChange?: (settings: {
@@ -141,6 +143,7 @@ interface TextInputProps {
     loopJudge?: 'ai' | 'user' | 'none';
     loopJudgeEveryN?: number;
     loopIntervalMin?: number;
+    loopJudgeCriteria?: string;
   }) => void;
   /** クリップボードから画像をペーストした時のハンドラ（オプション）。成功時にパスを返す */
   onPasteFile?: (file: File) => Promise<string | undefined>;
@@ -300,6 +303,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const loopJudge = sendSettings?.loopJudge ?? 'none';
     const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
     const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
+    const loopJudgeCriteria = sendSettings?.loopJudgeCriteria ?? '';
     // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
@@ -337,7 +341,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         | 'loopEnabled'
         | 'loopJudge'
         | 'loopJudgeEveryN'
-        | 'loopIntervalMin',
+        | 'loopIntervalMin'
+        | 'loopJudgeCriteria',
       value: boolean | string | number
     ) => {
       if (onSendSettingsChange && sendSettings) {
@@ -356,6 +361,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           loopJudge: next.judge,
           loopJudgeEveryN: next.judgeEveryN,
           loopIntervalMin: Math.round(next.intervalSec / 60),
+          loopJudgeCriteria: next.judgeCriteria,
         });
       }
     };
@@ -525,6 +531,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 judge: loopJudge,
                 judgeEveryN: loopJudgeEveryN,
                 intervalSec: loopIntervalMin * 60,
+                judgeCriteria: loopJudgeCriteria.trim() || undefined,
               }
             : undefined;
           onAddToQueue(
@@ -1686,6 +1693,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   judge: loopJudge,
                   judgeEveryN: loopJudgeEveryN,
                   intervalSec: loopIntervalMin * 60,
+                  judgeCriteria: loopJudgeCriteria,
                 }}
                 disabled={!loopEnabled}
                 onChange={handleLoopSettingsChange}

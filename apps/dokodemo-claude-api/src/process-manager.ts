@@ -766,6 +766,7 @@ export class ProcessManager extends EventEmitter {
       judge: 'ai' | 'user' | 'none';
       judgeEveryN: number;
       intervalSec: number;
+      judgeCriteria?: string;
     }
   ): Promise<PromptQueueItem> {
     const result = await this.promptQueueManager.addToQueue(
@@ -908,6 +909,7 @@ export class ProcessManager extends EventEmitter {
           judge: 'ai' | 'user' | 'none';
           judgeEveryN: number;
           intervalSec: number;
+          judgeCriteria?: string;
         }
       | null
   ): Promise<boolean> {

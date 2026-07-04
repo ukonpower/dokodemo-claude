@@ -22,6 +22,7 @@ export interface CommandSendSettings {
   loopJudge?: 'ai' | 'user' | 'none';
   loopJudgeEveryN?: number;
   loopIntervalMin?: number; // 分単位（0 = 即時）
+  loopJudgeCriteria?: string; // AI 判断時の判定基準（終了条件）
 }
 
 /**
