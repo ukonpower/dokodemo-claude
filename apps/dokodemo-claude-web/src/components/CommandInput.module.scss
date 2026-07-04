@@ -875,8 +875,25 @@
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   overflow: hidden;
-  // scrollIntoView 時に最下部の固定バー（約44px）へ潜り込まないよう余白を確保
-  scroll-margin-bottom: 3.5rem;
+  transform-origin: top;
+  // 開いた瞬間に上からスライドして展開するアニメーション
+  animation: loopAccordionOpen $transition-normal $transition-easing;
+
+  // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
+  @include lg-up {
+    max-width: 22rem;
+  }
+}
+
+@keyframes loopAccordionOpen {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 360px;
+  }
 }
 
 .loopToggleRow {

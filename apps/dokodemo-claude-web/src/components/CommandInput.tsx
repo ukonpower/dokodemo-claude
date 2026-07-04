@@ -312,8 +312,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     // ループ設定アコーディオンの開閉状態
     const [isLoopExpanded, setIsLoopExpanded] = useState(false);
-    // ループアコーディオン（展開時に画面内へスクロールするため）
-    const loopAccordionRef = useRef<HTMLDivElement>(null);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -409,17 +407,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         window.removeEventListener('resize', updatePosition);
       };
     }, [isModelDropdownOpen]);
-
-    // ループアコーディオンを開いたとき、および判断方式の切替で高さが変わったとき
-    // 本体を画面内へスクロール（このモバイルレイアウトはページ全体がスクロールするため）
-    useEffect(() => {
-      if (isLoopExpanded) {
-        loopAccordionRef.current?.scrollIntoView({
-          block: 'end',
-          behavior: 'smooth',
-        });
-      }
-    }, [isLoopExpanded, loopJudge]);
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -1673,7 +1660,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
         {/* ループ設定アコーディオン（送信バーの直下に展開） */}
         {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
-          <div className={s.loopAccordion} ref={loopAccordionRef}>
+          <div className={s.loopAccordion}>
             <button
               type="button"
               onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
