@@ -150,6 +150,8 @@ export interface DetectedPortInfo {
   port: number;
   pid: number;
   command: string;
+  // 実際に待ち受けているプロトコル（TLS ハンドシェイクの成否で判定）
+  protocol: 'http' | 'https';
 }
 
 // AI CLI出力履歴の行情報

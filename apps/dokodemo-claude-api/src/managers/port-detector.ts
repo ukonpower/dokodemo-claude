@@ -17,6 +17,7 @@ import { EventEmitter } from 'events';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
+import tls from 'tls';
 
 const execAsync = promisify(exec);
 
@@ -26,6 +27,9 @@ const USE_SS = os.platform() === 'linux';
 // ポーリング間隔（ミリ秒）
 const POLL_INTERVAL_MS = 4000;
 
+// TLS ハンドシェイクによる https 判定のタイムアウト（ミリ秒）
+const HTTPS_PROBE_TIMEOUT_MS = 800;
+
 /**
  * 検出されたポート情報
  */
@@ -34,6 +38,44 @@ export interface DetectedPort {
   port: number;
   pid: number;
   command: string;
+  // 実際に待ち受けているプロトコル（TLS ハンドシェイクの成否で判定）
+  protocol: 'http' | 'https';
+}
+
+/**
+ * 指定ホスト:ポートへ TLS ハンドシェイクを試み、成功すれば true を返す。
+ * http サーバーは ClientHello に応答できずタイムアウト/エラーになるため false になる。
+ */
+function tlsHandshake(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+    // 自己署名証明書でも判定できるよう検証は無効化する
+    const socket = tls.connect(
+      { host, port, rejectUnauthorized: false, servername: 'localhost' },
+      () => finish(true)
+    );
+    socket.setTimeout(HTTPS_PROBE_TIMEOUT_MS);
+    socket.on('timeout', () => finish(false));
+    socket.on('error', () => finish(false));
+  });
+}
+
+/**
+ * 検出したポートが https で待ち受けているか判定する。
+ * TCP レベルでは http/https を区別できないため、実際に TLS ハンドシェイクを試みる。
+ * IPv4/IPv6 のどちらかで TLS が成立すれば https と見なす。
+ */
+async function detectProtocol(port: number): Promise<'http' | 'https'> {
+  for (const host of ['127.0.0.1', '::1']) {
+    if (await tlsHandshake(host, port)) return 'https';
+  }
+  return 'http';
 }
 
 /**
@@ -262,10 +304,20 @@ export class PortDetector extends EventEmitter {
             port: entry.port,
             pid: entry.pid,
             command: entry.command,
+            protocol: 'http', // 後段の TLS プローブで確定させる
           });
           portsByRepository.set(target.repositoryPath, arr);
         }
       }
+
+      // 検出した各ポートについて http/https を並列判定して protocol を確定させる
+      await Promise.all(
+        Array.from(portsByRepository.values())
+          .flat()
+          .map(async (p) => {
+            p.protocol = await detectProtocol(p.port);
+          })
+      );
 
       // 対象となった全リポジトリ（ポート0件含む）について変化を判定して通知
       const repositoryPaths = new Set<string>([
