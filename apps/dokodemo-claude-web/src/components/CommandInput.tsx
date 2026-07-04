@@ -312,8 +312,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
     // ループ設定アコーディオンの開閉状態
     const [isLoopExpanded, setIsLoopExpanded] = useState(false);
-    // 送信セクション（アコーディオン展開時に画面内へスクロールするため）
-    const sendSectionRef = useRef<HTMLDivElement>(null);
+    // ループアコーディオン（展開時に画面内へスクロールするため）
+    const loopAccordionRef = useRef<HTMLDivElement>(null);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -410,16 +410,16 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       };
     }, [isModelDropdownOpen]);
 
-    // ループアコーディオンを開いたら送信バーごと画面内へスクロール
-    // （このモバイルレイアウトはページ全体がスクロールするため）
+    // ループアコーディオンを開いたとき、および判断方式の切替で高さが変わったとき
+    // 本体を画面内へスクロール（このモバイルレイアウトはページ全体がスクロールするため）
     useEffect(() => {
       if (isLoopExpanded) {
-        sendSectionRef.current?.scrollIntoView({
+        loopAccordionRef.current?.scrollIntoView({
           block: 'end',
           behavior: 'smooth',
         });
       }
-    }, [isLoopExpanded]);
+    }, [isLoopExpanded, loopJudge]);
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -1389,45 +1389,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         </div>
 
-        {/* ループ設定アコーディオン（送信バーの直上に展開） */}
-        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
-          <div className={s.loopAccordion}>
-            <button
-              type="button"
-              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
-              className={s.loopToggleRow}
-            >
-              <span className={s.loopToggleText}>
-                <Repeat size={13} />
-                ループ送信
-              </span>
-              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
-                <div
-                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
-                />
-              </div>
-            </button>
-            <div className={s.loopAccordionHint}>
-              完了後に同じプロンプトを繰り返し送信します
-            </div>
-
-            <div className={s.loopAccordionBody}>
-              <LoopSettingsFields
-                value={{
-                  judge: loopJudge,
-                  judgeEveryN: loopJudgeEveryN,
-                  intervalSec: loopIntervalMin * 60,
-                }}
-                disabled={!loopEnabled}
-                onChange={handleLoopSettingsChange}
-              />
-            </div>
-          </div>
-        )}
-
         {/* 送信セクション（プライマリのみキューUIあり） */}
         {onAddToQueue && isPrimary && (
-          <div className={s.sendSection} ref={sendSectionRef}>
+          <div className={s.sendSection}>
             <div className={s.sendOptionsBar}>
               {/* キュートグル（/clear などと同じく押すとハイライトするトグル） */}
               <button
@@ -1704,6 +1668,42 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 {addToQueue ? '追加' : '送信'}
               </span>
             </button>
+          </div>
+        )}
+
+        {/* ループ設定アコーディオン（送信バーの直下に展開） */}
+        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
+          <div className={s.loopAccordion} ref={loopAccordionRef}>
+            <button
+              type="button"
+              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
+              className={s.loopToggleRow}
+            >
+              <span className={s.loopToggleText}>
+                <Repeat size={13} />
+                ループ送信
+              </span>
+              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
+                <div
+                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
+                />
+              </div>
+            </button>
+            <div className={s.loopAccordionHint}>
+              完了後に同じプロンプトを繰り返し送信します
+            </div>
+
+            <div className={s.loopAccordionBody}>
+              <LoopSettingsFields
+                value={{
+                  judge: loopJudge,
+                  judgeEveryN: loopJudgeEveryN,
+                  intervalSec: loopIntervalMin * 60,
+                }}
+                disabled={!loopEnabled}
+                onChange={handleLoopSettingsChange}
+              />
+            </div>
           </div>
         )}
 

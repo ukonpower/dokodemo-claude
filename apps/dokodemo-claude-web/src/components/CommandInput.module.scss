@@ -461,12 +461,11 @@
   border-radius: $radius-md;
   padding: 0.25rem;
   overflow-x: auto;
+  flex-wrap: nowrap;
 
-  // モバイルは横スクロールで隠さず折り返して全コントロールを見せる
+  // モバイルは 1 行に収めるため間隔を詰める
   @include sm-down {
-    flex-wrap: wrap;
-    row-gap: 0.25rem;
-    overflow-x: visible;
+    gap: 0.125rem;
   }
 
   @include lg-up {
@@ -492,6 +491,8 @@
 
   @include sm-down {
     min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
   }
 
   // /clear などと同じく ON は青ハイライトで明示
@@ -575,6 +576,8 @@
 
   @include sm-down {
     min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
   }
 
   &.active {
@@ -613,6 +616,8 @@
 
   @include sm-down {
     min-height: 32px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
   }
 
   &.active {
@@ -864,12 +869,14 @@
   margin-right: 0.25rem;
 }
 
-/* プロンプトループ設定アコーディオン（送信バー直上にインライン展開） */
+/* プロンプトループ設定アコーディオン（送信バー直下にインライン展開） */
 .loopAccordion {
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   overflow: hidden;
+  // scrollIntoView 時に最下部の固定バー（約44px）へ潜り込まないよう余白を確保
+  scroll-margin-bottom: 3.5rem;
 }
 
 .loopToggleRow {
