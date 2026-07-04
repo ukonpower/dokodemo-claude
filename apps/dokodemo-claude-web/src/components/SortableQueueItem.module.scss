@@ -117,6 +117,9 @@
 }
 
 .viewTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: $font-size-xs;
   padding: 2px 6px;
   background-color: $dark-bg-tertiary;
@@ -266,18 +269,15 @@
   transform: rotate(180deg);
 }
 
+// 位置・幅・高さは fixed 配置のためインライン style で指定する
 .optionsDropdown {
-  position: absolute;
-  left: 0;
-  bottom: 100%;
-  margin-bottom: 4px;
-  width: 208px;
+  position: fixed;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-  overflow: hidden;
+  z-index: 9999;
+  overflow-y: auto;
 }
 
 .optionsDropdownInner {
@@ -544,5 +544,45 @@
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+}
+
+/* ループ編集セクション */
+.loopSection {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loopSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loopSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  font-weight: 600;
+}
+
+.loopEnableButton,
+.loopClearButton {
+  font-size: $font-size-xs;
+  padding: 4px 10px;
+  min-height: 28px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    background-color: $dark-bg-hover;
   }
 }

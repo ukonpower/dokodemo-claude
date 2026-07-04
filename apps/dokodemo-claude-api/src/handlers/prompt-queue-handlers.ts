@@ -27,6 +27,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
       isAutoCommit,
       isCodexReview,
       model,
+      loop,
     } = data;
     const repositoryPath = tryResolvePath(rid);
     if (!repositoryPath) return;
@@ -39,7 +40,8 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
         sendClearBefore,
         isAutoCommit,
         model,
-        isCodexReview
+        isCodexReview,
+        loop
       );
       socket.emit('prompt-added-to-queue', {
         success: true,
@@ -89,6 +91,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
       isAutoCommit,
       isCodexReview,
       model,
+      loop,
     } = data;
     const repositoryPath = tryResolvePath(rid);
     if (!repositoryPath) return;
@@ -102,7 +105,8 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
         sendClearBefore,
         isAutoCommit,
         model,
-        isCodexReview
+        isCodexReview,
+        loop
       );
       socket.emit('prompt-updated-in-queue', {
         success,
@@ -285,6 +289,33 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
         success: false,
         message: `キャンセルに失敗しました: ${error}`,
       });
+    }
+  });
+
+  socket.on('stop-prompt-loop', async (data) => {
+    const { rid, provider, itemId } = data;
+    const repositoryPath = tryResolvePath(rid);
+    if (!repositoryPath) return;
+    try {
+      await processManager.stopPromptLoop(repositoryPath, provider, itemId);
+    } catch {
+      // ignore
+    }
+  });
+
+  socket.on('approve-loop-continuation', async (data) => {
+    const { rid, provider, itemId, approved } = data;
+    const repositoryPath = tryResolvePath(rid);
+    if (!repositoryPath) return;
+    try {
+      await processManager.approveLoopContinuation(
+        repositoryPath,
+        provider,
+        itemId,
+        approved
+      );
+    } catch {
+      // ignore
     }
   });
 }

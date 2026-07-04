@@ -4,14 +4,17 @@
  */
 
 import { EventEmitter } from 'events';
+import { execFileSync } from 'child_process';
 import type {
   PromptQueueItem,
   PromptQueueState,
+  PromptLoopState,
   AiProvider,
 } from '../types/index.js';
 import { PersistenceService } from '../services/persistence-service.js';
 import { Result, Ok, Err } from '../utils/result.js';
 import { QueueError } from '../utils/errors.js';
+import { judgeLoop } from '../services/loop-judge-service.js';
 
 const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 
@@ -73,6 +76,12 @@ export interface QueueAiSessionAdapter {
    * プライマリAIが処理中か（UserPromptSubmit → running, Stop → completed/idle）
    */
   isPrimaryAiBusy(repositoryPath: string, provider: AiProvider): boolean;
+
+  /**
+   * プライマリセッションの出力末尾を取得（ループ AI 判断の入力に使う）。
+   * 実装側で ANSI 除去と末尾行トリミングを行う。
+   */
+  getPrimaryOutputTail(repositoryPath: string, provider: AiProvider): string;
 }
 
 export class PromptQueueManager extends EventEmitter {
@@ -80,6 +89,17 @@ export class PromptQueueManager extends EventEmitter {
   private queueCounter = 0;
 
   private aiSessionAdapter: QueueAiSessionAdapter | null = null;
+
+  // ループのインターバル待機用タイマー（キー = queueKey）
+  private loopTimers: Map<string, NodeJS.Timeout> = new Map();
+
+  // AI 判断の abort（キー = queueKey）
+  private loopJudgeAborts: Map<string, AbortController> = new Map();
+
+  // 送信世代（キー = queueKey）。送信ごとにインクリメントし、watchdog が自分の
+  // 世代と照合する。ループアイテムは周回をまたいで同じ itemId を使い回すため、
+  // itemId の一致だけでは前の周回の watchdog（stale）を弾けない。
+  private sendGenerations: Map<string, number> = new Map();
 
   constructor(
     private readonly persistenceService: PersistenceService,
@@ -110,6 +130,24 @@ export class PromptQueueManager extends EventEmitter {
    */
   private getQueueKey(repositoryPath: string, provider: AiProvider): string {
     return `${provider}:${repositoryPath}`;
+  }
+
+  /**
+   * リポジトリの HEAD コミットハッシュを取得。失敗時 undefined。
+   * ループ開始時の diff 起点として使う。
+   */
+  private getHeadCommit(repositoryPath: string): string | undefined {
+    try {
+      const out = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: repositoryPath,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      const commit = out.trim();
+      return commit || undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
@@ -148,21 +186,51 @@ export class PromptQueueManager extends EventEmitter {
       isAutoCommit?: boolean;
       isCodexReview?: boolean;
       model?: string;
+      loop?: {
+        judge: 'ai' | 'user' | 'none';
+        judgeEveryN: number;
+        intervalSec: number;
+        judgeCriteria?: string;
+      };
     }
   ): Promise<Result<PromptQueueItem, QueueError>> {
     try {
       const state = this.getOrCreateQueueState(repositoryPath, provider);
+
+      // 1 キュー（provider × repositoryPath）につきループアイテムは 1 つまで
+      if (options?.loop) {
+        const hasLoop = state.queue.some((i) => i.loop);
+        if (hasLoop) {
+          return Err(QueueError.loopAlreadyExists(repositoryPath));
+        }
+      }
+
+      const now = Date.now();
+      let loop: PromptLoopState | undefined;
+      if (options?.loop) {
+        loop = {
+          judge: options.loop.judge,
+          judgeEveryN: Math.max(1, Math.floor(options.loop.judgeEveryN)),
+          intervalSec: Math.max(0, Math.floor(options.loop.intervalSec)),
+          judgeCriteria: options.loop.judgeCriteria?.trim() || undefined,
+          iteration: 1,
+          startedAt: now,
+          startedAtCommit: this.getHeadCommit(repositoryPath),
+        };
+      }
+
       const item: PromptQueueItem = {
-        id: `prompt-${++this.queueCounter}-${Date.now()}`,
+        id: `prompt-${++this.queueCounter}-${now}`,
         prompt,
         repositoryPath,
         provider,
-        createdAt: Date.now(),
+        createdAt: now,
         status: 'pending',
         sendClearBefore: options?.sendClearBefore,
         isAutoCommit: options?.isAutoCommit,
         isCodexReview: options?.isCodexReview,
         model: options?.model,
+        loop,
       };
 
       state.queue.push(item);
@@ -212,6 +280,13 @@ export class PromptQueueManager extends EventEmitter {
       state.currentItemId = undefined;
     }
 
+    const targetItem = state.queue[index];
+    // ループアイテムの削除ならタイマー・判断 abort をクリア
+    if (targetItem?.loop) {
+      this.clearLoopTimer(repositoryPath, provider);
+      this.abortLoopJudge(repositoryPath, provider);
+    }
+
     state.queue.splice(index, 1);
     await this.persistQueues();
 
@@ -240,6 +315,13 @@ export class PromptQueueManager extends EventEmitter {
       isAutoCommit?: boolean;
       isCodexReview?: boolean;
       model?: string;
+      // null: ループ解除 / 値あり: 設定項目を差し替え（iteration 等の状態は維持）
+      loop?: {
+        judge: 'ai' | 'user' | 'none';
+        judgeEveryN: number;
+        intervalSec: number;
+        judgeCriteria?: string;
+      } | null;
     }
   ): Promise<Result<boolean, QueueError>> {
     const state = this.getOrCreateQueueState(repositoryPath, provider);
@@ -270,11 +352,155 @@ export class PromptQueueManager extends EventEmitter {
     if (updates.model !== undefined) {
       item.model = updates.model;
     }
+    if (updates.loop !== undefined) {
+      if (updates.loop === null) {
+        // ループ解除。タイマー・判断 abort をクリア
+        item.loop = undefined;
+        this.clearLoopTimer(repositoryPath, provider);
+        this.abortLoopJudge(repositoryPath, provider);
+      } else if (item.loop) {
+        // 既存ループの設定項目のみ差し替え
+        item.loop.judge = updates.loop.judge;
+        item.loop.judgeEveryN = Math.max(
+          1,
+          Math.floor(updates.loop.judgeEveryN)
+        );
+        item.loop.intervalSec = Math.max(
+          0,
+          Math.floor(updates.loop.intervalSec)
+        );
+        item.loop.judgeCriteria = updates.loop.judgeCriteria?.trim() || undefined;
+      } else {
+        // 新規ループ化。1 キュー 1 ループ制限をチェック
+        const hasLoop = state.queue.some((i) => i.loop);
+        if (hasLoop) {
+          return Err(QueueError.loopAlreadyExists(repositoryPath));
+        }
+        item.loop = {
+          judge: updates.loop.judge,
+          judgeEveryN: Math.max(1, Math.floor(updates.loop.judgeEveryN)),
+          intervalSec: Math.max(0, Math.floor(updates.loop.intervalSec)),
+          judgeCriteria: updates.loop.judgeCriteria?.trim() || undefined,
+          iteration: 1,
+          startedAt: Date.now(),
+          startedAtCommit: this.getHeadCommit(repositoryPath),
+        };
+      }
+    }
 
     await this.persistQueues();
     this.emitQueueUpdated(repositoryPath, provider, state);
 
     return Ok(true);
+  }
+
+  /**
+   * ループを停止（アイテムを削除、または実行中は再投入されないよう loop をクリア）
+   */
+  async stopLoop(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    if (!item.loop) {
+      return Err(QueueError.loopBusy('対象はループアイテムではありません'));
+    }
+
+    this.clearLoopTimer(repositoryPath, provider);
+    this.abortLoopJudge(repositoryPath, provider);
+
+    if (item.status === 'processing') {
+      // 実行中: 完走させるが再投入されないよう loop をクリア
+      item.loop = undefined;
+    } else {
+      // pending: 削除
+      const idx = state.queue.indexOf(item);
+      if (idx !== -1) {
+        state.queue.splice(idx, 1);
+      }
+    }
+
+    this.emit('prompt-loop-ended', {
+      repositoryPath,
+      provider,
+      itemId,
+      endedBy: 'user' as const,
+    });
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    return Ok(undefined);
+  }
+
+  /**
+   * ループアイテムの継続をユーザーが承認 or 停止する
+   */
+  async approveLoopContinuation(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    approved: boolean
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    if (!item.loop) {
+      return Err(QueueError.loopBusy('対象はループアイテムではありません'));
+    }
+    if (!item.loop.awaitingUserApproval) {
+      return Err(QueueError.loopBusy('承認待ちではありません'));
+    }
+
+    if (!approved) {
+      return this.stopLoop(repositoryPath, provider, itemId);
+    }
+
+    item.loop.awaitingUserApproval = false;
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    if (!state.isProcessing && !state.isPaused) {
+      await this.processNextItem(repositoryPath, provider);
+    }
+
+    return Ok(undefined);
+  }
+
+  private bumpSendGeneration(
+    repositoryPath: string,
+    provider: AiProvider
+  ): number {
+    const key = this.getQueueKey(repositoryPath, provider);
+    const generation = (this.sendGenerations.get(key) ?? 0) + 1;
+    this.sendGenerations.set(key, generation);
+    return generation;
+  }
+
+  private clearLoopTimer(repositoryPath: string, provider: AiProvider): void {
+    const key = this.getQueueKey(repositoryPath, provider);
+    const timer = this.loopTimers.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      this.loopTimers.delete(key);
+    }
+  }
+
+  private abortLoopJudge(repositoryPath: string, provider: AiProvider): void {
+    const key = this.getQueueKey(repositoryPath, provider);
+    const controller = this.loopJudgeAborts.get(key);
+    if (controller) {
+      controller.abort();
+      this.loopJudgeAborts.delete(key);
+    }
   }
 
   /**
@@ -376,6 +602,21 @@ export class PromptQueueManager extends EventEmitter {
       );
     }
 
+    // ループアイテムの場合: 承認待ち / 判断中は強制送信できない。
+    // インターバル待機中はタイマーとカウントダウンをクリアして即送信へ
+    if (item.loop) {
+      if (item.loop.awaitingUserApproval) {
+        return Err(
+          QueueError.loopBusy('承認待ち中は強制送信できません')
+        );
+      }
+      if (item.loop.pendingJudge) {
+        return Err(QueueError.loopBusy('AI 判断中は強制送信できません'));
+      }
+      item.loop.nextSendAt = undefined;
+      this.clearLoopTimer(repositoryPath, provider);
+    }
+
     // ステータスを processing に変更
     item.status = 'processing';
     state.isProcessing = true;
@@ -406,10 +647,11 @@ export class PromptQueueManager extends EventEmitter {
       await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
+      const generation = this.bumpSendGeneration(repositoryPath, provider);
       await this.sendItemCommands(session.id, item, session.coldStart);
 
       // processNextItem と同じく送信ウォッチドッグを仕掛ける
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -492,6 +734,23 @@ export class PromptQueueManager extends EventEmitter {
       return Err(
         QueueError.addFailed(repositoryPath, '処理中のアイテムがありません')
       );
+    }
+
+    // ループ判断中のセンチネルを掴んでいる場合は abort して pendingJudge をクリア
+    if (state.currentItemId === 'loop-judge') {
+      this.abortLoopJudge(repositoryPath, provider);
+      // ループアイテムを検索して pendingJudge を確認待ちに倒す（安全側フォールバック）
+      const loopItem = state.queue.find((i) => i.loop);
+      if (loopItem?.loop) {
+        loopItem.loop.pendingJudge = false;
+        loopItem.loop.awaitingUserApproval = true;
+      }
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+      state.isPaused = true;
+      await this.persistQueues();
+      this.emitQueueUpdated(repositoryPath, provider, state);
+      return Ok(undefined);
     }
 
     // 処理中のアイテムを見つけてpendingに戻す
@@ -632,6 +891,41 @@ export class PromptQueueManager extends EventEmitter {
           itemId: currentItem.id,
           success: true,
         });
+
+        // ループアイテムなら、shouldAutoCommit / shouldCodexReview 判定の前に
+        // 同一アイテムを pending に戻して末尾へ再投入する
+        // （周回ごとに completed を積まない）
+        if (currentItem.loop) {
+          const loop = currentItem.loop;
+          const completedIteration = loop.iteration;
+          loop.iteration += 1;
+          currentItem.status = 'pending';
+          const idx = state.queue.indexOf(currentItem);
+          if (idx !== -1) {
+            state.queue.splice(idx, 1);
+            state.queue.push(currentItem);
+          }
+          // 判断周か（完了した周番号で判定: judgeEveryN=3 なら 3,6,9 周完了後）
+          if (
+            loop.judge !== 'none' &&
+            completedIteration % loop.judgeEveryN === 0
+          ) {
+            if (loop.judge === 'ai') {
+              loop.pendingJudge = true;
+            } else {
+              loop.awaitingUserApproval = true;
+              this.emit('loop-approval-required', {
+                repositoryPath,
+                provider,
+                itemId: currentItem.id,
+                iteration: completedIteration,
+              });
+            }
+          }
+          if (loop.intervalSec > 0) {
+            loop.nextSendAt = Date.now() + loop.intervalSec * 1000;
+          }
+        }
       }
     }
 
@@ -715,6 +1009,17 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     for (const key of keysToDelete) {
+      const timer = this.loopTimers.get(key);
+      if (timer) {
+        clearTimeout(timer);
+        this.loopTimers.delete(key);
+      }
+      const controller = this.loopJudgeAborts.get(key);
+      if (controller) {
+        controller.abort();
+        this.loopJudgeAborts.delete(key);
+      }
+      this.sendGenerations.delete(key);
       this.queues.delete(key);
     }
 
@@ -725,6 +1030,16 @@ export class PromptQueueManager extends EventEmitter {
    * シャットダウン
    */
   async shutdown(): Promise<void> {
+    for (const timer of this.loopTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.loopTimers.clear();
+    for (const controller of this.loopJudgeAborts.values()) {
+      controller.abort();
+    }
+    this.loopJudgeAborts.clear();
+    this.sendGenerations.clear();
+
     await this.persistQueues();
     this.queues.clear();
     this.removeAllListeners();
@@ -740,10 +1055,16 @@ export class PromptQueueManager extends EventEmitter {
   private scheduleSendWatchdog(
     repositoryPath: string,
     provider: AiProvider,
-    itemId: string
+    itemId: string,
+    generation: number
   ): void {
     setTimeout(async () => {
-      const state = this.queues.get(this.getQueueKey(repositoryPath, provider));
+      const key = this.getQueueKey(repositoryPath, provider);
+      // 世代が進んでいたらこの watchdog は過去の送信の見張り（stale）。
+      // ループ再投入で同じ itemId のまま次の送信が始まった直後
+      // （UserPromptSubmit 到達前）に誤爆するのを防ぐ。
+      if (this.sendGenerations.get(key) !== generation) return;
+      const state = this.queues.get(key);
       if (!state) return;
       if (state.currentItemId !== itemId) return;
       if (!state.isProcessing) return;
@@ -757,6 +1078,31 @@ export class PromptQueueManager extends EventEmitter {
 
       const item = state.queue.find((i) => i.id === itemId);
       if (!item || item.status !== 'processing') return;
+
+      // ループアイテムを completed で終わらせると再投入経路が無く黙って死ぬため、
+      // 安全側として承認待ちの pending に戻して停止する（フック未達や送信取り
+      // こぼしの疑いがある状況で、自動再送を続けるのは危険）。
+      if (item.loop) {
+        console.warn(
+          `[PromptQueueManager] 送信ウォッチドッグ: ループアイテム ${itemId} の UserPromptSubmit を確認できなかったため承認待ちに倒します`
+        );
+        item.status = 'pending';
+        item.loop.awaitingUserApproval = true;
+        item.loop.lastJudgeReason =
+          '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
+        state.isProcessing = false;
+        state.currentItemId = undefined;
+        await this.persistQueues();
+
+        this.emit('loop-approval-required', {
+          repositoryPath,
+          provider,
+          itemId,
+          iteration: item.loop.iteration - 1,
+        });
+        this.emitQueueUpdated(repositoryPath, provider, state);
+        return;
+      }
 
       console.warn(
         `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} は UserPromptSubmit を引き起こさなかったため completed として次へ進めます`
@@ -839,6 +1185,31 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     const item = pendingItems[0];
+
+    // ループアイテムの送信前ゲート
+    // a. 承認待ち: 何もしない（ユーザーの継続 or 停止を待つ）
+    // b. AI 判断が必要: startLoopJudge に委譲（実装は Step 6）
+    // c. インターバル待機中: タイマーを予約（Step 2 で scheduleLoopTimer）
+    // d. 通常送信へ
+    if (item.loop) {
+      if (item.loop.awaitingUserApproval) {
+        return;
+      }
+      if (item.loop.pendingJudge) {
+        this.startLoopJudge(item, state);
+        return;
+      }
+      if (item.loop.nextSendAt && item.loop.nextSendAt > Date.now()) {
+        this.scheduleLoopTimer(
+          repositoryPath,
+          provider,
+          item.loop.nextSendAt - Date.now()
+        );
+        return;
+      }
+      item.loop.nextSendAt = undefined;
+    }
+
     item.status = 'processing';
     state.isProcessing = true;
     state.currentItemId = item.id;
@@ -868,12 +1239,13 @@ export class PromptQueueManager extends EventEmitter {
       await this.aiSessionAdapter.waitForSessionReady(session.id);
 
       // コマンド送信処理
+      const generation = this.bumpSendGeneration(repositoryPath, provider);
       await this.sendItemCommands(session.id, item, session.coldStart);
 
       // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
       // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id);
+      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -1011,6 +1383,134 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * ループのインターバルタイマーを予約。
+   * 既に予約されているタイマーは破棄してから setTimeout する。
+   * 発火時に Map から削除して processNextItem を呼ぶ。
+   */
+  private scheduleLoopTimer(
+    repositoryPath: string,
+    provider: AiProvider,
+    delayMs: number
+  ): void {
+    const key = this.getQueueKey(repositoryPath, provider);
+    const existing = this.loopTimers.get(key);
+    if (existing) {
+      clearTimeout(existing);
+    }
+    const timer = setTimeout(() => {
+      this.loopTimers.delete(key);
+      void this.processNextItem(repositoryPath, provider);
+    }, Math.max(0, delayMs));
+    this.loopTimers.set(key, timer);
+  }
+
+  /**
+   * ループアイテムの AI 判断を開始。
+   * センチネル（currentItemId = 'loop-judge', isProcessing = true）で他の処理を抑止しつつ
+   * LoopJudgeService に判定を委譲する。結果に応じて continue/end/フォールバックへ分岐。
+   */
+  private startLoopJudge(
+    item: PromptQueueItem,
+    state: PromptQueueState
+  ): void {
+    if (!item.loop) return;
+    const { repositoryPath, provider } = state;
+    const key = this.getQueueKey(repositoryPath, provider);
+
+    // センチネルを立てて他の処理を抑止
+    state.isProcessing = true;
+    state.currentItemId = 'loop-judge';
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    const controller = new AbortController();
+    this.loopJudgeAborts.set(key, controller);
+
+    const outputTail =
+      this.aiSessionAdapter?.getPrimaryOutputTail(repositoryPath, provider) ??
+      '';
+
+    void (async () => {
+      try {
+        const verdict = await judgeLoop(
+          {
+            cwd: repositoryPath,
+            loopPrompt: item.prompt,
+            judgeCriteria: item.loop!.judgeCriteria,
+            iteration: item.loop!.iteration - 1,
+            startedAtCommit: item.loop!.startedAtCommit,
+            outputTail,
+          },
+          controller
+        );
+
+        this.loopJudgeAborts.delete(key);
+
+        // 判定完了時にアイテムがまだキューにあるか確認
+        const stillPresent = state.queue.includes(item);
+        if (!stillPresent || !item.loop) {
+          state.isProcessing = false;
+          state.currentItemId = undefined;
+          await this.persistQueues();
+          this.emitQueueUpdated(repositoryPath, provider, state);
+          void this.processNextItem(repositoryPath, provider);
+          return;
+        }
+
+        item.loop.pendingJudge = false;
+        item.loop.lastJudgeReason = verdict.reason;
+
+        state.isProcessing = false;
+        state.currentItemId = undefined;
+
+        if (verdict.continue) {
+          await this.persistQueues();
+          this.emitQueueUpdated(repositoryPath, provider, state);
+          void this.processNextItem(repositoryPath, provider);
+        } else {
+          // 終了: アイテム削除 + prompt-loop-ended emit
+          const idx = state.queue.indexOf(item);
+          if (idx !== -1) state.queue.splice(idx, 1);
+          this.emit('prompt-loop-ended', {
+            repositoryPath,
+            provider,
+            itemId: item.id,
+            reason: verdict.reason,
+            endedBy: 'ai-judge' as const,
+          });
+          await this.persistQueues();
+          this.emitQueueUpdated(repositoryPath, provider, state);
+          void this.processNextItem(repositoryPath, provider);
+        }
+      } catch (error) {
+        this.loopJudgeAborts.delete(key);
+        console.error('[PromptQueueManager] ループ判定エラー:', error);
+
+        // 安全側フォールバック: 確認待ちに倒す
+        if (item.loop) {
+          item.loop.pendingJudge = false;
+          item.loop.awaitingUserApproval = true;
+          item.loop.lastJudgeReason =
+            error instanceof Error
+              ? `⚠ AI判断に失敗: ${error.message}`
+              : '⚠ AI判断に失敗しました';
+        }
+        state.isProcessing = false;
+        state.currentItemId = undefined;
+
+        this.emit('loop-approval-required', {
+          repositoryPath,
+          provider,
+          itemId: item.id,
+          iteration: item.loop?.iteration ? item.loop.iteration - 1 : 0,
+        });
+
+        await this.persistQueues();
+        this.emitQueueUpdated(repositoryPath, provider, state);
+      }
+    })();
+  }
+
+  /**
    * キュー更新イベントを発火
    */
   private emitQueueUpdated(
@@ -1024,6 +1524,7 @@ export class PromptQueueManager extends EventEmitter {
       queue: state.queue,
       isProcessing: state.isProcessing,
       isPaused: state.isPaused,
+      currentItemId: state.currentItemId,
     });
   }
 
@@ -1066,12 +1567,29 @@ export class PromptQueueManager extends EventEmitter {
       // 前回プロセスで processing のまま残った item は、Stop hook を取り逃した
       // 可能性があるので pending に巻き戻す。processing のまま放置されると
       // processNextItem の pending フィルタから永久に外れ、キューが詰まる。
-      const restoredQueue = state.queue.map((item) =>
-        item.status === 'processing'
-          ? { ...item, status: 'pending' as const }
-          : item
-      );
+      const restoredQueue = state.queue.map((item) => {
+        const restored: PromptQueueItem =
+          item.status === 'processing'
+            ? { ...item, status: 'pending' as const }
+            : { ...item };
 
+        // ループアイテムの復元後処理:
+        // - 過去の nextSendAt はクリア
+        // - 再起動後の自動再開防止のため awaitingUserApproval = true を強制
+        //   （pendingJudge は維持し、次の processNextItem で再判定）
+        if (restored.loop) {
+          restored.loop = {
+            ...restored.loop,
+            nextSendAt: undefined,
+            awaitingUserApproval: true,
+          };
+        }
+        return restored;
+      });
+
+      // 判断中センチネル（currentItemId === 'loop-judge'）は復元時に必ずクリア。
+      // 現状 restore では processing→pending 巻き戻し + isProcessing=false のため
+      // どのみち currentItemId は undefined に倒す。
       this.queues.set(key, {
         ...state,
         queue: restoredQueue,
