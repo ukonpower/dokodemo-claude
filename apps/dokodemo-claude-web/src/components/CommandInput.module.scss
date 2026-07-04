@@ -462,6 +462,13 @@
   padding: 0.25rem;
   overflow-x: auto;
 
+  // モバイルは横スクロールで隠さず折り返して全コントロールを見せる
+  @include sm-down {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    overflow-x: visible;
+  }
+
   @include lg-up {
     flex: initial;
   }
@@ -481,10 +488,16 @@
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
+  touch-action: manipulation;
 
+  @include sm-down {
+    min-height: 32px;
+  }
+
+  // /clear などと同じく ON は青ハイライトで明示
   &.active {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
+    background-color: $accent-blue;
+    color: white;
   }
 
   &:not(.active) {
@@ -558,6 +571,11 @@
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
+  touch-action: manipulation;
+
+  @include sm-down {
+    min-height: 32px;
+  }
 
   &.active {
     background-color: $accent-blue;
@@ -591,6 +609,11 @@
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  touch-action: manipulation;
+
+  @include sm-down {
+    min-height: 32px;
+  }
 
   &.active {
     background-color: $dark-bg-hover;
@@ -841,7 +864,14 @@
   margin-right: 0.25rem;
 }
 
-/* プロンプトループ設定ポップオーバー */
+/* プロンプトループ設定アコーディオン（送信バー直上にインライン展開） */
+.loopAccordion {
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
 .loopToggleRow {
   display: flex;
   align-items: center;
@@ -865,12 +895,13 @@
   color: $dark-text-primary;
 }
 
-.loopPopoverHint {
+.loopAccordionHint {
   padding: 0 0.75rem 0.5rem;
   font-size: 10px;
   color: $dark-text-muted;
 }
 
-.loopPopoverBody {
+.loopAccordionBody {
   padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid $dark-border-light;
 }

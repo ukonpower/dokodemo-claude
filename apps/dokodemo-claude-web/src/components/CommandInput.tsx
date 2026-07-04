@@ -310,15 +310,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-    // ループ設定ポップオーバー開閉状態
-    const [isLoopPopoverOpen, setIsLoopPopoverOpen] = useState(false);
-    const loopPopoverRef = useRef<HTMLDivElement>(null);
-    const loopButtonRef = useRef<HTMLButtonElement>(null);
-    const [loopPopoverPosition, setLoopPopoverPosition] = useState({
-      top: 0,
-      left: 0,
-      width: 300,
-    });
+    // ループ設定アコーディオンの開閉状態
+    const [isLoopExpanded, setIsLoopExpanded] = useState(false);
+    // 送信セクション（アコーディオン展開時に画面内へスクロールするため）
+    const sendSectionRef = useRef<HTMLDivElement>(null);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -415,43 +410,16 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       };
     }, [isModelDropdownOpen]);
 
-    // ループ設定ポップオーバーの外側クリック・位置計算
+    // ループアコーディオンを開いたら送信バーごと画面内へスクロール
+    // （このモバイルレイアウトはページ全体がスクロールするため）
     useEffect(() => {
-      const updatePosition = () => {
-        if (loopButtonRef.current) {
-          const rect = loopButtonRef.current.getBoundingClientRect();
-          // 画面幅が狭い場合は左右 8px を確保した幅に収める
-          const width = Math.min(300, window.innerWidth - 16);
-          setLoopPopoverPosition({
-            top: rect.top - 4,
-            left: clampDropdownLeft(rect.left, width),
-            width,
-          });
-        }
-      };
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          loopPopoverRef.current &&
-          !loopPopoverRef.current.contains(event.target as Node)
-        ) {
-          setIsLoopPopoverOpen(false);
-        }
-      };
-
-      if (isLoopPopoverOpen) {
-        updatePosition();
-        document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
+      if (isLoopExpanded) {
+        sendSectionRef.current?.scrollIntoView({
+          block: 'end',
+          behavior: 'smooth',
+        });
       }
-
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        window.removeEventListener('scroll', updatePosition, true);
-        window.removeEventListener('resize', updatePosition);
-      };
-    }, [isLoopPopoverOpen]);
+    }, [isLoopExpanded]);
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -1421,11 +1389,47 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         </div>
 
+        {/* ループ設定アコーディオン（送信バーの直上に展開） */}
+        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
+          <div className={s.loopAccordion}>
+            <button
+              type="button"
+              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
+              className={s.loopToggleRow}
+            >
+              <span className={s.loopToggleText}>
+                <Repeat size={13} />
+                ループ送信
+              </span>
+              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
+                <div
+                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
+                />
+              </div>
+            </button>
+            <div className={s.loopAccordionHint}>
+              完了後に同じプロンプトを繰り返し送信します
+            </div>
+
+            <div className={s.loopAccordionBody}>
+              <LoopSettingsFields
+                value={{
+                  judge: loopJudge,
+                  judgeEveryN: loopJudgeEveryN,
+                  intervalSec: loopIntervalMin * 60,
+                }}
+                disabled={!loopEnabled}
+                onChange={handleLoopSettingsChange}
+              />
+            </div>
+          </div>
+        )}
+
         {/* 送信セクション（プライマリのみキューUIあり） */}
         {onAddToQueue && isPrimary && (
-          <div className={s.sendSection}>
+          <div className={s.sendSection} ref={sendSectionRef}>
             <div className={s.sendOptionsBar}>
-              {/* キュートグル */}
+              {/* キュートグル（/clear などと同じく押すとハイライトするトグル） */}
               <button
                 type="button"
                 onClick={() => handleSettingChange('addToQueue', !addToQueue)}
@@ -1451,13 +1455,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   />
                 </svg>
                 キュー
-                <div
-                  className={`${s.toggleTrack} ${addToQueue ? s.on : s.off}`}
-                >
-                  <div
-                    className={`${s.toggleThumb} ${addToQueue ? s.on : s.off}`}
-                  />
-                </div>
               </button>
 
               {/* キューオプション（キューON時のみ表示） */}
@@ -1465,101 +1462,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 <>
                   <div className={s.optionDivider} />
 
-                  {/* /clear */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendClear', !sendClearBefore)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
-                    title="/clear: 送信前にコンテキストをクリア"
-                  >
-                    /clear
-                  </button>
-
-                  {/* /commit */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendCommit', !sendCommitAfter)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
-                    title="/commit: 完了後に自動コミット"
-                  >
-                    /commit
-                  </button>
-
-                  {/* ループ */}
-                  <div className={s.modelDropdownWrapper} ref={loopPopoverRef}>
-                    <button
-                      ref={loopButtonRef}
-                      type="button"
-                      onClick={() => setIsLoopPopoverOpen(!isLoopPopoverOpen)}
-                      disabled={disabled}
-                      className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
-                      title="ループ: 完了後に同じプロンプトを繰り返し送信"
-                    >
-                      <Repeat size={12} />
-                      {loopEnabled
-                        ? loopJudge === 'none'
-                          ? '無限'
-                          : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
-                        : 'ループ'}
-                    </button>
-
-                    {isLoopPopoverOpen && (
-                      <div
-                        className={s.modelDropdown}
-                        style={{
-                          top: `${loopPopoverPosition.top}px`,
-                          left: `${loopPopoverPosition.left}px`,
-                          width: `${loopPopoverPosition.width}px`,
-                          transform: 'translateY(-100%)',
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleSettingChange('loopEnabled', !loopEnabled)
-                          }
-                          className={s.loopToggleRow}
-                        >
-                          <span className={s.loopToggleText}>
-                            <Repeat size={13} />
-                            ループ送信
-                          </span>
-                          <div
-                            className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}
-                          >
-                            <div
-                              className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
-                            />
-                          </div>
-                        </button>
-                        <div className={s.loopPopoverHint}>
-                          完了後に同じプロンプトを繰り返し送信します
-                        </div>
-
-                        <div className={s.modelDropdownSeparator} />
-
-                        <div className={s.loopPopoverBody}>
-                          <LoopSettingsFields
-                            value={{
-                              judge: loopJudge,
-                              judgeEveryN: loopJudgeEveryN,
-                              intervalSec: loopIntervalMin * 60,
-                            }}
-                            disabled={!loopEnabled}
-                            onChange={handleLoopSettingsChange}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* モデル選択 */}
+                  {/* モデル選択（頻繁に使うため先頭に配置） */}
                   <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
                     <button
                       ref={modelButtonRef}
@@ -1714,6 +1617,61 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       </div>
                     )}
                   </div>
+
+                  {/* /clear */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSettingChange('sendClear', !sendClearBefore)
+                    }
+                    disabled={disabled}
+                    className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
+                    title="/clear: 送信前にコンテキストをクリア"
+                  >
+                    /clear
+                  </button>
+
+                  {/* /commit */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSettingChange('sendCommit', !sendCommitAfter)
+                    }
+                    disabled={disabled}
+                    className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
+                    title="/commit: 完了後に自動コミット"
+                  >
+                    /commit
+                  </button>
+
+                  {/* ループ（タップで下のアコーディオンを開閉） */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLoopExpanded(!isLoopExpanded)}
+                    disabled={disabled}
+                    className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
+                    title="ループ: 完了後に同じプロンプトを繰り返し送信"
+                  >
+                    <Repeat size={12} />
+                    {loopEnabled
+                      ? loopJudge === 'none'
+                        ? '無限'
+                        : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
+                      : 'ループ'}
+                    <svg
+                      className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
                 </>
               )}
             </div>
