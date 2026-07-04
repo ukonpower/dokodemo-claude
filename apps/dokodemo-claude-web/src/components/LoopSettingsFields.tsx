@@ -112,9 +112,9 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
 
   return (
     <div className={`${s.root} ${disabled ? s.disabled : ''}`}>
-      {/* 判断方式（セグメントボタン） */}
+      {/* 継続の判断（セグメントボタン） */}
       <div className={s.field}>
-        <div className={s.fieldLabel}>判断方式</div>
+        <div className={s.fieldLabel}>継続の判断</div>
         <div className={s.segmented}>
           {JUDGE_OPTIONS.map((opt) => (
             <button
