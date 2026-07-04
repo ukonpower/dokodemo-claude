@@ -1387,33 +1387,44 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         {onAddToQueue && isPrimary && (
           <div className={s.sendSection}>
             <div className={s.sendOptionsBar}>
-              {/* キュートグル（/clear などと同じく押すとハイライトするトグル） */}
-              <button
-                type="button"
-                onClick={() => handleSettingChange('addToQueue', !addToQueue)}
-                disabled={disabled}
-                className={`${s.queueToggle} ${addToQueue ? s.active : ''}`}
-                title={
-                  addToQueue
-                    ? 'キューに追加モード: ON'
-                    : 'キューに追加モード: OFF'
-                }
+              {/* 送信モード切替（即送信 / キュー）セグメント */}
+              <div
+                className={s.modeSegment}
+                role="group"
+                aria-label="送信モード"
               >
-                <svg
-                  className={s.queueIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                <button
+                  type="button"
+                  onClick={() => handleSettingChange('addToQueue', false)}
+                  disabled={disabled}
+                  className={`${s.modeButton} ${!addToQueue ? s.active : ''}`}
+                  title="即送信: 入力をそのまま AI へ送る"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-                キュー
-              </button>
+                  即送信
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSettingChange('addToQueue', true)}
+                  disabled={disabled}
+                  className={`${s.modeButton} ${addToQueue ? s.active : ''}`}
+                  title="キュー: 送信予約リストに追加（clear / commit / ループ等の設定が使える）"
+                >
+                  <svg
+                    className={s.queueIcon}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                  キュー
+                </button>
+              </div>
 
               {/* キューオプション（キューON時のみ表示） */}
               {addToQueue && (
@@ -1432,6 +1443,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       className={`${s.modelButton} ${model ? s.active : ''}`}
                       title="モデル選択"
                     >
+                      <span className={s.optLabel}>モデル</span>
                       {resolveModelLabel(model, modelOptions)}
                       <svg
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
@@ -1576,31 +1588,38 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     )}
                   </div>
 
-                  {/* /clear */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendClear', !sendClearBefore)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
-                    title="/clear: 送信前にコンテキストをクリア"
-                  >
-                    /clear
-                  </button>
+                  <div className={s.optionDivider} />
 
-                  {/* /commit */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleSettingChange('sendCommit', !sendCommitAfter)
-                    }
-                    disabled={disabled}
-                    className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
-                    title="/commit: 完了後に自動コミット"
-                  >
-                    /commit
-                  </button>
+                  {/* 送信前後の修飾（前:/clear ・ 後:/commit） */}
+                  <div className={s.optionCluster}>
+                    {/* /clear（送信前） */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSettingChange('sendClear', !sendClearBefore)
+                      }
+                      disabled={disabled}
+                      className={`${s.optionButton} ${sendClearBefore ? s.active : ''}`}
+                      title="/clear: 送信前にコンテキストをクリア"
+                    >
+                      <span className={s.optLabel}>前</span>/clear
+                    </button>
+
+                    {/* /commit（完了後） */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleSettingChange('sendCommit', !sendCommitAfter)
+                      }
+                      disabled={disabled}
+                      className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
+                      title="/commit: 完了後に自動コミット"
+                    >
+                      <span className={s.optLabel}>後</span>/commit
+                    </button>
+                  </div>
+
+                  <div className={s.optionDivider} />
 
                   {/* ループ（タップで下のアコーディオンを開閉） */}
                   <button
@@ -1634,34 +1653,36 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               )}
             </div>
 
-            {/* 送信ボタン */}
-            <button
-              type="button"
-              onClick={sendCommand}
-              disabled={disabled}
-              className={s.submitButton}
-              title={
-                addToQueue ? 'キューに追加 (Ctrl+Enter)' : '送信 (Ctrl+Enter)'
-              }
-            >
-              {/* 常に矢印アイコンを表示 */}
-              <svg
-                className={s.submitIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* 送信ボタン（入力の下・右端の固定位置） */}
+            <div className={s.sendActionRow}>
+              <button
+                type="button"
+                onClick={sendCommand}
+                disabled={disabled}
+                className={s.submitButton}
+                title={
+                  addToQueue ? 'キューに追加 (Ctrl+Enter)' : '送信 (Ctrl+Enter)'
+                }
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 10l7-7m0 0l7 7m-7-7v18"
-                />
-              </svg>
-              <span className={s.submitText}>
-                {addToQueue ? '追加' : '送信'}
-              </span>
-            </button>
+                {/* 常に矢印アイコンを表示 */}
+                <svg
+                  className={s.submitIcon}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 10l7-7m0 0l7 7m-7-7v18"
+                  />
+                </svg>
+                <span className={s.submitText}>
+                  {addToQueue ? '追加' : '送信'}
+                </span>
+              </button>
+            </div>
           </div>
         )}
 
