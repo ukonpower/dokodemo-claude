@@ -444,41 +444,63 @@
   height: 0.75rem;
 }
 
+// 添付ファイル／履歴ナビボタン: 押しやすい大きめのタップ領域で統一する
+.uploadButton,
+.historyNavButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: $radius-md;
+  color: $dark-text-muted;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.uploadIcon,
+.historyNavIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 .sendSection {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
+  flex-direction: column;
   gap: 0.375rem;
 }
 
-// 左カラム: インデント（モバイル）＋オプショングリッド
-.composerMain {
-  flex: 1 1 auto;
-  min-width: 0;
+// 上ライン: インデント（左）＋アップロード・送信（右寄せ）
+.sendTopRow {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
 }
 
-// 右カラム: アップロード（上）＋送信（下）を縦積み。送信はアップロードの真下に固定。
-.composerAside {
+// 上ライン右側: アップロード＋送信をまとめて右に寄せる
+.sendTopRowActions {
   flex-shrink: 0;
-  min-width: 3rem;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 0.375rem;
-
-  // アップロードボタンは送信ボタンの真上に中央寄せで置く
-  .toolbarRight {
-    justify-content: center;
-  }
-
-  // 送信ボタンは右カラムの残り高さいっぱいに伸ばして主役化
-  .submitButton {
-    flex: 1 1 auto;
-  }
 }
 
 .sendOptionsBar {

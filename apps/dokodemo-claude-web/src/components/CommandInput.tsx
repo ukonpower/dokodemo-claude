@@ -1129,12 +1129,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           type="button"
           onClick={handleUploadClick}
           disabled={disabled || isUploadingFile}
-          className={s.historyButton}
+          className={s.uploadButton}
           title="ファイルをアップロード（末尾にパスを追加）"
           aria-label="ファイルをアップロード"
         >
           <svg
-            className={s.historyIcon}
+            className={s.uploadIcon}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1361,11 +1361,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onClick={navigateHistoryUp}
               disabled={isInputDisabled || loadHistory().length === 0}
-              className={s.historyButton}
+              className={s.historyNavButton}
               title="前の履歴"
               aria-label="前の履歴"
             >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
@@ -1373,11 +1373,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               type="button"
               onClick={navigateHistoryDown}
               disabled={isInputDisabled || historyIndex === -1}
-              className={s.historyButton}
+              className={s.historyNavButton}
               title="次の履歴"
               aria-label="次の履歴"
             >
-              <svg className={s.historyIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -1396,10 +1396,44 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         {/* 送信セクション（プライマリのみキューUIあり） */}
         {onAddToQueue && isPrimary && (
           <div className={s.sendSection}>
-            {/* 左カラム: インデント（モバイル）＋オプショングリッド */}
-            <div className={s.composerMain}>
+            {/* 上ライン: インデント（左）＋アップロード・送信（右寄せ） */}
+            <div className={s.sendTopRow}>
               <div className={s.toolbarLeft}>{indentButtons}</div>
-              <div className={s.sendOptionsBar}>
+              <div className={s.sendTopRowActions}>
+                <div className={s.toolbarRight}>{uploadButton}</div>
+                <button
+                  type="button"
+                  onClick={sendCommand}
+                  disabled={disabled}
+                  className={s.submitButton}
+                  title={
+                    addToQueue
+                      ? 'キューに追加 (Ctrl+Enter)'
+                      : '送信 (Ctrl+Enter)'
+                  }
+                >
+                  <svg
+                    className={s.submitIcon}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 10l7-7m0 0l7 7m-7-7v18"
+                    />
+                  </svg>
+                  <span className={s.submitText}>
+                    {addToQueue ? '追加' : '送信'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* オプション: 送信モード切替＋修飾グリッド（全幅） */}
+            <div className={s.sendOptionsBar}>
               {/* 送信モード切替（即送信 / キュー）セグメント */}
               <div
                 className={s.modeSegment}
@@ -1666,39 +1700,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 </div>
               )}
               </div>
-            </div>
-
-            {/* 右カラム: アップロード（上）＋送信（下・縦に伸びる固定位置） */}
-            <div className={s.composerAside}>
-              <div className={s.toolbarRight}>{uploadButton}</div>
-              <button
-                type="button"
-                onClick={sendCommand}
-                disabled={disabled}
-                className={s.submitButton}
-                title={
-                  addToQueue ? 'キューに追加 (Ctrl+Enter)' : '送信 (Ctrl+Enter)'
-                }
-              >
-                {/* 常に矢印アイコンを表示 */}
-                <svg
-                  className={s.submitIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                  />
-                </svg>
-                <span className={s.submitText}>
-                  {addToQueue ? '追加' : '送信'}
-                </span>
-              </button>
-            </div>
           </div>
         )}
 
