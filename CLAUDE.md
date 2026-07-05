@@ -173,6 +173,38 @@ git add .
 git commit -m "機能追加: 〇〇の実装"
 ```
 
+## worktree での作業ガイド
+
+worktree に委譲されて作業する AI は、まずこの節を読むこと（ハマりどころが多い）。
+
+### 依存インストール（必須）
+
+新規 worktree には node_modules が一切無い。このリポジトリは npm workspaces のルート集約をしておらず、依存は各アプリ配下に個別インストールされる。**check-all を回す前に以下を実行する**：
+
+```bash
+cd apps/dokodemo-claude-web && npm install
+cd apps/dokodemo-claude-api && npm install
+```
+
+- これを怠ると type-check が `Cannot find module 'lucide-react'` 等で大量に失敗する（コードの型エラーではない）
+- ルートの node_modules への symlink で代用するのは不可（tsc のモジュール解決が通らない）
+
+### nx daemon の並列問題
+
+worktree 環境では `npx nx run-many --target=type-check` が nx daemon の並列リソース問題で「The operation was canceled.」になることがある（これも型エラーではない）。以下で回避する：
+
+```bash
+NX_DAEMON=false npx nx run-many --target=type-check --parallel=1
+```
+
+### hook 依存機能の検証（キュー・ループ等）
+
+dokodemo-claude の Stop/UserPromptSubmit hook は `~/.claude/settings.json`（グローバル）に書かれ、URL は 1 インスタンス分のみ。本体（prod）と worktree dev サーバを併走させると、**hook は片方にしか届かない**。
+
+- worktree 側でキュー/ループなど hook 依存機能を検証する場合、settings.json の各 hook エントリに worktree 側 URL（例: `http://localhost:8101`。`DC_USE_HTTPS=false` なら **http**）のコマンドを 2 本目として併記する
+- 注意: UI から「hooks 追加」を実行すると、既存の dokodemo hook をパス一致で両方削除して 1 本に戻すため、再併記が必要になる
+- 症状の見え方: hook は届いているのにキューが進まない・ループが継続しない（hook が本体側に流れている）
+
 ## 開発・運用ガイドライン
 
 ### Git 運用方針
