@@ -308,8 +308,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
 
-    // モデル選択肢（組み込み + API 取得 + カスタム）
-    const { options: modelOptions, anthropicStatus, addCustomModel, removeCustomModel } =
+    // モデル選択肢（組み込み + カスタム）
+    const { options: modelOptions, addCustomModel, removeCustomModel } =
       useModelOptions();
 
     // モデル選択のドロップダウン開閉状態
@@ -1560,14 +1560,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                             )}
                           </div>
                         ))}
-
-                        {/* API 取得状態の注記 */}
-                        {anthropicStatus === 'unconfigured' && (
-                          <div className={s.modelHint}>API未設定</div>
-                        )}
-                        {anthropicStatus === 'error' && (
-                          <div className={s.modelHint}>API取得失敗</div>
-                        )}
 
                         <div className={s.modelDropdownSeparator} />
 
