@@ -546,6 +546,34 @@
   }
 }
 
+// AI CLI 全画面表示: xterm 単体ではなく、入力欄（CommandInput）と操作ボタン
+// （KeyboardButtons）を含む cliInnerRow ごと画面全体に固定表示する。
+// 拡大中もスマホと同じプロンプト入力・矢印/Enter/ESC 等の補助キー操作ができる
+.cliInnerRowFullscreen {
+  position: fixed;
+  inset: 0;
+  // RepoHeader (z-index: 60) より上に出す
+  z-index: 100;
+  background-color: $dark-bg-secondary;
+  padding: 0.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @include sm-up {
+    padding: 1rem;
+  }
+
+  // 入力欄・ボタン群が縦に伸びても xterm が潰れないよう最低高さを確保し、
+  // 画面に収まらない分はコンテナ側のスクロールで逃がす
+  .cliMainCol {
+    min-height: auto;
+  }
+
+  .cliOutputWrapper {
+    min-height: 12rem;
+  }
+}
+
 .cliMainCol {
   flex: 1 1 0%;
   min-height: 0;
