@@ -520,6 +520,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.375rem;
+
+  // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
+  @include lg-up {
+    max-width: 26rem;
+  }
 }
 
 // 全幅セル（ループ）。グリッドの全カラムをまたぐ
@@ -980,8 +985,9 @@
   animation: loopAccordionOpen $transition-normal $transition-easing;
 
   // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
+  // （幅はキューオプション行 .optionGrid の上限に揃える）
   @include lg-up {
-    max-width: 22rem;
+    max-width: 26rem;
   }
 }
 
