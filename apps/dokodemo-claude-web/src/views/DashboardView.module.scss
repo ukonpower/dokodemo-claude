@@ -7,6 +7,12 @@
   // 下部固定の RepositorySwitcher 分の余白
   padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0));
 
+  // モバイルでは RepositorySwitcher が画面上部固定になる
+  @include sm-down {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-top: 3rem;
+  }
+
   @include md-up {
     // PC では root を画面高さに固定し、main 内部スクロールにする
     height: 100vh;
@@ -47,6 +53,11 @@
   position: sticky;
   top: 0;
   z-index: 50;
+
+  // モバイルでは画面上部固定の RepositorySwitcher (高さ 3rem) の下に張り付く
+  @include sm-down {
+    top: 3rem;
+  }
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -232,6 +243,11 @@
   // 画面下部固定の RepositorySwitcher (高さ 3rem) の上に載せる
   bottom: 3rem;
   z-index: 40;
+
+  // モバイルでは RepositorySwitcher が画面上部固定になるため最下端に張り付く
+  @include sm-down {
+    bottom: 0;
+  }
   background-color: $dark-bg-secondary;
   border-top: 1px solid $dark-border;
   padding: 0.5rem 0.75rem;
