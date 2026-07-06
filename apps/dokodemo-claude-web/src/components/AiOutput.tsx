@@ -376,6 +376,31 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
         return;
       }
 
+      // 履歴の全置換を検知（プライマリの provider 切替で別 provider の履歴が
+      // 届いた場合など、既描画メッセージと 1 件も重ならない）: 画面を
+      // リセットして全メッセージを描き直す
+      if (
+        lastMessageIds.current.length > 0 &&
+        !messages.some((m) => lastMessageContents.current.has(m.id))
+      ) {
+        xtermInstance.current.reset();
+        hasShownInitialMessage.current = false;
+        messages.forEach((message) => {
+          xtermInstance.current?.write(
+            filterTerminalResponses(message.content)
+          );
+        });
+        lastMessageIds.current = currentMessageIds;
+        lastMessageContents.current.clear();
+        messages.forEach((m) =>
+          lastMessageContents.current.set(m.id, m.content)
+        );
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+        return;
+      }
+
       // 新しいメッセージまたは内容が更新されたメッセージのみを抽出
       const newMessages: AiOutputLine[] = [];
 
@@ -422,6 +447,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       messages,
       currentProvider,
       renderInitialMessages,
+      scrollToBottom,
       scrollToBottomIfAtBottom,
     ]);
 
