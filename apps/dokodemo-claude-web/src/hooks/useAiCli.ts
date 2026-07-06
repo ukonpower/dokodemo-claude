@@ -18,6 +18,13 @@ import {
 } from '../utils/last-tab-storage';
 
 /**
+ * Commit / Preview ボタンが送信するコマンド。
+ * キュー追加（KeyboardButtons の分割ボタン）でも同じ文字列を使う。
+ */
+export const COMMIT_COMMAND = '/dokodemo-claude-tools:commit-push';
+export const PREVIEW_COMMAND = '/dokodemo-claude-tools:dokodemo-preview';
+
+/**
  * useAiCli フックの戻り値
  */
 export interface UseAiCliReturn {
@@ -458,11 +465,11 @@ export function useAiCli(
   }, [sendCommandToActive]);
 
   const sendCommit = useCallback(() => {
-    sendCommandToActive('/dokodemo-claude-tools:commit-push', 'commit');
+    sendCommandToActive(COMMIT_COMMAND, 'commit');
   }, [sendCommandToActive]);
 
   const sendPreview = useCallback(() => {
-    sendCommandToActive('/dokodemo-claude-tools:dokodemo-preview', 'prompt');
+    sendCommandToActive(PREVIEW_COMMAND, 'prompt');
   }, [sendCommandToActive]);
 
   const sendResume = useCallback(() => {

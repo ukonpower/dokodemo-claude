@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { CustomAiButton, CustomAiButtonScope } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import { COMMIT_COMMAND, PREVIEW_COMMAND } from '../hooks/useAiCli';
 import s from './KeyboardButtons.module.scss';
 
 interface KeyboardButtonsProps {
@@ -18,6 +19,8 @@ interface KeyboardButtonsProps {
   onSendAltT?: () => void;
   onChangeModel?: (model: string) => void;
   onSendCommit?: () => void;
+  /** コマンドをプロンプトキューに追加する（プライマリインスタンス表示時のみ渡される） */
+  onQueueCommand?: (command: string) => void;
   currentProvider?: string;
   providerInfo?: {
     clearTitle: string;
@@ -218,6 +221,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onSendAltT,
   onChangeModel,
   onSendCommit,
+  onQueueCommand,
   currentProvider = 'claude',
   providerInfo,
   currentRepositoryPath,
@@ -319,9 +323,16 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
             </button>
           )}
           {isClaude && onSendCommit && (
-            <button type="button" onClick={onSendCommit} disabled={disabled} className={s.commitButton} title="コミット (/commit)">
-              Commit
-            </button>
+            <div className={s.splitButton}>
+              <button type="button" onClick={onSendCommit} disabled={disabled} className={onQueueCommand ? `${s.commitButton} ${s.splitMain}` : s.commitButton} title="コミット (/commit)">
+                Commit
+              </button>
+              {onQueueCommand && (
+                <button type="button" onClick={() => onQueueCommand(COMMIT_COMMAND)} disabled={disabled} className={`${s.queueAddButton} ${s.queueAddGreen}`} title={`キューに追加: ${COMMIT_COMMAND}`} aria-label="Commit をキューに追加">
+                  ＋
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -388,9 +399,16 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
                   </button>
                 )}
                 {isClaude && onSendPreview && (
-                  <button type="button" onClick={onSendPreview} disabled={disabled} className={s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
-                    Preview
-                  </button>
+                  <div className={s.splitButton}>
+                    <button type="button" onClick={onSendPreview} disabled={disabled} className={onQueueCommand ? `${s.grayButton} ${s.splitMain}` : s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
+                      Preview
+                    </button>
+                    {onQueueCommand && (
+                      <button type="button" onClick={() => onQueueCommand(PREVIEW_COMMAND)} disabled={disabled} className={`${s.queueAddButton} ${s.queueAddGray}`} title={`キューに追加: ${PREVIEW_COMMAND}`} aria-label="Preview をキューに追加">
+                        ＋
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -403,20 +421,33 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
                   const scopeLabel =
                     btn.scope === 'global' ? '共通' : 'プロジェクト固有';
                   return (
-                    <button
-                      key={btn.id}
-                      type="button"
-                      onClick={() => onExecuteCustomButton(btn.command)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setDialogState({ mode: 'edit', button: btn });
-                      }}
-                      disabled={disabled}
-                      className={s.customButton}
-                      title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
-                    >
-                      {btn.name}
-                    </button>
+                    <div key={btn.id} className={s.splitButton}>
+                      <button
+                        type="button"
+                        onClick={() => onExecuteCustomButton(btn.command)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setDialogState({ mode: 'edit', button: btn });
+                        }}
+                        disabled={disabled}
+                        className={onQueueCommand ? `${s.customButton} ${s.splitMain}` : s.customButton}
+                        title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
+                      >
+                        {btn.name}
+                      </button>
+                      {onQueueCommand && (
+                        <button
+                          type="button"
+                          onClick={() => onQueueCommand(btn.command)}
+                          disabled={disabled}
+                          className={`${s.queueAddButton} ${s.queueAddCyan}`}
+                          title={`キューに追加: ${btn.command}`}
+                          aria-label={`${btn.name} をキューに追加`}
+                        >
+                          ＋
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
                 <button

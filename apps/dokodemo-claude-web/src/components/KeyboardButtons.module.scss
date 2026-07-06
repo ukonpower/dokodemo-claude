@@ -36,6 +36,7 @@
 
   // 各コマンドボタンを統一感のある幅に
   & > button,
+  & > .splitButton > button:first-child,
   & > .modelWrapper > button {
     min-width: 4.5rem;
   }
@@ -426,6 +427,73 @@
   &:hover {
     color: $dark-text-primary;
     border-color: $dark-text-muted;
+  }
+}
+
+// 分割ボタン（メイン=即送信 / ＋=キューに追加）
+.splitButton {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// 分割時のメインボタン: 右側を＋セグメントに接続する
+.splitMain {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  min-width: 0;
+}
+
+// 「キューに追加」セグメント。メインボタンの右辺ボーダーが区切り線になる
+.queueAddButton {
+  @extend %btnBase;
+  width: 1.875rem;
+  padding: 0;
+  flex: 0 0 auto;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-width: 0;
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.queueAddCyan {
+  border-color: $accent-cyan;
+
+  &:hover {
+    border-color: $accent-cyan-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-cyan;
+  }
+}
+
+.queueAddGreen {
+  border-color: $accent-green;
+
+  &:hover {
+    border-color: $accent-green-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-green;
+  }
+}
+
+.queueAddGray {
+  border-color: $gray-600;
+
+  &:hover {
+    border-color: $gray-500;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $gray-500;
   }
 }
 

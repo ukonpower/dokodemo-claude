@@ -468,6 +468,14 @@ export function ProjectView({
     [onAddToQueue]
   );
 
+  // コマンドボタン類（カスタム / Commit / Preview）の「＋」からのキュー追加
+  const handleQueueCommand = useCallback(
+    (command: string) => {
+      onAddToQueue(command, false, false);
+    },
+    [onAddToQueue]
+  );
+
   const currentRid = repositoryIdMap.getRid(currentRepo);
 
   return (
@@ -696,6 +704,9 @@ export function ProjectView({
                     onSendAltT={onSendAltT}
                     onChangeModel={onChangeModel}
                     onSendCommit={onSendCommit}
+                    onQueueCommand={
+                      activeInstance?.isPrimary ? handleQueueCommand : undefined
+                    }
                     currentProvider={activeInstance?.provider ?? 'claude'}
                     providerInfo={{
                       clearTitle: 'CLI をクリア (/clear)',
