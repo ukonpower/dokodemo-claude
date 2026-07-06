@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
@@ -435,6 +435,35 @@ export function ProjectView({
   // xterm の高さを維持したまま下方向にパネルが伸びるようにする
   const [panelExtraHeight, setPanelExtraHeight] = useState(0);
 
+  // AI CLI パネルの全画面表示状態。xterm 単体ではなく、入力欄（CommandInput）と
+  // 操作ボタン（KeyboardButtons）を含む cliInnerRow ごと全画面化することで、
+  // 拡大中もスマホと同じプロンプト入力・補助キー操作を維持する
+  const [isCliFullscreen, setIsCliFullscreen] = useState(false);
+
+  const handleToggleCliFullscreen = useCallback(() => {
+    setIsCliFullscreen((prev) => !prev);
+  }, []);
+
+  // ESC キーで全画面解除。ただし textarea / input フォーカス中の ESC は
+  // CLI への ESC 送信（プロンプト中断等）に使われるため対象外にする
+  // （xterm のヘルパー textarea もここで除外される）
+  useEffect(() => {
+    if (!isCliFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')
+      ) {
+        return;
+      }
+      setIsCliFullscreen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isCliFullscreen]);
+
   // ハンドラ
   const handleSendCommand = useCallback(
     (command: string) => {
@@ -611,7 +640,9 @@ export function ProjectView({
             </div>
 
             <div className={s.cliBody}>
-              <div className={s.cliInnerRow}>
+              <div
+                className={`${s.cliInnerRow} ${isCliFullscreen ? s.cliInnerRowFullscreen : ''}`}
+              >
                 <div className={s.cliMainCol}>
                   <div className={s.cliOutputWrapper}>
                     <AiOutput
@@ -631,6 +662,8 @@ export function ProjectView({
                       }
                       fontSize={terminalFontSize}
                       onFileDrop={handleAiTerminalFileDrop}
+                      isFullscreen={isCliFullscreen}
+                      onToggleFullscreen={handleToggleCliFullscreen}
                     />
                   </div>
 

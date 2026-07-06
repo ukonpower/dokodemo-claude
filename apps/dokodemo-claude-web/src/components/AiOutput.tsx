@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown, Maximize2, X } from 'lucide-react';
+import { ArrowDown, Maximize2, Minimize2 } from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 import { getProviderInfo } from '../utils/ai-provider-info';
@@ -55,6 +55,10 @@ interface AiOutputProps {
   fontSize?: number;
   /** ターミナル上にファイルがドロップされた際のコールバック */
   onFileDrop?: (files: File[]) => void;
+  /** 全画面表示中かどうか（親側で入力欄を含むパネル全体を全画面化する） */
+  isFullscreen?: boolean;
+  /** 全画面表示の切り替えハンドラ */
+  onToggleFullscreen?: () => void;
 }
 
 /**
@@ -81,6 +85,8 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       onProviderChange,
       fontSize,
       onFileDrop,
+      isFullscreen = false,
+      onToggleFullscreen,
     },
     ref
   ) => {
@@ -94,7 +100,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
     const currentProviderId = useRef<string>('');
     const hasShownInitialMessage = useRef<boolean>(false);
     const [isReloading, setIsReloading] = useState<boolean>(false);
-    const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
     // プロバイダー情報を取得
     const providerInfo = getProviderInfo(currentProvider);
@@ -190,22 +195,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
         }
       }
     }, [onReload, onResize]);
-
-    /**
-     * ESCキーで全画面解除
-     */
-    useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && isFullscreen) {
-          setIsFullscreen(false);
-        }
-      };
-
-      if (isFullscreen) {
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-      }
-    }, [isFullscreen]);
 
     /**
      * 全画面切替時にターミナルをリサイズ
@@ -491,14 +480,22 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
                   />
                 </svg>
               </button>
-              {/* 全画面ボタン */}
-              <button
-                onClick={() => setIsFullscreen(true)}
-                className={s.iconButton}
-                title="全画面表示"
-              >
-                <Maximize2 size={14} />
-              </button>
+              {/* 全画面ボタン（入力欄を含むパネル全体を全画面化） */}
+              {onToggleFullscreen && (
+                <button
+                  onClick={onToggleFullscreen}
+                  className={s.iconButton}
+                  title={
+                    isFullscreen ? '全画面を閉じる (ESC)' : '全画面表示'
+                  }
+                >
+                  {isFullscreen ? (
+                    <Minimize2 size={14} />
+                  ) : (
+                    <Maximize2 size={14} />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -562,49 +559,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             </div>
           )}
         </div>
-
-        {/* 全画面オーバーレイ */}
-        {isFullscreen && (
-          <div className={s.fullscreenOverlay}>
-            {/* 全画面ヘッダー */}
-            <div className={s.fullscreenHeader}>
-              <div className={s.fullscreenHeaderLeft}>
-                <span className={s.fullscreenLabel}>
-                  {providerInfo.headerLabel} - 全画面表示
-                </span>
-              </div>
-              <button
-                onClick={() => setIsFullscreen(false)}
-                className={s.fullscreenCloseButton}
-                title="全画面を閉じる (ESC)"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            {/* 全画面ターミナル */}
-            <div className={s.fullscreenTerminal}>
-              <TerminalOut
-                onKeyInput={onKeyInput}
-                onTerminalReady={handleTerminalReady}
-                onResize={handleTerminalOutResize}
-                disableStdin={false}
-                cursorBlink={false}
-                fontSize={fontSize}
-                onFileDrop={onFileDrop}
-              />
-              {/* 全画面時のスクロールボタン */}
-              <div className={s.fullscreenScrollWrapper}>
-                <button
-                  onClick={scrollToBottom}
-                  className={s.fullscreenScrollButton}
-                  title="一番下までスクロール"
-                >
-                  <ArrowDown size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
