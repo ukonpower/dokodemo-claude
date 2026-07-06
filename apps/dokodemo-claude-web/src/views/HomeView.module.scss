@@ -6,6 +6,12 @@
 .hasSwitcher {
   // 画面下部固定の RepositorySwitcher 分の余白
   padding-bottom: 3rem;
+
+  // モバイルでは RepositorySwitcher が画面上部固定になる
+  @include sm-down {
+    padding-bottom: 0;
+    padding-top: 3rem;
+  }
 }
 
 .wrapper {
