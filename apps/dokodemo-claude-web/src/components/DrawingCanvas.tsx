@@ -114,6 +114,13 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [isReady, setIsReady] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // onClose は親の再レンダーごとに identity が変わりうる（インライン関数）。
+  // 初期化 effect の依存に入れるとキャンバスが描画中にリセットされるため ref 経由で参照する
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   const applyView = useCallback(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
@@ -187,7 +194,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       img.onerror = () => {
         if (cancelled) return;
         window.alert('画像の読み込みに失敗しました');
-        onClose();
+        onCloseRef.current();
       };
       img.src = backgroundImageUrl;
     } else {
@@ -208,7 +215,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       bgImageRef.current = null;
       setIsReady(false);
     };
-  }, [isOpen, backgroundImageUrl, redrawAll, fitView, onClose]);
+  }, [isOpen, backgroundImageUrl, redrawAll, fitView]);
 
   // 開いている間は背面のスクロールを止める（ImageLightbox と同じ流儀）
   useEffect(() => {
