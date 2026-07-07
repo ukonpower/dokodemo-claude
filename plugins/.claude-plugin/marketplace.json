@@ -12,13 +12,14 @@
       "name": "dokodemo-claude-tools",
       "source": "./dokodemo-claude-tools",
       "description": "dokodemo-claude で利用する統合ツールセット（MCP 経由の worktree/terminal/prompt/preview, workflow, git など）",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "author": {
         "name": "dokodemo-claude"
       },
       "keywords": [
         "dokodemo-claude",
         "preview",
+        "screenshot",
         "workflow",
         "git"
       ]
