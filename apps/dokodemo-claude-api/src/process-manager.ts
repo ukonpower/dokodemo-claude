@@ -95,6 +95,10 @@ export class ProcessManager extends EventEmitter {
     this.aiSessionManager.on('ai-instance-closed', (data) =>
       this.emit('ai-instance-closed', data)
     );
+    // プライマリの provider 切替で表示対象の出力履歴が差し替わったとき
+    this.aiSessionManager.on('ai-history-replaced', (data) =>
+      this.emit('ai-history-replaced', data)
+    );
 
     this.processMonitor = new ProcessMonitor(this.processRegistry, {
       onAiSessionCleaned: (sessionId, repositoryPath) => {
@@ -171,31 +175,13 @@ export class ProcessManager extends EventEmitter {
       },
       ensureSession: async (repositoryPath: string, provider: AiProvider) => {
         const repositoryName = path.basename(repositoryPath);
-        const primary = this.aiSessionManager.getPrimaryInstance(
-          repositoryPath
-        );
-
-        if (primary && primary.provider !== provider) {
-          // プライマリの provider を強制的に合わせる
-          const { instance, session, coldStart } =
-            await this.aiSessionManager.switchPrimaryProvider(
-              repositoryPath,
-              provider,
-              repositoryName
-            );
-          return {
-            id: session.id,
-            repositoryPath: instance.repositoryPath,
-            provider: instance.provider,
-            coldStart,
-          };
-        }
-
+        // switchPrimaryProvider がプライマリ未作成／同一 provider／切替の
+        // 全ケースを吸収する（対象 provider のセッションが無いときだけ spawn）
         const { instance, session, coldStart } =
-          await this.aiSessionManager.ensurePrimaryInstance(
+          await this.aiSessionManager.switchPrimaryProvider(
             repositoryPath,
-            repositoryName,
-            provider
+            provider,
+            repositoryName
           );
         return {
           id: session.id,
@@ -222,9 +208,11 @@ export class ProcessManager extends EventEmitter {
         const primary = this.aiSessionManager.getPrimaryInstance(
           repositoryPath
         );
-        if (!primary || primary.provider !== provider) return '';
+        if (!primary) return '';
+        // 表示中 provider に関わらず、対象 provider の履歴バッファを参照する
         const history = this.aiSessionManager.getOutputHistory(
-          primary.instanceId
+          primary.instanceId,
+          provider
         );
         // ANSI 除去 + 末尾 200 行 + 8000 文字上限
         // ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex

@@ -1062,6 +1062,19 @@ processManager.on('ai-exit', (data) => {
   });
 });
 
+// プライマリの provider 切替: 表示対象の出力履歴が切替先 provider のものに
+// 差し替わるため、全クライアント（ダッシュボード含む）へ履歴を配信して
+// ローカル表示を置き換えさせる
+processManager.on('ai-history-replaced', (data) => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  emitToParentScopedClients(data.repositoryPath, 'ai-output-history', {
+    rid,
+    instanceId: data.instanceId,
+    provider: data.provider,
+    history: data.history,
+  });
+});
+
 // AI インスタンス系イベント: 全クライアントに broadcast（タブ構成共有）
 processManager.on('ai-instance-created', (data) => {
   const rid = repositoryIdManager.tryGetId(data.instance.repositoryPath) || '';
