@@ -514,8 +514,8 @@
   flex-direction: column;
   // SP時は xterm をコンテナ端まで到達させるため横方向パディングを 0 に
   // (cliMainCol/cliInnerRow が overflow:hidden なので子要素のネガティブマージンでは脱出できない)
-  padding: 0.375rem 0;
-  gap: 0.375rem;
+  padding: 0.25rem 0;
+  gap: 0.25rem;
   overflow: hidden;
 
   @include sm-up {
@@ -559,6 +559,14 @@
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
+
+  // SP はページ全体が縦スクロールでセクション高がコンテンツ主導のため、
+  // flex 配分だと xterm の行数が自身の高さを決めてしまい広がらない。
+  // ビューポート比の固定高で明示的にターミナル領域を確保する
+  @include sm-down {
+    flex: 0 0 auto;
+    height: 50dvh;
+  }
 }
 
 .cliInputWrapper {
@@ -569,7 +577,7 @@
   // SP時は AI出力との間隔を詰めて操作系の縦余白も削減
   // 横方向は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
   @include sm-down {
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
