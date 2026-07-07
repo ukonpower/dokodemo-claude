@@ -34,6 +34,8 @@ interface FileManagerProps {
   onDelete: (filename: string) => void;
   readOnly?: boolean;
   emptyMessage?: string;
+  /** 画像に赤入れする（Lightbox から呼ばれる。未指定なら赤入れボタン非表示） */
+  onAnnotate?: (imageUrl: string) => void;
 }
 
 export interface FileManagerHandle {
@@ -53,7 +55,7 @@ function getDisplayName(filename: string): string {
 }
 
 const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function FileManager(
-  { rid, files, onRefresh, onDelete, readOnly = false, emptyMessage },
+  { rid, files, onRefresh, onDelete, readOnly = false, emptyMessage, onAnnotate },
   ref
 ) {
   const [isDragging, setIsDragging] = useState(false);
@@ -212,6 +214,15 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
   const handleLightboxDelete = useCallback(
     (filename: string) => { onDelete(filename); },
     [onDelete]
+  );
+
+  // 赤入れ開始時は Lightbox を閉じてお絵かきキャンバスに引き継ぐ
+  const handleLightboxAnnotate = useCallback(
+    (item: LightboxItem) => {
+      setLightboxOpen(false);
+      onAnnotate?.(item.imageUrl);
+    },
+    [onAnnotate]
   );
 
   const getLightboxIndex = useCallback(
@@ -443,6 +454,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
         onIndexChange={setLightboxIndex}
         onCopyPath={copyToClipboard}
         onDelete={handleLightboxDelete}
+        onAnnotate={onAnnotate ? handleLightboxAnnotate : undefined}
         copiedPath={copiedText}
       />
 

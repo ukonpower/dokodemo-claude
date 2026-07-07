@@ -12,6 +12,7 @@ import { useModelOptions } from '../hooks/useModelOptions';
 import { resolveModelLabel } from '../utils/models';
 import LoopSettingsFields from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
+import DrawingCanvas from './DrawingCanvas';
 import s from './CommandInput.module.scss';
 
 /** fixed 配置のドロップダウンが画面外にはみ出さないよう left を収める */
@@ -813,7 +814,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         }
         if (paths.length === 0) return;
 
-        insertAtSelection(paths.join(' '));
+        // 前後のテキストと空白なしで連結されるとパスとして読めなくなるため、
+        // 挿入位置の前後が非空白ならスペースを挟む
+        const el = inputRef.current;
+        const before = el ? el.value.slice(0, el.selectionStart) : '';
+        const after = el ? el.value.slice(el.selectionEnd) : '';
+        const prefix = before && !/\s$/.test(before) ? ' ' : '';
+        const suffix = after && !/^\s/.test(after) ? ' ' : '';
+        insertAtSelection(prefix + paths.join(' ') + suffix);
       },
       [onPasteFile, insertAtSelection]
     );
@@ -836,6 +844,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const handleUploadClick = useCallback(() => {
       fileInputRef.current?.click();
     }, []);
+
+    // お絵かきキャンバス（白紙スケッチ）の開閉
+    const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+
+    // スケッチ完了時：PNG をアップロードしてパスをカーソル位置に挿入
+    const handleDrawingComplete = useCallback(
+      (file: File) => {
+        setIsDrawingOpen(false);
+        void insertFilesAsPaths([file]);
+      },
+      [insertFilesAsPaths]
+    );
 
     // 末尾にパス文字列を追記（必要に応じてスペース区切り）
     const appendPathsToEnd = useCallback((paths: string[]) => {
@@ -1125,6 +1145,28 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onChange={handleFileSelected}
           className={s.hiddenFileInput}
         />
+        <button
+          type="button"
+          onClick={() => setIsDrawingOpen(true)}
+          disabled={disabled || isUploadingFile}
+          className={s.uploadButton}
+          title="スケッチを描いて添付"
+          aria-label="スケッチを描いて添付"
+        >
+          <svg
+            className={s.uploadIcon}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+        </button>
         <button
           type="button"
           onClick={handleUploadClick}
@@ -1768,6 +1810,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             </button>
           </div>
         )}
+
+        {/* お絵かきキャンバス（白紙スケッチ） */}
+        <DrawingCanvas
+          isOpen={isDrawingOpen}
+          onClose={() => setIsDrawingOpen(false)}
+          onComplete={handleDrawingComplete}
+        />
       </div>
     );
   }

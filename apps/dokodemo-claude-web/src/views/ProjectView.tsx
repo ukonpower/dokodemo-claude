@@ -49,6 +49,7 @@ import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import TabbedPanel from '../components/TabbedPanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
 interface ProjectViewProps {
@@ -449,6 +450,21 @@ export function ProjectView({
     void textInputRef.current?.insertFiles(files);
   }, []);
 
+  // 赤入れ対象の画像URL（null なら閉じる）
+  const [annotateImageUrl, setAnnotateImageUrl] = useState<string | null>(
+    null
+  );
+
+  const handleAnnotateImage = useCallback((imageUrl: string) => {
+    setAnnotateImageUrl(imageUrl);
+  }, []);
+
+  // 赤入れ完了：合成PNGをアップロードしてプロンプト入力欄にパスを挿入
+  const handleAnnotateComplete = useCallback((file: File) => {
+    setAnnotateImageUrl(null);
+    void textInputRef.current?.insertFiles([file]);
+  }, []);
+
   const handleAddToQueue = useCallback(
     (
       command: string,
@@ -750,6 +766,7 @@ export function ProjectView({
                     diffSummaryError={diffSummaryError}
                     onRefreshDiffSummary={onRefreshDiffSummary}
                     onDiffFileClick={onDiffFileClick}
+                    onAnnotateImage={handleAnnotateImage}
                     onExpandedExtraHeightChange={setPanelExtraHeight}
                   />
                 </div>
@@ -1133,6 +1150,14 @@ export function ProjectView({
           </div>
         </div>
       )}
+
+      {/* 赤入れキャンバス（Lightbox の赤入れボタンから開く） */}
+      <DrawingCanvas
+        isOpen={annotateImageUrl !== null}
+        backgroundImageUrl={annotateImageUrl}
+        onClose={() => setAnnotateImageUrl(null)}
+        onComplete={handleAnnotateComplete}
+      />
     </div>
   );
 }

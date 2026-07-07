@@ -78,6 +78,8 @@ interface TabbedPanelProps {
   files: UploadedFileInfo[];
   onRefreshFiles: () => void;
   onDeleteFile: (filename: string) => void;
+  /** 画像に赤入れする（Lightbox 経由。未指定なら非表示） */
+  onAnnotateImage?: (imageUrl: string) => void;
 
   // Git
   diffSummary: GitDiffSummary | null;
@@ -380,6 +382,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               files={userFiles}
               onRefresh={props.onRefreshFiles}
               onDelete={props.onDeleteFile}
+              onAnnotate={props.onAnnotateImage}
             />
           )}
           {activeTab === 'preview' && (
@@ -390,6 +393,7 @@ const TabbedPanel: React.FC<TabbedPanelProps> = (props) => {
               onDelete={props.onDeleteFile}
               readOnly
               emptyMessage="Claude がアップロードした画像がここに表示されます"
+              onAnnotate={props.onAnnotateImage}
             />
           )}
           {activeTab === 'md' && (
