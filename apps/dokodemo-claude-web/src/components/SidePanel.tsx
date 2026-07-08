@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Send, Inbox, GitBranch, FileText } from 'lucide-react';
+import { useMediaQuery } from '../hooks';
 import s from './SidePanel.module.scss';
 import type { UploadedFileInfo, GitDiffSummary } from '../types';
 import FileManager from './FileManager';
@@ -82,35 +83,13 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     [files]
   );
 
-  const [isMobile, setIsMobile] = useState<boolean>(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia(MOBILE_MEDIA_QUERY).matches
-      : false
-  );
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   // lg 以上（右列配置）判定。true なら縦積み表示、false ならタブ切替表示
-  const [isLg, setIsLg] = useState<boolean>(() =>
-    typeof window !== 'undefined'
-      ? window.matchMedia(LG_MEDIA_QUERY).matches
-      : false
-  );
+  const isLg = useMediaQuery(LG_MEDIA_QUERY);
   const [activeTab, setActiveTab] = useState<SectionId>(() =>
     getStoredTab(currentRepo)
   );
   const [mdView, setMdView] = useState<'list' | 'preview'>('list');
-
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const handler = (e: MediaQueryListEvent): void => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  useEffect(() => {
-    const mq = window.matchMedia(LG_MEDIA_QUERY);
-    const handler = (e: MediaQueryListEvent): void => setIsLg(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   // リポジトリ切り替え時にアクティブタブを復元
   useEffect(() => {
