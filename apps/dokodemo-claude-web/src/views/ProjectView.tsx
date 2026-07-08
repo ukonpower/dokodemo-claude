@@ -47,7 +47,7 @@ import WorktreeTabs from '../components/WorktreeTabs';
 import WorktreeOperations from '../components/WorktreeOperations';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
-import TabbedPanel from '../components/TabbedPanel';
+import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
@@ -432,10 +432,6 @@ export function ProjectView({
   const textInputRef = useRef<TextInputRef>(null);
   const aiOutputRef = useRef<AiOutputRef>(null);
 
-  // TabbedPanel 展開時の上乗せ高さ（px）。cliSection の min-height に加算し、
-  // xterm の高さを維持したまま下方向にパネルが伸びるようにする
-  const [panelExtraHeight, setPanelExtraHeight] = useState(0);
-
   // ハンドラ
   const handleSendCommand = useCallback(
     (command: string) => {
@@ -592,10 +588,7 @@ export function ProjectView({
           })()}
 
           {/* AI CLI セクション */}
-          <section
-            className={s.cliSection}
-            style={{ '--panel-extra-height': `${panelExtraHeight}px` } as React.CSSProperties}
-          >
+          <section className={s.cliSection}>
             <div className={s.cliTabBar}>
               <AiInstanceTabs
                 instances={aiInstances}
@@ -669,7 +662,38 @@ export function ProjectView({
                       onOpenWorkflowFile={onOpenWorkflowFile}
                     />
                   </div>
-                  {/* キューリスト（プライマリがアクティブな時のみ表示。ループ終了バナーがある間も表示） */}
+
+                  {/* キーボードボタン（入力欄の下・メイン列内） */}
+                  <div className={s.keyboardArea}>
+                    <KeyboardButtons
+                      disabled={!isConnected || !currentRepo || !activeInstance}
+                      onSendArrowKey={onSendArrowKey}
+                      onSendEnter={() => textInputRef.current?.submit()}
+                      onSendInterrupt={onSendInterrupt}
+                      onSendEscape={onSendEscape}
+                      onSendSpace={onSendSpace}
+                      onClearAi={onSendClear}
+                      onSendResume={onSendResume}
+                      onSendUsage={onSendUsage}
+                      onSendPreview={onSendPreview}
+                      onSendMode={onSendMode}
+                      onSendAltT={onSendAltT}
+                      onChangeModel={onChangeModel}
+                      onSendCommit={onSendCommit}
+                      currentProvider={activeInstance?.provider ?? 'claude'}
+                      providerInfo={{
+                        clearTitle: 'CLI をクリア (/clear)',
+                      }}
+                      currentRepositoryPath={currentRepo}
+                      customButtons={customAiButtons}
+                      onExecuteCustomButton={handleSendCommand}
+                      onCreateCustomButton={onCreateCustomAiButton}
+                      onUpdateCustomButton={onUpdateCustomAiButton}
+                      onDeleteCustomButton={onDeleteCustomAiButton}
+                    />
+                  </div>
+
+                  {/* キューリスト（デスクトップ: プライマリ時のみ。ループ終了バナーがある間も表示） */}
                   {activeInstance?.isPrimary &&
                     (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.desktopQueue}>
@@ -694,83 +718,53 @@ export function ProjectView({
                       />
                     </div>
                   )}
+
+                  {/* キューリスト（モバイル: プライマリ時のみ。ループ終了バナーがある間も表示） */}
+                  {activeInstance?.isPrimary &&
+                    (promptQueue.length > 0 || loopEndInfo) && (
+                    <div className={s.mobileQueue}>
+                      <PromptQueue
+                        queue={promptQueue}
+                        isProcessing={isQueueProcessing}
+                        isPaused={isQueuePaused}
+                        currentItemId={currentQueueItemId}
+                        onRemove={onRemoveFromQueue}
+                        onUpdate={onUpdateQueue}
+                        onReorder={onReorderQueue}
+                        onPause={onPauseQueue}
+                        onResume={onResumeQueue}
+                        onReset={onResetQueue}
+                        onCancelCurrentItem={onCancelCurrentItem}
+                        onForceSend={onForceSend}
+                        onRequeue={onRequeueItem}
+                        onStopLoop={onStopLoop}
+                        onApproveLoop={onApproveLoop}
+                        loopEndInfo={loopEndInfo}
+                        onDismissLoopEnd={onDismissLoopEnd}
+                      />
+                    </div>
+                  )}
                 </div>
 
+                {/* 右列：SidePanel（lg 未満では縦積み最下部・全幅） */}
                 <div className={s.sideCol}>
-                  <KeyboardButtons
-                    disabled={!isConnected || !currentRepo || !activeInstance}
-                    onSendArrowKey={onSendArrowKey}
-                    onSendEnter={() => textInputRef.current?.submit()}
-                    onSendInterrupt={onSendInterrupt}
-                    onSendEscape={onSendEscape}
-                    onSendSpace={onSendSpace}
-                    onClearAi={onSendClear}
-                    onSendResume={onSendResume}
-                    onSendUsage={onSendUsage}
-                    onSendPreview={onSendPreview}
-                    onSendMode={onSendMode}
-                    onSendAltT={onSendAltT}
-                    onChangeModel={onChangeModel}
-                    onSendCommit={onSendCommit}
-                    currentProvider={activeInstance?.provider ?? 'claude'}
-                    providerInfo={{
-                      clearTitle: 'CLI をクリア (/clear)',
-                    }}
-                    currentRepositoryPath={currentRepo}
-                    customButtons={customAiButtons}
-                    onExecuteCustomButton={handleSendCommand}
-                    onCreateCustomButton={onCreateCustomAiButton}
-                    onUpdateCustomButton={onUpdateCustomAiButton}
-                    onDeleteCustomButton={onDeleteCustomAiButton}
-                  />
-                </div>
-
-                {/* キューリスト（モバイル: 操作ボタンの下に表示、プライマリ時のみ。ループ終了バナーがある間も表示） */}
-                {activeInstance?.isPrimary &&
-                  (promptQueue.length > 0 || loopEndInfo) && (
-                  <div className={s.mobileQueue}>
-                    <PromptQueue
-                      queue={promptQueue}
-                      isProcessing={isQueueProcessing}
-                      isPaused={isQueuePaused}
-                      currentItemId={currentQueueItemId}
-                      onRemove={onRemoveFromQueue}
-                      onUpdate={onUpdateQueue}
-                      onReorder={onReorderQueue}
-                      onPause={onPauseQueue}
-                      onResume={onResumeQueue}
-                      onReset={onResetQueue}
-                      onCancelCurrentItem={onCancelCurrentItem}
-                      onForceSend={onForceSend}
-                      onRequeue={onRequeueItem}
-                      onStopLoop={onStopLoop}
-                      onApproveLoop={onApproveLoop}
-                      loopEndInfo={loopEndInfo}
-                      onDismissLoopEnd={onDismissLoopEnd}
+                  {currentRepo && currentRid && (
+                    <SidePanel
+                      currentRepo={currentRepo}
+                      rid={currentRid}
+                      files={files}
+                      onRefreshFiles={onRefreshFiles}
+                      onDeleteFile={onDeleteFile}
+                      diffSummary={diffSummary}
+                      diffSummaryLoading={diffSummaryLoading}
+                      diffSummaryError={diffSummaryError}
+                      onRefreshDiffSummary={onRefreshDiffSummary}
+                      onDiffFileClick={onDiffFileClick}
+                      onAnnotateImage={handleAnnotateImage}
                     />
-                  </div>
-                )}
-              </div>
-
-
-              {currentRepo && currentRid && (
-                <div className={s.panelArea}>
-                  <TabbedPanel
-                    currentRepo={currentRepo}
-                    rid={currentRid}
-                    files={files}
-                    onRefreshFiles={onRefreshFiles}
-                    onDeleteFile={onDeleteFile}
-                    diffSummary={diffSummary}
-                    diffSummaryLoading={diffSummaryLoading}
-                    diffSummaryError={diffSummaryError}
-                    onRefreshDiffSummary={onRefreshDiffSummary}
-                    onDiffFileClick={onDiffFileClick}
-                    onAnnotateImage={handleAnnotateImage}
-                    onExpandedExtraHeightChange={setPanelExtraHeight}
-                  />
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </section>
 
