@@ -40,7 +40,7 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
     let cancelled = false;
     setContent(null);
     setError(null);
-    const url = `${BACKEND_URL}/api/media/${rid}/${file.filename}`;
+    const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(file.filename)}`;
     fetch(url)
       .then(async (res) => {
         if (!res.ok) throw new Error(`status ${res.status}`);

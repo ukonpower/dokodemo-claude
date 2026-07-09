@@ -7,6 +7,7 @@ import {
   Check,
   Trash2,
   Download,
+  Pencil,
 } from 'lucide-react';
 import s from './ImageLightbox.module.scss';
 
@@ -29,6 +30,8 @@ interface ImageLightboxProps {
   onIndexChange: (index: number) => void;
   onCopyPath: (path: string) => void;
   onDelete?: (filename: string) => void;
+  /** 表示中の画像に赤入れする（画像のみ） */
+  onAnnotate?: (item: LightboxItem) => void;
   copiedPath: string | null;
 }
 
@@ -40,6 +43,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
   onIndexChange,
   onCopyPath,
   onDelete,
+  onAnnotate,
   copiedPath,
 }) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -305,6 +309,16 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
             </>
           )}
         </button>
+        {onAnnotate && currentItem.type !== 'video' && (
+          <button
+            onClick={() => onAnnotate(currentItem)}
+            className={s.downloadButton}
+            aria-label="赤入れ"
+            title="この画像に赤入れして添付"
+          >
+            <Pencil size={14} strokeWidth={2} />
+          </button>
+        )}
         <button
           onClick={handleDownload}
           className={s.downloadButton}
