@@ -1,0 +1,166 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background-color: rgba(10, 10, 12, 0.96);
+  display: flex;
+  flex-direction: column;
+}
+
+// === ヘッダー ===
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.title {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: $font-size-sm;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.closeButton {
+  @include flex-center;
+  width: 36px;
+  height: 36px;
+  color: white;
+  border-radius: $radius-full;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+  }
+}
+
+.completeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  border-radius: $radius-full;
+  color: #052e16;
+  background-color: $accent-green;
+  border: none;
+  cursor: pointer;
+  transition: opacity $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
+
+  &:hover {
+    opacity: 0.88;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+// === キャンバス ===
+.canvasArea {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: crosshair;
+}
+
+.canvasWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.canvas {
+  display: block;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+
+// === ツールバー ===
+.toolBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+.colorGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.colorSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: $radius-full;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  padding: 0;
+  transition: transform $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    box-shadow $transition-fast $transition-easing;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.colorSwatchActive {
+  border-color: white;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  transform: scale(1.12);
+
+  &:active {
+    transform: scale(1.05);
+  }
+}
+
+.toolGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolButton {
+  @include flex-center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.22);
+    color: white;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}

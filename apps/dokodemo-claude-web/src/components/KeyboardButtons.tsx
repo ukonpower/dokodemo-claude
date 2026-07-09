@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import type { CustomAiButton, CustomAiButtonScope } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import { useMediaQuery } from '../hooks';
 import s from './KeyboardButtons.module.scss';
+
+// lg 以上（2カラムレイアウト＝物理キーボードのある PC 環境の目安）。
+// design-tokens の $breakpoint-lg と揃える。
+const DESKTOP_MEDIA_QUERY = '(min-width: 860px)';
 
 interface KeyboardButtonsProps {
   disabled?: boolean;
@@ -231,6 +236,10 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   const [showAux, setShowAux] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>(null);
 
+  // PC（lg 以上）は物理キーボードがあるため矢印/Enter/ESC/Space の疑似キーは不要。
+  // 代わりにコマンド系ボタンを主役として常時表示する。
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
+
   // モデル選択肢（組み込み + API 取得 + カスタム）。
   // 即時 /model 送信メニューのため「未指定」（空値）は除外する。
   const { options: modelOptions } = useModelOptions();
@@ -238,15 +247,189 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   const isClaude = currentProvider === 'claude';
 
-  const hasAuxRowButtons = Boolean(
-    onSendInterrupt ||
-      (isClaude &&
-        (onSendMode ||
-          onChangeModel ||
-          onSendAltT ||
-          onSendResume ||
-          onSendUsage ||
-          onSendPreview))
+  // 操作コマンド（Mode / Model / Ctrl+C）: PC はコマンドバー、モバイルは「その他」に置く
+  const hasOpCommands = Boolean(
+    onSendInterrupt || (isClaude && (onSendMode || onChangeModel))
+  );
+  // 出番の少ない補助コマンド（Alt+T / Resume / Usage / Preview）
+  const hasExtraCommands = Boolean(
+    isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview)
+  );
+
+  // 「その他」トグルの表示要否。
+  // PC は補助コマンドのみ格納するので、それが無ければトグルごと隠す。
+  // モバイルはカスタム（＋追加ボタン）が常在するので常に表示。
+  const showMoreToggle = isDesktop ? hasExtraCommands : true;
+
+  // 操作コマンド群（PC のコマンドバー / モバイルの「その他」で共用）
+  const opCommandButtons = (
+    <>
+      {isClaude && onSendMode && (
+        <button
+          type="button"
+          onClick={onSendMode}
+          disabled={disabled}
+          className={s.modeButton}
+          title="モード切り替え (Shift+Tab)"
+        >
+          Mode
+        </button>
+      )}
+      {isClaude && onChangeModel && (
+        <div className={s.modelWrapper}>
+          <button
+            type="button"
+            onClick={() => setShowModelMenu(!showModelMenu)}
+            disabled={disabled}
+            className={s.modelButton}
+            title="モデルを選択"
+          >
+            Model
+          </button>
+          {showModelMenu && (
+            <div className={s.modelMenu}>
+              {selectableModels.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChangeModel(opt.value);
+                    setShowModelMenu(false);
+                  }}
+                  className={s.modelMenuItem}
+                  title={opt.value}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {onSendInterrupt && (
+        <button
+          type="button"
+          onClick={onSendInterrupt}
+          disabled={disabled}
+          className={s.grayButton}
+          title="プロセスを中断 (Ctrl+C)"
+        >
+          Ctrl+C
+        </button>
+      )}
+    </>
+  );
+
+  // セッションコマンド群（Clear / Commit）: PC・モバイル共通で常時表示
+  const coreCommandButtons = (
+    <>
+      {onClearAi && (
+        <button
+          type="button"
+          onClick={onClearAi}
+          disabled={disabled}
+          className={s.clearButton}
+          title={providerInfo?.clearTitle || 'クリア'}
+        >
+          Clear
+        </button>
+      )}
+      {isClaude && onSendCommit && (
+        <button
+          type="button"
+          onClick={onSendCommit}
+          disabled={disabled}
+          className={s.commitButton}
+          title="コミット (/commit)"
+        >
+          Commit
+        </button>
+      )}
+    </>
+  );
+
+  // 補助コマンド群（Alt+T / Resume / Usage / Preview）
+  const extraCommandButtons = (
+    <>
+      {isClaude && onSendAltT && (
+        <button
+          type="button"
+          onClick={onSendAltT}
+          disabled={disabled}
+          className={s.grayButton}
+          title="Alt+Tキーを送信"
+        >
+          Alt+T
+        </button>
+      )}
+      {isClaude && onSendResume && (
+        <button
+          type="button"
+          onClick={onSendResume}
+          disabled={disabled}
+          className={s.grayButton}
+          title="セッションを再開 (/resume)"
+        >
+          Resume
+        </button>
+      )}
+      {isClaude && onSendUsage && (
+        <button
+          type="button"
+          onClick={onSendUsage}
+          disabled={disabled}
+          className={s.grayButton}
+          title="使用状況を表示 (/usage)"
+        >
+          Usage
+        </button>
+      )}
+      {isClaude && onSendPreview && (
+        <button
+          type="button"
+          onClick={onSendPreview}
+          disabled={disabled}
+          className={s.grayButton}
+          title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)"
+        >
+          Preview
+        </button>
+      )}
+    </>
+  );
+
+  // カスタム送信ボタン群（＋追加ボタン込み）
+  const customButtonRow = (
+    <div className={s.row}>
+      {customButtons.map((btn) => {
+        const scopeLabel = btn.scope === 'global' ? '共通' : 'プロジェクト固有';
+        return (
+          <button
+            key={btn.id}
+            type="button"
+            onClick={() => onExecuteCustomButton(btn.command)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setDialogState({ mode: 'edit', button: btn });
+            }}
+            disabled={disabled}
+            className={s.customButton}
+            title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
+          >
+            {btn.name}
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        onClick={() => setDialogState({ mode: 'add' })}
+        className={s.addButton}
+        title="ボタンを追加"
+        aria-label="カスタムボタンを追加"
+      >
+        ＋
+      </button>
+    </div>
   );
 
   const handleDialogSubmit = (
@@ -278,161 +461,81 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   return (
     <div className={s.root}>
-      {/* メイン行: 左=矢印キー+Enter、右=コマンド群 */}
-      <div className={s.mainRow}>
-        <div className={s.arrowGroup}>
-          {(onSendEscape || onSendSpace) && (
-            <div className={s.escColumn}>
-              {onSendEscape && (
-                <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
-                  ESC
-                </button>
-              )}
-              {onSendSpace && (
-                <button type="button" onClick={onSendSpace} disabled={disabled} className={s.spaceButton} title="スペース送信">
-                  Space
-                </button>
-              )}
-            </div>
-          )}
-          {onSendArrowKey && (
-            <div className={s.arrowGrid}>
-              <div></div>
-              <button type="button" onClick={() => onSendArrowKey('up')} disabled={disabled} className={s.arrowKey} title="上キー">↑</button>
-              <div></div>
-              <button type="button" onClick={() => onSendArrowKey('left')} disabled={disabled} className={s.arrowKey} title="左キー">←</button>
-              <button type="button" onClick={() => onSendArrowKey('down')} disabled={disabled} className={s.arrowKey} title="下キー">↓</button>
-              <button type="button" onClick={() => onSendArrowKey('right')} disabled={disabled} className={s.arrowKey} title="右キー">→</button>
-            </div>
-          )}
-          <button type="button" onClick={onSendEnter} disabled={disabled} className={s.enterButton}>
-            Enter
-          </button>
+      {isDesktop ? (
+        /* PC: 物理キーは省き、コマンド系を主役にしたコマンドバー */
+        <div className={s.commandBar}>
+          {opCommandButtons}
+          {coreCommandButtons}
+          {customButtonRow}
         </div>
-
-        <div className={s.divider}></div>
-
-        <div className={s.commandGroup}>
-          {onClearAi && (
-            <button type="button" onClick={onClearAi} disabled={disabled} className={s.clearButton} title={providerInfo?.clearTitle || 'クリア'}>
-              Clear
-            </button>
-          )}
-          {isClaude && onSendCommit && (
-            <button type="button" onClick={onSendCommit} disabled={disabled} className={s.commitButton} title="コミット (/commit)">
-              Commit
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 補助系行（折りたたみ） + カスタム行 */}
-      <div className={s.auxSection}>
-        <button
-          type="button"
-          onClick={() => setShowAux(!showAux)}
-          className={s.moreToggle}
-          title="その他のボタンを表示"
-        >
-          {showAux ? '▲ その他' : '▼ その他'}
-        </button>
-        {showAux && (
-          <div className={s.auxContent}>
-            {hasAuxRowButtons && (
-              <div className={s.row}>
-                {isClaude && onSendMode && (
-                  <button type="button" onClick={onSendMode} disabled={disabled} className={s.modeButton} title="モード切り替え (Shift+Tab)">
-                    Mode
+      ) : (
+        /* モバイル/タブレット: 左=矢印キー+Enter、右=セッションコマンド */
+        <div className={s.mainRow}>
+          <div className={s.arrowGroup}>
+            {(onSendEscape || onSendSpace) && (
+              <div className={s.escColumn}>
+                {onSendEscape && (
+                  <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
+                    ESC
                   </button>
                 )}
-                {isClaude && onChangeModel && (
-                  <div className={s.modelWrapper}>
-                    <button type="button" onClick={() => setShowModelMenu(!showModelMenu)} disabled={disabled} className={s.modelButton} title="モデルを選択">
-                      Model
-                    </button>
-                    {showModelMenu && (
-                      <div className={s.modelMenu}>
-                        {selectableModels.map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => { onChangeModel(opt.value); setShowModelMenu(false); }}
-                            className={s.modelMenuItem}
-                            title={opt.value}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {onSendInterrupt && (
-                  <button type="button" onClick={onSendInterrupt} disabled={disabled} className={s.grayButton} title="プロセスを中断 (Ctrl+C)">
-                    Ctrl+C
-                  </button>
-                )}
-                {isClaude && onSendAltT && (
-                  <button type="button" onClick={onSendAltT} disabled={disabled} className={s.grayButton} title="Alt+Tキーを送信">
-                    Alt+T
-                  </button>
-                )}
-                {isClaude && onSendResume && (
-                  <button type="button" onClick={onSendResume} disabled={disabled} className={s.grayButton} title="セッションを再開 (/resume)">
-                    Resume
-                  </button>
-                )}
-                {isClaude && onSendUsage && (
-                  <button type="button" onClick={onSendUsage} disabled={disabled} className={s.grayButton} title="使用状況を表示 (/usage)">
-                    Usage
-                  </button>
-                )}
-                {isClaude && onSendPreview && (
-                  <button type="button" onClick={onSendPreview} disabled={disabled} className={s.grayButton} title="プレビュースキルを送信 (/dokodemo-claude-tools:dokodemo-preview)">
-                    Preview
+                {onSendSpace && (
+                  <button type="button" onClick={onSendSpace} disabled={disabled} className={s.spaceButton} title="スペース送信">
+                    Space
                   </button>
                 )}
               </div>
             )}
-
-            {/* カスタム行（その他タブ内に統合） */}
-            <div className={s.customSection}>
-              <div className={s.customHeader}>カスタム</div>
-              <div className={s.row}>
-                {customButtons.map((btn) => {
-                  const scopeLabel =
-                    btn.scope === 'global' ? '共通' : 'プロジェクト固有';
-                  return (
-                    <button
-                      key={btn.id}
-                      type="button"
-                      onClick={() => onExecuteCustomButton(btn.command)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setDialogState({ mode: 'edit', button: btn });
-                      }}
-                      disabled={disabled}
-                      className={s.customButton}
-                      title={`${btn.command}\n[${scopeLabel}]（右クリックで編集）`}
-                    >
-                      {btn.name}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setDialogState({ mode: 'add' })}
-                  className={s.addButton}
-                  title="ボタンを追加"
-                  aria-label="カスタムボタンを追加"
-                >
-                  ＋
-                </button>
+            {onSendArrowKey && (
+              <div className={s.arrowGrid}>
+                <div></div>
+                <button type="button" onClick={() => onSendArrowKey('up')} disabled={disabled} className={s.arrowKey} title="上キー">↑</button>
+                <div></div>
+                <button type="button" onClick={() => onSendArrowKey('left')} disabled={disabled} className={s.arrowKey} title="左キー">←</button>
+                <button type="button" onClick={() => onSendArrowKey('down')} disabled={disabled} className={s.arrowKey} title="下キー">↓</button>
+                <button type="button" onClick={() => onSendArrowKey('right')} disabled={disabled} className={s.arrowKey} title="右キー">→</button>
               </div>
-            </div>
+            )}
+            <button type="button" onClick={onSendEnter} disabled={disabled} className={s.enterButton}>
+              Enter
+            </button>
           </div>
-        )}
-      </div>
+
+          <div className={s.divider}></div>
+
+          <div className={s.commandGroup}>{coreCommandButtons}</div>
+        </div>
+      )}
+
+      {/* 補助系行（折りたたみ）。PC は補助コマンドのみ、モバイルは操作コマンド + 補助 + カスタム */}
+      {showMoreToggle && (
+        <div className={s.auxSection}>
+          <button
+            type="button"
+            onClick={() => setShowAux(!showAux)}
+            className={s.moreToggle}
+            title="その他のボタンを表示"
+          >
+            {showAux ? '▲ その他' : '▼ その他'}
+          </button>
+          {showAux && (
+            <div className={s.auxContent}>
+              {/* モバイルは操作コマンドもここに（PC はコマンドバーに出済み） */}
+              {!isDesktop && hasOpCommands && (
+                <div className={s.row}>{opCommandButtons}</div>
+              )}
+              {hasExtraCommands && <div className={s.row}>{extraCommandButtons}</div>}
+              {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
+              {!isDesktop && (
+                <div className={s.customSection}>
+                  <div className={s.customHeader}>カスタム</div>
+                  {customButtonRow}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {dialogState && (
         <CustomButtonDialog

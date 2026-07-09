@@ -423,8 +423,8 @@
 }
 
 // Claude CLI セクション
-// --panel-extra-height: TabbedPanel 展開時の追加高さ（px）。
-// xterm の高さを維持しつつ下方向にパネルが伸びるよう min-height に加算する
+// SidePanel は lg 未満では縦積み最下部（自身の max-height でスクロール）、
+// lg 以上では右列に置かれるため、cliSection 側で高さ加算する必要はない
 .cliSection {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
@@ -432,8 +432,7 @@
   border: 1px solid $dark-border-light;
   display: flex;
   flex-direction: column;
-  min-height: calc(27.5rem + var(--panel-extra-height, 0px));
-  transition: min-height 0.2s ease;
+  min-height: 27.5rem;
 
   // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
   @include sm-down {
@@ -446,7 +445,7 @@
 
   @include sm-up {
     flex: 3 1 0%;
-    min-height: calc(900px + var(--panel-extra-height, 0px));
+    min-height: 900px;
   }
 }
 
@@ -611,6 +610,19 @@
   }
 }
 
+// キーボードボタン領域（入力欄の下・メイン列内）
+.keyboardArea {
+  margin-top: 1rem;
+  flex-shrink: 0;
+
+  // SP時は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
+  @include sm-down {
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
 .desktopQueue {
   margin-top: 0.5rem;
   flex-shrink: 0;
@@ -622,21 +634,16 @@
   }
 }
 
+// 右列：lg 以上では TabbedPanel（添付/受信/MD/Git）専用の列。
+// lg 未満では縦積みの最下部（旧 panelArea 相当・全幅）になる。
 .sideCol {
   flex-shrink: 0;
-
-  @include lg-up {
-    width: 280px;
-  }
-
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 
-  // SP時は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
-  @include sm-down {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+  @include lg-up {
+    width: 340px;
   }
 }
 
@@ -654,11 +661,6 @@
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
-}
-
-// パネルエリア
-.panelArea {
-  flex-shrink: 0;
 }
 
 // ターミナルセクション
