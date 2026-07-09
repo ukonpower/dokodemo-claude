@@ -1,11 +1,12 @@
 ---
 name: workflow-research
 description: >
-  This skill should be used when the user asks to "research the codebase",
-  "investigate the code", "deeply understand the code", "analyze the codebase",
-  "調査して", "コードベースを調べて", "リサーチして", "コードを深く理解して",
-  "調査フェーズ", "research phase", "workflow-research",
-  or when the user wants to deeply investigate the codebase before planning implementation.
+  This skill should be used ONLY when the user explicitly invokes it by name
+  ("workflow-research", "/workflow-research") or explicitly names the phase
+  ("調査フェーズ", "research phase").
+  Do NOT trigger on generic investigation requests such as
+  「調査して」「コードベースを調べて」 "research the codebase" —
+  ignore those unless the skill or phase is explicitly named.
 ---
 
 # Research Phase - コードベース調査
@@ -24,16 +25,14 @@ AskUserQuestion を使って以下を確認する:
 
 すでにユーザーが明確にタスクを説明している場合はスキップしてよい。
 
-### Step 1.5: 既存の research.md の処理
+### Step 1.5: 前タスクの状態ファイルの処理
 
-`.workflow-tools/research.md` が既に存在する場合:
+`.workflow-tools/` に前タスクのファイルが残っている場合:
 
-- **デフォルト（新規作成の指示）**: 既存の research.md を削除してから新たに作成する
-- **「更新して」「追記して」等の更新指示があった場合**: 削除せず、既存の内容を読み込んで更新・追記する
+- **デフォルト（新規作成の指示）**: 前タスクの状態ファイル一式（`research.md`, `plan.md`, `plan-review.md`）を削除してから新たに作成する。完了済みタスクのファイルは新タスク開始までログとして残す運用のため、削除はこのタイミングで行う。古いファイルを残すと後続フェーズの誤読やコンテキスト圧迫の原因になる
+- **「更新して」「追記して」等の更新指示があった場合**: 削除せず、既存の research.md を読み込んで更新・追記する
 
 ユーザーのプロンプトに「更新」「追記」「反映」「修正」などの表現が含まれる場合は更新モードとして扱う。
-
-**⚠️ 更新モードでの必須手順**: 更新・追記する場合は、**必ず最初に Read ツールで既存の research.md の全内容を読み込んでから** 編集を行うこと。読み込まずに Edit や Write で更新しようとすると失敗する。
 
 ### Step 2: 徹底的な調査
 
@@ -98,7 +97,6 @@ AskUserQuestion を使って以下を確認する:
 
 ## 重要なルール
 
-- **md ファイルを Edit や Write で変更・作成する前に、必ず Read ツールで現在の内容を読み込むこと。** Write ツールは既存ファイルを事前に Read していないとエラーになる。新規作成・更新を問わず、対象ファイルが存在する可能性がある場合は必ず先に Read する。
 - **このフェーズではコードの変更を絶対に行わない。** ファイルの編集・作成・削除は一切禁止。調査と理解のみに集中する。
 - 「deeply」「in great detail」の精神で、表面的な調査で終わらせない。
 - 周辺システムへの影響を見逃すことが最大の失敗モード。依存関係の調査を怠らない。
