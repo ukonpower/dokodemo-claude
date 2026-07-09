@@ -2,10 +2,13 @@
  * AISessionManager - AI CLI セッションのマルチインスタンス管理
  *
  * 1 リポジトリに対し複数の AiInstance（タブ）を保持し、各 instance に
- * 1 つの ActiveAiSession (PTY) を結びつける。
+ * provider ごとの ActiveAiSession (PTY) を結びつける。
  *
- * - プライマリ : リポジトリオープン時に自動生成、閉じられない（provider 切替時は kill→spawn して instanceId 維持）
- * - サブ       : ユーザ操作で作成、閉じられる、provider 固定
+ * - プライマリ : リポジトリオープン時に自動生成、閉じられない。provider 切替時は
+ *   既存 PTY を kill せず「表示する provider」を切り替えるだけ（instance.provider が
+ *   表示中 provider を指す）。切替先が未起動の場合のみ spawn する。
+ *   再起動・クローズ時は全 provider の PTY をまとめて kill する。
+ * - サブ       : ユーザ操作で作成、閉じられる、provider 固定（セッションは常に 1 つ）
  */
 
 import * as pty from 'node-pty';
@@ -92,11 +95,13 @@ export class AISessionManager extends EventEmitter {
 
   // instanceId → AiInstance
   private instances = new Map<string, AiInstance>();
-  // instanceId → ActiveAiSession
+  // sessionKey(instanceId, provider) → ActiveAiSession
+  // プライマリは provider ごとにセッションを保持できる（サブは常に 1 つ）
   private activeSessions = new Map<string, ActiveAiSession>();
-  // sessionId → instanceId
+  // sessionId → sessionKey
   private sessionIdIndex = new Map<string, string>();
-  // instanceId → RingBuffer
+  // sessionKey(instanceId, provider) → RingBuffer
+  // 出力履歴も provider ごとに保持し、切替で行き来しても会話履歴に戻れる
   private outputBuffers = new Map<string, RingBuffer<AiOutputLine>>();
 
   private sessionCounter = 0;
@@ -143,6 +148,37 @@ export class AISessionManager extends EventEmitter {
 
   private generateSessionId(provider: AiProvider): string {
     return `${provider}-${++this.sessionCounter}-${Date.now()}`;
+  }
+
+  /**
+   * activeSessions / outputBuffers のキー。instance × provider ごとに
+   * セッションと出力履歴を分離して保持する。
+   */
+  private sessionKey(instanceId: string, provider: AiProvider): string {
+    return `${instanceId}:${provider}`;
+  }
+
+  /**
+   * instance の「表示中 provider」のセッションを返す
+   */
+  private getDisplayedSession(
+    instanceId: string
+  ): ActiveAiSession | undefined {
+    const instance = this.instances.get(instanceId);
+    if (!instance) return undefined;
+    return this.activeSessions.get(
+      this.sessionKey(instanceId, instance.provider)
+    );
+  }
+
+  /**
+   * このセッションが instance の表示中 provider かどうか。
+   * 非表示（バックグラウンド）のセッションは出力をバッファに貯めるだけで
+   * クライアントへの emit は行わない。
+   */
+  private isDisplayedSession(session: ActiveAiSession): boolean {
+    const instance = this.instances.get(session.instanceId);
+    return !instance || instance.provider === session.provider;
   }
 
   private generateInstanceId(isPrimary: boolean): string {
@@ -260,13 +296,17 @@ export class AISessionManager extends EventEmitter {
             'stdout'
           );
 
-          this.emit('ai-output', {
-            instanceId: session.instanceId,
-            sessionId: session.id,
-            repositoryPath: session.repositoryPath,
-            provider: session.provider,
-            outputLine,
-          });
+          // バックグラウンド（非表示 provider）のセッションはバッファ蓄積のみ。
+          // emit すると表示中 provider の画面に混ざってしまう。
+          if (this.isDisplayedSession(session)) {
+            this.emit('ai-output', {
+              instanceId: session.instanceId,
+              sessionId: session.id,
+              repositoryPath: session.repositoryPath,
+              provider: session.provider,
+              outputLine,
+            });
+          }
         });
       }
     });
@@ -274,23 +314,31 @@ export class AISessionManager extends EventEmitter {
     aiProcess.onExit(({ exitCode, signal }) => {
       session.isActive = false;
 
-      this.emit('ai-exit', {
-        instanceId: session.instanceId,
-        sessionId: session.id,
-        repositoryPath: session.repositoryPath,
-        exitCode,
-        signal,
-        provider: session.provider,
-      });
+      if (this.isDisplayedSession(session)) {
+        this.emit('ai-exit', {
+          instanceId: session.instanceId,
+          sessionId: session.id,
+          repositoryPath: session.repositoryPath,
+          exitCode,
+          signal,
+          provider: session.provider,
+        });
+      }
 
       // セッションだけクリーンアップ。instance レコードは残す（再起動可能性あり）
-      this.activeSessions.delete(instance.instanceId);
+      // 同キーで新セッションが spawn 済みの可能性があるので同一性を確認してから消す
+      const key = this.sessionKey(session.instanceId, session.provider);
+      if (this.activeSessions.get(key) === session) {
+        this.activeSessions.delete(key);
+      }
       this.sessionIdIndex.delete(session.id);
       this.registry.removeAiSession(session.id);
 
-      const inst = this.instances.get(instance.instanceId);
-      if (inst) {
-        inst.sessionId = undefined;
+      const inst = this.instances.get(session.instanceId);
+      if (inst && inst.provider === session.provider) {
+        if (inst.sessionId === session.id) {
+          inst.sessionId = undefined;
+        }
         this.emit('ai-instance-updated', {
           instanceId: inst.instanceId,
           instance: { ...inst },
@@ -298,8 +346,14 @@ export class AISessionManager extends EventEmitter {
       }
     });
 
-    this.activeSessions.set(instance.instanceId, session);
-    this.sessionIdIndex.set(session.id, instance.instanceId);
+    this.activeSessions.set(
+      this.sessionKey(instance.instanceId, instance.provider),
+      session
+    );
+    this.sessionIdIndex.set(
+      session.id,
+      this.sessionKey(instance.instanceId, instance.provider)
+    );
 
     this.registry.registerAiSession({
       sessionId: session.id,
@@ -377,7 +431,7 @@ export class AISessionManager extends EventEmitter {
     const primary = this.getPrimaryInstance(repositoryPath);
     if (primary) {
       // セッションが死んでいれば spawn し直す
-      let session = this.activeSessions.get(primary.instanceId);
+      let session = this.getDisplayedSession(primary.instanceId);
       if (!session || !session.isActive) {
         session = this.spawnSession(primary, repositoryName, options ?? {});
         primary.sessionId = session.id;
@@ -417,7 +471,9 @@ export class AISessionManager extends EventEmitter {
 
   /**
    * プライマリの provider を切り替える
-   * 既存セッションを kill して同じ instanceId のまま新規 spawn
+   * 既存セッションは kill せず「表示する provider」を差し替えるだけ。
+   * 切替先 provider のセッションが生きていればそのまま再利用し、
+   * 未起動（または死んでいる）場合のみ spawn する（この場合だけ coldStart）。
    */
   async switchPrimaryProvider(
     repositoryPath: string,
@@ -442,39 +498,59 @@ export class AISessionManager extends EventEmitter {
       );
     }
 
-    if (primary.provider === newProvider) {
-      const existing = this.activeSessions.get(primary.instanceId);
-      if (existing && existing.isActive) {
-        // 既存セッションを再利用したのでコールドスタートではない
-        return { instance: primary, session: existing, coldStart: false };
-      }
-    }
-
-    // 既存セッションを終了
-    await this.terminateSession(primary.instanceId);
-
-    // provider 更新
+    const providerChanged = primary.provider !== newProvider;
     primary.provider = newProvider;
-    primary.sessionId = undefined;
 
-    // 出力履歴をクリア（provider が変わるので過去のは保持しない）
-    this.outputBuffers.delete(primary.instanceId);
+    const existing = this.activeSessions.get(
+      this.sessionKey(primary.instanceId, newProvider)
+    );
 
-    // 新規 spawn
-    const session = this.spawnSession(primary, repositoryName, options ?? {});
+    let session: ActiveAiSession;
+    let coldStart: boolean;
+    if (existing && existing.isActive) {
+      session = existing;
+      coldStart = false;
+      if (options?.initialSize) {
+        try {
+          session.process.resize(
+            options.initialSize.cols,
+            options.initialSize.rows
+          );
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      session = this.spawnSession(primary, repositoryName, options ?? {});
+      coldStart = true;
+    }
     primary.sessionId = session.id;
 
-    this.emit('ai-instance-updated', {
-      instanceId: primary.instanceId,
-      instance: { ...primary },
-    });
+    if (providerChanged || coldStart) {
+      this.emit('ai-instance-updated', {
+        instanceId: primary.instanceId,
+        instance: { ...primary },
+      });
+    }
 
-    // PTY を作り直したのでコールドスタート
-    return { instance: primary, session, coldStart: true };
+    if (providerChanged) {
+      // 表示 provider が変わったので、切替先の出力履歴でクライアント表示を
+      // 置き換えさせる（server 経由で ai-output-history として broadcast される）
+      this.emit('ai-history-replaced', {
+        instanceId: primary.instanceId,
+        repositoryPath: primary.repositoryPath,
+        provider: newProvider,
+        history: this.getOutputHistory(primary.instanceId),
+      });
+    }
+
+    return { instance: primary, session, coldStart };
   }
 
   /**
    * インスタンスの再起動（同一 instanceId、PTY だけ作り直す）
+   * プライマリの場合はバックグラウンドで保持している別 provider の PTY も
+   * まとめて kill し、表示中 provider だけを spawn し直す。
    */
   async restartInstance(
     instanceId: string,
@@ -487,8 +563,8 @@ export class AISessionManager extends EventEmitter {
     const instance = this.instances.get(instanceId);
     if (!instance) return null;
 
-    await this.terminateSession(instanceId);
-    this.outputBuffers.delete(instanceId);
+    await this.terminateAllSessions(instanceId);
+    this.deleteOutputBuffers(instanceId);
 
     const session = this.spawnSession(instance, repositoryName, options ?? {});
     instance.sessionId = session.id;
@@ -511,10 +587,10 @@ export class AISessionManager extends EventEmitter {
       throw new Error('プライマリインスタンスは閉じられません');
     }
 
-    await this.terminateSession(instanceId);
+    await this.terminateAllSessions(instanceId);
 
     this.instances.delete(instanceId);
-    this.outputBuffers.delete(instanceId);
+    this.deleteOutputBuffers(instanceId);
 
     this.emit('ai-instance-closed', {
       instanceId,
@@ -544,9 +620,8 @@ export class AISessionManager extends EventEmitter {
   /**
    * PTY を kill するヘルパー（instances Map には触らない）
    */
-  private async terminateSession(instanceId: string): Promise<boolean> {
-    const session = this.activeSessions.get(instanceId);
-    if (!session) return false;
+  private async terminateSession(session: ActiveAiSession): Promise<boolean> {
+    const key = this.sessionKey(session.instanceId, session.provider);
 
     try {
       const exitPromise = new Promise<void>((resolve) => {
@@ -556,7 +631,7 @@ export class AISessionManager extends EventEmitter {
       session.process.kill('SIGTERM');
 
       const killTimeout = setTimeout(() => {
-        if (this.activeSessions.has(instanceId)) {
+        if (this.activeSessions.get(key) === session) {
           try {
             session.process.kill('SIGKILL');
           } catch {
@@ -572,7 +647,9 @@ export class AISessionManager extends EventEmitter {
 
       clearTimeout(killTimeout);
 
-      this.activeSessions.delete(instanceId);
+      if (this.activeSessions.get(key) === session) {
+        this.activeSessions.delete(key);
+      }
       this.sessionIdIndex.delete(session.id);
       this.registry.removeAiSession(session.id);
 
@@ -583,10 +660,31 @@ export class AISessionManager extends EventEmitter {
   }
 
   /**
-   * 入力送信（instanceId 経由）
+   * instance が持つ全 provider のセッションを kill する
+   * （再起動・クローズ・リポジトリ終了時に使用。プロセスリーク防止）
    */
-  sendInput(instanceId: string, input: string): boolean {
-    const session = this.activeSessions.get(instanceId);
+  private async terminateAllSessions(instanceId: string): Promise<void> {
+    const sessions = Array.from(this.activeSessions.values()).filter(
+      (s) => s.instanceId === instanceId
+    );
+    await Promise.all(sessions.map((s) => this.terminateSession(s)));
+  }
+
+  /**
+   * instance の全 provider の出力バッファを破棄する
+   */
+  private deleteOutputBuffers(instanceId: string): void {
+    for (const key of this.outputBuffers.keys()) {
+      if (key.startsWith(`${instanceId}:`)) {
+        this.outputBuffers.delete(key);
+      }
+    }
+  }
+
+  private writeToSession(
+    session: ActiveAiSession | undefined,
+    input: string
+  ): boolean {
     if (!session || !session.isActive || !session.process) return false;
 
     try {
@@ -599,12 +697,19 @@ export class AISessionManager extends EventEmitter {
   }
 
   /**
+   * 入力送信（instanceId 経由 — 表示中 provider のセッションへ）
+   */
+  sendInput(instanceId: string, input: string): boolean {
+    return this.writeToSession(this.getDisplayedSession(instanceId), input);
+  }
+
+  /**
    * 入力送信（sessionId 経由 — キュー Adapter 用）
+   * sessionId で直接セッションを特定するので、表示中 provider に関わらず
+   * 対象 provider のセッションへ確実に届く。
    */
   sendInputBySessionId(sessionId: string, input: string): boolean {
-    const instanceId = this.sessionIdIndex.get(sessionId);
-    if (!instanceId) return false;
-    return this.sendInput(instanceId, input);
+    return this.writeToSession(this.getSessionById(sessionId), input);
   }
 
   /**
@@ -643,9 +748,7 @@ export class AISessionManager extends EventEmitter {
    * await するだけ。既に ready なら即座に resolve する。
    */
   async waitForSessionReady(sessionId: string): Promise<void> {
-    const instanceId = this.sessionIdIndex.get(sessionId);
-    if (!instanceId) return;
-    const session = this.activeSessions.get(instanceId);
+    const session = this.getSessionById(sessionId);
     if (!session) return;
     await session.readyPromise;
   }
@@ -658,10 +761,10 @@ export class AISessionManager extends EventEmitter {
   }
 
   /**
-   * リサイズ
+   * リサイズ（表示中 provider のセッション）
    */
   resizeInstance(instanceId: string, cols: number, rows: number): boolean {
-    const session = this.activeSessions.get(instanceId);
+    const session = this.getDisplayedSession(instanceId);
     if (!session || !session.isActive || !session.process?.resize) return false;
 
     try {
@@ -689,10 +792,11 @@ export class AISessionManager extends EventEmitter {
       provider: session.provider,
     };
 
-    let buffer = this.outputBuffers.get(session.instanceId);
+    const key = this.sessionKey(session.instanceId, session.provider);
+    let buffer = this.outputBuffers.get(key);
     if (!buffer) {
       buffer = new RingBuffer<AiOutputLine>(this.config.maxOutputLines);
-      this.outputBuffers.set(session.instanceId, buffer);
+      this.outputBuffers.set(key, buffer);
     }
     buffer.push(outputLine);
     session.outputHistory = buffer.toArray();
@@ -700,18 +804,29 @@ export class AISessionManager extends EventEmitter {
     return outputLine;
   }
 
-  getOutputHistory(instanceId: string): AiOutputLine[] {
-    const buffer = this.outputBuffers.get(instanceId);
+  /**
+   * 出力履歴を取得。provider 省略時は表示中 provider のものを返す。
+   */
+  getOutputHistory(instanceId: string, provider?: AiProvider): AiOutputLine[] {
+    const targetProvider = provider ?? this.instances.get(instanceId)?.provider;
+    if (!targetProvider) return [];
+    const buffer = this.outputBuffers.get(
+      this.sessionKey(instanceId, targetProvider)
+    );
     if (buffer) return buffer.toArray();
     return [];
   }
 
   clearOutputHistory(instanceId: string): boolean {
-    const buffer = this.outputBuffers.get(instanceId);
+    const instance = this.instances.get(instanceId);
+    if (!instance) return false;
+    const buffer = this.outputBuffers.get(
+      this.sessionKey(instanceId, instance.provider)
+    );
     if (buffer) {
       buffer.clear();
     }
-    const session = this.activeSessions.get(instanceId);
+    const session = this.getDisplayedSession(instanceId);
     if (session) {
       session.outputHistory = [];
     }
@@ -744,19 +859,19 @@ export class AISessionManager extends EventEmitter {
   }
 
   getSession(instanceId: string): ActiveAiSession | undefined {
-    return this.activeSessions.get(instanceId);
+    return this.getDisplayedSession(instanceId);
   }
 
   getSessionById(sessionId: string): ActiveAiSession | undefined {
-    const instanceId = this.sessionIdIndex.get(sessionId);
-    if (!instanceId) return undefined;
-    return this.activeSessions.get(instanceId);
+    const key = this.sessionIdIndex.get(sessionId);
+    if (!key) return undefined;
+    return this.activeSessions.get(key);
   }
 
   getInstanceBySessionId(sessionId: string): AiInstance | undefined {
-    const instanceId = this.sessionIdIndex.get(sessionId);
-    if (!instanceId) return undefined;
-    return this.getInstance(instanceId);
+    const session = this.getSessionById(sessionId);
+    if (!session) return undefined;
+    return this.getInstance(session.instanceId);
   }
 
   isValidSessionId(sessionId: string): boolean {
@@ -785,9 +900,9 @@ export class AISessionManager extends EventEmitter {
     let closed = 0;
 
     for (const inst of targets) {
-      await this.terminateSession(inst.instanceId);
+      await this.terminateAllSessions(inst.instanceId);
       this.instances.delete(inst.instanceId);
-      this.outputBuffers.delete(inst.instanceId);
+      this.deleteOutputBuffers(inst.instanceId);
       this.emit('ai-instance-closed', {
         instanceId: inst.instanceId,
         repositoryPath: inst.repositoryPath,
@@ -803,8 +918,8 @@ export class AISessionManager extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     const tasks: Promise<unknown>[] = [];
-    for (const instanceId of this.activeSessions.keys()) {
-      tasks.push(this.terminateSession(instanceId));
+    for (const session of this.activeSessions.values()) {
+      tasks.push(this.terminateSession(session));
     }
     await Promise.all(tasks);
     this.instances.clear();

@@ -105,7 +105,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
     return mediaFiles.map((f) => ({
       id: f.id,
       filename: f.filename,
-      imageUrl: `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(f.filename)}`,
+      imageUrl: `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(f.filename)}`,
       copyPath: f.path,
       type: f.type as 'image' | 'video',
       title: f.title,
@@ -192,7 +192,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
 
   const handleDownload = useCallback(
     async (file: UploadedFileInfo) => {
-      const url = `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(file.filename)}`;
+      const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(file.filename)}`;
       try {
         const response = await fetch(url);
         const blob = await response.blob();
@@ -261,7 +261,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
 
   const getThumbnailUrl = useCallback(
     (filename: string) =>
-      `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(filename)}`,
+      `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(filename)}`,
     [rid]
   );
 

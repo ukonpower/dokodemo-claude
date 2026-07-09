@@ -72,28 +72,13 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
         await processManager.setSelectedProvider(repoPath, provider);
       }
 
-      // プライマリが既にあって provider が異なる場合は切替、無ければ確保
-      const existingPrimary =
-        processManager.aiSessionManager.getPrimaryInstance(repoPath);
-      let primary;
-      let session;
-      if (existingPrimary && existingPrimary.provider !== targetProvider) {
-        const r = await processManager.switchPrimaryProvider(
-          repoPath,
-          targetProvider,
-          { initialSize, permissionMode }
-        );
-        primary = r.instance;
-        session = r.session;
-      } else {
-        const r = await processManager.ensurePrimaryInstance(
-          repoPath,
-          targetProvider,
-          { initialSize, permissionMode }
-        );
-        primary = r.instance;
-        session = r.session;
-      }
+      // switchPrimaryProvider がプライマリ未作成／同一 provider／表示切替の
+      // 全ケースを吸収する（既存セッションは kill されず表示だけ切り替わる）
+      const { instance: primary, session } =
+        await processManager.switchPrimaryProvider(repoPath, targetProvider, {
+          initialSize,
+          permissionMode,
+        });
 
       const rid = repositoryIdManager.getId(repoPath);
       void emitIdMappingUpdated(io, ctx.repositories);

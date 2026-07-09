@@ -1,8 +1,15 @@
 @use "sass:color";
 
 .root {
+  // SP ではターミナルへ縦幅を譲るため要素間の余白を詰める
   & > * + * {
-    margin-top: 0.375rem; // space-y-1.5
+    margin-top: 0.25rem;
+  }
+
+  @include sm-up {
+    & > * + * {
+      margin-top: 0.375rem; // space-y-1.5
+    }
   }
 }
 
@@ -21,13 +28,15 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .skillGroup {
   display: flex;
   align-items: center;
-  width: 100%;
+  // Worktree ボタンと同一行に収めるため、余った幅だけ使い overflow-x でスクロール
+  flex: 1 1 0%;
+  min-width: 0;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
   padding: 0.125rem;
@@ -35,7 +44,7 @@
   overflow-x: auto;
 
   @include lg-up {
-    width: auto;
+    flex: 0 1 auto;
   }
 }
 
@@ -280,8 +289,13 @@
   font-family: $font-mono;
   font-size: $font-size-sm;
   line-height: 1.5;
-  min-height: calc($font-size-sm * 1.5 * 3 + 0.625rem * 2 + 2px);
+  // SP は 2 行分に抑えてターミナルへ縦幅を譲る（入力に応じて自動で伸びる）
+  min-height: calc($font-size-sm * 1.5 * 2 + 0.625rem * 2 + 2px);
   max-height: 300px;
+
+  @include sm-up {
+    min-height: calc($font-size-sm * 1.5 * 3 + 0.625rem * 2 + 2px);
+  }
   overflow-y: auto;
   transition: all $transition-fast $transition-easing;
 
@@ -520,6 +534,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.375rem;
+
+  // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
+  @include lg-up {
+    max-width: 26rem;
+  }
 }
 
 // 全幅セル（ループ）。グリッドの全カラムをまたぐ
@@ -818,12 +837,6 @@
   }
 }
 
-.modelHint {
-  padding: 0.25rem 0.5rem;
-  font-size: 10px;
-  color: $dark-text-muted;
-}
-
 .modelDropdownSeparator {
   border-top: 1px solid $dark-border-light;
   margin: 0.25rem 0;
@@ -980,8 +993,9 @@
   animation: loopAccordionOpen $transition-normal $transition-easing;
 
   // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
+  // （幅はキューオプション行 .optionGrid の上限に揃える）
   @include lg-up {
-    max-width: 22rem;
+    max-width: 26rem;
   }
 }
 
