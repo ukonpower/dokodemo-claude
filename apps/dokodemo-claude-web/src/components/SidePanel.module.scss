@@ -123,6 +123,7 @@
   min-height: 0;
   overflow-y: auto;
   background-color: $dark-bg-secondary;
+  @include scrollbar-thin;
 }
 
 // lg 未満：タブバー（既存の下線タブ言語に合わせる）
@@ -181,4 +182,5 @@
   min-height: 0;
   overflow-y: auto;
   background-color: $dark-bg-secondary;
+  @include scrollbar-thin;
 }
