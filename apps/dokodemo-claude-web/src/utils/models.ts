@@ -2,9 +2,10 @@
 // CommandInput / SortableQueueItem / KeyboardButtons から共通利用する（DRY化）。
 //
 // value は Claude CLI の /model にそのまま渡す実値。空文字は「未指定」を表す。
-// 組み込みモデルは API 取得やカスタム追加が無い場合のフォールバックとして常に先頭に並ぶ。
+// API key が必要なモデルは含めず、Claude Code CLI（ログイン済み前提）で使えるものだけを載せる。
+// [1m] は Claude Code の fast mode 表記で、id は素の Opus ID を使い label にのみ付ける。
 
-export type ModelSource = 'builtin' | 'anthropic' | 'custom';
+export type ModelSource = 'builtin' | 'custom';
 
 export interface ModelOption {
   /** CLI に渡す実値。空文字は「未指定」 */
@@ -15,13 +16,14 @@ export interface ModelOption {
   source: ModelSource;
 }
 
-// 組み込みモデル（表示順）。値は現行の Claude CLI 挙動を維持する。
+// 組み込みモデル（表示順）。API key 不要のもののみ。
 export const BUILTIN_MODEL_OPTIONS: ModelOption[] = [
   { value: '', label: '未指定', source: 'builtin' },
-  { value: 'default', label: 'Default', source: 'builtin' },
-  { value: 'Opus', label: 'Opus', source: 'builtin' },
-  { value: 'Sonnet', label: 'Sonnet', source: 'builtin' },
-  { value: 'OpusPlan', label: 'OpusPlan', source: 'builtin' },
+  { value: 'claude-opus-4-8', label: 'Opus 4.8 [1m]', source: 'builtin' },
+  { value: 'claude-opus-4-7', label: 'Opus 4.7 [1m]', source: 'builtin' },
+  { value: 'claude-sonnet-5', label: 'Sonnet 5', source: 'builtin' },
+  { value: 'claude-sonnet-4-5', label: 'Sonnet 4', source: 'builtin' },
+  { value: 'claude-fable-5', label: 'Fable 5', source: 'builtin' },
 ];
 
 /**

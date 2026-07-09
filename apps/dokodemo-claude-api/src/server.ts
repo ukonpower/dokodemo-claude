@@ -679,55 +679,6 @@ app.get('/api/hook-stats', (req, res) => {
 });
 
 // ============================================
-// Anthropic モデル一覧プロキシ
-// ============================================
-// サーバ側の env の ANTHROPIC_API_KEY を使って Anthropic の /v1/models を叩く薄いプロキシ。
-// API キーをフロントに露出させないための中継。ANTHROPIC_API_KEY は DC_* ではない標準 env のため
-// cleanChildEnv でも子プロセス（Claude CLI 等）へそのまま引き継がれる（clean-env.ts の作法どおり）。
-// 未設定時は 501 + 空配列を返し、フロントは「未設定」と表示するだけで壊れないようにする。
-app.get('/api/models/anthropic', async (_req, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    res.status(501).json({ configured: false, models: [] });
-    return;
-  }
-  try {
-    const response = await fetch(
-      'https://api.anthropic.com/v1/models?limit=100',
-      {
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-      }
-    );
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(
-        `[models] Anthropic API エラー: ${response.status} ${text.slice(0, 200)}`
-      );
-      res
-        .status(502)
-        .json({ configured: true, models: [], error: `Anthropic API ${response.status}` });
-      return;
-    }
-    const data = (await response.json()) as {
-      data?: Array<{ id: string; display_name?: string }>;
-    };
-    const models = (data.data ?? []).map((m) => ({
-      id: m.id,
-      display_name: m.display_name ?? m.id,
-    }));
-    res.json({ configured: true, models });
-  } catch (error) {
-    console.error('[models] Anthropic モデル取得に失敗:', error);
-    res
-      .status(502)
-      .json({ configured: true, models: [], error: String(error) });
-  }
-});
-
-// ============================================
 // プロンプトキュー REST API エンドポイント
 // ============================================
 
@@ -1108,6 +1059,19 @@ processManager.on('ai-exit', (data) => {
       type: 'system',
       provider: data.provider,
     },
+  });
+});
+
+// プライマリの provider 切替: 表示対象の出力履歴が切替先 provider のものに
+// 差し替わるため、全クライアント（ダッシュボード含む）へ履歴を配信して
+// ローカル表示を置き換えさせる
+processManager.on('ai-history-replaced', (data) => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  emitToParentScopedClients(data.repositoryPath, 'ai-output-history', {
+    rid,
+    instanceId: data.instanceId,
+    provider: data.provider,
+    history: data.history,
   });
 });
 

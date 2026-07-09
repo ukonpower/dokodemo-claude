@@ -218,6 +218,18 @@ function WorktreeDashboardCard({
   useEffect(() => {
     const terminal = terminalRef.current;
     if (!terminal) return;
+    // 履歴の全置換を検知（プライマリの provider 切替で別 provider の履歴が
+    // 届いた場合など、既描画メッセージと 1 件も重ならない）: 画面を
+    // リセットして全メッセージを描き直す
+    if (
+      messages.length > 0 &&
+      writtenIdsRef.current.size > 0 &&
+      !messages.some((m) => writtenIdsRef.current.has(m.id))
+    ) {
+      terminal.reset();
+      writtenIdsRef.current.clear();
+      writtenContentRef.current.clear();
+    }
     let didWrite = false;
     for (const msg of messages) {
       const prev = writtenContentRef.current.get(msg.id);

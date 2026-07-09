@@ -71,7 +71,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     let cancelled = false;
     setContent(null);
     setError(null);
-    const url = `${BACKEND_URL}/api/media/${rid}/${encodeURIComponent(selectedFile.filename)}`;
+    const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(selectedFile.filename)}`;
     fetch(url)
       .then(async (res) => {
         if (!res.ok) throw new Error(`status ${res.status}`);

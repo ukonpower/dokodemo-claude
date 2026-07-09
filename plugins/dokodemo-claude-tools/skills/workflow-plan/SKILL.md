@@ -1,13 +1,13 @@
 ---
 name: workflow-plan
 description: >
-  This skill should be used when the user asks to "create a plan",
-  "make an implementation plan", "write a plan", "plan the implementation",
-  "計画を作って", "プランを作成", "実装計画を立てて", "計画フェーズ",
-  "plan phase", "workflow-plan",
-  "注釈を反映して", "コメントに対応して", "計画を更新して", "update the plan",
-  "address annotations", "revise the plan",
-  or when the user wants to create or update a detailed implementation plan based on research.
+  This skill should be used ONLY when the user explicitly invokes it by name
+  ("workflow-plan", "/workflow-plan"), explicitly names the phase
+  ("計画フェーズ", "plan phase"), or asks to reflect annotations on the
+  existing .workflow-tools/plan.md ("注釈を反映して", "address annotations").
+  Do NOT trigger on generic planning requests such as
+  「計画を作って」「実装計画を立てて」 "make a plan" —
+  ignore those unless the skill or phase is explicitly named.
 ---
 
 # Plan Phase - 実装計画の作成
@@ -26,13 +26,11 @@ description: >
 
 `.workflow-tools/plan.md` が既に存在する場合:
 
-- **デフォルト（新規作成の指示）**: 既存の plan.md を削除してから新たに作成する
+- **デフォルト（新規作成の指示）**: 既存の plan.md を削除してから新たに作成する。古い `plan-review.md` が残っている場合は旧計画に対するレビューなので、それも削除する
 - **「更新して」「追記して」等の更新指示があった場合**: 削除せず、既存の内容を読み込んで更新する
 - **注釈サイクル（Step 4）での修正**: 削除せず、既存の plan.md を更新する
 
 ユーザーのプロンプトに「更新」「追記」「反映」「修正」「注釈」「コメントに対応」などの表現が含まれる場合は更新モードとして扱う。
-
-**⚠️ 更新モードでの必須手順**: 更新・追記・注釈対応する場合は、**必ず最初に Read ツールで既存の plan.md の全内容を読み込んでから** 編集を行うこと。読み込まずに Edit や Write で更新しようとすると失敗する。
 
 ### Step 2: plan.md の作成
 
@@ -70,15 +68,22 @@ description: >
 ## テスト方針
 - {テスト1}
 - {テスト2}
+
+## 検証手順
+実装完了後に動作を確認するための手順（実装フェーズでは自動実行しない）:
+1. {起動・準備の手順}
+2. {確認する操作}
+- 期待結果: {期待される動作}
 ```
 
 **計画作成のルール:**
-- **React コードが関わる計画の場合は、`/coding-react` スキルを呼び出してルールを把握してから計画を立てる。** 計画内のコードスニペットや設計方針が React のベストプラクティスに準拠していることを確認する。
+- **計画対象の技術スタックに対応するコーディングルール系スキルが利用可能な場合は、呼び出してルールを把握してから計画を立てる**（例: React が関わるなら coding-react）。該当スキルが無い環境ではスキップしてよい。
 - 各ステップにファイルパスとコードスニペットを含める
 - **コードスニペットは重要な部分のみを抜粋して記述する。** ファイル全体やクラス全体をコピーしない。変更の意図が伝わる最小限のコード（型定義、関数シグネチャ、変更箇所の前後数行など）に留める。ファイルが肥大化するのを防ぐため。
 - 既存の実装パターンに従う（research.md で把握したパターン）
 - 変更対象ファイルはチェックリスト形式にする（実装フェーズで進捗追跡に使用）
 - **後方互換性は考慮せず、シンプルで簡潔な設計にする。** パッチ的な修正（既存コードを避けて迂回する、非推奨にして新旧を併存させる等）ではなく、根本から変更する方針で計画を立てる。ユーザーが明示的に後方互換性を求めた場合のみ例外とする。
+- **検証手順は「ユーザー（または指示を受けた実装者）が後で実行する手順書」として書く。** 起動方法・操作・期待結果まで具体的に。実装フェーズはこの手順を自動実行しない前提で、単体で読んで実行できる粒度にする。
 
 ### Step 3: ユーザーレビューの依頼
 
@@ -87,10 +92,10 @@ description: >
 > `.workflow-tools/plan.md` に実装計画を作成しました。
 >
 > レビューして、修正点があれば以下のいずれかで指示してください:
-> - plan.md にインラインコメント（`<!-- コメント -->` や `> NOTE:` 形式）を追加して「注釈を反映して」と指示
+> - plan.md にインラインコメント（`<!-- コメント -->` や `> NOTE:` 形式）を追加して「/workflow-plan 注釈を反映して」と指示
 > - チャットで直接修正点を伝える
 >
-> 計画に問題なければ「実装して」と指示すると実装を開始します。
+> 計画に問題なければ「/workflow-implement」で実装を開始します。
 
 ### Step 4: 注釈サイクル（Annotation Cycle）
 
@@ -116,7 +121,6 @@ description: >
 
 ## 重要なルール
 
-- **md ファイルを Edit や Write で変更・作成する前に、必ず Read ツールで現在の内容を読み込むこと。** Write ツールは既存ファイルを事前に Read していないとエラーになる。新規作成・更新を問わず、対象ファイルが存在する可能性がある場合は必ず先に Read する。
 - **このフェーズではコードの変更を絶対に行わない。** ファイルの編集・作成・削除は一切禁止。計画の作成と更新のみに集中する。
 - 注釈サイクル中は「実装はまだ行わない」を常に守る。
 - 計画は具体的に。「適切に修正する」のような曖昧な表現は避け、コードレベルで何をするか記述する。

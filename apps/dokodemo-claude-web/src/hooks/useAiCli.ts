@@ -486,10 +486,7 @@ export function useAiCli(
 
   const changeModel = useCallback(
     (model: string) => {
-      // 組み込みの OpusPlan のみ CLI 表記（opusplan）へ変換。
-      // それ以外（API 取得モデル / カスタムモデル）は入力値をそのまま渡す。
-      const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-      sendCommandToActive(`/model ${modelValue}`, 'prompt');
+      sendCommandToActive(`/model ${model}`, 'prompt');
     },
     [sendCommandToActive]
   );

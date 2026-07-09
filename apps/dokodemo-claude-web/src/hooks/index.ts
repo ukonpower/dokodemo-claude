@@ -2,6 +2,8 @@
 export { useSocket } from './useSocket';
 export type { UseSocketReturn } from './useSocket';
 
+export { useMediaQuery } from './useMediaQuery';
+
 export { useAppSettings } from './useAppSettings';
 export type {
   UseAppSettingsReturn,

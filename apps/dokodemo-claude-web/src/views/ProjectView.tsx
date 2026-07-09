@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
@@ -47,8 +47,9 @@ import WorktreeTabs from '../components/WorktreeTabs';
 import WorktreeOperations from '../components/WorktreeOperations';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
-import TabbedPanel from '../components/TabbedPanel';
+import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
 interface ProjectViewProps {
@@ -431,9 +432,34 @@ export function ProjectView({
   const textInputRef = useRef<TextInputRef>(null);
   const aiOutputRef = useRef<AiOutputRef>(null);
 
-  // TabbedPanel 展開時の上乗せ高さ（px）。cliSection の min-height に加算し、
-  // xterm の高さを維持したまま下方向にパネルが伸びるようにする
-  const [panelExtraHeight, setPanelExtraHeight] = useState(0);
+  // AI CLI パネルの全画面表示状態。xterm 単体ではなく、入力欄（CommandInput）と
+  // 操作ボタン（KeyboardButtons）を含む cliInnerRow ごと全画面化することで、
+  // 拡大中もスマホと同じプロンプト入力・補助キー操作を維持する
+  const [isCliFullscreen, setIsCliFullscreen] = useState(false);
+
+  const handleToggleCliFullscreen = useCallback(() => {
+    setIsCliFullscreen((prev) => !prev);
+  }, []);
+
+  // ESC キーで全画面解除。ただし textarea / input フォーカス中の ESC は
+  // CLI への ESC 送信（プロンプト中断等）に使われるため対象外にする
+  // （xterm のヘルパー textarea もここで除外される）
+  useEffect(() => {
+    if (!isCliFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')
+      ) {
+        return;
+      }
+      setIsCliFullscreen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isCliFullscreen]);
 
   // ハンドラ
   const handleSendCommand = useCallback(
@@ -447,6 +473,21 @@ export function ProjectView({
   // AI ターミナル上にドロップされたファイルをテキストエリアへルーティング
   const handleAiTerminalFileDrop = useCallback((files: File[]) => {
     void textInputRef.current?.insertFiles(files);
+  }, []);
+
+  // 赤入れ対象の画像URL（null なら閉じる）
+  const [annotateImageUrl, setAnnotateImageUrl] = useState<string | null>(
+    null
+  );
+
+  const handleAnnotateImage = useCallback((imageUrl: string) => {
+    setAnnotateImageUrl(imageUrl);
+  }, []);
+
+  // 赤入れ完了：合成PNGをアップロードしてプロンプト入力欄にパスを挿入
+  const handleAnnotateComplete = useCallback((file: File) => {
+    setAnnotateImageUrl(null);
+    void textInputRef.current?.insertFiles([file]);
   }, []);
 
   const handleAddToQueue = useCallback(
@@ -584,10 +625,7 @@ export function ProjectView({
           })()}
 
           {/* AI CLI セクション */}
-          <section
-            className={s.cliSection}
-            style={{ '--panel-extra-height': `${panelExtraHeight}px` } as React.CSSProperties}
-          >
+          <section className={s.cliSection}>
             <div className={s.cliTabBar}>
               <AiInstanceTabs
                 instances={aiInstances}
@@ -619,7 +657,9 @@ export function ProjectView({
             </div>
 
             <div className={s.cliBody}>
-              <div className={s.cliInnerRow}>
+              <div
+                className={`${s.cliInnerRow} ${isCliFullscreen ? s.cliInnerRowFullscreen : ''}`}
+              >
                 <div className={s.cliMainCol}>
                   <div className={s.cliOutputWrapper}>
                     <AiOutput
@@ -639,6 +679,8 @@ export function ProjectView({
                       }
                       fontSize={terminalFontSize}
                       onFileDrop={handleAiTerminalFileDrop}
+                      isFullscreen={isCliFullscreen}
+                      onToggleFullscreen={handleToggleCliFullscreen}
                     />
                   </div>
 
@@ -661,7 +703,41 @@ export function ProjectView({
                       onOpenWorkflowFile={onOpenWorkflowFile}
                     />
                   </div>
-                  {/* キューリスト（プライマリがアクティブな時のみ表示。ループ終了バナーがある間も表示） */}
+
+                  {/* キーボードボタン（入力欄の下・メイン列内） */}
+                  <div className={s.keyboardArea}>
+                    <KeyboardButtons
+                      disabled={!isConnected || !currentRepo || !activeInstance}
+                      onSendArrowKey={onSendArrowKey}
+                      onSendEnter={() => textInputRef.current?.submit()}
+                      onSendInterrupt={onSendInterrupt}
+                      onSendEscape={onSendEscape}
+                      onSendSpace={onSendSpace}
+                      onClearAi={onSendClear}
+                      onSendResume={onSendResume}
+                      onSendUsage={onSendUsage}
+                      onSendPreview={onSendPreview}
+                      onSendMode={onSendMode}
+                      onSendAltT={onSendAltT}
+                      onChangeModel={onChangeModel}
+                      onSendCommit={onSendCommit}
+                      onQueueCommand={
+                        activeInstance?.isPrimary ? handleQueueCommand : undefined
+                      }
+                      currentProvider={activeInstance?.provider ?? 'claude'}
+                      providerInfo={{
+                        clearTitle: 'CLI をクリア (/clear)',
+                      }}
+                      currentRepositoryPath={currentRepo}
+                      customButtons={customAiButtons}
+                      onExecuteCustomButton={handleSendCommand}
+                      onCreateCustomButton={onCreateCustomAiButton}
+                      onUpdateCustomButton={onUpdateCustomAiButton}
+                      onDeleteCustomButton={onDeleteCustomAiButton}
+                    />
+                  </div>
+
+                  {/* キューリスト（デスクトップ: プライマリ時のみ。ループ終了バナーがある間も表示） */}
                   {activeInstance?.isPrimary &&
                     (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.desktopQueue}>
@@ -686,85 +762,53 @@ export function ProjectView({
                       />
                     </div>
                   )}
+
+                  {/* キューリスト（モバイル: プライマリ時のみ。ループ終了バナーがある間も表示） */}
+                  {activeInstance?.isPrimary &&
+                    (promptQueue.length > 0 || loopEndInfo) && (
+                    <div className={s.mobileQueue}>
+                      <PromptQueue
+                        queue={promptQueue}
+                        isProcessing={isQueueProcessing}
+                        isPaused={isQueuePaused}
+                        currentItemId={currentQueueItemId}
+                        onRemove={onRemoveFromQueue}
+                        onUpdate={onUpdateQueue}
+                        onReorder={onReorderQueue}
+                        onPause={onPauseQueue}
+                        onResume={onResumeQueue}
+                        onReset={onResetQueue}
+                        onCancelCurrentItem={onCancelCurrentItem}
+                        onForceSend={onForceSend}
+                        onRequeue={onRequeueItem}
+                        onStopLoop={onStopLoop}
+                        onApproveLoop={onApproveLoop}
+                        loopEndInfo={loopEndInfo}
+                        onDismissLoopEnd={onDismissLoopEnd}
+                      />
+                    </div>
+                  )}
                 </div>
 
+                {/* 右列：SidePanel（lg 未満では縦積み最下部・全幅） */}
                 <div className={s.sideCol}>
-                  <KeyboardButtons
-                    disabled={!isConnected || !currentRepo || !activeInstance}
-                    onSendArrowKey={onSendArrowKey}
-                    onSendEnter={() => textInputRef.current?.submit()}
-                    onSendInterrupt={onSendInterrupt}
-                    onSendEscape={onSendEscape}
-                    onSendSpace={onSendSpace}
-                    onClearAi={onSendClear}
-                    onSendResume={onSendResume}
-                    onSendUsage={onSendUsage}
-                    onSendPreview={onSendPreview}
-                    onSendMode={onSendMode}
-                    onSendAltT={onSendAltT}
-                    onChangeModel={onChangeModel}
-                    onSendCommit={onSendCommit}
-                    onQueueCommand={
-                      activeInstance?.isPrimary ? handleQueueCommand : undefined
-                    }
-                    currentProvider={activeInstance?.provider ?? 'claude'}
-                    providerInfo={{
-                      clearTitle: 'CLI をクリア (/clear)',
-                    }}
-                    currentRepositoryPath={currentRepo}
-                    customButtons={customAiButtons}
-                    onExecuteCustomButton={handleSendCommand}
-                    onCreateCustomButton={onCreateCustomAiButton}
-                    onUpdateCustomButton={onUpdateCustomAiButton}
-                    onDeleteCustomButton={onDeleteCustomAiButton}
-                  />
-                </div>
-
-                {/* キューリスト（モバイル: 操作ボタンの下に表示、プライマリ時のみ。ループ終了バナーがある間も表示） */}
-                {activeInstance?.isPrimary &&
-                  (promptQueue.length > 0 || loopEndInfo) && (
-                  <div className={s.mobileQueue}>
-                    <PromptQueue
-                      queue={promptQueue}
-                      isProcessing={isQueueProcessing}
-                      isPaused={isQueuePaused}
-                      currentItemId={currentQueueItemId}
-                      onRemove={onRemoveFromQueue}
-                      onUpdate={onUpdateQueue}
-                      onReorder={onReorderQueue}
-                      onPause={onPauseQueue}
-                      onResume={onResumeQueue}
-                      onReset={onResetQueue}
-                      onCancelCurrentItem={onCancelCurrentItem}
-                      onForceSend={onForceSend}
-                      onRequeue={onRequeueItem}
-                      onStopLoop={onStopLoop}
-                      onApproveLoop={onApproveLoop}
-                      loopEndInfo={loopEndInfo}
-                      onDismissLoopEnd={onDismissLoopEnd}
+                  {currentRepo && currentRid && (
+                    <SidePanel
+                      currentRepo={currentRepo}
+                      rid={currentRid}
+                      files={files}
+                      onRefreshFiles={onRefreshFiles}
+                      onDeleteFile={onDeleteFile}
+                      diffSummary={diffSummary}
+                      diffSummaryLoading={diffSummaryLoading}
+                      diffSummaryError={diffSummaryError}
+                      onRefreshDiffSummary={onRefreshDiffSummary}
+                      onDiffFileClick={onDiffFileClick}
+                      onAnnotateImage={handleAnnotateImage}
                     />
-                  </div>
-                )}
-              </div>
-
-
-              {currentRepo && currentRid && (
-                <div className={s.panelArea}>
-                  <TabbedPanel
-                    currentRepo={currentRepo}
-                    rid={currentRid}
-                    files={files}
-                    onRefreshFiles={onRefreshFiles}
-                    onDeleteFile={onDeleteFile}
-                    diffSummary={diffSummary}
-                    diffSummaryLoading={diffSummaryLoading}
-                    diffSummaryError={diffSummaryError}
-                    onRefreshDiffSummary={onRefreshDiffSummary}
-                    onDiffFileClick={onDiffFileClick}
-                    onExpandedExtraHeightChange={setPanelExtraHeight}
-                  />
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </section>
 
@@ -1144,6 +1188,14 @@ export function ProjectView({
           </div>
         </div>
       )}
+
+      {/* 赤入れキャンバス（Lightbox の赤入れボタンから開く） */}
+      <DrawingCanvas
+        isOpen={annotateImageUrl !== null}
+        backgroundImageUrl={annotateImageUrl}
+        onClose={() => setAnnotateImageUrl(null)}
+        onComplete={handleAnnotateComplete}
+      />
     </div>
   );
 }
