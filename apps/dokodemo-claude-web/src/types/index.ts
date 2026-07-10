@@ -326,6 +326,7 @@ export interface GitGraphCommit {
 export interface GitGraphData {
   commits: GitGraphCommit[];
   headHash: string; // detached でも HEAD の SHA。空リポジトリは ''
+  currentBranch: string | null; // チェックアウト中のローカルブランチ名（detached なら null）
   uncommitted: { fileCount: number } | null;
   branchOptions: { name: string; isRemote: boolean }[];
   moreAvailable: boolean;
@@ -755,6 +756,12 @@ export interface ServerToClientEvents {
     detail: GitDiffDetail;
   }) => void; // GitDiffDetail は既存型
   'git-graph-error': (data: { rid: string; message: string }) => void;
+  'git-graph-action-result': (data: {
+    rid: string;
+    action: 'checkout' | 'merge';
+    success: boolean;
+    message: string;
+  }) => void;
 
   // ファイルビュワー関連イベント
   'directory-contents': (data: {
@@ -1104,6 +1111,19 @@ export interface ClientToServerEvents {
     hash: string;
     filename: string;
     oldFilename?: string;
+  }) => void;
+  'git-graph-checkout': (data: {
+    rid: string;
+    kind: 'branch' | 'remote' | 'commit';
+    name: string; // ブランチ名 / リモートブランチ名 / コミット hash
+    localName?: string; // kind='remote' 時に作成するローカルブランチ名
+  }) => void;
+  'git-graph-merge': (data: {
+    rid: string;
+    target: string; // ブランチ名 or コミット hash
+    noFF: boolean;
+    squash: boolean;
+    noCommit: boolean;
   }) => void;
 
   // ファイルビュワー関連イベント

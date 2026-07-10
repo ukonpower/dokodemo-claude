@@ -1,12 +1,23 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
+import type { GitGraphRef } from '../types';
 import GitGraphTable from '../components/GitGraphTable';
 import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
 import GitGraphBranchDropdown from '../components/GitGraphBranchDropdown';
 import GitGraphFindWidget from '../components/GitGraphFindWidget';
+import GitGraphContextMenu, {
+  type GitGraphMenuItem,
+} from '../components/GitGraphContextMenu';
+import GitGraphActionDialog from '../components/GitGraphActionDialog';
 import DiffViewer from '../components/DiffViewer';
 import s from './GitGraphView.module.scss';
+
+/** checkout / merge 確認ダイアログの内容（種別ごとの discriminated union） */
+type ActionDialogConfig =
+  | { type: 'checkout-remote'; remoteName: string }
+  | { type: 'checkout-commit'; hash: string }
+  | { type: 'merge'; target: string; targetLabel: string };
 
 interface GitGraphViewProps {
   gitGraph: UseGitGraphReturn;
@@ -103,6 +114,94 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
     [gitGraph]
   );
 
+  // checkout / merge のコンテキストメニューとダイアログ
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    items: GitGraphMenuItem[];
+  } | null>(null);
+  const [actionDialog, setActionDialog] = useState<ActionDialogConfig | null>(
+    null
+  );
+
+  const currentBranch = graph?.currentBranch ?? null;
+  const currentBranchLabel = currentBranch
+    ? `ブランチ「${currentBranch}」`
+    : '現在のブランチ';
+
+  /** target を現在ブランチへマージするメニュー項目（マージ不能な状況では null） */
+  const buildMergeItem = useCallback(
+    (target: string, targetLabel: string): GitGraphMenuItem | null => {
+      if (!currentBranch || target === currentBranch) return null;
+      return {
+        label: `${currentBranchLabel}にマージ...`,
+        onClick: () => setActionDialog({ type: 'merge', target, targetLabel }),
+      };
+    },
+    [currentBranch, currentBranchLabel]
+  );
+
+  const handleRefContextMenu = useCallback(
+    (e: React.MouseEvent, ref: GitGraphRef) => {
+      const items: GitGraphMenuItem[] = [];
+      if (ref.type === 'branch') {
+        items.push({
+          label: `ブランチ「${ref.name}」をチェックアウト`,
+          onClick: () => gitGraph.checkout('branch', ref.name),
+        });
+        const mergeItem = buildMergeItem(ref.name, `ブランチ「${ref.name}」`);
+        if (mergeItem) items.push(mergeItem);
+      } else if (ref.type === 'remote') {
+        items.push({
+          label: `リモートブランチ「${ref.name}」をチェックアウト...`,
+          onClick: () =>
+            setActionDialog({ type: 'checkout-remote', remoteName: ref.name }),
+        });
+        const mergeItem = buildMergeItem(
+          ref.name,
+          `リモートブランチ「${ref.name}」`
+        );
+        if (mergeItem) items.push(mergeItem);
+      } else if (ref.type === 'tag') {
+        const mergeItem = buildMergeItem(ref.name, `タグ「${ref.name}」`);
+        if (mergeItem) items.push(mergeItem);
+      }
+      // head chip（現在ブランチ）には項目なし
+      if (items.length > 0) {
+        setMenu({ x: e.clientX, y: e.clientY, items });
+      }
+    },
+    [gitGraph, buildMergeItem]
+  );
+
+  const handleRefDoubleClick = useCallback(
+    (ref: GitGraphRef) => {
+      // vscode-git-graph 同様、ダブルクリックでチェックアウト
+      if (ref.type === 'branch') {
+        gitGraph.checkout('branch', ref.name);
+      } else if (ref.type === 'remote') {
+        setActionDialog({ type: 'checkout-remote', remoteName: ref.name });
+      }
+    },
+    [gitGraph]
+  );
+
+  const handleRowContextMenu = useCallback(
+    (e: React.MouseEvent, hash: string) => {
+      const short = hash.slice(0, 8);
+      const items: GitGraphMenuItem[] = [
+        {
+          label: `コミット ${short} をチェックアウト...`,
+          onClick: () => setActionDialog({ type: 'checkout-commit', hash }),
+        },
+      ];
+      const mergeItem = buildMergeItem(hash, `コミット ${short}`);
+      if (mergeItem) items.push(mergeItem);
+      setMenu({ x: e.clientX, y: e.clientY, items });
+    },
+    [buildMergeItem]
+  );
+
   const fileDiffOpen = gitGraph.fileDiffHash !== null;
 
   return (
@@ -148,9 +247,9 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
           </button>
         )}
         <button
-          className={`${s.iconButton} ${loading ? s.spinning : ''}`}
+          className={`${s.iconButton} ${loading || gitGraph.actionInProgress ? s.spinning : ''}`}
           onClick={gitGraph.refresh}
-          disabled={loading}
+          disabled={loading || gitGraph.actionInProgress}
           title="更新"
           aria-label="更新"
         >
@@ -177,6 +276,9 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
             onSelectRow={handleSelectRow}
             matchedHashes={matchedSet}
             currentMatchHash={currentMatchHash}
+            onRefContextMenu={handleRefContextMenu}
+            onRefDoubleClick={handleRefDoubleClick}
+            onRowContextMenu={handleRowContextMenu}
           />
         )}
 
@@ -206,6 +308,79 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
             gitGraph.requestFileDiff(selectedHash, filename, oldFilename)
           }
           onClose={() => setSelectedHash(null)}
+        />
+      )}
+
+      {/* checkout / merge コンテキストメニュー */}
+      {menu && (
+        <GitGraphContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menu.items}
+          onClose={() => setMenu(null)}
+        />
+      )}
+
+      {/* checkout / merge 確認ダイアログ */}
+      {actionDialog?.type === 'checkout-remote' && (
+        <GitGraphActionDialog
+          message={`リモートブランチ「${actionDialog.remoteName}」をチェックアウトしますか？`}
+          input={{
+            label: '作成するローカルブランチ名',
+            defaultValue: actionDialog.remoteName
+              .split('/')
+              .slice(1)
+              .join('/'),
+          }}
+          confirmLabel="チェックアウト"
+          onConfirm={({ inputValue }) => {
+            setActionDialog(null);
+            gitGraph.checkout('remote', actionDialog.remoteName, inputValue);
+          }}
+          onCancel={() => setActionDialog(null)}
+        />
+      )}
+      {actionDialog?.type === 'checkout-commit' && (
+        <GitGraphActionDialog
+          message={`コミット ${actionDialog.hash.slice(0, 8)} をチェックアウトしますか？（detached HEAD 状態になります）`}
+          confirmLabel="チェックアウト"
+          onConfirm={() => {
+            setActionDialog(null);
+            gitGraph.checkout('commit', actionDialog.hash);
+          }}
+          onCancel={() => setActionDialog(null)}
+        />
+      )}
+      {actionDialog?.type === 'merge' && (
+        <GitGraphActionDialog
+          message={`${actionDialog.targetLabel}を${currentBranchLabel}にマージしますか？`}
+          checkboxes={[
+            {
+              key: 'noFF',
+              label: 'fast-forward 可能でも新しいコミットを作成する (--no-ff)',
+              defaultChecked: true,
+            },
+            {
+              key: 'squash',
+              label: 'コミットを 1 つにまとめる (--squash)',
+              defaultChecked: false,
+            },
+            {
+              key: 'noCommit',
+              label: 'コミットしない (--no-commit)',
+              defaultChecked: false,
+            },
+          ]}
+          confirmLabel="マージ"
+          onConfirm={({ checks }) => {
+            setActionDialog(null);
+            gitGraph.merge(actionDialog.target, {
+              noFF: checks.noFF ?? false,
+              squash: checks.squash ?? false,
+              noCommit: checks.noCommit ?? false,
+            });
+          }}
+          onCancel={() => setActionDialog(null)}
         />
       )}
 

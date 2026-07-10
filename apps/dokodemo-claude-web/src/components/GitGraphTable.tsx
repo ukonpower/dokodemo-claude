@@ -18,13 +18,27 @@ interface GitGraphTableProps {
   matchedHashes?: Set<string>;
   /** 現在ジャンプ中のマッチ hash */
   currentMatchHash?: string | null;
+  /** ref chip の右クリック（checkout / merge メニュー用） */
+  onRefContextMenu?: (e: React.MouseEvent, ref: GitGraphRef) => void;
+  /** ref chip のダブルクリック（checkout ショートカット用） */
+  onRefDoubleClick?: (ref: GitGraphRef) => void;
+  /** コミット行の右クリック */
+  onRowContextMenu?: (e: React.MouseEvent, hash: string) => void;
 }
 
 // グラフ列に描く最大レーン数（超過分はクリップ）
 const MAX_VISIBLE_LANES = 8;
 
 /** ref ラベル chip */
-function RefChip({ r }: { r: GitGraphRef }): React.ReactElement {
+function RefChip({
+  r,
+  onContextMenu,
+  onDoubleClick,
+}: {
+  r: GitGraphRef;
+  onContextMenu?: (e: React.MouseEvent, ref: GitGraphRef) => void;
+  onDoubleClick?: (ref: GitGraphRef) => void;
+}): React.ReactElement {
   const cls =
     r.type === 'head'
       ? s.chipHead
@@ -33,7 +47,30 @@ function RefChip({ r }: { r: GitGraphRef }): React.ReactElement {
         : r.type === 'remote'
           ? s.chipRemote
           : s.chipBranch;
-  return <span className={`${s.chip} ${cls}`}>{r.name}</span>;
+  return (
+    <span
+      className={`${s.chip} ${cls}`}
+      onContextMenu={
+        onContextMenu
+          ? (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onContextMenu(e, r);
+            }
+          : undefined
+      }
+      onDoubleClick={
+        onDoubleClick
+          ? (e) => {
+              e.stopPropagation();
+              onDoubleClick(r);
+            }
+          : undefined
+      }
+    >
+      {r.name}
+    </span>
+  );
 }
 
 /**
@@ -45,6 +82,9 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
   onSelectRow,
   matchedHashes,
   currentMatchHash,
+  onRefContextMenu,
+  onRefDoubleClick,
+  onRowContextMenu,
 }) => {
   // uncommitted があれば先頭に仮想行を合成する
   const rows = useMemo(() => {
@@ -137,13 +177,26 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
                   isMatch ? s.match : ''
                 } ${isCurrentMatch ? s.currentMatch : ''}`}
                 onClick={() => onSelectRow(c.hash)}
+                onContextMenu={
+                  onRowContextMenu
+                    ? (e) => {
+                        e.preventDefault();
+                        onRowContextMenu(e, c.hash);
+                      }
+                    : undefined
+                }
               >
                 <td className={s.graphCell} />
                 <td className={s.descCol}>
                   {c.refs.length > 0 && (
                     <span className={s.chips}>
                       {c.refs.map((r) => (
-                        <RefChip key={`${r.type}:${r.name}`} r={r} />
+                        <RefChip
+                          key={`${r.type}:${r.name}`}
+                          r={r}
+                          onContextMenu={onRefContextMenu}
+                          onDoubleClick={onRefDoubleClick}
+                        />
                       ))}
                     </span>
                   )}

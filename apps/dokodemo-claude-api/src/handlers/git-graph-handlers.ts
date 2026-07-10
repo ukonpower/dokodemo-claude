@@ -38,7 +38,14 @@ function runGitCommand(repoPath: string, args: string[]): Promise<string> {
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(stderr || `Git command failed with code ${code}`));
+        // merge conflict 等はメッセージが stdout に出るため両方を見る
+        reject(
+          new Error(
+            stderr.trim() ||
+              stdout.trim() ||
+              `Git command failed with code ${code}`
+          )
+        );
       }
     });
 
@@ -171,6 +178,7 @@ async function getGitGraph(
     return {
       commits: [],
       headHash: '',
+      currentBranch: null,
       uncommitted: null,
       branchOptions: [],
       moreAvailable: false,
@@ -187,6 +195,10 @@ async function getGitGraph(
   } catch {
     currentRef = null;
   }
+  const currentBranch =
+    currentRef && currentRef.startsWith('refs/heads/')
+      ? currentRef.slice('refs/heads/'.length)
+      : null;
 
   const refIndex = await buildRefIndex(repoPath, currentRef);
 
@@ -253,10 +265,24 @@ async function getGitGraph(
   return {
     commits,
     headHash,
+    currentBranch,
     uncommitted,
     branchOptions: refIndex.branchOptions,
     moreAvailable,
   };
+}
+
+/**
+ * checkout / merge の positional 引数として安全な名前かを確認する
+ * （オプションインジェクション・制御文字混入の防止）
+ */
+function isSafeRefArg(name: string): boolean {
+  return (
+    name.length > 0 &&
+    !name.startsWith('-') &&
+    // eslint-disable-next-line no-control-regex
+    !/[\s\x00-\x1f]/.test(name)
+  );
 }
 
 /**
@@ -451,6 +477,83 @@ export function registerGitGraphHandlers(ctx: HandlerContext): void {
           ? error.message
           : 'コミット詳細の取得に失敗しました';
       socket.emit('git-graph-error', { rid, message });
+    }
+  });
+
+  // チェックアウト（ローカルブランチ / リモートブランチ / コミット）
+  socket.on('git-graph-checkout', async (data) => {
+    const { rid, kind, name, localName } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    try {
+      if (!isSafeRefArg(name)) {
+        throw new Error(`不正な名前です: ${name}`);
+      }
+      if (kind === 'remote') {
+        // origin/foo → foo をデフォルトのローカルブランチ名にする
+        const local = localName ?? name.split('/').slice(1).join('/');
+        if (!isSafeRefArg(local)) {
+          throw new Error(`不正なブランチ名です: ${local}`);
+        }
+        await runGitCommand(repoPath, [
+          'checkout',
+          '-b',
+          local,
+          '--track',
+          name,
+        ]);
+      } else {
+        await runGitCommand(repoPath, ['checkout', name]);
+      }
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'checkout',
+        success: true,
+        message: `チェックアウトしました: ${name}`,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'チェックアウトに失敗しました';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'checkout',
+        success: false,
+        message,
+      });
+    }
+  });
+
+  // マージ（現在のブランチへ target をマージ）
+  socket.on('git-graph-merge', async (data) => {
+    const { rid, target, noFF, squash, noCommit } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    try {
+      if (!isSafeRefArg(target)) {
+        throw new Error(`不正な名前です: ${target}`);
+      }
+      const args = ['merge'];
+      if (squash) {
+        args.push('--squash');
+      } else if (noFF) {
+        args.push('--no-ff');
+      }
+      if (noCommit) args.push('--no-commit');
+      args.push(target);
+      await runGitCommand(repoPath, args);
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'merge',
+        success: true,
+        message: `マージしました: ${target}`,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'マージに失敗しました';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'merge',
+        success: false,
+        message,
+      });
     }
   });
 

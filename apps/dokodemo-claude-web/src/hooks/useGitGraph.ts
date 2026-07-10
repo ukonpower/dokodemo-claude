@@ -36,6 +36,18 @@ export interface UseGitGraphReturn {
   fileDiffHash: string | null;
   fileDiffFilename: string;
 
+  // checkout / merge アクション
+  actionInProgress: boolean;
+  checkout: (
+    kind: 'branch' | 'remote' | 'commit',
+    name: string,
+    localName?: string
+  ) => void;
+  merge: (
+    target: string,
+    opts: { noFF: boolean; squash: boolean; noCommit: boolean }
+  ) => void;
+
   // アクション
   openGraphView: () => void;
   handleBack: () => void;
@@ -80,6 +92,8 @@ export function useGitGraph(
   const [detailLoadingHash, setDetailLoadingHash] = useState<string | null>(
     null
   );
+
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   const [fileDiff, setFileDiff] = useState<GitDiffDetail | null>(null);
   const [fileDiffLoading, setFileDiffLoading] = useState(false);
@@ -176,6 +190,30 @@ export function useGitGraph(
       }
     };
 
+    // checkout / merge の結果。成功時はグラフを再取得して反映する
+    const handleActionResult = (
+      data: Parameters<ServerToClientEvents['git-graph-action-result']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid || !currentRid) return;
+      setActionInProgress(false);
+      if (data.success) {
+        setError(null);
+        setDetailByHash({});
+        setLoading(true);
+        socket.emit('get-git-graph', {
+          rid: currentRid,
+          branches:
+            selectedBranchRef.current === null
+              ? null
+              : [selectedBranchRef.current],
+          maxCommits: maxCommitsRef.current,
+        });
+      } else {
+        setError(data.message);
+      }
+    };
+
     // IDマッピング受信時、グラフ表示中で未取得なら要求する
     // （?view=graph 直リンク/リロード時は初回要求時点で rid が未解決のため）
     const handleIdMapping = (
@@ -204,6 +242,7 @@ export function useGitGraph(
     socket.on('git-graph-commit-detail', handleCommitDetail);
     socket.on('git-graph-file-diff', handleFileDiff);
     socket.on('git-graph-error', handleError);
+    socket.on('git-graph-action-result', handleActionResult);
     socket.on('id-mapping', handleIdMapping);
     socket.on('id-mapping-updated', handleIdMapping);
 
@@ -212,6 +251,7 @@ export function useGitGraph(
       socket.off('git-graph-commit-detail', handleCommitDetail);
       socket.off('git-graph-file-diff', handleFileDiff);
       socket.off('git-graph-error', handleError);
+      socket.off('git-graph-action-result', handleActionResult);
       socket.off('id-mapping', handleIdMapping);
       socket.off('id-mapping-updated', handleIdMapping);
     };
@@ -330,6 +370,33 @@ export function useGitGraph(
     setFileDiffLoading(false);
   }, []);
 
+  const checkout = useCallback(
+    (kind: 'branch' | 'remote' | 'commit', name: string, localName?: string) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      setActionInProgress(true);
+      setError(null);
+      socket.emit('git-graph-checkout', { rid, kind, name, localName });
+    },
+    [socket, currentRepo]
+  );
+
+  const merge = useCallback(
+    (
+      target: string,
+      opts: { noFF: boolean; squash: boolean; noCommit: boolean }
+    ) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      setActionInProgress(true);
+      setError(null);
+      socket.emit('git-graph-merge', { rid, target, ...opts });
+    },
+    [socket, currentRepo]
+  );
+
   const clearState = useCallback(() => {
     setIsActive(false);
     setGraph(null);
@@ -341,6 +408,7 @@ export function useGitGraph(
     setFileDiffHash(null);
     setMaxCommits(INITIAL_MAX_COMMITS);
     setSelectedBranch(null);
+    setActionInProgress(false);
   }, []);
 
   return {
@@ -356,6 +424,9 @@ export function useGitGraph(
     fileDiffLoading,
     fileDiffHash,
     fileDiffFilename,
+    actionInProgress,
+    checkout,
+    merge,
     openGraphView,
     handleBack,
     syncActive,
