@@ -5,6 +5,8 @@ import {
   Check,
   Trash2,
   Download,
+  Code2,
+  Eye,
 } from 'lucide-react';
 import type { UploadedFileInfo } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
@@ -29,7 +31,9 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<'rendered' | 'raw'>('rendered');
   const backdropRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen || !file) {
@@ -78,7 +82,10 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
   }, [isOpen]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) onClose();
+    // backdrop 自身、または body の空白域（.contentCard の外）クリックで閉じる
+    if (e.target === backdropRef.current || e.target === bodyRef.current) {
+      onClose();
+    }
   };
 
   const handleCopy = useCallback(async () => {
@@ -154,7 +161,7 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
         </button>
       </div>
 
-      <div className={s.body}>
+      <div ref={bodyRef} className={s.body}>
         <div className={s.contentCard}>
           {error && (
             <div className={s.errorText}>読み込みに失敗しました: {error}</div>
@@ -162,11 +169,35 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
           {!error && content === null && (
             <div className={s.loadingText}>読み込み中...</div>
           )}
-          {!error && content !== null && <MarkdownViewer content={content} />}
+          {!error && content !== null && viewMode === 'rendered' && (
+            <MarkdownViewer content={content} />
+          )}
+          {!error && content !== null && viewMode === 'raw' && (
+            <pre className={s.rawContent}>{content}</pre>
+          )}
         </div>
       </div>
 
       <div className={s.actionBar}>
+        <button
+          onClick={() =>
+            setViewMode((m) => (m === 'rendered' ? 'raw' : 'rendered'))
+          }
+          disabled={content === null}
+          className={s.iconButton}
+          aria-label={
+            viewMode === 'rendered' ? 'ソース表示に切替' : 'レンダリング表示に切替'
+          }
+          title={
+            viewMode === 'rendered' ? 'ソース表示に切替' : 'レンダリング表示に切替'
+          }
+        >
+          {viewMode === 'rendered' ? (
+            <Code2 size={14} strokeWidth={2} />
+          ) : (
+            <Eye size={14} strokeWidth={2} />
+          )}
+        </button>
         <button
           onClick={handleCopy}
           disabled={content === null}

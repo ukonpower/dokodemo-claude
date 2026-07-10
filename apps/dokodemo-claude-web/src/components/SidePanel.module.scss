@@ -13,7 +13,7 @@
   overflow: hidden;
 
   // lg 未満（縦積み最下部・タブ切替）: 高さ上限を設け tabContent 内でスクロール
-  max-height: 60dvh;
+  max-height: 38dvh;
 
   // lg 以上（右列・縦積み）: 列いっぱいの高さに追従し各セクションボディを個別スクロール
   @include lg-up {
@@ -159,6 +159,11 @@
     color: $gray-200;
     background-color: $dark-bg-hover;
   }
+
+  // スマホ: タブの縦サイズを少し詰める
+  @include sm-down {
+    height: 2rem;
+  }
 }
 
 .tabActive {
@@ -175,6 +180,47 @@
 
 .tabLabel {
   white-space: nowrap;
+}
+
+.maximizeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  background: transparent;
+  color: $gray-400;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.tabMaximizeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: $gray-400;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
 }
 
 .tabContent {

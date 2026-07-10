@@ -1,6 +1,6 @@
 .root {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   min-width: 0;
   flex: 1;
 }
@@ -12,15 +12,20 @@
 
 .slideAuto {
   width: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .tab {
   position: relative;
   display: flex;
   align-items: center;
+  height: 100%;
   gap: 0.3rem;
-  padding: 0.22rem 0.45rem;
+  padding: 0 0.45rem;
   border: none;
+  border-top: 2px solid transparent;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: $gray-400;
@@ -60,16 +65,16 @@
   max-width: 6rem;
 }
 
-.closeBtn {
+.menuBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 1.125rem;
+  height: 1.125rem;
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 9999px;
+  border-radius: $radius-sm;
   color: $gray-500;
   cursor: pointer;
   transition:
@@ -87,31 +92,41 @@
   }
 
   svg {
-    width: 0.625rem;
-    height: 0.625rem;
+    width: 0.875rem;
+    height: 0.875rem;
   }
 }
 
 .addWrapper {
   position: relative;
   display: inline-flex;
+  align-items: center;
 }
 
+// 新規インスタンス追加ボタン（タブ右端・スクロール内。タブの ⋮ と区別する丸アイコン）
 .addBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.22rem 0.35rem;
+  flex-shrink: 0;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0 0.4rem;
+  padding: 0;
   background: transparent;
-  border: none;
-  color: $gray-500;
+  border: 1px solid $dark-border-light;
+  border-radius: 50%;
+  color: $gray-400;
   cursor: pointer;
-  border-radius: $radius;
-  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
 
   &:hover {
-    color: $gray-200;
-    background-color: rgba($gray-700, 0.5);
+    color: white;
+    background-color: $gray-700;
+    border-color: $gray-500;
   }
 
   &:disabled {
@@ -120,28 +135,18 @@
   }
 
   svg {
-    width: 0.75rem;
-    height: 0.75rem;
+    width: 0.65rem;
+    height: 0.65rem;
   }
-}
-
-.addMenu {
-  background-color: $gray-800;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius-md;
-  box-shadow: $shadow-lg;
-  padding: 0.25rem 0;
-  z-index: 9999;
-  min-width: 9rem;
 }
 
 .addMenuItem {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  font-size: $font-size-sm;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font-size: $font-size-xs;
   background: none;
   border: none;
   color: $gray-200;
@@ -152,4 +157,56 @@
     background-color: $gray-700;
   }
 
+  svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+}
+
+// タブメニュー内の区切り線（プロバイダー切替 と 再起動 の間）
+.menuDivider {
+  height: 1px;
+  margin: 0.2rem 0;
+  background-color: $dark-border-light;
+}
+
+// provider 切替セグメント（Claude / Codex の 2 択トグル）
+.providerSegment {
+  display: flex;
+  gap: 0.2rem;
+  padding: 0.2rem 0.3rem;
+}
+
+.providerSegmentItem {
+  flex: 1;
+  padding: 0.25rem 0.4rem;
+  font-size: $font-size-xs;
+  background: transparent;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-sm;
+  color: $gray-300;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover:not(.active) {
+    background-color: $gray-700;
+    color: $gray-100;
+  }
+
+  &.active {
+    color: white;
+    background-color: $gray-700;
+    cursor: default;
+
+    &.claude {
+      border-color: #fb923c; // orange-400（タブと揃える）
+    }
+
+    &.codex {
+      border-color: #38bdf8; // sky-400（タブと揃える）
+    }
+  }
 }

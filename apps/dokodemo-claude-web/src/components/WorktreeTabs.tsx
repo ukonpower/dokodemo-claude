@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useOutsideClose } from '../hooks';
 import {
   DndContext,
   closestCenter,
@@ -293,22 +294,14 @@ function WorktreeTabs({
     })
   );
 
-  // メニュー外クリックで閉じる
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpenPath(null);
-        setMenuPosition(null);
-      }
-    };
-
-    if (menuOpenPath) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuOpenPath]);
+  // メニュー外クリック / Escape で閉じる
+  const closeTabMenu = useCallback(() => {
+    setMenuOpenPath(null);
+    setMenuPosition(null);
+  }, []);
+  useOutsideClose(!!menuOpenPath, closeTabMenu, {
+    ignore: [menuRef],
+  });
 
   // ワークツリー作成が成功したら作成モーダルを閉じる
   const lastCreateSuccessNonceRef = useRef(worktreeCreateSuccessNonce);

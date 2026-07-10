@@ -6,9 +6,10 @@ import React, {
   forwardRef,
   useCallback,
 } from 'react';
-import { Repeat } from 'lucide-react';
+import { Repeat, FileText, ImagePlus } from 'lucide-react';
 import type { AiProvider } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import { useOutsideClose } from '../hooks';
 import { resolveModelLabel } from '../utils/models';
 import LoopSettingsFields from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
@@ -379,8 +380,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       setIsAddModelOpen(false);
     };
 
-    // モデルドロップダウン外クリックで閉じる & 位置計算
+    // モデルドロップダウンの位置計算（スクロール/リサイズに追随）
     useEffect(() => {
+      if (!isModelDropdownOpen) return;
       const updatePosition = () => {
         if (modelButtonRef.current) {
           const rect = modelButtonRef.current.getBoundingClientRect();
@@ -390,30 +392,23 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           });
         }
       };
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          modelDropdownRef.current &&
-          !modelDropdownRef.current.contains(event.target as Node)
-        ) {
-          setIsModelDropdownOpen(false);
-          setIsAddModelOpen(false);
-        }
-      };
-
-      if (isModelDropdownOpen) {
-        updatePosition();
-        document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-      }
-
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }, [isModelDropdownOpen]);
+
+    // 外側クリック / Escape でドロップダウンを閉じる
+    const closeModelDropdown = useCallback(() => {
+      setIsModelDropdownOpen(false);
+      setIsAddModelOpen(false);
+    }, []);
+    useOutsideClose(isModelDropdownOpen, closeModelDropdown, {
+      ignore: [modelDropdownRef],
+    });
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -784,17 +779,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [isDragOver, setIsDragOver] = useState(false);
 
     const handleDragOver = useCallback(
-      (e: React.DragEvent<HTMLTextAreaElement>) => {
-        e.preventDefault();
+      (e: React.DragEvent<HTMLElement>) => {
         if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
         setIsDragOver(true);
       },
       []
     );
 
     const handleDragLeave = useCallback(
-      (e: React.DragEvent<HTMLTextAreaElement>) => {
+      (e: React.DragEvent<HTMLElement>) => {
         e.preventDefault();
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
         setIsDragOver(false);
       },
       []
@@ -827,7 +823,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     );
 
     const handleDrop = useCallback(
-      async (e: React.DragEvent<HTMLTextAreaElement>) => {
+      async (e: React.DragEvent<HTMLElement>) => {
         e.preventDefault();
         setIsDragOver(false);
 
@@ -845,17 +841,147 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       fileInputRef.current?.click();
     }, []);
 
-    // お絵かきキャンバス（白紙スケッチ）の開閉
+    // お絵かきキャンバスの開閉と、写真加筆モードの背景画像
     const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+    // 写真加筆モードの背景画像 URL（object URL）。白紙スケッチ時は null
+    const [drawingBgUrl, setDrawingBgUrl] = useState<string | null>(null);
+    // 鉛筆ボタンのポップアップメニュー（白紙 / 写真から）
+    const [isSketchMenuOpen, setIsSketchMenuOpen] = useState(false);
+    const [sketchMenuPosition, setSketchMenuPosition] = useState({
+      top: 0,
+      left: 0,
+    });
+    // 鉛筆ボタンへ画像をドラッグ中のハイライト
+    const [isSketchDragOver, setIsSketchDragOver] = useState(false);
+
+    const sketchMenuRef = useRef<HTMLDivElement>(null);
+    const sketchButtonRef = useRef<HTMLButtonElement>(null);
+    const sketchBgInputRef = useRef<HTMLInputElement>(null);
+    // アンマウント時に解放するため、現在の背景 URL を ref にも保持する
+    const drawingBgUrlRef = useRef<string | null>(null);
+    useEffect(() => {
+      drawingBgUrlRef.current = drawingBgUrl;
+    }, [drawingBgUrl]);
+    useEffect(
+      () => () => {
+        if (drawingBgUrlRef.current) URL.revokeObjectURL(drawingBgUrlRef.current);
+      },
+      []
+    );
+
+    // キャンバスを閉じ、背景 object URL を解放する
+    const closeDrawing = useCallback(() => {
+      setIsDrawingOpen(false);
+      setDrawingBgUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }, []);
+
+    // 白紙スケッチを開く
+    const openBlankSketch = useCallback(() => {
+      setDrawingBgUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setIsDrawingOpen(true);
+      setIsSketchMenuOpen(false);
+    }, []);
+
+    // 画像ファイルを背景にして加筆モードで開く
+    const openSketchFromFile = useCallback((file: File) => {
+      if (!file.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(file);
+      setDrawingBgUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+      setIsDrawingOpen(true);
+      setIsSketchMenuOpen(false);
+    }, []);
+
+    // 「写真から加筆」: ネイティブの画像ピッカーを開く
+    const openPhotoSketch = useCallback(() => {
+      setIsSketchMenuOpen(false);
+      sketchBgInputRef.current?.click();
+    }, []);
+
+    // 背景画像の選択時
+    const handleSketchBgSelected = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (file) openSketchFromFile(file);
+      },
+      [openSketchFromFile]
+    );
+
+    // 鉛筆ボタンへの画像ドラッグ＆ドロップ（ドロップした画像に加筆）
+    const handleSketchDragOver = useCallback(
+      (e: React.DragEvent<HTMLButtonElement>) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSketchDragOver(true);
+      },
+      []
+    );
+    const handleSketchDragLeave = useCallback(
+      (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSketchDragOver(false);
+      },
+      []
+    );
+    const handleSketchDrop = useCallback(
+      (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSketchDragOver(false);
+        const file = Array.from(e.dataTransfer.files).find((f) =>
+          f.type.startsWith('image/')
+        );
+        if (file) openSketchFromFile(file);
+      },
+      [openSketchFromFile]
+    );
 
     // スケッチ完了時：PNG をアップロードしてパスをカーソル位置に挿入
     const handleDrawingComplete = useCallback(
       (file: File) => {
-        setIsDrawingOpen(false);
+        closeDrawing();
         void insertFilesAsPaths([file]);
       },
-      [insertFilesAsPaths]
+      [closeDrawing, insertFilesAsPaths]
     );
+
+    // 鉛筆メニューの位置計算（スクロール/リサイズに追随）
+    useEffect(() => {
+      if (!isSketchMenuOpen) return;
+      const updatePosition = () => {
+        if (sketchButtonRef.current) {
+          const rect = sketchButtonRef.current.getBoundingClientRect();
+          setSketchMenuPosition({
+            top: rect.top - 4, // ボタンの上に表示（余白4px）
+            left: clampDropdownLeft(rect.left, 176), // 11rem
+          });
+        }
+      };
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }, [isSketchMenuOpen]);
+
+    // 外側クリック / Escape で鉛筆メニューを閉じる
+    const closeSketchMenu = useCallback(() => setIsSketchMenuOpen(false), []);
+    useOutsideClose(isSketchMenuOpen, closeSketchMenu, {
+      ignore: [sketchMenuRef, sketchButtonRef],
+    });
 
     // 末尾にパス文字列を追記（必要に応じてスペース区切り）
     const appendPathsToEnd = useCallback((paths: string[]) => {
@@ -1145,28 +1271,68 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onChange={handleFileSelected}
           className={s.hiddenFileInput}
         />
-        <button
-          type="button"
-          onClick={() => setIsDrawingOpen(true)}
-          disabled={disabled || isUploadingFile}
-          className={s.uploadButton}
-          title="スケッチを描いて添付"
-          aria-label="スケッチを描いて添付"
-        >
-          <svg
-            className={s.uploadIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <input
+          ref={sketchBgInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleSketchBgSelected}
+          className={s.hiddenFileInput}
+        />
+        <div className={s.sketchMenuWrapper} ref={sketchMenuRef}>
+          <button
+            type="button"
+            ref={sketchButtonRef}
+            onClick={() => setIsSketchMenuOpen((v) => !v)}
+            onDragOver={handleSketchDragOver}
+            onDragLeave={handleSketchDragLeave}
+            onDrop={handleSketchDrop}
+            disabled={disabled || isUploadingFile}
+            className={`${s.uploadButton} ${isSketchDragOver ? s.sketchDragOver : ''}`}
+            title="スケッチを描いて添付（写真をドロップで加筆）"
+            aria-label="スケッチを描いて添付"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-        </button>
+            <svg
+              className={s.uploadIcon}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+          </button>
+          {isSketchMenuOpen && (
+            <div
+              className={s.sketchMenu}
+              style={{
+                top: `${sketchMenuPosition.top}px`,
+                left: `${sketchMenuPosition.left}px`,
+                transform: 'translateY(-100%)',
+              }}
+            >
+              <button
+                type="button"
+                className={s.sketchMenuItem}
+                onClick={openBlankSketch}
+              >
+                <FileText size={14} strokeWidth={2} />
+                <span>白紙から</span>
+              </button>
+              <button
+                type="button"
+                className={s.sketchMenuItem}
+                onClick={openPhotoSketch}
+              >
+                <ImagePlus size={14} strokeWidth={2} />
+                <span>写真から加筆</span>
+              </button>
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={handleUploadClick}
@@ -1193,7 +1359,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     ) : null;
 
     return (
-      <div className={s.root}>
+      <div
+        className={s.root}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* ワークフローコントロール */}
         {onAddToQueue && !hideWorkflowControls && (
           <div className={s.workflowControls}>
@@ -1332,9 +1503,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
               placeholder={
@@ -1426,12 +1594,37 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         </form>
 
-        {/* テキストエリア下のツールバー（簡易送信時のみ。プライマリ＋キューでは
-            下の 2 カラム composer に統合し、アップロードを右カラム上部へ移す） */}
+        {/* テキストエリア下のツールバー（簡易送信時。プライマリ＋キューでは
+            下の 2 カラム composer に統合する）。アップロードの右に送信ボタンを
+            インライン配置し、プライマリの sendTopRow と同じ並びに揃える */}
         {!(onAddToQueue && isPrimary) && (
           <div className={s.inputToolbar}>
             <div className={s.toolbarLeft}>{indentButtons}</div>
-            <div className={s.toolbarRight}>{uploadButton}</div>
+            <div className={s.sendTopRowActions}>
+              <div className={s.toolbarRight}>{uploadButton}</div>
+              <button
+                type="button"
+                onClick={sendCommand}
+                disabled={disabled}
+                className={s.submitButton}
+                title="送信 (Ctrl+Enter)"
+              >
+                <svg
+                  className={s.submitIcon}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 10l7-7m0 0l7 7m-7-7v18"
+                  />
+                </svg>
+                <span className={s.submitText}>送信</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -1774,39 +1967,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         )}
 
-        {/* キュー機能がない場合 or 非プライマリのシンプルな送信セクション */}
-        {(!onAddToQueue || !isPrimary) && (
-          <div className={s.simpleSendSection}>
-            <div className={s.simpleSendSpacer} />
-            <button
-              type="button"
-              onClick={sendCommand}
-              disabled={disabled}
-              className={s.submitButton}
-              title="送信 (Ctrl+Enter)"
-            >
-              <svg
-                className={s.simpleSubmitIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 10l7-7m0 0l7 7m-7-7v18"
-                />
-              </svg>
-              送信
-            </button>
-          </div>
-        )}
-
-        {/* お絵かきキャンバス（白紙スケッチ） */}
+        {/* お絵かきキャンバス（白紙スケッチ / 写真加筆） */}
         <DrawingCanvas
           isOpen={isDrawingOpen}
-          onClose={() => setIsDrawingOpen(false)}
+          backgroundImageUrl={drawingBgUrl}
+          onClose={closeDrawing}
           onComplete={handleDrawingComplete}
         />
       </div>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useOutsideClose } from '../hooks';
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -103,30 +104,18 @@ function DashboardSidebar({
     setMemoPopover({ rid, top, left });
   };
 
-  // 外側クリック / Esc / スクロールでポップオーバーを閉じる
+  // 外側クリック / Escape でポップオーバーを閉じる
+  const closeMemoPopover = useCallback(() => setMemoPopover(null), []);
+  useOutsideClose(!!memoPopover, closeMemoPopover, {
+    ignore: [popoverRef],
+  });
+
+  // スクロールで位置が追随できないため一緒に閉じる
   useEffect(() => {
     if (!memoPopover) return;
-    const handleDown = (e: MouseEvent) => {
-      const target = e.target as Node | null;
-      if (popoverRef.current && target && popoverRef.current.contains(target)) {
-        return;
-      }
-      setMemoPopover(null);
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMemoPopover(null);
-    };
     const handleScroll = () => setMemoPopover(null);
-    // 開いた同じクリックイベントで閉じないように 1 tick 遅らせて bind
-    const timer = window.setTimeout(() => {
-      document.addEventListener('mousedown', handleDown);
-      document.addEventListener('keydown', handleKey);
-      window.addEventListener('scroll', handleScroll, true);
-    }, 0);
+    window.addEventListener('scroll', handleScroll, true);
     return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener('mousedown', handleDown);
-      document.removeEventListener('keydown', handleKey);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [memoPopover]);

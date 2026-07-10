@@ -7,6 +7,7 @@ import type {
   ClientToServerEvents,
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
+import { useOutsideClose } from './useOutsideClose';
 
 /**
  * useEditorLauncher フックの戻り値
@@ -66,25 +67,11 @@ export function useEditorLauncher(
     );
   }, []);
 
-  // ドロップダウンメニューの外側クリックで閉じる
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        editorMenuRef.current &&
-        !editorMenuRef.current.contains(event.target as Node)
-      ) {
-        setShowEditorMenu(false);
-      }
-    };
-
-    if (showEditorMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showEditorMenu]);
+  // ドロップダウンメニューの外側クリック / Escape で閉じる
+  const closeEditorMenu = useCallback(() => setShowEditorMenu(false), []);
+  useOutsideClose(showEditorMenu, closeEditorMenu, {
+    ignore: [editorMenuRef],
+  });
 
   // Socketイベントリスナー
   useEffect(() => {

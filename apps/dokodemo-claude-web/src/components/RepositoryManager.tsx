@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
 import type { GitRepository, RepoProcessStatus } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
+import { useOutsideClose } from '../hooks';
 import AddRepositoryModal from './AddRepositoryModal';
 import ProjectAiStatusBadge from './ProjectAiStatusBadge';
 import s from './RepositoryManager.module.scss';
@@ -46,20 +47,11 @@ const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     repoProcessStatuses.map((status) => [status.repositoryPath, status])
   );
 
-  // メニュー外側クリックで閉じる
-  useEffect(() => {
-    if (!openMenuPath) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('[data-repo-menu]')) {
-        setOpenMenuPath(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuPath]);
+  // メニュー外側クリック / Escape で閉じる
+  const closeMenu = useCallback(() => setOpenMenuPath(null), []);
+  useOutsideClose(!!openMenuPath, closeMenu, {
+    ignoreClosest: '[data-repo-menu]',
+  });
 
   const getStatusText = (status: GitRepository['status']) => {
     switch (status) {
