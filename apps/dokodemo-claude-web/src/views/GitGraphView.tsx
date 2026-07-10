@@ -142,7 +142,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
   );
 
   const handleRefContextMenu = useCallback(
-    (e: React.MouseEvent, ref: GitGraphRef) => {
+    (pos: { clientX: number; clientY: number }, ref: GitGraphRef) => {
       const items: GitGraphMenuItem[] = [];
       if (ref.type === 'branch') {
         items.push({
@@ -168,7 +168,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       }
       // head chip（現在ブランチ）には項目なし
       if (items.length > 0) {
-        setMenu({ x: e.clientX, y: e.clientY, items });
+        setMenu({ x: pos.clientX, y: pos.clientY, items });
       }
     },
     [gitGraph, buildMergeItem]
@@ -187,7 +187,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
   );
 
   const handleRowContextMenu = useCallback(
-    (e: React.MouseEvent, hash: string) => {
+    (pos: { clientX: number; clientY: number }, hash: string) => {
       const short = hash.slice(0, 8);
       const items: GitGraphMenuItem[] = [
         {
@@ -197,7 +197,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       ];
       const mergeItem = buildMergeItem(hash, `コミット ${short}`);
       if (mergeItem) items.push(mergeItem);
-      setMenu({ x: e.clientX, y: e.clientY, items });
+      setMenu({ x: pos.clientX, y: pos.clientY, items });
     },
     [buildMergeItem]
   );
@@ -207,7 +207,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
   return (
     <div className={s.container}>
       {/* ヘッダ（1 行） */}
-      <div className={s.header}>
+      <div className={`${s.header} ${findOpen ? s.headerFindOpen : ''}`}>
         <button
           className={s.iconButton}
           onClick={gitGraph.handleBack}

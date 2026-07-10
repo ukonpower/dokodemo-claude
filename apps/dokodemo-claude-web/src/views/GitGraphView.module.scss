@@ -43,6 +43,15 @@
   max-width: 40vw;
 }
 
+.headerFindOpen {
+  @include sm-down {
+    .title,
+    .repoName {
+      display: none;
+    }
+  }
+}
+
 .spacer {
   flex: 1;
 }

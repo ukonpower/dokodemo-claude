@@ -7,6 +7,11 @@
   border: 1px solid $dark-border-light;
   border-radius: 4px;
   background-color: $dark-bg-tertiary;
+
+  @include sm-down {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .searchIcon {
@@ -25,6 +30,11 @@
 
   &::placeholder {
     color: $dark-text-muted;
+  }
+
+  @include sm-down {
+    width: 100%;
+    flex: 1;
   }
 }
 

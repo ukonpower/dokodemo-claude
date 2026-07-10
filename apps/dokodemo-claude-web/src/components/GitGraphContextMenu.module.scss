@@ -35,3 +35,10 @@
     background-color: $dark-bg-hover;
   }
 }
+
+@media (pointer: coarse) {
+  .item {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+}

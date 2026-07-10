@@ -4,6 +4,9 @@ export type { UseSocketReturn } from './useSocket';
 
 export { useMediaQuery } from './useMediaQuery';
 
+export { useLongPress } from './useLongPress';
+export type { LongPressPoint, LongPressHandlers } from './useLongPress';
+
 export { useOutsideClose } from './useOutsideClose';
 
 export { useAppSettings } from './useAppSettings';

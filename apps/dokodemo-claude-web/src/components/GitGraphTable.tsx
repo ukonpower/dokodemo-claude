@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { GitGraphData, GitGraphRef } from '../types';
+import { useLongPress, useMediaQuery, type LongPressPoint } from '../hooks';
 import {
   computeGraphLayout,
   formatGraphDate,
@@ -18,26 +19,46 @@ interface GitGraphTableProps {
   matchedHashes?: Set<string>;
   /** 現在ジャンプ中のマッチ hash */
   currentMatchHash?: string | null;
-  /** ref chip の右クリック（checkout / merge メニュー用） */
-  onRefContextMenu?: (e: React.MouseEvent, ref: GitGraphRef) => void;
+  /** ref chip の右クリック / 長押し（checkout / merge メニュー用） */
+  onRefContextMenu?: (
+    pos: { clientX: number; clientY: number },
+    ref: GitGraphRef
+  ) => void;
   /** ref chip のダブルクリック（checkout ショートカット用） */
   onRefDoubleClick?: (ref: GitGraphRef) => void;
-  /** コミット行の右クリック */
-  onRowContextMenu?: (e: React.MouseEvent, hash: string) => void;
+  /** コミット行の右クリック / 長押し */
+  onRowContextMenu?: (
+    pos: { clientX: number; clientY: number },
+    hash: string
+  ) => void;
 }
 
 // グラフ列に描く最大レーン数（超過分はクリップ）
 const MAX_VISIBLE_LANES = 8;
+
+// 作者列を隠すブレークポイント（md 相当）
+const MD_DOWN_MEDIA_QUERY = '(max-width: 680px)';
+// 日付列も隠すブレークポイント（sm 相当）
+const SM_DOWN_MEDIA_QUERY = '(max-width: 560px)';
 
 /** ref ラベル chip */
 function RefChip({
   r,
   onContextMenu,
   onDoubleClick,
+  longPressHandlers,
+  onLongPressStop,
 }: {
   r: GitGraphRef;
   onContextMenu?: (e: React.MouseEvent, ref: GitGraphRef) => void;
   onDoubleClick?: (ref: GitGraphRef) => void;
+  longPressHandlers: {
+    onPointerDown: (e: React.PointerEvent) => void;
+    onPointerMove: (e: React.PointerEvent) => void;
+    onPointerUp: () => void;
+    onPointerCancel: () => void;
+  };
+  onLongPressStop: () => void;
 }): React.ReactElement {
   const cls =
     r.type === 'head'
@@ -50,11 +71,20 @@ function RefChip({
   return (
     <span
       className={`${s.chip} ${cls}`}
+      onPointerDown={(e) => {
+        // 行側の長押しと二重発火しないよう伝播を止める
+        e.stopPropagation();
+        longPressHandlers.onPointerDown(e);
+      }}
+      onPointerMove={longPressHandlers.onPointerMove}
+      onPointerUp={longPressHandlers.onPointerUp}
+      onPointerCancel={longPressHandlers.onPointerCancel}
       onContextMenu={
         onContextMenu
           ? (e) => {
               e.preventDefault();
               e.stopPropagation();
+              onLongPressStop();
               onContextMenu(e, r);
             }
           : undefined
@@ -86,6 +116,16 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
   onRefDoubleClick,
   onRowContextMenu,
 }) => {
+  const isMdDown = useMediaQuery(MD_DOWN_MEDIA_QUERY);
+  const isSmDown = useMediaQuery(SM_DOWN_MEDIA_QUERY);
+  const showAuthorCol = !isMdDown;
+  const showDateCol = !isSmDown;
+  // graphCell を除いた desc + (date) + (author) + hash の列数
+  const uncommittedColSpan = 2 + (showDateCol ? 1 : 0) + (showAuthorCol ? 1 : 0);
+
+  // テーブル全体で 1 インスタンスを共有する（行・chip 双方の長押しをこれで検出）
+  const longPress = useLongPress();
+
   // uncommitted があれば先頭に仮想行を合成する
   const rows = useMemo(() => {
     const list: {
@@ -148,8 +188,8 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
         <colgroup>
           <col style={{ width: graphColWidth }} />
           <col />
-          <col style={{ width: 130 }} />
-          <col style={{ width: 120 }} />
+          {showDateCol && <col style={{ width: 130 }} />}
+          {showAuthorCol && <col style={{ width: 120 }} />}
           <col style={{ width: 76 }} />
         </colgroup>
         <tbody>
@@ -158,7 +198,10 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
               return (
                 <tr key="uncommitted" className={s.row}>
                   <td className={s.graphCell} />
-                  <td className={`${s.descCol} ${s.uncommitted}`} colSpan={4}>
+                  <td
+                    className={`${s.descCol} ${s.uncommitted}`}
+                    colSpan={uncommittedColSpan}
+                  >
                     Uncommitted Changes ({graph.uncommitted?.fileCount ?? 0})
                   </td>
                 </tr>
@@ -176,15 +219,22 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
                 className={`${s.row} ${s.clickable} ${isSelected ? s.selected : ''} ${
                   isMatch ? s.match : ''
                 } ${isCurrentMatch ? s.currentMatch : ''}`}
-                onClick={() => onSelectRow(c.hash)}
+                onClick={() => {
+                  if (longPress.consumeLongPress()) return;
+                  onSelectRow(c.hash);
+                }}
                 onContextMenu={
                   onRowContextMenu
                     ? (e) => {
                         e.preventDefault();
+                        longPress.cancel();
                         onRowContextMenu(e, c.hash);
                       }
                     : undefined
                 }
+                {...longPress.bind((p: LongPressPoint) =>
+                  onRowContextMenu?.(p, c.hash)
+                )}
               >
                 <td className={s.graphCell} />
                 <td className={s.descCol}>
@@ -196,14 +246,24 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
                           r={r}
                           onContextMenu={onRefContextMenu}
                           onDoubleClick={onRefDoubleClick}
+                          longPressHandlers={longPress.bind(
+                            (p: LongPressPoint) => {
+                              onRefContextMenu?.(p, r);
+                            }
+                          )}
+                          onLongPressStop={longPress.cancel}
                         />
                       ))}
                     </span>
                   )}
                   <span className={s.message}>{c.message}</span>
                 </td>
-                <td className={s.dateCol}>{formatGraphDate(c.date)}</td>
-                <td className={s.authorCol}>{c.author}</td>
+                {showDateCol && (
+                  <td className={s.dateCol}>{formatGraphDate(c.date)}</td>
+                )}
+                {showAuthorCol && (
+                  <td className={s.authorCol}>{c.author}</td>
+                )}
                 <td className={s.hashCol}>{c.hash.slice(0, 8)}</td>
               </tr>
             );
