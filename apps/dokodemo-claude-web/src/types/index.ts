@@ -309,6 +309,46 @@ export interface GitDiffDetail {
   diff: string; // unified diff形式
 }
 
+// Git Graph関連の型定義
+export interface GitGraphRef {
+  name: string; // 'main', 'origin/main', 'v1.0' など refs/ プレフィックスを剥がした表示名
+  type: 'head' | 'branch' | 'remote' | 'tag';
+}
+export interface GitGraphCommit {
+  hash: string;
+  parents: string[];
+  author: string;
+  email: string;
+  date: number; // unix 秒
+  message: string; // subject 1 行
+  refs: GitGraphRef[];
+}
+export interface GitGraphData {
+  commits: GitGraphCommit[];
+  headHash: string; // detached でも HEAD の SHA。空リポジトリは ''
+  uncommitted: { fileCount: number } | null;
+  branchOptions: { name: string; isRemote: boolean }[];
+  moreAvailable: boolean;
+}
+export interface GitGraphFileChange {
+  filename: string;
+  oldFilename?: string; // rename 時のみ
+  status: 'A' | 'M' | 'D' | 'R';
+  additions: number;
+  deletions: number;
+}
+export interface GitGraphCommitDetail {
+  hash: string;
+  parents: string[];
+  author: string;
+  email: string;
+  authorDate: number;
+  committer: string;
+  commitDate: number;
+  body: string; // フルメッセージ（%B）
+  files: GitGraphFileChange[];
+}
+
 
 // アップロードファイル情報の型定義
 export type FileSource = 'user' | 'claude';
@@ -702,6 +742,20 @@ export interface ServerToClientEvents {
   }) => void;
   'git-diff-error': (data: { rid: string; message: string }) => void;
 
+  // Git Graph関連イベント
+  'git-graph': (data: { rid: string; graph: GitGraphData }) => void;
+  'git-graph-commit-detail': (data: {
+    rid: string;
+    hash: string;
+    detail: GitGraphCommitDetail;
+  }) => void;
+  'git-graph-file-diff': (data: {
+    rid: string;
+    hash: string;
+    detail: GitDiffDetail;
+  }) => void; // GitDiffDetail は既存型
+  'git-graph-error': (data: { rid: string; message: string }) => void;
+
   // ファイルビュワー関連イベント
   'directory-contents': (data: {
     rid: string;
@@ -1037,6 +1091,20 @@ export interface ClientToServerEvents {
   // Git差分関連イベント
   'get-git-diff-summary': (data: { rid: string }) => void;
   'get-git-diff-detail': (data: { rid: string; filename: string }) => void;
+
+  // Git Graph関連イベント
+  'get-git-graph': (data: {
+    rid: string;
+    branches: string[] | null;
+    maxCommits: number;
+  }) => void;
+  'get-git-graph-commit-detail': (data: { rid: string; hash: string }) => void;
+  'get-git-graph-file-diff': (data: {
+    rid: string;
+    hash: string;
+    filename: string;
+    oldFilename?: string;
+  }) => void;
 
   // ファイルビュワー関連イベント
   'read-directory': (data: { rid: string; path: string }) => void;
