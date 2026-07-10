@@ -157,6 +157,19 @@
   }
 }
 
+// Clear / Commit / 「その他」トグルは常に一列で並べる（改行させない）
+.coreCommandRow {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 0 0 auto;
+
+  & > button {
+    flex: 0 0 auto;
+  }
+}
+
 // 行コンテナ（同じグループのボタンを横並びにする）
 .row {
   display: flex;

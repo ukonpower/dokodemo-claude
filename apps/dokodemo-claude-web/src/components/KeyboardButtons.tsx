@@ -247,82 +247,99 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   const isClaude = currentProvider === 'claude';
 
-  // 操作コマンド（Mode / Model / Ctrl+C）: PC はコマンドバー、モバイルは「その他」に置く
-  const hasOpCommands = Boolean(
-    onSendInterrupt || (isClaude && (onSendMode || onChangeModel))
-  );
+  // 操作コマンドの内訳:
+  // - Mode（Shift+Tab）: 使用頻度が低いので PC・モバイルとも「その他」に格納
+  // - Ctrl+C: PC はコマンドバー、モバイルは「その他」に置く
+  // Model は使用頻度が低いので常に「その他」の中に置き、コマンドバーには出さない。
+  const hasModeCommand = Boolean(isClaude && onSendMode);
+  const hasInterruptCommand = Boolean(onSendInterrupt);
+  const hasModel = Boolean(isClaude && onChangeModel);
   // 出番の少ない補助コマンド（Alt+T / Resume / Usage / Preview）
   const hasExtraCommands = Boolean(
     isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview)
   );
 
   // 「その他」トグルの表示要否。
-  // PC は補助コマンドのみ格納するので、それが無ければトグルごと隠す。
+  // PC は Mode / Model / 補助コマンドをここに格納するので、どれも無ければトグルごと隠す。
   // モバイルはカスタム（＋追加ボタン）が常在するので常に表示。
-  const showMoreToggle = isDesktop ? hasExtraCommands : true;
+  const showMoreToggle = isDesktop
+    ? hasModeCommand || hasModel || hasExtraCommands
+    : true;
 
-  // 操作コマンド群（PC のコマンドバー / モバイルの「その他」で共用）
-  const opCommandButtons = (
-    <>
-      {isClaude && onSendMode && (
-        <button
-          type="button"
-          onClick={onSendMode}
-          disabled={disabled}
-          className={s.modeButton}
-          title="モード切り替え (Shift+Tab)"
-        >
-          Mode
-        </button>
-      )}
-      {isClaude && onChangeModel && (
-        <div className={s.modelWrapper}>
-          <button
-            type="button"
-            onClick={() => setShowModelMenu(!showModelMenu)}
-            disabled={disabled}
-            className={s.modelButton}
-            title="モデルを選択"
-          >
-            Model
-          </button>
-          {showModelMenu && (
-            <div className={s.modelMenu}>
-              {selectableModels.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChangeModel(opt.value);
-                    setShowModelMenu(false);
-                  }}
-                  className={s.modelMenuItem}
-                  title={opt.value}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
+  // Mode ボタン（「その他」内に配置）
+  const modeButton = hasModeCommand && onSendMode ? (
+    <button
+      type="button"
+      onClick={onSendMode}
+      disabled={disabled}
+      className={s.modeButton}
+      title="モード切り替え (Shift+Tab)"
+    >
+      Mode
+    </button>
+  ) : null;
+
+  // Ctrl+C ボタン（PC のコマンドバー / モバイルの「その他」で共用）
+  const interruptButton = hasInterruptCommand && onSendInterrupt ? (
+    <button
+      type="button"
+      onClick={onSendInterrupt}
+      disabled={disabled}
+      className={s.grayButton}
+      title="プロセスを中断 (Ctrl+C)"
+    >
+      Ctrl+C
+    </button>
+  ) : null;
+
+  // Model ドロップダウン（「その他」の中に配置）
+  const modelDropdownButton = hasModel && onChangeModel ? (
+    <div className={s.modelWrapper}>
+      <button
+        type="button"
+        onClick={() => setShowModelMenu(!showModelMenu)}
+        disabled={disabled}
+        className={s.modelButton}
+        title="モデルを選択"
+      >
+        Model
+      </button>
+      {showModelMenu && (
+        <div className={s.modelMenu}>
+          {selectableModels.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChangeModel(opt.value);
+                setShowModelMenu(false);
+              }}
+              className={s.modelMenuItem}
+              title={opt.value}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       )}
-      {onSendInterrupt && (
-        <button
-          type="button"
-          onClick={onSendInterrupt}
-          disabled={disabled}
-          className={s.grayButton}
-          title="プロセスを中断 (Ctrl+C)"
-        >
-          Ctrl+C
-        </button>
-      )}
-    </>
-  );
+    </div>
+  ) : null;
 
-  // セッションコマンド群（Clear / Commit）: PC・モバイル共通で常時表示
+  // セッションコマンド群（Clear / Commit / その他トグル）: PC・モバイル共通で常時表示
+  // Clear / Commit / その他 は改行させず一列に並べたいので、専用の nowrap 行で包む
+  const moreToggleButton = showMoreToggle ? (
+    <button
+      type="button"
+      onClick={() => setShowAux(!showAux)}
+      className={s.moreToggle}
+      title="その他のボタンを表示"
+    >
+      {showAux ? '▲ その他' : '▼ その他'}
+    </button>
+  ) : null;
+
   const coreCommandButtons = (
-    <>
+    <div className={s.coreCommandRow}>
       {onClearAi && (
         <button
           type="button"
@@ -345,7 +362,8 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           Commit
         </button>
       )}
-    </>
+      {moreToggleButton}
+    </div>
   );
 
   // 補助コマンド群（Alt+T / Resume / Usage / Preview）
@@ -464,7 +482,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
       {isDesktop ? (
         /* PC: 物理キーは省き、コマンド系を主役にしたコマンドバー */
         <div className={s.commandBar}>
-          {opCommandButtons}
           {coreCommandButtons}
           {customButtonRow}
         </div>
@@ -507,31 +524,28 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         </div>
       )}
 
-      {/* 補助系行（折りたたみ）。PC は補助コマンドのみ、モバイルは操作コマンド + 補助 + カスタム */}
-      {showMoreToggle && (
-        <div className={s.auxSection}>
-          <button
-            type="button"
-            onClick={() => setShowAux(!showAux)}
-            className={s.moreToggle}
-            title="その他のボタンを表示"
-          >
-            {showAux ? '▲ その他' : '▼ その他'}
-          </button>
-          {showAux && (
-            <div className={s.auxContent}>
-              {/* モバイルは操作コマンドもここに（PC はコマンドバーに出済み） */}
-              {!isDesktop && hasOpCommands && (
-                <div className={s.row}>{opCommandButtons}</div>
-              )}
-              {hasExtraCommands && <div className={s.row}>{extraCommandButtons}</div>}
-              {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
-              {!isDesktop && (
-                <div className={s.customSection}>
-                  <div className={s.customHeader}>カスタム</div>
-                  {customButtonRow}
-                </div>
-              )}
+      {/* 補助系（折りたたみ）: Mode / Ctrl+C / Model / 補助 / モバイルのカスタム */}
+      {showMoreToggle && showAux && (
+        <div className={s.auxContent}>
+          {/* Mode / Ctrl+C は使用頻度が低いので PC・モバイル共に「その他」に格納 */}
+          {(hasModeCommand || hasInterruptCommand) && (
+            <div className={s.row}>
+              {modeButton}
+              {interruptButton}
+            </div>
+          )}
+          {/* Model + 補助コマンド */}
+          {(hasModel || hasExtraCommands) && (
+            <div className={s.row}>
+              {modelDropdownButton}
+              {extraCommandButtons}
+            </div>
+          )}
+          {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
+          {!isDesktop && (
+            <div className={s.customSection}>
+              <div className={s.customHeader}>カスタム</div>
+              {customButtonRow}
             </div>
           )}
         </div>

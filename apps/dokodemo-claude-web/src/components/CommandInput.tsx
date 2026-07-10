@@ -779,17 +779,18 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [isDragOver, setIsDragOver] = useState(false);
 
     const handleDragOver = useCallback(
-      (e: React.DragEvent<HTMLTextAreaElement>) => {
-        e.preventDefault();
+      (e: React.DragEvent<HTMLElement>) => {
         if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
         setIsDragOver(true);
       },
       []
     );
 
     const handleDragLeave = useCallback(
-      (e: React.DragEvent<HTMLTextAreaElement>) => {
+      (e: React.DragEvent<HTMLElement>) => {
         e.preventDefault();
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
         setIsDragOver(false);
       },
       []
@@ -822,7 +823,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     );
 
     const handleDrop = useCallback(
-      async (e: React.DragEvent<HTMLTextAreaElement>) => {
+      async (e: React.DragEvent<HTMLElement>) => {
         e.preventDefault();
         setIsDragOver(false);
 
@@ -1358,7 +1359,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     ) : null;
 
     return (
-      <div className={s.root}>
+      <div
+        className={s.root}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* ワークフローコントロール */}
         {onAddToQueue && !hideWorkflowControls && (
           <div className={s.workflowControls}>
@@ -1497,9 +1503,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
               placeholder={

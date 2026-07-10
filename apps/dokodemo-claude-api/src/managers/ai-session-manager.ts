@@ -13,6 +13,8 @@
 
 import * as pty from 'node-pty';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import {
@@ -165,6 +167,29 @@ export class AISessionManager extends EventEmitter {
     }
   }
 
+  /**
+   * Claude CLI のセッションjsonl（トランスクリプト）が存在するか。
+   * Claude Code は cwd を `/`→`-` で変換したディレクトリ名の下に
+   * `<sessionId>.jsonl` を書き出す。初回プロンプトが送信されるまで
+   * ファイルは作られない。
+   */
+  private hasClaudeTranscript(cwd: string, sessionId: string): boolean {
+    const encoded = cwd.replace(/\//g, '-');
+    const jsonlPath = path.join(
+      os.homedir(),
+      '.claude',
+      'projects',
+      encoded,
+      `${sessionId}.jsonl`
+    );
+    try {
+      const stat = fs.statSync(jsonlPath);
+      return stat.isFile() && stat.size > 0;
+    } catch {
+      return false;
+    }
+  }
+
   private generateSessionId(provider: AiProvider): string {
     return `${provider}-${++this.sessionCounter}-${Date.now()}`;
   }
@@ -222,7 +247,20 @@ export class AISessionManager extends EventEmitter {
     let claudeSession: { mode: 'new' | 'resume'; sessionId: string } | undefined;
     if (instance.provider === 'claude') {
       if (instance.claudeSessionId) {
-        claudeSession = { mode: 'resume', sessionId: instance.claudeSessionId };
+        // 前回起動時に --session-id で ID を発行しても、ユーザが Web / xterm から
+        // 一度もプロンプトを送っていないと Claude CLI はトランスクリプト
+        // (~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl) を作らない。
+        // その状態で --resume すると "No conversation found" で即終了するため、
+        // jsonl の存在（かつサイズ>0）を実ファイルで確認して mode を分岐する。
+        // 入力経路（Web / xterm 直接入力）に依らずファイル存在で判定できる。
+        const hasTranscript = this.hasClaudeTranscript(
+          instance.repositoryPath,
+          instance.claudeSessionId
+        );
+        claudeSession = {
+          mode: hasTranscript ? 'resume' : 'new',
+          sessionId: instance.claudeSessionId,
+        };
       } else {
         const newId = randomUUID();
         instance.claudeSessionId = newId;
