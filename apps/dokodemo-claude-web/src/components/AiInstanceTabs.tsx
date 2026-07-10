@@ -1,19 +1,12 @@
-import {
-  useMemo,
-  useState,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-} from 'react';
-import { createPortal } from 'react-dom';
-import { MoreVertical, RotateCcw, X, Plus } from 'lucide-react';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { MoreVertical, RotateCcw, Power, Plus } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { AiInstance, AiProvider } from '../types';
 import { getProviderShortName } from '../utils/ai-provider-info';
-import { useOutsideClose } from '../hooks';
+import { PopupMenu } from './PopupMenu';
 import s from './AiInstanceTabs.module.scss';
 
 interface AiInstanceTabsProps {
@@ -61,24 +54,14 @@ function AiInstanceTabs({
   onRestart,
 }: AiInstanceTabsProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
 
   // 各タブの操作メニュー（プロバイダー切替 / 再起動 / 閉じる）。
   // どのタブのメニューが開いているかを instanceId で保持する
   const [openMenuInstanceId, setOpenMenuInstanceId] = useState<string | null>(
     null
   );
-  const [tabMenuPosition, setTabMenuPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
   const tabMenuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const tabMenuRef = useRef<HTMLDivElement | null>(null);
 
   const sorted = useMemo(
     () => [...instances].sort((a, b) => a.order - b.order),
@@ -99,24 +82,11 @@ function AiInstanceTabs({
 
   const closeMenu = useCallback(() => {
     setShowAddMenu(false);
-    setMenuPosition(null);
-  }, []);
-
-  const openMenu = useCallback(() => {
-    const rect = addButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setMenuPosition({ top: rect.bottom + 4, left: rect.left });
-    setShowAddMenu(true);
   }, []);
 
   const toggleMenu = useCallback(() => {
-    if (showAddMenu) closeMenu();
-    else openMenu();
-  }, [showAddMenu, closeMenu, openMenu]);
-
-  useOutsideClose(showAddMenu, closeMenu, {
-    ignore: [addButtonRef, menuRef],
-  });
+    setShowAddMenu((prev) => !prev);
+  }, []);
 
   const handleSelectProvider = (provider: AiProvider) => {
     closeMenu();
@@ -125,62 +95,11 @@ function AiInstanceTabs({
 
   const closeTabMenu = useCallback(() => {
     setOpenMenuInstanceId(null);
-    setTabMenuPosition(null);
   }, []);
 
-  const openTabMenu = useCallback((instanceId: string) => {
-    const rect = tabMenuButtonRefs.current
-      .get(instanceId)
-      ?.getBoundingClientRect();
-    if (!rect) return;
-    // 既定はメニュー右端を⋮ボタンの右端に合わせる（右詰め）。
-    // 実幅は開いた後に useLayoutEffect で測って左端をクランプするので、
-    // ここでは仮幅で初期位置だけ決めておく。
-    const MENU_MARGIN = 8;
-    const ESTIMATED_WIDTH = 160;
-    let left = rect.right - ESTIMATED_WIDTH;
-    left = Math.min(left, window.innerWidth - ESTIMATED_WIDTH - MENU_MARGIN);
-    left = Math.max(left, MENU_MARGIN);
-    setTabMenuPosition({ top: rect.bottom + 4, left });
-    setOpenMenuInstanceId(instanceId);
+  const toggleTabMenu = useCallback((instanceId: string) => {
+    setOpenMenuInstanceId((prev) => (prev === instanceId ? null : instanceId));
   }, []);
-
-  const toggleTabMenu = useCallback(
-    (instanceId: string) => {
-      if (openMenuInstanceId === instanceId) closeTabMenu();
-      else openTabMenu(instanceId);
-    },
-    [openMenuInstanceId, closeTabMenu, openTabMenu]
-  );
-
-  useOutsideClose(!!openMenuInstanceId, closeTabMenu, {
-    ignore: [
-      tabMenuRef,
-      () =>
-        openMenuInstanceId
-          ? (tabMenuButtonRefs.current.get(openMenuInstanceId) ?? null)
-          : null,
-    ],
-  });
-
-  // 開いたメニューの実幅を測り、画面外へはみ出さないよう left をクランプする。
-  // 一番左のタブでは右詰めのままだと左へはみ出すため、実測して左寄せに切り替える。
-  useLayoutEffect(() => {
-    if (!openMenuInstanceId) return;
-    const menu = tabMenuRef.current;
-    const btn = tabMenuButtonRefs.current.get(openMenuInstanceId);
-    if (!menu || !btn) return;
-    const btnRect = btn.getBoundingClientRect();
-    const width = menu.offsetWidth;
-    const MENU_MARGIN = 8;
-    // 既定は右詰め（メニュー右端を⋮ボタン右端に合わせる）
-    let left = btnRect.right - width;
-    left = Math.min(left, window.innerWidth - width - MENU_MARGIN);
-    left = Math.max(left, MENU_MARGIN);
-    setTabMenuPosition((prev) =>
-      prev && Math.abs(prev.left - left) > 0.5 ? { ...prev, left } : prev
-    );
-  }, [openMenuInstanceId]);
 
   return (
     <div className={s.root}>
@@ -252,52 +171,41 @@ function AiInstanceTabs({
         </SwiperSlide>
       </Swiper>
 
-      {showAddMenu &&
-        menuPosition &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className={s.addMenu}
-            style={{
-              position: 'fixed',
-              top: menuPosition.top,
-              left: menuPosition.left,
-            }}
-          >
-            <button
-              onClick={() => handleSelectProvider('claude')}
-              className={`${s.addMenuItem} ${s.claude}`}
-            >
-              Claude
-            </button>
-            <button
-              onClick={() => handleSelectProvider('codex')}
-              className={`${s.addMenuItem} ${s.codex}`}
-            >
-              Codex
-            </button>
-          </div>,
-          document.body
-        )}
+      <PopupMenu
+        open={showAddMenu}
+        anchorEl={addButtonRef.current}
+        onClose={closeMenu}
+      >
+        <button
+          onClick={() => handleSelectProvider('claude')}
+          className={`${s.addMenuItem} ${s.claude}`}
+        >
+          Claude
+        </button>
+        <button
+          onClick={() => handleSelectProvider('codex')}
+          className={`${s.addMenuItem} ${s.codex}`}
+        >
+          Codex
+        </button>
+      </PopupMenu>
 
-      {openMenuInstanceId &&
-        tabMenuPosition &&
-        (() => {
-          const inst = sorted.find(
-            (i) => i.instanceId === openMenuInstanceId
-          );
-          if (!inst) return null;
-          return createPortal(
-            <div
-              ref={tabMenuRef}
-              className={s.addMenu}
-              style={{
-                position: 'fixed',
-                top: tabMenuPosition.top,
-                left: tabMenuPosition.left,
-              }}
-            >
-              {inst.isPrimary ? (
+      {(() => {
+        const inst = openMenuInstanceId
+          ? sorted.find((i) => i.instanceId === openMenuInstanceId)
+          : null;
+        return (
+          <PopupMenu
+            open={!!inst}
+            anchorEl={
+              openMenuInstanceId
+                ? (tabMenuButtonRefs.current.get(openMenuInstanceId) ?? null)
+                : null
+            }
+            onClose={closeTabMenu}
+          >
+            {inst ? (
+              inst.isPrimary ? (
                 <>
                   {/* provider 切替はセグメントコントロールで現在選択中を明示 */}
                   <div
@@ -353,6 +261,16 @@ function AiInstanceTabs({
                   <button
                     onClick={() => {
                       closeTabMenu();
+                      onClose(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <Power size={14} />
+                    <span>シャットダウン</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
                       onRestart(inst.instanceId);
                     }}
                     className={s.addMenuItem}
@@ -360,22 +278,12 @@ function AiInstanceTabs({
                     <RotateCcw size={14} />
                     <span>再起動</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      closeTabMenu();
-                      onClose(inst.instanceId);
-                    }}
-                    className={s.addMenuItem}
-                  >
-                    <X size={14} />
-                    <span>タブを閉じる</span>
-                  </button>
                 </>
-              )}
-            </div>,
-            document.body
-          );
-        })()}
+              )
+            ) : null}
+          </PopupMenu>
+        );
+      })()}
     </div>
   );
 }
