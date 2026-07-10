@@ -124,7 +124,9 @@
 }
 
 .message {
-  vertical-align: middle;
+  // vertical-align: middle は CJK フォールバック時に行ボックスを 24px 超に押し広げ、
+  // SVG グラフとの行対応が下に行くほどずれるため baseline のままにする
+  vertical-align: baseline;
 }
 
 .dateCol {

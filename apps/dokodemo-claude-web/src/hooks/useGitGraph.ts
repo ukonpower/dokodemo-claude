@@ -94,6 +94,24 @@ export function useGitGraph(
     currentRepoRef.current = currentRepo;
   }, [currentRepo]);
 
+  // id-mapping 到着時の再要求用（初回ロード時は rid 未解決で要求できないため）
+  const isActiveRef = useRef(isActive);
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+  const graphRef = useRef(graph);
+  useEffect(() => {
+    graphRef.current = graph;
+  }, [graph]);
+  const selectedBranchRef = useRef(selectedBranch);
+  useEffect(() => {
+    selectedBranchRef.current = selectedBranch;
+  }, [selectedBranch]);
+  const maxCommitsRef = useRef(maxCommits);
+  useEffect(() => {
+    maxCommitsRef.current = maxCommits;
+  }, [maxCommits]);
+
   // グラフ要求（rid 解決してから emit）
   const requestGraph = useCallback(
     (branches: string | null, max: number) => {
@@ -158,16 +176,44 @@ export function useGitGraph(
       }
     };
 
+    // IDマッピング受信時、グラフ表示中で未取得なら要求する
+    // （?view=graph 直リンク/リロード時は初回要求時点で rid が未解決のため）
+    const handleIdMapping = (
+      data: Parameters<ServerToClientEvents['id-mapping']>[0]
+    ) => {
+      // 自身でマップを更新してから読み込む（他ハンドラとの順序に依存しない）
+      repositoryIdMap.update(data);
+
+      if (!isActiveRef.current || !currentRepoRef.current) return;
+      if (graphRef.current) return;
+      const rid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (!rid) return;
+      setLoading(true);
+      setError(null);
+      socket.emit('get-git-graph', {
+        rid,
+        branches:
+          selectedBranchRef.current === null
+            ? null
+            : [selectedBranchRef.current],
+        maxCommits: maxCommitsRef.current,
+      });
+    };
+
     socket.on('git-graph', handleGraph);
     socket.on('git-graph-commit-detail', handleCommitDetail);
     socket.on('git-graph-file-diff', handleFileDiff);
     socket.on('git-graph-error', handleError);
+    socket.on('id-mapping', handleIdMapping);
+    socket.on('id-mapping-updated', handleIdMapping);
 
     return () => {
       socket.off('git-graph', handleGraph);
       socket.off('git-graph-commit-detail', handleCommitDetail);
       socket.off('git-graph-file-diff', handleFileDiff);
       socket.off('git-graph-error', handleError);
+      socket.off('id-mapping', handleIdMapping);
+      socket.off('id-mapping-updated', handleIdMapping);
     };
   }, [socket]);
 
