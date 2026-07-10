@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Send, Inbox, GitBranch, FileText, Maximize2 } from 'lucide-react';
+import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
 import { useMediaQuery } from '../hooks';
 import s from './SidePanel.module.scss';
 import type { UploadedFileInfo, GitDiffSummary } from '../types';
@@ -234,10 +234,10 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
                 <button
                   className={s.maximizeButton}
                   onClick={() => setFullscreenId(sec.id)}
-                  aria-label="全画面表示"
-                  title="全画面表示"
+                  aria-label="別ウィンドウで開く"
+                  title="別ウィンドウで開く"
                 >
-                  <Maximize2 size={12} strokeWidth={2} />
+                  <ExternalLink size={12} strokeWidth={2} />
                 </button>
               </div>
               <div className={s.body}>{sec.body}</div>
@@ -273,10 +273,10 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
           <button
             className={s.tabMaximizeButton}
             onClick={() => setFullscreenId(activeSection.id)}
-            aria-label="全画面表示"
-            title="全画面表示"
+            aria-label="別ウィンドウで開く"
+            title="別ウィンドウで開く"
           >
-            <Maximize2 size={13} strokeWidth={2} />
+            <ExternalLink size={13} strokeWidth={2} />
           </button>
         </div>
         <div className={s.tabContent}>{activeSection.body}</div>
