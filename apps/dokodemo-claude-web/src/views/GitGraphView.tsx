@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
 import GitGraphTable from '../components/GitGraphTable';
 import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
 import GitGraphBranchDropdown from '../components/GitGraphBranchDropdown';
+import GitGraphFindWidget from '../components/GitGraphFindWidget';
 import DiffViewer from '../components/DiffViewer';
 import s from './GitGraphView.module.scss';
 
@@ -36,6 +37,60 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       restoreScrollRef.current = null;
     }
   }, [graph]);
+
+  // 検索（クライアント内、ロード済み範囲のみ対象）
+  const [findOpen, setFindOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [matchIndex, setMatchIndex] = useState(0); // 0 始まり
+
+  const matchedHashes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || !graph) return [];
+    return graph.commits
+      .filter(
+        (c) =>
+          c.message.toLowerCase().includes(q) ||
+          c.author.toLowerCase().includes(q) ||
+          c.hash.toLowerCase().startsWith(q)
+      )
+      .map((c) => c.hash);
+  }, [query, graph]);
+
+  const matchedSet = useMemo(() => new Set(matchedHashes), [matchedHashes]);
+  const currentMatchHash =
+    matchedHashes.length > 0 ? matchedHashes[matchIndex] ?? null : null;
+
+  const scrollToHash = useCallback((hash: string) => {
+    const el = contentRef.current?.querySelector(
+      `[data-hash="${hash}"]`
+    ) as HTMLElement | null;
+    el?.scrollIntoView({ block: 'center' });
+  }, []);
+
+  // クエリ変更でマッチ先頭へリセットしジャンプ
+  useEffect(() => {
+    setMatchIndex(0);
+    if (matchedHashes.length > 0) scrollToHash(matchedHashes[0]);
+  }, [query, matchedHashes, scrollToHash]);
+
+  const goToMatch = useCallback(
+    (delta: number) => {
+      if (matchedHashes.length === 0) return;
+      setMatchIndex((prev) => {
+        const next =
+          (prev + delta + matchedHashes.length) % matchedHashes.length;
+        scrollToHash(matchedHashes[next]);
+        return next;
+      });
+    },
+    [matchedHashes, scrollToHash]
+  );
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    setQuery('');
+    setMatchIndex(0);
+  }, []);
 
   const handleSelectRow = useCallback(
     (hash: string) => {
@@ -72,6 +127,26 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
           />
         )}
         <span className={s.spacer} />
+        {findOpen ? (
+          <GitGraphFindWidget
+            query={query}
+            onQueryChange={setQuery}
+            matchCount={matchedHashes.length}
+            currentIndex={matchedHashes.length > 0 ? matchIndex + 1 : 0}
+            onPrev={() => goToMatch(-1)}
+            onNext={() => goToMatch(1)}
+            onClose={closeFind}
+          />
+        ) : (
+          <button
+            className={s.iconButton}
+            onClick={() => setFindOpen(true)}
+            title="検索"
+            aria-label="検索"
+          >
+            <Search size={16} />
+          </button>
+        )}
         <button
           className={`${s.iconButton} ${loading ? s.spinning : ''}`}
           onClick={gitGraph.refresh}
@@ -100,6 +175,8 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
             graph={graph}
             selectedHash={selectedHash}
             onSelectRow={handleSelectRow}
+            matchedHashes={matchedSet}
+            currentMatchHash={currentMatchHash}
           />
         )}
 

@@ -14,6 +14,10 @@ interface GitGraphTableProps {
   graph: GitGraphData;
   selectedHash: string | null;
   onSelectRow: (hash: string) => void;
+  /** 検索でマッチした hash 集合（背景ハイライト用） */
+  matchedHashes?: Set<string>;
+  /** 現在ジャンプ中のマッチ hash */
+  currentMatchHash?: string | null;
 }
 
 // グラフ列に描く最大レーン数（超過分はクリップ）
@@ -39,6 +43,8 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
   graph,
   selectedHash,
   onSelectRow,
+  matchedHashes,
+  currentMatchHash,
 }) => {
   // uncommitted があれば先頭に仮想行を合成する
   const rows = useMemo(() => {
@@ -121,10 +127,15 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
             const c = commitByHash.get(row.hash);
             if (!c) return null;
             const isSelected = c.hash === selectedHash;
+            const isMatch = matchedHashes?.has(c.hash) ?? false;
+            const isCurrentMatch = c.hash === currentMatchHash;
             return (
               <tr
                 key={c.hash}
-                className={`${s.row} ${s.clickable} ${isSelected ? s.selected : ''}`}
+                data-hash={c.hash}
+                className={`${s.row} ${s.clickable} ${isSelected ? s.selected : ''} ${
+                  isMatch ? s.match : ''
+                } ${isCurrentMatch ? s.currentMatch : ''}`}
                 onClick={() => onSelectRow(c.hash)}
               >
                 <td className={s.graphCell} />

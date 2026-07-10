@@ -38,6 +38,14 @@
   box-shadow: inset 2px 0 0 #4ade80;
 }
 
+.match {
+  background-color: rgba(251, 191, 36, 0.12);
+}
+
+.currentMatch {
+  background-color: rgba(251, 191, 36, 0.28);
+}
+
 .graphCell {
   height: 24px;
   padding: 0;
