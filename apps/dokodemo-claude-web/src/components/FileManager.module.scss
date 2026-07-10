@@ -40,9 +40,12 @@
 }
 
 .grid {
-  display: flex;
-  flex-wrap: wrap;
+  // 横幅いっぱいに敷き詰め、列数はコンテナ幅に応じて自動調整。
+  // カードは最小 80px を下限に 1fr で伸び、余白なくフル幅を使う。
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 6px;
+  align-content: start;
 }
 
 .dropZone {
@@ -85,7 +88,8 @@
 
 .thumbnailCard {
   position: relative;
-  width: 80px;
+  width: 100%;
+  min-width: 0;
   border-radius: 4px;
   background-color: #111;
   overflow: hidden;
@@ -94,8 +98,8 @@
 }
 
 .thumbnailButton {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  aspect-ratio: 1;
   position: relative;
   border: none;
   padding: 0;
@@ -163,7 +167,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 80px;
+  aspect-ratio: 1;
   background-color: rgba(0, 0, 0, 0.7);
   transition: opacity $transition-fast $transition-easing;
 }

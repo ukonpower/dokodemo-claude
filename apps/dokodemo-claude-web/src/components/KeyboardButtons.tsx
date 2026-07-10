@@ -247,82 +247,99 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   const isClaude = currentProvider === 'claude';
 
-  // 操作コマンド（Mode / Model / Ctrl+C）: PC はコマンドバー、モバイルは「その他」に置く
-  const hasOpCommands = Boolean(
-    onSendInterrupt || (isClaude && (onSendMode || onChangeModel))
-  );
-  // 出番の少ない補助コマンド（Alt+T / Resume / Usage / Preview）
+  // 操作コマンドの内訳:
+  // - Clear / Commit / Resume / Model: 常時コマンドバーに表示（使用頻度が高い）
+  // - Mode（Shift+Tab） / Ctrl+C / Alt+T / Usage / Preview: 「その他」に格納
+  const hasModeCommand = Boolean(isClaude && onSendMode);
+  const hasInterruptCommand = Boolean(onSendInterrupt);
+  const hasModel = Boolean(isClaude && onChangeModel);
+  const hasResume = Boolean(isClaude && onSendResume);
+  // 「その他」に格納する補助コマンド（Alt+T / Usage / Preview）
   const hasExtraCommands = Boolean(
-    isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview)
+    isClaude && (onSendAltT || onSendUsage || onSendPreview)
   );
 
   // 「その他」トグルの表示要否。
-  // PC は補助コマンドのみ格納するので、それが無ければトグルごと隠す。
+  // PC は Mode / Ctrl+C / 補助コマンドをここに格納するので、どれも無ければトグルごと隠す。
   // モバイルはカスタム（＋追加ボタン）が常在するので常に表示。
-  const showMoreToggle = isDesktop ? hasExtraCommands : true;
+  const showMoreToggle = isDesktop
+    ? hasModeCommand || hasInterruptCommand || hasExtraCommands
+    : true;
 
-  // 操作コマンド群（PC のコマンドバー / モバイルの「その他」で共用）
-  const opCommandButtons = (
-    <>
-      {isClaude && onSendMode && (
-        <button
-          type="button"
-          onClick={onSendMode}
-          disabled={disabled}
-          className={s.modeButton}
-          title="モード切り替え (Shift+Tab)"
-        >
-          Mode
-        </button>
-      )}
-      {isClaude && onChangeModel && (
-        <div className={s.modelWrapper}>
-          <button
-            type="button"
-            onClick={() => setShowModelMenu(!showModelMenu)}
-            disabled={disabled}
-            className={s.modelButton}
-            title="モデルを選択"
-          >
-            Model
-          </button>
-          {showModelMenu && (
-            <div className={s.modelMenu}>
-              {selectableModels.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChangeModel(opt.value);
-                    setShowModelMenu(false);
-                  }}
-                  className={s.modelMenuItem}
-                  title={opt.value}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
+  // Mode ボタン（「その他」内に配置）
+  const modeButton = hasModeCommand && onSendMode ? (
+    <button
+      type="button"
+      onClick={onSendMode}
+      disabled={disabled}
+      className={s.modeButton}
+      title="モード切り替え (Shift+Tab)"
+    >
+      Mode
+    </button>
+  ) : null;
+
+  // Ctrl+C ボタン（PC のコマンドバー / モバイルの「その他」で共用）
+  const interruptButton = hasInterruptCommand && onSendInterrupt ? (
+    <button
+      type="button"
+      onClick={onSendInterrupt}
+      disabled={disabled}
+      className={s.grayButton}
+      title="プロセスを中断 (Ctrl+C)"
+    >
+      Ctrl+C
+    </button>
+  ) : null;
+
+  // Model ドロップダウン（「その他」の中に配置）
+  const modelDropdownButton = hasModel && onChangeModel ? (
+    <div className={s.modelWrapper}>
+      <button
+        type="button"
+        onClick={() => setShowModelMenu(!showModelMenu)}
+        disabled={disabled}
+        className={s.modelButton}
+        title="モデルを選択"
+      >
+        Model
+      </button>
+      {showModelMenu && (
+        <div className={s.modelMenu}>
+          {selectableModels.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChangeModel(opt.value);
+                setShowModelMenu(false);
+              }}
+              className={s.modelMenuItem}
+              title={opt.value}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       )}
-      {onSendInterrupt && (
-        <button
-          type="button"
-          onClick={onSendInterrupt}
-          disabled={disabled}
-          className={s.grayButton}
-          title="プロセスを中断 (Ctrl+C)"
-        >
-          Ctrl+C
-        </button>
-      )}
-    </>
-  );
+    </div>
+  ) : null;
 
-  // セッションコマンド群（Clear / Commit）: PC・モバイル共通で常時表示
+  // 「その他」トグル。コマンド行には混ぜず、補助群の見出しとして主要行の下に置く
+  const moreToggleButton = showMoreToggle ? (
+    <button
+      type="button"
+      onClick={() => setShowAux(!showAux)}
+      className={s.moreToggle}
+      aria-expanded={showAux}
+      title="その他のボタンを表示"
+    >
+      {showAux ? '▾ その他' : '▸ その他'}
+    </button>
+  ) : null;
+
   const coreCommandButtons = (
-    <>
+    <div className={s.coreCommandRow}>
       {onClearAi && (
         <button
           type="button"
@@ -345,10 +362,22 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           Commit
         </button>
       )}
-    </>
+      {hasResume && onSendResume && (
+        <button
+          type="button"
+          onClick={onSendResume}
+          disabled={disabled}
+          className={s.resumeButton}
+          title="セッションを再開 (/resume)"
+        >
+          Resume
+        </button>
+      )}
+      {modelDropdownButton}
+    </div>
   );
 
-  // 補助コマンド群（Alt+T / Resume / Usage / Preview）
+  // 補助コマンド群（Alt+T / Usage / Preview）
   const extraCommandButtons = (
     <>
       {isClaude && onSendAltT && (
@@ -360,17 +389,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           title="Alt+Tキーを送信"
         >
           Alt+T
-        </button>
-      )}
-      {isClaude && onSendResume && (
-        <button
-          type="button"
-          onClick={onSendResume}
-          disabled={disabled}
-          className={s.grayButton}
-          title="セッションを再開 (/resume)"
-        >
-          Resume
         </button>
       )}
       {isClaude && onSendUsage && (
@@ -464,8 +482,8 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
       {isDesktop ? (
         /* PC: 物理キーは省き、コマンド系を主役にしたコマンドバー */
         <div className={s.commandBar}>
-          {opCommandButtons}
           {coreCommandButtons}
+          <div className={s.groupDivider} aria-hidden="true" />
           {customButtonRow}
         </div>
       ) : (
@@ -507,24 +525,21 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         </div>
       )}
 
-      {/* 補助系行（折りたたみ）。PC は補助コマンドのみ、モバイルは操作コマンド + 補助 + カスタム */}
+      {/* 補助系（折りたたみ）: 見出し（その他トグル）＋展開コンテンツ。
+          トグルはコマンド行に混ぜず、ここで補助群の見出しとして左寄せに置く */}
       {showMoreToggle && (
         <div className={s.auxSection}>
-          <button
-            type="button"
-            onClick={() => setShowAux(!showAux)}
-            className={s.moreToggle}
-            title="その他のボタンを表示"
-          >
-            {showAux ? '▲ その他' : '▼ その他'}
-          </button>
+          {moreToggleButton}
           {showAux && (
             <div className={s.auxContent}>
-              {/* モバイルは操作コマンドもここに（PC はコマンドバーに出済み） */}
-              {!isDesktop && hasOpCommands && (
-                <div className={s.row}>{opCommandButtons}</div>
+              {/* Mode / Ctrl+C / Alt+T / Usage / Preview は「その他」に格納 */}
+              {(hasModeCommand || hasInterruptCommand || hasExtraCommands) && (
+                <div className={s.row}>
+                  {modeButton}
+                  {interruptButton}
+                  {extraCommandButtons}
+                </div>
               )}
-              {hasExtraCommands && <div className={s.row}>{extraCommandButtons}</div>}
               {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
               {!isDesktop && (
                 <div className={s.customSection}>

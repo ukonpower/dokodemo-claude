@@ -85,6 +85,16 @@
   padding: 16px 20px;
 }
 
+.rawContent {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: $font-size-sm;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .loadingText,
 .errorText {
   color: $gray-400;

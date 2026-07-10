@@ -9,7 +9,6 @@ export interface ProviderDisplayInfo {
   initialMessage1: string; // 初期メッセージ1行目
   initialMessage2: string; // 初期メッセージ2行目
   loadingMessage: string; // 読み込み中メッセージ
-  headerLabel: string; // ヘッダーラベル
 }
 
 /**
@@ -22,7 +21,6 @@ const PROVIDER_INFO_MAP: Record<AiProvider, ProviderDisplayInfo> = {
     initialMessage1: 'Claude CLIの出力がここに表示されます',
     initialMessage2: 'リポジトリを選択してClaude CLIを開始してください',
     loadingMessage: 'Claude CLI履歴を読み込み中...',
-    headerLabel: 'Claude CLI Output',
   },
   codex: {
     name: 'Codex CLI',
@@ -30,7 +28,6 @@ const PROVIDER_INFO_MAP: Record<AiProvider, ProviderDisplayInfo> = {
     initialMessage1: 'Codex CLIの出力がここに表示されます',
     initialMessage2: 'リポジトリを選択してCodex CLIを開始してください',
     loadingMessage: 'Codex CLI履歴を読み込み中...',
-    headerLabel: 'Codex CLI Output',
   },
 };
 
@@ -43,7 +40,6 @@ const DEFAULT_PROVIDER_INFO: ProviderDisplayInfo = {
   initialMessage1: 'AI CLIの出力がここに表示されます',
   initialMessage2: 'リポジトリを選択してAI CLIを開始してください',
   loadingMessage: 'AI CLI履歴を読み込み中...',
-  headerLabel: 'AI CLI Output',
 };
 
 /**

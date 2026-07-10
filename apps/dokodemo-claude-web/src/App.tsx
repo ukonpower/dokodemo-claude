@@ -684,10 +684,8 @@ function App() {
       onChangeModel={aiCli.changeModel}
       onChangePrimaryProvider={aiCli.changePrimaryProvider}
       onRestartCli={aiCli.restartCli}
-      onClearHistory={aiCli.clearHistory}
       onKeyInput={aiCli.handleKeyInput}
       onResize={aiCli.handleResize}
-      onReload={aiCli.handleReload}
       // ターミナル関連
       terminals={terminal.terminals}
       activeTerminalId={terminal.activeTerminalId}

@@ -1,11 +1,12 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { MoreVertical, RotateCcw, Power, Plus } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { AiInstance, AiProvider } from '../types';
 import { getProviderShortName } from '../utils/ai-provider-info';
+import { PopupMenu } from './PopupMenu';
 import s from './AiInstanceTabs.module.scss';
 
 interface AiInstanceTabsProps {
@@ -15,6 +16,10 @@ interface AiInstanceTabsProps {
   onActivate: (instanceId: string) => void;
   onCreate: (provider: AiProvider) => void;
   onClose: (instanceId: string) => void;
+  /** プライマリインスタンスのプロバイダー切替 */
+  onChangePrimaryProvider: (provider: AiProvider) => void;
+  /** インスタンスの AI CLI セッションを再起動 */
+  onRestart: (instanceId: string) => void;
 }
 
 /**
@@ -45,14 +50,18 @@ function AiInstanceTabs({
   onActivate,
   onCreate,
   onClose,
+  onChangePrimaryProvider,
+  onRestart,
 }: AiInstanceTabsProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // 各タブの操作メニュー（プロバイダー切替 / 再起動 / 閉じる）。
+  // どのタブのメニューが開いているかを instanceId で保持する
+  const [openMenuInstanceId, setOpenMenuInstanceId] = useState<string | null>(
+    null
+  );
+  const tabMenuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const sorted = useMemo(
     () => [...instances].sort((a, b) => a.order - b.order),
@@ -73,44 +82,24 @@ function AiInstanceTabs({
 
   const closeMenu = useCallback(() => {
     setShowAddMenu(false);
-    setMenuPosition(null);
-  }, []);
-
-  const openMenu = useCallback(() => {
-    const rect = addButtonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setMenuPosition({ top: rect.bottom + 4, left: rect.left });
-    setShowAddMenu(true);
   }, []);
 
   const toggleMenu = useCallback(() => {
-    if (showAddMenu) closeMenu();
-    else openMenu();
-  }, [showAddMenu, closeMenu, openMenu]);
-
-  useEffect(() => {
-    if (!showAddMenu) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        addButtonRef.current &&
-        !addButtonRef.current.contains(target)
-      ) {
-        closeMenu();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showAddMenu, closeMenu]);
+    setShowAddMenu((prev) => !prev);
+  }, []);
 
   const handleSelectProvider = (provider: AiProvider) => {
     closeMenu();
     onCreate(provider);
   };
+
+  const closeTabMenu = useCallback(() => {
+    setOpenMenuInstanceId(null);
+  }, []);
+
+  const toggleTabMenu = useCallback((instanceId: string) => {
+    setOpenMenuInstanceId((prev) => (prev === instanceId ? null : instanceId));
+  }, []);
 
   return (
     <div className={s.root}>
@@ -142,27 +131,25 @@ function AiInstanceTabs({
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}`}
               >
                 <span className={s.label}>{label}</span>
-                {!inst.isPrimary && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose(inst.instanceId);
-                    }}
-                    disabled={!isConnected}
-                    className={s.closeBtn}
-                    title="このインスタンスを閉じる"
-                  >
-                    <svg viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M4 4l8 8M12 4l-8 8"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                )}
+                <button
+                  ref={(el) => {
+                    if (el) {
+                      tabMenuButtonRefs.current.set(inst.instanceId, el);
+                    } else {
+                      tabMenuButtonRefs.current.delete(inst.instanceId);
+                    }
+                  }}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTabMenu(inst.instanceId);
+                  }}
+                  disabled={!isConnected}
+                  className={s.menuBtn}
+                  title="タブメニュー"
+                >
+                  <MoreVertical size={14} />
+                </button>
               </div>
             </SwiperSlide>
           );
@@ -178,46 +165,125 @@ function AiInstanceTabs({
               className={s.addBtn}
               title="新しい AI インスタンスを追加"
             >
-              <svg viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M8 3v10M3 8h10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <Plus size={14} strokeWidth={1.75} />
             </button>
           </div>
         </SwiperSlide>
       </Swiper>
 
-      {showAddMenu &&
-        menuPosition &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className={s.addMenu}
-            style={{
-              position: 'fixed',
-              top: menuPosition.top,
-              left: menuPosition.left,
-            }}
+      <PopupMenu
+        open={showAddMenu}
+        anchorEl={addButtonRef.current}
+        onClose={closeMenu}
+      >
+        <button
+          onClick={() => handleSelectProvider('claude')}
+          className={`${s.addMenuItem} ${s.claude}`}
+        >
+          Claude
+        </button>
+        <button
+          onClick={() => handleSelectProvider('codex')}
+          className={`${s.addMenuItem} ${s.codex}`}
+        >
+          Codex
+        </button>
+      </PopupMenu>
+
+      {(() => {
+        const inst = openMenuInstanceId
+          ? sorted.find((i) => i.instanceId === openMenuInstanceId)
+          : null;
+        return (
+          <PopupMenu
+            open={!!inst}
+            anchorEl={
+              openMenuInstanceId
+                ? (tabMenuButtonRefs.current.get(openMenuInstanceId) ?? null)
+                : null
+            }
+            onClose={closeTabMenu}
           >
-            <button
-              onClick={() => handleSelectProvider('claude')}
-              className={`${s.addMenuItem} ${s.claude}`}
-            >
-              Claude
-            </button>
-            <button
-              onClick={() => handleSelectProvider('codex')}
-              className={`${s.addMenuItem} ${s.codex}`}
-            >
-              Codex
-            </button>
-          </div>,
-          document.body
-        )}
+            {inst ? (
+              inst.isPrimary ? (
+                <>
+                  {/* provider 切替はセグメントコントロールで現在選択中を明示 */}
+                  <div
+                    className={s.providerSegment}
+                    role="group"
+                    aria-label="AI provider"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeTabMenu();
+                        if (inst.provider !== 'claude') {
+                          onChangePrimaryProvider('claude');
+                        }
+                      }}
+                      className={`${s.providerSegmentItem} ${s.claude} ${
+                        inst.provider === 'claude' ? s.active : ''
+                      }`}
+                      aria-pressed={inst.provider === 'claude'}
+                    >
+                      Claude
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeTabMenu();
+                        if (inst.provider !== 'codex') {
+                          onChangePrimaryProvider('codex');
+                        }
+                      }}
+                      className={`${s.providerSegmentItem} ${s.codex} ${
+                        inst.provider === 'codex' ? s.active : ''
+                      }`}
+                      aria-pressed={inst.provider === 'codex'}
+                    >
+                      Codex
+                    </button>
+                  </div>
+                  <div className={s.menuDivider} />
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onRestart(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <RotateCcw size={14} />
+                    <span>再起動</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onClose(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <Power size={14} />
+                    <span>シャットダウン</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onRestart(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <RotateCcw size={14} />
+                    <span>再起動</span>
+                  </button>
+                </>
+              )
+            ) : null}
+          </PopupMenu>
+        );
+      })()}
     </div>
   );
 }

@@ -13,6 +13,9 @@
 
 import * as pty from 'node-pty';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import {
   AiProvider,
@@ -116,7 +119,17 @@ export class AISessionManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  private getProviderCommand(provider: AiProvider, permissionMode?: PermissionMode): {
+  private getProviderCommand(
+    provider: AiProvider,
+    permissionMode?: PermissionMode,
+    // claude の会話を継続/固定するための指定。
+    // 'new'    : --session-id でこの UUID を新規セッションとして開始する
+    // 'resume' : --resume でこの UUID の会話を復元して継続する
+    claudeSession?: { mode: 'new' | 'resume'; sessionId: string },
+    // codex の会話を継続するための指定。
+    // 'resume' のみサポート（'new' は指定なし＝通常起動と等価）
+    codexSession?: { mode: 'resume'; sessionId: string }
+  ): {
     command: string;
     args: string[];
   } {
@@ -132,18 +145,196 @@ export class AISessionManager extends EventEmitter {
         } else if (permissionMode === 'auto') {
           args.push('--permission-mode', 'auto');
         }
+        // 再起動しても同じ会話を開けるよう、セッションIDを固定して起動する。
+        // 初回は --session-id で ID を発行、以降は --resume で同じ ID を継続。
+        // --fork-session を付けないため resume 後も session ID は変わらず、
+        // 再起動を繰り返しても常に最新状態へ追従する。
+        if (claudeSession) {
+          if (claudeSession.mode === 'resume') {
+            args.push('--resume', claudeSession.sessionId);
+          } else {
+            args.push('--session-id', claudeSession.sessionId);
+          }
+        }
         return { command: claudeCommand, args };
       }
       case 'codex': {
         const codexCommand = process.env.CODEX_CLI_COMMAND || 'codex';
-        return {
-          command: codexCommand,
-          args: ['--dangerously-bypass-approvals-and-sandbox'],
-        };
+        const args: string[] = [];
+        if (codexSession) {
+          // `codex resume <id>` は subcommand なので位置を先頭にする
+          args.push('resume', codexSession.sessionId);
+        }
+        args.push('--dangerously-bypass-approvals-and-sandbox');
+        return { command: codexCommand, args };
       }
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }
+  }
+
+  /**
+   * Claude CLI のセッションjsonl（トランスクリプト）が存在するか。
+   * Claude Code は cwd を `/`→`-` で変換したディレクトリ名の下に
+   * `<sessionId>.jsonl` を書き出す。初回プロンプトが送信されるまで
+   * ファイルは作られない。
+   */
+  private hasClaudeTranscript(cwd: string, sessionId: string): boolean {
+    // Claude Code の projects ディレクトリ名は cwd の `/` と `.` を `-` に
+    // 置換した文字列。`/` だけ置換すると worktree の `.dokodemo-worktrees`
+    // など `.` を含むパスで jsonl 存在検知が外れ、再起動時に mode='new' で
+    // 同じ --session-id を渡してしまい "Session ID ... is already in use" になる。
+    const encoded = cwd.replace(/[/.]/g, '-');
+    const jsonlPath = path.join(
+      os.homedir(),
+      '.claude',
+      'projects',
+      encoded,
+      `${sessionId}.jsonl`
+    );
+    try {
+      const stat = fs.statSync(jsonlPath);
+      return stat.isFile() && stat.size > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  private fileExistsWithContent(filePath: string): boolean {
+    try {
+      const stat = fs.statSync(filePath);
+      return stat.isFile() && stat.size > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * codex CLI が spawn 後に書き出す rollout jsonl を検知して、instance に
+   * session id と file path を保存する。
+   * ファイル名は `rollout-<timestamp>-<uuid>.jsonl` で、
+   * `~/.codex/sessions/YYYY/MM/DD/` 配下に置かれる。
+   * 検知に失敗しても致命ではない（次回はフレッシュ起動になるだけ）。
+   */
+  private watchCodexSessionFile(
+    instance: AiInstance,
+    session: ActiveAiSession,
+    spawnStartedAt: number
+  ): void {
+    const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');
+    const targetCwd = instance.repositoryPath;
+    const deadline = spawnStartedAt + 30_000;
+    const pollIntervalMs = 500;
+
+    const tick = (): void => {
+      if (!session.isActive) return;
+      if (Date.now() > deadline) return;
+
+      const found = this.findLatestCodexSessionFile(
+        sessionsRoot,
+        targetCwd,
+        spawnStartedAt
+      );
+      if (found) {
+        instance.codexSessionId = found.sessionId;
+        instance.codexSessionFile = found.filePath;
+        this.emit('ai-instance-updated', {
+          instanceId: instance.instanceId,
+          instance: { ...instance },
+        });
+        return;
+      }
+      setTimeout(tick, pollIntervalMs);
+    };
+    setTimeout(tick, pollIntervalMs);
+  }
+
+  /**
+   * spawn 開始時刻より後に作成された rollout jsonl のうち、cwd が
+   * 一致するものを探して session id / file path を返す。
+   */
+  private findLatestCodexSessionFile(
+    sessionsRoot: string,
+    targetCwd: string,
+    spawnStartedAt: number
+  ): { sessionId: string; filePath: string } | null {
+    try {
+      const files: { file: string; mtime: number }[] = [];
+      const walk = (dir: string, depth: number): void => {
+        // sessionsRoot/YYYY/MM/DD なので深さ 3 まで潜れば十分
+        if (depth > 3) return;
+        let entries: fs.Dirent[];
+        try {
+          entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+          return;
+        }
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            walk(full, depth + 1);
+          } else if (
+            entry.isFile() &&
+            entry.name.startsWith('rollout-') &&
+            entry.name.endsWith('.jsonl')
+          ) {
+            try {
+              const stat = fs.statSync(full);
+              if (stat.mtimeMs >= spawnStartedAt - 1_000) {
+                files.push({ file: full, mtime: stat.mtimeMs });
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
+      };
+      walk(sessionsRoot, 0);
+      files.sort((a, b) => b.mtime - a.mtime);
+      for (const { file } of files) {
+        const meta = this.readCodexSessionMeta(file);
+        if (meta && meta.cwd === targetCwd) {
+          return { sessionId: meta.id, filePath: file };
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  /**
+   * rollout jsonl の 1 行目 `session_meta` から id と cwd を読み出す。
+   */
+  private readCodexSessionMeta(
+    filePath: string
+  ): { id: string; cwd: string } | null {
+    try {
+      const fd = fs.openSync(filePath, 'r');
+      try {
+        const buf = Buffer.alloc(4096);
+        const bytesRead = fs.readSync(fd, buf, 0, buf.length, 0);
+        const head = buf.slice(0, bytesRead).toString('utf8');
+        const firstLine = head.split('\n', 1)[0];
+        if (!firstLine) return null;
+        const parsed = JSON.parse(firstLine) as {
+          type?: string;
+          payload?: { id?: string; cwd?: string };
+        };
+        if (
+          parsed.type === 'session_meta' &&
+          parsed.payload?.id &&
+          parsed.payload?.cwd
+        ) {
+          return { id: parsed.payload.id, cwd: parsed.payload.cwd };
+        }
+      } finally {
+        fs.closeSync(fd);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
   }
 
   private generateSessionId(provider: AiProvider): string {
@@ -197,10 +388,56 @@ export class AISessionManager extends EventEmitter {
       permissionMode?: PermissionMode;
     }
   ): ActiveAiSession {
+    // claude は再起動しても同じ会話を開けるよう、instance ごとに固定の
+    // セッションID（UUID）を持たせる。未発行なら新規発行して --session-id で
+    // 起動、既にあれば --resume で継続する。
+    let claudeSession: { mode: 'new' | 'resume'; sessionId: string } | undefined;
+    let codexSession: { mode: 'resume'; sessionId: string } | undefined;
+    if (instance.provider === 'codex') {
+      // 前回起動時に検知した rollout jsonl がまだ残っていれば `codex resume <id>` で継続。
+      // 取れなかった（未初期化 or ファイル消失）ら黙ってフレッシュ起動する。
+      if (
+        instance.codexSessionId &&
+        instance.codexSessionFile &&
+        this.fileExistsWithContent(instance.codexSessionFile)
+      ) {
+        codexSession = { mode: 'resume', sessionId: instance.codexSessionId };
+      } else {
+        // 古い ID/パスは掴んだままだと次回検知で邪魔なのでクリアしておく
+        instance.codexSessionId = undefined;
+        instance.codexSessionFile = undefined;
+      }
+    }
+    if (instance.provider === 'claude') {
+      if (instance.claudeSessionId) {
+        // 前回起動時に --session-id で ID を発行しても、ユーザが Web / xterm から
+        // 一度もプロンプトを送っていないと Claude CLI はトランスクリプト
+        // (~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl) を作らない。
+        // その状態で --resume すると "No conversation found" で即終了するため、
+        // jsonl の存在（かつサイズ>0）を実ファイルで確認して mode を分岐する。
+        // 入力経路（Web / xterm 直接入力）に依らずファイル存在で判定できる。
+        const hasTranscript = this.hasClaudeTranscript(
+          instance.repositoryPath,
+          instance.claudeSessionId
+        );
+        claudeSession = {
+          mode: hasTranscript ? 'resume' : 'new',
+          sessionId: instance.claudeSessionId,
+        };
+      } else {
+        const newId = randomUUID();
+        instance.claudeSessionId = newId;
+        claudeSession = { mode: 'new', sessionId: newId };
+      }
+    }
+
     const { command, args } = this.getProviderCommand(
       instance.provider,
-      options.permissionMode
+      options.permissionMode,
+      claudeSession,
+      codexSession
     );
+    const spawnStartedAt = Date.now();
     const sessionId = this.generateSessionId(instance.provider);
 
     // cwd（リポジトリパス）が存在しない場合は node-pty が "posix_spawnp failed"
@@ -364,6 +601,14 @@ export class AISessionManager extends EventEmitter {
       createdAt: session.createdAt,
       lastAccessedAt: session.lastAccessedAt,
     });
+
+    // codex は spawn 側から ID を渡せないので、起動後に書き出される
+    // ~/.codex/sessions/YYYY/MM/DD/rollout-*-<uuid>.jsonl を検知して控える。
+    // 検知した ID/パスは instance に保存し、次回再起動時に resume に使う。
+    // resume 起動時は既存 ID を維持するので検知は不要。
+    if (instance.provider === 'codex' && !codexSession) {
+      this.watchCodexSessionFile(instance, session, spawnStartedAt);
+    }
 
     return session;
   }
@@ -870,8 +1115,20 @@ export class AISessionManager extends EventEmitter {
 
   getInstanceBySessionId(sessionId: string): AiInstance | undefined {
     const session = this.getSessionById(sessionId);
-    if (!session) return undefined;
-    return this.getInstance(session.instanceId);
+    if (session) {
+      return this.getInstance(session.instanceId);
+    }
+    // hook が渡す session_id は claude 自身のセッションID。dokodemo が
+    // --session-id で固定発行した claudeSessionId と一致するため、それで
+    // instance を正確に特定できる（cwd フォールバックより precise。sub
+    // インスタンスの hook も正しい instance に紐づく）。UUID と dokodemo
+    // 内部 ID（claude-N-timestamp）は形式が衝突しないので誤マッチしない。
+    for (const instance of this.instances.values()) {
+      if (instance.claudeSessionId === sessionId) {
+        return instance;
+      }
+    }
+    return undefined;
   }
 
   isValidSessionId(sessionId: string): boolean {

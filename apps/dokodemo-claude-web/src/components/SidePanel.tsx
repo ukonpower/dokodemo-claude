@@ -1,11 +1,14 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Send, Inbox, GitBranch, FileText } from 'lucide-react';
+import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
 import { useMediaQuery } from '../hooks';
 import s from './SidePanel.module.scss';
 import type { UploadedFileInfo, GitDiffSummary } from '../types';
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
+import SectionFullscreen from './SectionFullscreen';
+import MarkdownFullscreen from './MarkdownFullscreen';
+
 
 type SectionId = 'preview' | 'files' | 'md' | 'git';
 
@@ -16,7 +19,6 @@ function getTabKey(repo: string): string {
 }
 
 const ICON_SIZE = 13;
-const MOBILE_MEDIA_QUERY = '(max-width: 679px)';
 // lg 以上（右列配置）ではセクション縦積み表示、lg 未満ではタブ切替表示
 const LG_MEDIA_QUERY = '(min-width: 860px)';
 
@@ -56,6 +58,7 @@ interface SectionDef {
   icon: React.ReactNode;
   count: number;
   body: React.ReactNode;
+  fullscreenBody: React.ReactNode;
 }
 
 const SidePanel: React.FC<SidePanelProps> = (props) => {
@@ -83,13 +86,11 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     [files]
   );
 
-  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   // lg 以上（右列配置）判定。true なら縦積み表示、false ならタブ切替表示
   const isLg = useMediaQuery(LG_MEDIA_QUERY);
   const [activeTab, setActiveTab] = useState<SectionId>(() =>
     getStoredTab(currentRepo)
   );
-  const [mdView, setMdView] = useState<'list' | 'preview'>('list');
 
   // リポジトリ切り替え時にアクティブタブを復元
   useEffect(() => {
@@ -123,39 +124,56 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [currentRepo]);
 
+  const [fullscreenId, setFullscreenId] = useState<SectionId | null>(null);
+
+  const sendBody = (
+    <FileManager
+      rid={props.rid}
+      files={userFiles}
+      onRefresh={props.onRefreshFiles}
+      onDelete={props.onDeleteFile}
+      onAnnotate={props.onAnnotateImage}
+    />
+  );
+  const receiveBody = (
+    <FileManager
+      rid={props.rid}
+      files={previewFiles}
+      onRefresh={props.onRefreshFiles}
+      onDelete={props.onDeleteFile}
+      readOnly
+      emptyMessage="Claude がアップロードした画像がここに表示されます"
+      onAnnotate={props.onAnnotateImage}
+    />
+  );
+  const diffBody = (
+    <DiffSummary
+      rid={props.rid}
+      summary={props.diffSummary}
+      isLoading={props.diffSummaryLoading}
+      error={props.diffSummaryError}
+      onRefresh={props.onRefreshDiffSummary}
+      onFileClick={props.onDiffFileClick}
+    />
+  );
+
   const sections: SectionDef[] = [
+    {
+      id: 'files',
+      label: '送信',
+      icon: <Send size={ICON_SIZE} />,
+      count: userFiles.length,
+      body: sendBody,
+      fullscreenBody: sendBody,
+    },
     {
       id: 'preview',
       label: '受信',
       sub: 'Claude',
       icon: <Inbox size={ICON_SIZE} />,
       count: previewFiles.length,
-      body: (
-        <FileManager
-          rid={props.rid}
-          files={previewFiles}
-          onRefresh={props.onRefreshFiles}
-          onDelete={props.onDeleteFile}
-          readOnly
-          emptyMessage="Claude がアップロードした画像がここに表示されます"
-          onAnnotate={props.onAnnotateImage}
-        />
-      ),
-    },
-    {
-      id: 'files',
-      label: '添付',
-      icon: <Send size={ICON_SIZE} />,
-      count: userFiles.length,
-      body: (
-        <FileManager
-          rid={props.rid}
-          files={userFiles}
-          onRefresh={props.onRefreshFiles}
-          onDelete={props.onDeleteFile}
-          onAnnotate={props.onAnnotateImage}
-        />
-      ),
+      body: receiveBody,
+      fullscreenBody: receiveBody,
     },
     {
       id: 'md',
@@ -167,47 +185,67 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
           rid={props.rid}
           files={markdownFiles}
           onDelete={props.onDeleteFile}
-          isMobile={isMobile}
-          mobileView={mdView}
-          onMobileViewChange={setMdView}
         />
+      ),
+      fullscreenBody: (
+        <MarkdownFullscreen rid={props.rid} files={markdownFiles} />
       ),
     },
     {
       id: 'git',
-      label: 'Git',
+      label: 'diff',
       icon: <GitBranch size={ICON_SIZE} />,
       count: props.diffSummary ? props.diffSummary.files.length : 0,
-      body: (
-        <DiffSummary
-          rid={props.rid}
-          summary={props.diffSummary}
-          isLoading={props.diffSummaryLoading}
-          error={props.diffSummaryError}
-          onRefresh={props.onRefreshDiffSummary}
-          onFileClick={props.onDiffFileClick}
-        />
-      ),
+      body: diffBody,
+      fullscreenBody: diffBody,
     },
   ];
+
+  const fullscreenSection =
+    fullscreenId !== null
+      ? sections.find((sec) => sec.id === fullscreenId) ?? null
+      : null;
+
+  const fullscreenOverlay = (
+    <SectionFullscreen
+      isOpen={fullscreenSection !== null}
+      onClose={() => setFullscreenId(null)}
+      icon={fullscreenSection?.icon ?? null}
+      title={fullscreenSection?.label ?? ''}
+      count={fullscreenSection?.count}
+    >
+      {fullscreenSection?.fullscreenBody}
+    </SectionFullscreen>
+  );
 
   // lg 以上：セクション縦積み（全表示・各ボディ内スクロール）
   if (isLg) {
     return (
-      <div className={s.root}>
-        {sections.map((sec) => (
-          <div key={sec.id} className={`${s.section} ${s.sectionOpen}`}>
-            <div className={`${s.header} ${s.headerStatic}`}>
-              <span className={s.headerIcon}>{sec.icon}</span>
-              <span className={s.headerLabel}>{sec.label}</span>
-              {sec.sub && <span className={s.headerSub}>{sec.sub}</span>}
-              <span className={s.spacer} />
-              {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
+      <>
+        <div className={s.root}>
+          {sections.map((sec) => (
+            <div key={sec.id} className={`${s.section} ${s.sectionOpen}`}>
+              <div className={`${s.header} ${s.headerStatic}`}>
+                <span className={s.headerIcon}>{sec.icon}</span>
+                <span className={s.headerLabel}>{sec.label}</span>
+                {sec.sub && <span className={s.headerSub}>{sec.sub}</span>}
+                <span className={s.spacer} />
+                {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
+                <button
+                  className={s.maximizeButton}
+                  onClick={() => setFullscreenId(sec.id)}
+                  aria-label="別ウィンドウで開く"
+                  title="別ウィンドウで開く"
+                >
+                  <ExternalLink size={12} strokeWidth={2} />
+                </button>
+              </div>
+              <div className={s.body}>{sec.body}</div>
             </div>
-            <div className={s.body}>{sec.body}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+        {fullscreenOverlay}
+      </>
     );
   }
 
@@ -215,25 +253,36 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   const activeSection =
     sections.find((sec) => sec.id === activeTab) ?? sections[0];
   return (
-    <div className={s.root}>
-      <div className={s.tabBar}>
-        {sections.map((sec) => {
-          const isActive = sec.id === activeTab;
-          return (
-            <button
-              key={sec.id}
-              className={`${s.tab} ${isActive ? s.tabActive : ''}`}
-              onClick={() => selectTab(sec.id)}
-            >
-              <span className={s.tabIcon}>{sec.icon}</span>
-              <span className={s.tabLabel}>{sec.label}</span>
-              {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
-            </button>
-          );
-        })}
+    <>
+      <div className={s.root}>
+        <div className={s.tabBar}>
+          {sections.map((sec) => {
+            const isActive = sec.id === activeTab;
+            return (
+              <button
+                key={sec.id}
+                className={`${s.tab} ${isActive ? s.tabActive : ''}`}
+                onClick={() => selectTab(sec.id)}
+              >
+                <span className={s.tabIcon}>{sec.icon}</span>
+                <span className={s.tabLabel}>{sec.label}</span>
+                {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
+              </button>
+            );
+          })}
+          <button
+            className={s.tabMaximizeButton}
+            onClick={() => setFullscreenId(activeSection.id)}
+            aria-label="別ウィンドウで開く"
+            title="別ウィンドウで開く"
+          >
+            <ExternalLink size={13} strokeWidth={2} />
+          </button>
+        </div>
+        <div className={s.tabContent}>{activeSection.body}</div>
       </div>
-      <div className={s.tabContent}>{activeSection.body}</div>
-    </div>
+      {fullscreenOverlay}
+    </>
   );
 };
 
