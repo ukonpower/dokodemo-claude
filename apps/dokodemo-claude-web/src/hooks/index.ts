@@ -32,6 +32,9 @@ export type { UsePromptQueueReturn } from './usePromptQueue';
 export { useGitDiff } from './useGitDiff';
 export type { UseGitDiffReturn } from './useGitDiff';
 
+export { useGitGraph } from './useGitGraph';
+export type { UseGitGraphReturn } from './useGitGraph';
+
 export { useFileManager } from './useFileManager';
 export type { UseFileManagerReturn } from './useFileManager';
 

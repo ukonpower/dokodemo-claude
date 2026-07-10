@@ -301,6 +301,9 @@ interface ProjectViewProps {
 
   // ダッシュボード切替
   onOpenDashboard: () => void;
+
+  // Git Graph 表示
+  onOpenGraphView: () => void;
 }
 
 export function ProjectView({
@@ -447,6 +450,7 @@ export function ProjectView({
   onOpenWorkflowFile,
   onSwitchRepository,
   onOpenDashboard,
+  onOpenGraphView,
 }: ProjectViewProps) {
   // Refs
   const textInputRef = useRef<TextInputRef>(null);
@@ -872,6 +876,7 @@ export function ProjectView({
                       diffSummaryError={diffSummaryError}
                       onRefreshDiffSummary={onRefreshDiffSummary}
                       onDiffFileClick={onDiffFileClick}
+                      onOpenGraphView={onOpenGraphView}
                       onAnnotateImage={handleAnnotateImage}
                     />
                   )}

@@ -171,3 +171,5 @@ apps/dokodemo-claude-api/uploads/
 .nx/
 .nx/cache
 .nx/workspace-data
+# handoff（委譲引き継ぎ書）
+.handoff/

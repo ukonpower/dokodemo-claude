@@ -230,3 +230,35 @@
   background-color: $dark-bg-secondary;
   @include scrollbar-thin;
 }
+
+.gitSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.gitSectionActions {
+  display: flex;
+  padding: 6px 8px;
+  border-bottom: 1px solid $dark-border;
+}
+
+.gitGraphButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid $dark-border;
+  border-radius: 4px;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}

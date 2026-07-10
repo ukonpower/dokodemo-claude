@@ -1,0 +1,174 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+  overflow: hidden;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 10px;
+  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: $dark-text-primary;
+}
+
+.repoName {
+  font-size: 12px;
+  color: $dark-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40vw;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid $dark-border;
+  border-radius: 4px;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0 40px;
+}
+
+.errorBox {
+  margin: 8px 10px;
+  background-color: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #f87171;
+}
+
+.centerMessage {
+  padding: 40px 10px;
+  text-align: center;
+  color: $dark-text-muted;
+  font-size: 13px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.row {
+  height: 24px;
+
+  &:hover {
+    background-color: $dark-bg-secondary;
+  }
+}
+
+.descCol,
+.dateCol,
+.authorCol,
+.hashCol {
+  padding: 0 8px;
+  height: 24px;
+  line-height: 24px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.descCol {
+  color: $dark-text-primary;
+  max-width: 0;
+  width: 100%;
+}
+
+.dateCol {
+  color: $dark-text-secondary;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.authorCol {
+  color: $dark-text-secondary;
+  max-width: 140px;
+}
+
+.hashCol {
+  color: $dark-text-muted;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.loadMoreWrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.loadMoreButton {
+  padding: 6px 16px;
+  border: 1px solid $dark-border;
+  border-radius: 4px;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

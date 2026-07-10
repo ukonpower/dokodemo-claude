@@ -21,6 +21,7 @@ import {
   useBranchWorktree,
   usePromptQueue,
   useGitDiff,
+  useGitGraph,
   useFileManager,
   useEditorLauncher,
   useFileViewer,
@@ -28,7 +29,13 @@ import {
 } from './hooks';
 
 // ビュー
-import { HomeView, ProjectView, FileViewerView, DashboardView } from './views';
+import {
+  HomeView,
+  ProjectView,
+  FileViewerView,
+  DashboardView,
+  GitGraphView,
+} from './views';
 
 // 差分詳細ビュー
 import DiffViewer from './components/DiffViewer';
@@ -107,6 +114,9 @@ function App() {
 
   // Git差分管理
   const gitDiff = useGitDiff(socket, repository.currentRepo);
+
+  // Git Graph（コミットグラフ）管理
+  const gitGraph = useGitGraph(socket, repository.currentRepo);
 
   // ファイル管理
   const fileManager = useFileManager(socket, repository.currentRepo);
@@ -360,6 +370,17 @@ function App() {
         return;
       }
 
+      if (viewFromUrl === 'graph') {
+        setDashboardMode(false);
+        gitDiff.handleDiffViewBack();
+        fileViewer.clearState();
+        gitGraph.syncActive(true);
+        return;
+      }
+
+      // graph 以外へ遷移する場合は graph ビューを閉じる
+      gitGraph.syncActive(false);
+
       if (viewFromUrl === 'files') {
         // ファイルビュワーのpopstate対応はフック内で状態管理
         setDashboardMode(false);
@@ -379,7 +400,7 @@ function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [repository, gitDiff, fileViewer]);
+  }, [repository, gitDiff, fileViewer, gitGraph]);
 
   // リポジトリ切り替え時にダッシュボードモードを localStorage から復元
   useEffect(() => {
@@ -573,6 +594,27 @@ function App() {
         rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
       />
       {projectSwitcher}
+      </>
+    );
+  }
+
+  // Git Graph ビュー（diff 分岐より上。file diff オーバーレイを graph 側に持たせる）
+  if (gitGraph.isActive) {
+    const repoInfo = repository.repositories.find(
+      (r) => r.path === repository.currentRepo
+    );
+    const graphRepoName =
+      repoInfo?.isWorktree &&
+      repoInfo?.parentRepoName &&
+      repoInfo?.worktreeBranch
+        ? `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`
+        : repoInfo?.name ||
+          repository.currentRepo.split('/').filter(Boolean).pop() ||
+          '';
+    return (
+      <>
+        <GitGraphView gitGraph={gitGraph} repoName={graphRepoName} />
+        {projectSwitcher}
       </>
     );
   }
@@ -823,6 +865,8 @@ function App() {
       onSwitchRepository={switchRepositoryFromList}
       // ダッシュボード切替
       onOpenDashboard={() => setDashboardModeAndPersist(true)}
+      // Git Graph 表示
+      onOpenGraphView={gitGraph.openGraphView}
     />
     {projectSwitcher}
     </>

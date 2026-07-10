@@ -63,6 +63,15 @@ interface Lane {
  * 再利用（無ければ末尾に追加）する。これにより行間でレーンが横シフトしないため、
  * シフトエッジを別途生成する必要が無い。
  */
+/**
+ * unix 秒を `YYYY-MM-DD HH:mm`（ローカルタイム）に整形する
+ */
+export function formatGraphDate(unixSec: number): string {
+  const d = new Date(unixSec * 1000);
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function computeGraphLayout(commits: GraphInputCommit[]): GraphLayout {
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];

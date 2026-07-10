@@ -1,5 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
+import {
+  Send,
+  Inbox,
+  GitBranch,
+  FileText,
+  ExternalLink,
+  GitCommitHorizontal,
+} from 'lucide-react';
 import { useMediaQuery } from '../hooks';
 import s from './SidePanel.module.scss';
 import type { UploadedFileInfo, GitDiffSummary } from '../types';
@@ -37,6 +44,8 @@ interface SidePanelProps {
   diffSummaryError: string | null;
   onRefreshDiffSummary: () => void;
   onDiffFileClick: (filename: string) => void;
+  /** Git Graph（コミットグラフ）全画面ビューを開く */
+  onOpenGraphView: () => void;
 }
 
 function getStoredTab(repo: string): SectionId {
@@ -147,14 +156,26 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     />
   );
   const diffBody = (
-    <DiffSummary
-      rid={props.rid}
-      summary={props.diffSummary}
-      isLoading={props.diffSummaryLoading}
-      error={props.diffSummaryError}
-      onRefresh={props.onRefreshDiffSummary}
-      onFileClick={props.onDiffFileClick}
-    />
+    <div className={s.gitSection}>
+      <div className={s.gitSectionActions}>
+        <button
+          className={s.gitGraphButton}
+          onClick={props.onOpenGraphView}
+          title="コミットグラフを開く"
+        >
+          <GitCommitHorizontal size={ICON_SIZE} />
+          <span>Git Graph</span>
+        </button>
+      </div>
+      <DiffSummary
+        rid={props.rid}
+        summary={props.diffSummary}
+        isLoading={props.diffSummaryLoading}
+        error={props.diffSummaryError}
+        onRefresh={props.onRefreshDiffSummary}
+        onFileClick={props.onDiffFileClick}
+      />
+    </div>
   );
 
   const sections: SectionDef[] = [
