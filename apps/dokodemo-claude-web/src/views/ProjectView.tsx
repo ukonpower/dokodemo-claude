@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -49,8 +49,27 @@ import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import CliActionsMenu from '../components/CliActionsMenu';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
+
+// SidePanel（右列：添付/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。
+// PC（lg 以上・右列配置時）でのみ意味を持ち、CLI を横幅いっぱいに広げるための設定。
+const SIDECOL_COLLAPSE_KEY_PREFIX = 'dokodemo-sidecol-collapsed';
+
+function getSideColCollapseKey(repo: string): string {
+  return repo
+    ? `${SIDECOL_COLLAPSE_KEY_PREFIX}-${repo}`
+    : SIDECOL_COLLAPSE_KEY_PREFIX;
+}
+
+function getStoredSideColCollapsed(repo: string): boolean {
+  try {
+    return localStorage.getItem(getSideColCollapseKey(repo)) === '1';
+  } catch {
+    return false;
+  }
+}
 
 interface ProjectViewProps {
   // Socket
@@ -94,11 +113,9 @@ interface ProjectViewProps {
   onSendMode: () => void;
   onChangeModel: (model: string) => void;
   onChangePrimaryProvider: (provider: AiProvider) => void;
-  onRestartCli: () => void;
-  onClearHistory: () => void;
+  onRestartCli: (instanceId?: string) => void;
   onKeyInput: (key: string) => void;
   onResize: (cols: number, rows: number) => void;
-  onReload: (cols: number, rows: number) => void;
 
   // ターミナル関連
   terminals: Terminal[];
@@ -313,10 +330,8 @@ export function ProjectView({
   onChangeModel,
   onChangePrimaryProvider,
   onRestartCli,
-  onClearHistory,
   onKeyInput,
   onResize,
-  onReload,
   terminals,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   activeTerminalId: _activeTerminalId,
@@ -440,6 +455,34 @@ export function ProjectView({
   const handleToggleCliFullscreen = useCallback(() => {
     setIsCliFullscreen((prev) => !prev);
   }, []);
+
+  // SidePanel（右列）の折りたたみ状態。リポジトリ単位で localStorage に保存し、
+  // PC（lg 以上）で受信・添付エリアを畳んで CLI を横幅いっぱいに広げられるようにする。
+  const [isSideColCollapsed, setIsSideColCollapsed] = useState(() =>
+    getStoredSideColCollapsed(currentRepo)
+  );
+
+  // リポジトリ切り替え時に保存済みの折りたたみ状態を復元する
+  useEffect(() => {
+    setIsSideColCollapsed(getStoredSideColCollapsed(currentRepo));
+  }, [currentRepo]);
+
+  const handleToggleSideCol = useCallback(() => {
+    setIsSideColCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(
+          getSideColCollapseKey(currentRepo),
+          next ? '1' : '0'
+        );
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+    // 右列の表示切替でメイン列の横幅が変わるため xterm を再フィットさせる
+    requestAnimationFrame(() => aiOutputRef.current?.resize());
+  }, [currentRepo]);
 
   // ESC キーで全画面解除。ただし textarea / input フォーカス中の ESC は
   // CLI への ESC 送信（プロンプト中断等）に使われるため対象外にする
@@ -619,33 +662,46 @@ export function ProjectView({
           {/* AI CLI セクション */}
           <section className={s.cliSection}>
             <div className={s.cliTabBar}>
-              <AiInstanceTabs
-                instances={aiInstances}
-                activeInstanceId={activeInstance?.instanceId ?? ''}
-                isConnected={isConnected}
-                onActivate={onActivateInstance}
-                onCreate={onCreateInstance}
-                onClose={onCloseInstance}
-              />
-              <button
-                onClick={onRestartCli}
-                disabled={!currentRepo || !isConnected || !activeInstance}
-                className={`btn-icon-xs ${s.restartCliButton}`}
-                title="AI CLI セッションを再起動"
-              >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className={s.cliTabsScroll}>
+                <AiInstanceTabs
+                  instances={aiInstances}
+                  activeInstanceId={activeInstance?.instanceId ?? ''}
+                  isConnected={isConnected}
+                  onActivate={onActivateInstance}
+                  onCreate={onCreateInstance}
+                  onClose={onCloseInstance}
+                  onChangePrimaryProvider={onChangePrimaryProvider}
+                  onRestart={onRestartCli}
+                />
+              </div>
+              {/* 出力操作メニュー（リサイズ / 全画面 を集約） */}
+              <div className={s.cliTabActions}>
+                {/* 右列（受信/添付/MD/Git）の折りたたみトグル。PC でのみ表示し、
+                    畳むと CLI がその分だけ横に広がる（状態はリポジトリ単位で保存） */}
+                <button
+                  type="button"
+                  onClick={handleToggleSideCol}
+                  className={`btn-icon-xs ${s.sideColToggle}`}
+                  title={
+                    isSideColCollapsed
+                      ? '受信・添付パネルを表示'
+                      : '受信・添付パネルを畳んで CLI を広げる'
+                  }
+                  aria-pressed={isSideColCollapsed}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              </button>
+                  {isSideColCollapsed ? (
+                    <PanelRightOpen size={14} />
+                  ) : (
+                    <PanelRightClose size={14} />
+                  )}
+                </button>
+                <CliActionsMenu
+                  disabled={!activeInstance}
+                  isFullscreen={isCliFullscreen}
+                  onResize={() => aiOutputRef.current?.resize()}
+                  onToggleFullscreen={handleToggleCliFullscreen}
+                />
+              </div>
             </div>
 
             <div className={s.cliBody}>
@@ -662,17 +718,8 @@ export function ProjectView({
                       isLoading={isLoadingRepoData}
                       onKeyInput={onKeyInput}
                       onResize={onResize}
-                      onReload={onReload}
-                      onClearHistory={onClearHistory}
-                      onProviderChange={
-                        activeInstance?.isPrimary
-                          ? onChangePrimaryProvider
-                          : undefined
-                      }
                       fontSize={terminalFontSize}
                       onFileDrop={handleAiTerminalFileDrop}
-                      isFullscreen={isCliFullscreen}
-                      onToggleFullscreen={handleToggleCliFullscreen}
                     />
                   </div>
 
@@ -780,7 +827,9 @@ export function ProjectView({
                 </div>
 
                 {/* 右列：SidePanel（lg 未満では縦積み最下部・全幅） */}
-                <div className={s.sideCol}>
+                <div
+                  className={`${s.sideCol} ${isSideColCollapsed ? s.sideColCollapsed : ''}`}
+                >
                   {currentRepo && currentRid && (
                     <SidePanel
                       currentRepo={currentRepo}

@@ -475,12 +475,28 @@
   border-bottom: 1px solid $dark-border;
   border-radius: $radius-lg $radius-lg 0 0;
   padding-right: 0.5rem;
-  min-height: 2.25rem;
+  min-height: 2.2rem;
 
   // SP時は親の角丸消去に合わせて0に
   @include sm-down {
     border-radius: 0;
   }
+}
+
+// AI インスタンスタブのスクロール領域（中央・可変幅）
+.cliTabsScroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+// 出力操作ボタン群（旧 AiOutput ヘッダーから統合・cliTabBar 右端）
+.cliTabActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .sectionTitle {
@@ -644,6 +660,23 @@
 
   @include lg-up {
     width: 340px;
+  }
+}
+
+// PC（右列配置時）で折りたたむと右列を消し、メイン列（CLI）が横幅いっぱいに広がる。
+// lg 未満では右列ではなく縦積みの通常エリアなので折りたたみは効かせない。
+.sideColCollapsed {
+  @include lg-up {
+    display: none;
+  }
+}
+
+// 右列の折りたたみトグルボタン。折りたたみが意味を持つ PC（lg 以上）でのみ表示する。
+.sideColToggle {
+  display: none;
+
+  @include lg-up {
+    display: inline-flex;
   }
 }
 
@@ -1123,28 +1156,6 @@
   &:focus {
     outline: none;
     box-shadow: inset 0 0 0 1px #60a5fa; // blue-400
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.restartCliButton {
-  margin-left: 0.5rem;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  color: $gray-400;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    color: white;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus;
   }
 
   &:disabled {

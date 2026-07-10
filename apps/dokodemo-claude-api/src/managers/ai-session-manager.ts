@@ -13,6 +13,7 @@
 
 import * as pty from 'node-pty';
 import * as fs from 'fs';
+import { randomUUID } from 'crypto';
 import { EventEmitter } from 'events';
 import {
   AiProvider,
@@ -116,7 +117,14 @@ export class AISessionManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  private getProviderCommand(provider: AiProvider, permissionMode?: PermissionMode): {
+  private getProviderCommand(
+    provider: AiProvider,
+    permissionMode?: PermissionMode,
+    // claude の会話を継続/固定するための指定。
+    // 'new'    : --session-id でこの UUID を新規セッションとして開始する
+    // 'resume' : --resume でこの UUID の会話を復元して継続する
+    claudeSession?: { mode: 'new' | 'resume'; sessionId: string }
+  ): {
     command: string;
     args: string[];
   } {
@@ -131,6 +139,17 @@ export class AISessionManager extends EventEmitter {
           args.push('--dangerously-skip-permissions');
         } else if (permissionMode === 'auto') {
           args.push('--permission-mode', 'auto');
+        }
+        // 再起動しても同じ会話を開けるよう、セッションIDを固定して起動する。
+        // 初回は --session-id で ID を発行、以降は --resume で同じ ID を継続。
+        // --fork-session を付けないため resume 後も session ID は変わらず、
+        // 再起動を繰り返しても常に最新状態へ追従する。
+        if (claudeSession) {
+          if (claudeSession.mode === 'resume') {
+            args.push('--resume', claudeSession.sessionId);
+          } else {
+            args.push('--session-id', claudeSession.sessionId);
+          }
         }
         return { command: claudeCommand, args };
       }
@@ -197,9 +216,24 @@ export class AISessionManager extends EventEmitter {
       permissionMode?: PermissionMode;
     }
   ): ActiveAiSession {
+    // claude は再起動しても同じ会話を開けるよう、instance ごとに固定の
+    // セッションID（UUID）を持たせる。未発行なら新規発行して --session-id で
+    // 起動、既にあれば --resume で継続する。
+    let claudeSession: { mode: 'new' | 'resume'; sessionId: string } | undefined;
+    if (instance.provider === 'claude') {
+      if (instance.claudeSessionId) {
+        claudeSession = { mode: 'resume', sessionId: instance.claudeSessionId };
+      } else {
+        const newId = randomUUID();
+        instance.claudeSessionId = newId;
+        claudeSession = { mode: 'new', sessionId: newId };
+      }
+    }
+
     const { command, args } = this.getProviderCommand(
       instance.provider,
-      options.permissionMode
+      options.permissionMode,
+      claudeSession
     );
     const sessionId = this.generateSessionId(instance.provider);
 
@@ -870,8 +904,20 @@ export class AISessionManager extends EventEmitter {
 
   getInstanceBySessionId(sessionId: string): AiInstance | undefined {
     const session = this.getSessionById(sessionId);
-    if (!session) return undefined;
-    return this.getInstance(session.instanceId);
+    if (session) {
+      return this.getInstance(session.instanceId);
+    }
+    // hook が渡す session_id は claude 自身のセッションID。dokodemo が
+    // --session-id で固定発行した claudeSessionId と一致するため、それで
+    // instance を正確に特定できる（cwd フォールバックより precise。sub
+    // インスタンスの hook も正しい instance に紐づく）。UUID と dokodemo
+    // 内部 ID（claude-N-timestamp）は形式が衝突しないので誤マッチしない。
+    for (const instance of this.instances.values()) {
+      if (instance.claudeSessionId === sessionId) {
+        return instance;
+      }
+    }
+    return undefined;
   }
 
   isValidSessionId(sessionId: string): boolean {

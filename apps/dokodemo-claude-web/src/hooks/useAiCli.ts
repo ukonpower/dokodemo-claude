@@ -504,13 +504,16 @@ export function useAiCli(
     [socket]
   );
 
-  const restartCli = useCallback(() => {
-    if (!socket || !activeInstanceIdRef.current) return;
+  // instanceId 未指定時はアクティブインスタンスを再起動（各タブメニューからは
+  // そのタブの instanceId を渡してタブ単位で再起動する）
+  const restartCli = useCallback((instanceId?: string) => {
+    const targetId = instanceId ?? activeInstanceIdRef.current;
+    if (!socket || !targetId) return;
     socket.emit('clear-ai-output', {
-      instanceId: activeInstanceIdRef.current,
+      instanceId: targetId,
     });
     socket.emit('restart-ai-cli', {
-      instanceId: activeInstanceIdRef.current,
+      instanceId: targetId,
       initialSize: aiTerminalSizeRef.current || undefined,
       permissionMode: getPermissionModeSetting(),
     });

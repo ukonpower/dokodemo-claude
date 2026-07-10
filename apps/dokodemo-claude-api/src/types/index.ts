@@ -48,6 +48,11 @@ export interface AiInstance {
   order: number;
   createdAt: number;
   sessionId?: string;
+  // Claude 会話の復元用セッションID（有効な UUID）。
+  // claude を初回 spawn する際に --session-id で固定発行し、以降の再起動・
+  // provider 復帰時は --resume でこの ID を継続する。provider が claude の
+  // ときだけ使用する（codex では未使用）。
+  claudeSessionId?: string;
 }
 
 // Git操作関連の型定義

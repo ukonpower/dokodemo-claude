@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { MoreVertical, RotateCcw, X } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
@@ -15,6 +16,10 @@ interface AiInstanceTabsProps {
   onActivate: (instanceId: string) => void;
   onCreate: (provider: AiProvider) => void;
   onClose: (instanceId: string) => void;
+  /** プライマリインスタンスのプロバイダー切替 */
+  onChangePrimaryProvider: (provider: AiProvider) => void;
+  /** インスタンスの AI CLI セッションを再起動 */
+  onRestart: (instanceId: string) => void;
 }
 
 /**
@@ -45,6 +50,8 @@ function AiInstanceTabs({
   onActivate,
   onCreate,
   onClose,
+  onChangePrimaryProvider,
+  onRestart,
 }: AiInstanceTabsProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
@@ -53,6 +60,18 @@ function AiInstanceTabs({
   } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // 各タブの操作メニュー（プロバイダー切替 / 再起動 / 閉じる）。
+  // どのタブのメニューが開いているかを instanceId で保持する
+  const [openMenuInstanceId, setOpenMenuInstanceId] = useState<string | null>(
+    null
+  );
+  const [tabMenuPosition, setTabMenuPosition] = useState<{
+    top: number;
+    right: number;
+  } | null>(null);
+  const tabMenuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const tabMenuRef = useRef<HTMLDivElement | null>(null);
 
   const sorted = useMemo(
     () => [...instances].sort((a, b) => a.order - b.order),
@@ -112,6 +131,52 @@ function AiInstanceTabs({
     onCreate(provider);
   };
 
+  const closeTabMenu = useCallback(() => {
+    setOpenMenuInstanceId(null);
+    setTabMenuPosition(null);
+  }, []);
+
+  const openTabMenu = useCallback((instanceId: string) => {
+    const rect = tabMenuButtonRefs.current
+      .get(instanceId)
+      ?.getBoundingClientRect();
+    if (!rect) return;
+    // メニュー右端をボタン（⋮）の右端に合わせて右詰めで開く
+    setTabMenuPosition({
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+    setOpenMenuInstanceId(instanceId);
+  }, []);
+
+  const toggleTabMenu = useCallback(
+    (instanceId: string) => {
+      if (openMenuInstanceId === instanceId) closeTabMenu();
+      else openTabMenu(instanceId);
+    },
+    [openMenuInstanceId, closeTabMenu, openTabMenu]
+  );
+
+  useEffect(() => {
+    if (!openMenuInstanceId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const btn = tabMenuButtonRefs.current.get(openMenuInstanceId);
+      if (
+        tabMenuRef.current &&
+        !tabMenuRef.current.contains(target) &&
+        btn &&
+        !btn.contains(target)
+      ) {
+        closeTabMenu();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuInstanceId, closeTabMenu]);
+
   return (
     <div className={s.root}>
       <Swiper
@@ -142,27 +207,25 @@ function AiInstanceTabs({
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}`}
               >
                 <span className={s.label}>{label}</span>
-                {!inst.isPrimary && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose(inst.instanceId);
-                    }}
-                    disabled={!isConnected}
-                    className={s.closeBtn}
-                    title="このインスタンスを閉じる"
-                  >
-                    <svg viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M4 4l8 8M12 4l-8 8"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                )}
+                <button
+                  ref={(el) => {
+                    if (el) {
+                      tabMenuButtonRefs.current.set(inst.instanceId, el);
+                    } else {
+                      tabMenuButtonRefs.current.delete(inst.instanceId);
+                    }
+                  }}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTabMenu(inst.instanceId);
+                  }}
+                  disabled={!isConnected}
+                  className={s.menuBtn}
+                  title="タブメニュー"
+                >
+                  <MoreVertical size={14} />
+                </button>
               </div>
             </SwiperSlide>
           );
@@ -218,6 +281,92 @@ function AiInstanceTabs({
           </div>,
           document.body
         )}
+
+      {openMenuInstanceId &&
+        tabMenuPosition &&
+        (() => {
+          const inst = sorted.find(
+            (i) => i.instanceId === openMenuInstanceId
+          );
+          if (!inst) return null;
+          return createPortal(
+            <div
+              ref={tabMenuRef}
+              className={s.addMenu}
+              style={{
+                position: 'fixed',
+                top: tabMenuPosition.top,
+                right: tabMenuPosition.right,
+              }}
+            >
+              {inst.isPrimary ? (
+                <>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onChangePrimaryProvider('claude');
+                    }}
+                    className={`${s.addMenuItem} ${s.claude}`}
+                  >
+                    Claude に切替
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onChangePrimaryProvider('codex');
+                    }}
+                    className={`${s.addMenuItem} ${s.codex}`}
+                  >
+                    Codex に切替
+                  </button>
+                  {/* 再起動は Claude のタブのみ */}
+                  {inst.provider === 'claude' && (
+                    <>
+                      <div className={s.menuDivider} />
+                      <button
+                        onClick={() => {
+                          closeTabMenu();
+                          onRestart(inst.instanceId);
+                        }}
+                        className={s.addMenuItem}
+                      >
+                        <RotateCcw size={14} />
+                        <span>再起動</span>
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* 再起動は Claude のタブのみ */}
+                  {inst.provider === 'claude' && (
+                    <button
+                      onClick={() => {
+                        closeTabMenu();
+                        onRestart(inst.instanceId);
+                      }}
+                      className={s.addMenuItem}
+                    >
+                      <RotateCcw size={14} />
+                      <span>再起動</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onClose(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <X size={14} />
+                    <span>タブを閉じる</span>
+                  </button>
+                </>
+              )}
+            </div>,
+            document.body
+          );
+        })()}
     </div>
   );
 }

@@ -495,6 +495,64 @@
   height: 1.125rem;
 }
 
+// 鉛筆ボタン + 「白紙 / 写真から」ポップアップメニュー
+.sketchMenuWrapper {
+  position: relative;
+  display: flex;
+}
+
+// 鉛筆ボタンへ画像をドラッグ中のハイライト
+.sketchDragOver {
+  color: $accent-blue;
+  border-color: $accent-blue;
+  background-color: $dark-bg-hover;
+}
+
+.sketchMenu {
+  position: fixed;
+  width: 11rem;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  z-index: 9999;
+}
+
+.sketchMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: $radius;
+  // SP はタップ主体なので一回り大きく、sm-up 以上では従来の xs に戻す
+  font-size: $font-size-sm;
+  line-height: 1rem;
+  text-align: left;
+  color: $dark-text-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  @include sm-up {
+    font-size: $font-size-xs;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: $dark-text-muted;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
 .sendSection {
   display: flex;
   flex-direction: column;
@@ -964,22 +1022,6 @@
   @include sm-up {
     display: inline;
   }
-}
-
-.simpleSendSection {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.simpleSendSpacer {
-  flex: 1;
-}
-
-.simpleSubmitIcon {
-  width: 0.875rem;
-  height: 0.875rem;
-  margin-right: 0.25rem;
 }
 
 /* プロンプトループ設定アコーディオン（送信バー直下にインライン展開） */

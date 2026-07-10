@@ -2,17 +2,15 @@ import {
   useEffect,
   useRef,
   useCallback,
-  useState,
   forwardRef,
   useImperativeHandle,
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 import { getProviderInfo } from '../utils/ai-provider-info';
-import ProviderSwitcher from './ProviderSwitcher';
 import s from './AiOutput.module.scss';
 
 /**
@@ -47,18 +45,10 @@ interface AiOutputProps {
   isLoading?: boolean;
   onKeyInput?: (key: string) => void;
   onResize?: (cols: number, rows: number) => void;
-  onReload?: (cols: number, rows: number) => void;
-  onClearHistory?: () => void;
-  /** プロバイダー切り替えハンドラ */
-  onProviderChange?: (provider: AiProvider) => void;
   /** カスタムフォントサイズ */
   fontSize?: number;
   /** ターミナル上にファイルがドロップされた際のコールバック */
   onFileDrop?: (files: File[]) => void;
-  /** 全画面表示中かどうか（親側で入力欄を含むパネル全体を全画面化する） */
-  isFullscreen?: boolean;
-  /** 全画面表示の切り替えハンドラ */
-  onToggleFullscreen?: () => void;
 }
 
 /**
@@ -66,6 +56,8 @@ interface AiOutputProps {
  */
 export interface AiOutputRef {
   scrollToBottom: () => void;
+  /** ターミナルをリサイズ（fit）してサイズを通知 */
+  resize: () => void;
 }
 
 /**
@@ -80,13 +72,8 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       isLoading = false,
       onKeyInput,
       onResize,
-      onReload,
-      onClearHistory,
-      onProviderChange,
       fontSize,
       onFileDrop,
-      isFullscreen = false,
-      onToggleFullscreen,
     },
     ref
   ) => {
@@ -99,7 +86,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
     const lastMessageContents = useRef<Map<string, string>>(new Map()); // メッセージIDと内容のマッピング
     const currentProviderId = useRef<string>('');
     const hasShownInitialMessage = useRef<boolean>(false);
-    const [isReloading, setIsReloading] = useState<boolean>(false);
 
     // プロバイダー情報を取得
     const providerInfo = getProviderInfo(currentProvider);
@@ -150,10 +136,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       }
     }, []);
 
-    // refを通じてscrollToBottomメソッドを公開
-    useImperativeHandle(ref, () => ({
-      scrollToBottom,
-    }));
 
     /**
      * 条件付き自動スクロール（一番下にいる場合のみスクロール）
@@ -164,48 +146,23 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       }
     }, [isAtBottom, scrollToBottom]);
 
-    /**
-     * ターミナルのリロード（リサイズ + 履歴再取得）
-     */
-    const reloadTerminal = useCallback(() => {
+    // ターミナルをリサイズ（fit）してサイズをバックエンドに通知
+    const resizeTerminal = useCallback(() => {
       if (fitAddon.current && xtermInstance.current) {
-        try {
-          setIsReloading(true);
-
-          // ターミナルをリサイズ
-          fitAddon.current.fit();
-          const cols = xtermInstance.current.cols;
-          const rows = xtermInstance.current.rows;
-
-          // onReloadが提供されている場合はリサイズ + 履歴再取得
-          // 提供されていない場合は従来のonResizeを使用（リサイズのみ）
-          if (onReload) {
-            onReload(cols, rows);
-          } else if (onResize) {
-            onResize(cols, rows);
-          }
-
-          // 1秒後にリロード状態を解除
-          setTimeout(() => {
-            setIsReloading(false);
-          }, 1000);
-        } catch (error) {
-          console.warn('Failed to reload terminal:', error);
-          setIsReloading(false);
+        fitAddon.current.fit();
+        const cols = xtermInstance.current.cols;
+        const rows = xtermInstance.current.rows;
+        if (onResize) {
+          onResize(cols, rows);
         }
       }
-    }, [onReload, onResize]);
+    }, [onResize]);
 
-    /**
-     * 全画面切替時にターミナルをリサイズ
-     */
-    useEffect(() => {
-      if (fitAddon.current) {
-        setTimeout(() => {
-          fitAddon.current?.fit();
-        }, 50);
-      }
-    }, [isFullscreen]);
+    // refを通じてメソッドを公開
+    useImperativeHandle(ref, () => ({
+      scrollToBottom,
+      resize: resizeTerminal,
+    }));
 
     /**
      * TerminalOutからのリサイズコールバック
@@ -442,90 +399,6 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
 
     return (
       <div className={s.root}>
-        {/* ヘッダー */}
-        <div className={s.header}>
-          <div className={s.headerInner}>
-            <div className={s.headerLeft}>
-              <div className={s.statusGroup}>
-                <span className={s.headerLabel}>
-                  {providerInfo.headerLabel}
-                </span>
-              </div>
-              {/* プロバイダー切り替え */}
-              {onProviderChange && (
-                <ProviderSwitcher
-                  currentProvider={currentProvider}
-                  onProviderChange={onProviderChange}
-                  disabled={isLoading}
-                />
-              )}
-            </div>
-            {/* ボタングループ */}
-            <div className={s.headerButtons}>
-              {/* 履歴削除ボタン */}
-              {onClearHistory && (
-                <button
-                  onClick={onClearHistory}
-                  className={s.iconButton}
-                  title="出力履歴をクリア"
-                >
-                  <svg
-                    className={s.iconButtonIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              )}
-              {/* リロードボタン */}
-              <button
-                onClick={reloadTerminal}
-                disabled={isReloading}
-                className={`${s.iconButton} ${isReloading ? s.reloadSpin : ''}`}
-                style={isReloading ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-                title="リサイズして出力を再取得"
-              >
-                <svg
-                  className={`${s.iconButtonIcon} ${isReloading ? s.reloadSpin : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              </button>
-              {/* 全画面ボタン（入力欄を含むパネル全体を全画面化） */}
-              {onToggleFullscreen && (
-                <button
-                  onClick={onToggleFullscreen}
-                  className={s.iconButton}
-                  title={
-                    isFullscreen ? '全画面を閉じる (ESC)' : '全画面表示'
-                  }
-                >
-                  {isFullscreen ? (
-                    <Minimize2 size={14} />
-                  ) : (
-                    <Maximize2 size={14} />
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* XTermターミナル出力エリア */}
         <div className={s.terminalArea}>
           <TerminalOut
