@@ -34,6 +34,7 @@ export interface UseGitGraphReturn {
   fileDiff: GitDiffDetail | null;
   fileDiffLoading: boolean;
   fileDiffHash: string | null;
+  fileDiffFilename: string;
 
   // アクション
   openGraphView: () => void;
@@ -49,6 +50,7 @@ export interface UseGitGraphReturn {
     filename: string,
     oldFilename?: string
   ) => void;
+  refreshFileDiff: () => void;
   closeFileDiff: () => void;
   clearState: () => void;
 }
@@ -82,6 +84,10 @@ export function useGitGraph(
   const [fileDiff, setFileDiff] = useState<GitDiffDetail | null>(null);
   const [fileDiffLoading, setFileDiffLoading] = useState(false);
   const [fileDiffHash, setFileDiffHash] = useState<string | null>(null);
+  const [fileDiffFilename, setFileDiffFilename] = useState('');
+  const [fileDiffOldFilename, setFileDiffOldFilename] = useState<
+    string | undefined
+  >(undefined);
 
   const currentRepoRef = useRef(currentRepo);
   useEffect(() => {
@@ -244,6 +250,8 @@ export function useGitGraph(
       if (!rid) return;
       setFileDiff(null);
       setFileDiffHash(hash);
+      setFileDiffFilename(filename);
+      setFileDiffOldFilename(oldFilename);
       setFileDiffLoading(true);
       socket.emit('get-git-graph-file-diff', {
         rid,
@@ -255,9 +263,24 @@ export function useGitGraph(
     [socket, currentRepo]
   );
 
+  const refreshFileDiff = useCallback(() => {
+    if (!socket || !currentRepo || !fileDiffHash || !fileDiffFilename) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    setFileDiffLoading(true);
+    socket.emit('get-git-graph-file-diff', {
+      rid,
+      hash: fileDiffHash,
+      filename: fileDiffFilename,
+      oldFilename: fileDiffOldFilename,
+    });
+  }, [socket, currentRepo, fileDiffHash, fileDiffFilename, fileDiffOldFilename]);
+
   const closeFileDiff = useCallback(() => {
     setFileDiff(null);
     setFileDiffHash(null);
+    setFileDiffFilename('');
+    setFileDiffOldFilename(undefined);
     setFileDiffLoading(false);
   }, []);
 
@@ -286,6 +309,7 @@ export function useGitGraph(
     fileDiff,
     fileDiffLoading,
     fileDiffHash,
+    fileDiffFilename,
     openGraphView,
     handleBack,
     syncActive,
@@ -294,6 +318,7 @@ export function useGitGraph(
     setBranch,
     requestCommitDetail,
     requestFileDiff,
+    refreshFileDiff,
     closeFileDiff,
     clearState,
   };

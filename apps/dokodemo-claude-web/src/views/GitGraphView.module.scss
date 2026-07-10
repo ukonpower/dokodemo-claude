@@ -97,6 +97,13 @@
   font-size: 13px;
 }
 
+.diffOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: $dark-bg-primary;
+}
+
 .loadMoreWrap {
   display: flex;
   justify-content: center;

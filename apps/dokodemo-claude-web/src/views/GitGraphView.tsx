@@ -1,19 +1,37 @@
+import { useState, useCallback } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
 import GitGraphTable from '../components/GitGraphTable';
+import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
+import DiffViewer from '../components/DiffViewer';
 import s from './GitGraphView.module.scss';
 
 interface GitGraphViewProps {
   gitGraph: UseGitGraphReturn;
   repoName: string;
+  rid: string;
 }
 
 /**
  * Git Graph 全画面ビュー（閲覧専用）
- * ステップ 3 時点ではグラフ SVG 無しのテーブル骨格。
+ * コミット詳細は下部固定パネル（Docked to Bottom）方式で表示する。
  */
-export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
+export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
   const { graph, loading, error } = gitGraph;
+  const [selectedHash, setSelectedHash] = useState<string | null>(null);
+
+  const handleSelectRow = useCallback(
+    (hash: string) => {
+      setSelectedHash((prev) => {
+        if (prev === hash) return null; // 再クリックで閉じる
+        gitGraph.requestCommitDetail(hash);
+        return hash;
+      });
+    },
+    [gitGraph]
+  );
+
+  const fileDiffOpen = gitGraph.fileDiffHash !== null;
 
   return (
     <div className={s.container}>
@@ -41,7 +59,7 @@ export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
         </button>
       </div>
 
-      {/* コンテンツ */}
+      {/* コンテンツ（テーブル） */}
       <div className={s.content}>
         {error && <div className={s.errorBox}>{error}</div>}
 
@@ -53,7 +71,13 @@ export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
           <div className={s.centerMessage}>コミットがありません</div>
         )}
 
-        {graph && graph.commits.length > 0 && <GitGraphTable graph={graph} />}
+        {graph && graph.commits.length > 0 && (
+          <GitGraphTable
+            graph={graph}
+            selectedHash={selectedHash}
+            onSelectRow={handleSelectRow}
+          />
+        )}
 
         {graph && graph.moreAvailable && (
           <div className={s.loadMoreWrap}>
@@ -67,6 +91,34 @@ export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
           </div>
         )}
       </div>
+
+      {/* コミット詳細（下部固定パネル） */}
+      {selectedHash && (
+        <GitGraphCommitDetail
+          hash={selectedHash}
+          detail={gitGraph.detailByHash[selectedHash] ?? null}
+          isLoading={gitGraph.detailLoadingHash === selectedHash}
+          onFileClick={(filename, oldFilename) =>
+            gitGraph.requestFileDiff(selectedHash, filename, oldFilename)
+          }
+          onClose={() => setSelectedHash(null)}
+        />
+      )}
+
+      {/* ファイル diff（全画面オーバーレイ） */}
+      {fileDiffOpen && (
+        <div className={s.diffOverlay}>
+          <DiffViewer
+            rid={rid}
+            filename={gitGraph.fileDiffFilename}
+            detail={gitGraph.fileDiff}
+            isLoading={gitGraph.fileDiffLoading}
+            error={null}
+            onRefresh={gitGraph.refreshFileDiff}
+            onBack={gitGraph.closeFileDiff}
+          />
+        </div>
+      )}
     </div>
   );
 }

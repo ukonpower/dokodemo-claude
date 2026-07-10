@@ -12,6 +12,8 @@ import s from './GitGraphTable.module.scss';
 
 interface GitGraphTableProps {
   graph: GitGraphData;
+  selectedHash: string | null;
+  onSelectRow: (hash: string) => void;
 }
 
 // グラフ列に描く最大レーン数（超過分はクリップ）
@@ -33,7 +35,11 @@ function RefChip({ r }: { r: GitGraphRef }): React.ReactElement {
 /**
  * コミットグラフのテーブル（左端に SVG グラフを絶対配置で重ねる）
  */
-const GitGraphTable: React.FC<GitGraphTableProps> = ({ graph }) => {
+const GitGraphTable: React.FC<GitGraphTableProps> = ({
+  graph,
+  selectedHash,
+  onSelectRow,
+}) => {
   // uncommitted があれば先頭に仮想行を合成する
   const rows = useMemo(() => {
     const list: {
@@ -114,8 +120,13 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({ graph }) => {
             }
             const c = commitByHash.get(row.hash);
             if (!c) return null;
+            const isSelected = c.hash === selectedHash;
             return (
-              <tr key={c.hash} className={s.row}>
+              <tr
+                key={c.hash}
+                className={`${s.row} ${s.clickable} ${isSelected ? s.selected : ''}`}
+                onClick={() => onSelectRow(c.hash)}
+              >
                 <td className={s.graphCell} />
                 <td className={s.descCol}>
                   {c.refs.length > 0 && (

@@ -613,7 +613,11 @@ function App() {
           '';
     return (
       <>
-        <GitGraphView gitGraph={gitGraph} repoName={graphRepoName} />
+        <GitGraphView
+          gitGraph={gitGraph}
+          repoName={graphRepoName}
+          rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
+        />
         {projectSwitcher}
       </>
     );

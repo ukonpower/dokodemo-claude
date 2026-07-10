@@ -29,6 +29,15 @@
   }
 }
 
+.clickable {
+  cursor: pointer;
+}
+
+.selected {
+  background-color: $dark-bg-hover;
+  box-shadow: inset 2px 0 0 #4ade80;
+}
+
 .graphCell {
   height: 24px;
   padding: 0;

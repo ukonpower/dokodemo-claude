@@ -15,8 +15,6 @@ interface GitGraphSvgProps {
   /** レイアウトに渡したものと同じ順序の hash 配列（row → hash 解決用） */
   rowHashes: string[];
   headHash: string;
-  /** 追加の縦オフセット（詳細行展開などで row ごとに y をずらす場合に使用） */
-  rowYOffsets?: number[];
   width: number;
   height: number;
 }
@@ -35,15 +33,10 @@ const GitGraphSvg: React.FC<GitGraphSvgProps> = ({
   layout,
   rowHashes,
   headHash,
-  rowYOffsets,
   width,
   height,
 }) => {
-  // row 中央の y（詳細行展開の追加オフセットを加味）
-  const rowCenterY = (row: number): number => {
-    const base = row * ROW_HEIGHT + ROW_HEIGHT / 2;
-    return base + (rowYOffsets?.[row] ?? 0);
-  };
+  const rowCenterY = (row: number): number => row * ROW_HEIGHT + ROW_HEIGHT / 2;
 
   const isUncommitted = (row: number): boolean =>
     rowHashes[row] === UNCOMMITTED_HASH;
