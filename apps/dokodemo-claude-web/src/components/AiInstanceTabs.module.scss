@@ -175,3 +175,44 @@
   margin: 0.25rem 0;
   background-color: $dark-border-light;
 }
+
+// provider 切替セグメント（Claude / Codex の 2 択トグル）
+.providerSegment {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem 0.375rem;
+}
+
+.providerSegmentItem {
+  flex: 1;
+  padding: 0.375rem 0.5rem;
+  font-size: $font-size-sm;
+  background: transparent;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-sm;
+  color: $gray-300;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover:not(.active) {
+    background-color: $gray-700;
+    color: $gray-100;
+  }
+
+  &.active {
+    color: white;
+    background-color: $gray-700;
+    cursor: default;
+
+    &.claude {
+      border-color: #fb923c; // orange-400（タブと揃える）
+    }
+
+    &.codex {
+      border-color: #38bdf8; // sky-400（タブと揃える）
+    }
+  }
+}

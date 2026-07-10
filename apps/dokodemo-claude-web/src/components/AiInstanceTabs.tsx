@@ -299,56 +299,67 @@ function AiInstanceTabs({
             >
               {inst.isPrimary ? (
                 <>
+                  {/* provider 切替はセグメントコントロールで現在選択中を明示 */}
+                  <div
+                    className={s.providerSegment}
+                    role="group"
+                    aria-label="AI provider"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeTabMenu();
+                        if (inst.provider !== 'claude') {
+                          onChangePrimaryProvider('claude');
+                        }
+                      }}
+                      className={`${s.providerSegmentItem} ${s.claude} ${
+                        inst.provider === 'claude' ? s.active : ''
+                      }`}
+                      aria-pressed={inst.provider === 'claude'}
+                    >
+                      Claude
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeTabMenu();
+                        if (inst.provider !== 'codex') {
+                          onChangePrimaryProvider('codex');
+                        }
+                      }}
+                      className={`${s.providerSegmentItem} ${s.codex} ${
+                        inst.provider === 'codex' ? s.active : ''
+                      }`}
+                      aria-pressed={inst.provider === 'codex'}
+                    >
+                      Codex
+                    </button>
+                  </div>
+                  <div className={s.menuDivider} />
                   <button
                     onClick={() => {
                       closeTabMenu();
-                      onChangePrimaryProvider('claude');
+                      onRestart(inst.instanceId);
                     }}
-                    className={`${s.addMenuItem} ${s.claude}`}
+                    className={s.addMenuItem}
                   >
-                    Claude に切替
+                    <RotateCcw size={14} />
+                    <span>再起動</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      closeTabMenu();
-                      onChangePrimaryProvider('codex');
-                    }}
-                    className={`${s.addMenuItem} ${s.codex}`}
-                  >
-                    Codex に切替
-                  </button>
-                  {/* 再起動は Claude のタブのみ */}
-                  {inst.provider === 'claude' && (
-                    <>
-                      <div className={s.menuDivider} />
-                      <button
-                        onClick={() => {
-                          closeTabMenu();
-                          onRestart(inst.instanceId);
-                        }}
-                        className={s.addMenuItem}
-                      >
-                        <RotateCcw size={14} />
-                        <span>再起動</span>
-                      </button>
-                    </>
-                  )}
                 </>
               ) : (
                 <>
-                  {/* 再起動は Claude のタブのみ */}
-                  {inst.provider === 'claude' && (
-                    <button
-                      onClick={() => {
-                        closeTabMenu();
-                        onRestart(inst.instanceId);
-                      }}
-                      className={s.addMenuItem}
-                    >
-                      <RotateCcw size={14} />
-                      <span>再起動</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onRestart(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <RotateCcw size={14} />
+                    <span>再起動</span>
+                  </button>
                   <button
                     onClick={() => {
                       closeTabMenu();

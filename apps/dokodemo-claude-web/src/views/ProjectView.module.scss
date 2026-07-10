@@ -618,12 +618,13 @@
   }
 
   // 全画面終了ボタン: オーバーレイ（fixed）基準で右上に固定。xterm より前面に出す
+  // TerminalOut の scrollHandle (z-index: 10) より上に重ねてクリックできるようにする
   .fullscreenExitButton {
     @include flex-center;
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    z-index: 1;
+    z-index: 20;
     width: 2rem;
     height: 2rem;
     background-color: color.change($dark-bg-secondary, $alpha: 0.85);
