@@ -325,16 +325,16 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
     </div>
   ) : null;
 
-  // セッションコマンド群（Clear / Commit / その他トグル）: PC・モバイル共通で常時表示
-  // Clear / Commit / その他 は改行させず一列に並べたいので、専用の nowrap 行で包む
+  // 「その他」トグル。コマンド行には混ぜず、補助群の見出しとして主要行の下に置く
   const moreToggleButton = showMoreToggle ? (
     <button
       type="button"
       onClick={() => setShowAux(!showAux)}
       className={s.moreToggle}
+      aria-expanded={showAux}
       title="その他のボタンを表示"
     >
-      {showAux ? '▲ その他' : '▼ その他'}
+      {showAux ? '▾ その他' : '▸ その他'}
     </button>
   ) : null;
 
@@ -374,7 +374,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         </button>
       )}
       {modelDropdownButton}
-      {moreToggleButton}
     </div>
   );
 
@@ -484,6 +483,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         /* PC: 物理キーは省き、コマンド系を主役にしたコマンドバー */
         <div className={s.commandBar}>
           {coreCommandButtons}
+          <div className={s.groupDivider} aria-hidden="true" />
           {customButtonRow}
         </div>
       ) : (
@@ -525,22 +525,28 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         </div>
       )}
 
-      {/* 補助系（折りたたみ）: Mode / Ctrl+C / Model / 補助 / モバイルのカスタム */}
-      {showMoreToggle && showAux && (
-        <div className={s.auxContent}>
-          {/* Mode / Ctrl+C / Alt+T / Usage / Preview は「その他」に格納 */}
-          {(hasModeCommand || hasInterruptCommand || hasExtraCommands) && (
-            <div className={s.row}>
-              {modeButton}
-              {interruptButton}
-              {extraCommandButtons}
-            </div>
-          )}
-          {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
-          {!isDesktop && (
-            <div className={s.customSection}>
-              <div className={s.customHeader}>カスタム</div>
-              {customButtonRow}
+      {/* 補助系（折りたたみ）: 見出し（その他トグル）＋展開コンテンツ。
+          トグルはコマンド行に混ぜず、ここで補助群の見出しとして左寄せに置く */}
+      {showMoreToggle && (
+        <div className={s.auxSection}>
+          {moreToggleButton}
+          {showAux && (
+            <div className={s.auxContent}>
+              {/* Mode / Ctrl+C / Alt+T / Usage / Preview は「その他」に格納 */}
+              {(hasModeCommand || hasInterruptCommand || hasExtraCommands) && (
+                <div className={s.row}>
+                  {modeButton}
+                  {interruptButton}
+                  {extraCommandButtons}
+                </div>
+              )}
+              {/* カスタム行: モバイルのみ（PC はコマンドバーに出済み） */}
+              {!isDesktop && (
+                <div className={s.customSection}>
+                  <div className={s.customHeader}>カスタム</div>
+                  {customButtonRow}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -26,6 +26,38 @@
   z-index: 20;
 }
 
+.resizeButtonWrapper {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.resizeButton {
+  @include flex-center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: rgba($dark-bg-secondary, 0.7);
+  border: 1px solid $dark-border-light;
+  border-top: none;
+  border-right: none;
+  border-radius: 0 0 0 0.375rem;
+  color: rgba(white, 0.7);
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  opacity: 0.6;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: white;
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
 .scrollButton {
   @include flex-center;
   width: 2rem;

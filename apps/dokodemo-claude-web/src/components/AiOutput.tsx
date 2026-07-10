@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, RefreshCw } from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 import { getProviderInfo } from '../utils/ai-provider-info';
@@ -410,6 +410,17 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             fontSize={fontSize}
             onFileDrop={onFileDrop}
           />
+
+          {/* 右上のリサイズボタン */}
+          <div className={s.resizeButtonWrapper}>
+            <button
+              onClick={resizeTerminal}
+              className={s.resizeButton}
+              title="ターミナルをリサイズ"
+            >
+              <RefreshCw size={10} />
+            </button>
+          </div>
 
           {/* 右下のスクロールボタン */}
           <div className={s.scrollButtonWrapper}>
