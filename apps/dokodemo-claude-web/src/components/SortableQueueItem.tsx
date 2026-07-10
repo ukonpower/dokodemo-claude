@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { Repeat, X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import { useOutsideClose } from '../hooks';
 import LoopSettingsFields from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './SortableQueueItem.module.scss';
@@ -87,8 +88,9 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
     setIsAddModelOpen(false);
   };
 
-  // オプションメニュー外クリックで閉じる + fixed 配置の位置計算
+  // fixed 配置の位置計算（スクロール/リサイズに追随）
   useEffect(() => {
+    if (!isOptionsOpen) return;
     const updatePosition = () => {
       if (optionsButtonRef.current) {
         const rect = optionsButtonRef.current.getBoundingClientRect();
@@ -104,27 +106,20 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
         });
       }
     };
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        optionsRef.current &&
-        !optionsRef.current.contains(event.target as Node)
-      ) {
-        setIsOptionsOpen(false);
-      }
-    };
-    if (isOptionsOpen) {
-      updatePosition();
-      document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('scroll', updatePosition, true);
-      window.addEventListener('resize', updatePosition);
-    }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
     };
   }, [isOptionsOpen]);
+
+  // オプションメニュー外クリック / Escape で閉じる
+  const closeOptions = useCallback(() => setIsOptionsOpen(false), []);
+  useOutsideClose(isOptionsOpen, closeOptions, {
+    ignore: [optionsRef, optionsButtonRef],
+  });
 
   // 有効なオプションの数をカウント
   const activeOptionsCount =

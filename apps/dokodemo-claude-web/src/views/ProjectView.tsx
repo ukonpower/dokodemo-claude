@@ -1,5 +1,11 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { LayoutDashboard, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
+} from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import type {
   GitRepository,
@@ -49,11 +55,10 @@ import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
-import CliActionsMenu from '../components/CliActionsMenu';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
-// SidePanel（右列：添付/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。
+// SidePanel（右列：送信/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。
 // PC（lg 以上・右列配置時）でのみ意味を持ち、CLI を横幅いっぱいに広げるための設定。
 const SIDECOL_COLLAPSE_KEY_PREFIX = 'dokodemo-sidecol-collapsed';
 
@@ -454,10 +459,13 @@ export function ProjectView({
 
   const handleToggleCliFullscreen = useCallback(() => {
     setIsCliFullscreen((prev) => !prev);
+    // 全画面 ON/OFF で送信・受信パネル（右列）の表示が切り替わり CLI 列の幅が
+    // 変わるため、レイアウト確定後に xterm を再フィットさせる
+    requestAnimationFrame(() => aiOutputRef.current?.resize());
   }, []);
 
   // SidePanel（右列）の折りたたみ状態。リポジトリ単位で localStorage に保存し、
-  // PC（lg 以上）で受信・添付エリアを畳んで CLI を横幅いっぱいに広げられるようにする。
+  // PC（lg 以上）で送信・受信エリアを畳んで CLI を横幅いっぱいに広げられるようにする。
   const [isSideColCollapsed, setIsSideColCollapsed] = useState(() =>
     getStoredSideColCollapsed(currentRepo)
   );
@@ -674,9 +682,9 @@ export function ProjectView({
                   onRestart={onRestartCli}
                 />
               </div>
-              {/* 出力操作メニュー（リサイズ / 全画面 を集約） */}
+              {/* 全画面切替と右列パネルの折りたたみトグル */}
               <div className={s.cliTabActions}>
-                {/* 右列（受信/添付/MD/Git）の折りたたみトグル。PC でのみ表示し、
+                {/* 右列（送信/受信/MD/Git）の折りたたみトグル。PC でのみ表示し、
                     畳むと CLI がその分だけ横に広がる（状態はリポジトリ単位で保存） */}
                 <button
                   type="button"
@@ -684,8 +692,8 @@ export function ProjectView({
                   className={`btn-icon-xs ${s.sideColToggle}`}
                   title={
                     isSideColCollapsed
-                      ? '受信・添付パネルを表示'
-                      : '受信・添付パネルを畳んで CLI を広げる'
+                      ? '送信・受信パネルを表示'
+                      : '送信・受信パネルを畳んで CLI を広げる'
                   }
                   aria-pressed={isSideColCollapsed}
                 >
@@ -695,12 +703,20 @@ export function ProjectView({
                     <PanelRightClose size={14} />
                   )}
                 </button>
-                <CliActionsMenu
+                <button
+                  type="button"
+                  onClick={handleToggleCliFullscreen}
                   disabled={!activeInstance}
-                  isFullscreen={isCliFullscreen}
-                  onResize={() => aiOutputRef.current?.resize()}
-                  onToggleFullscreen={handleToggleCliFullscreen}
-                />
+                  className="btn-icon-xs"
+                  title={isCliFullscreen ? '全画面を閉じる' : '全画面表示'}
+                  aria-pressed={isCliFullscreen}
+                >
+                  {isCliFullscreen ? (
+                    <Minimize2 size={14} />
+                  ) : (
+                    <Maximize2 size={14} />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -708,6 +724,20 @@ export function ProjectView({
               <div
                 className={`${s.cliInnerRow} ${isCliFullscreen ? s.cliInnerRowFullscreen : ''}`}
               >
+                {/* 全画面終了ボタン。全画面時はオーバーレイ（fixed）がタブバーの
+                    全画面ボタンを覆い隠すため、物理 ESC の無いモバイルでも解除できるよう
+                    オーバーレイ内の右上に常設する */}
+                {isCliFullscreen && (
+                  <button
+                    type="button"
+                    onClick={handleToggleCliFullscreen}
+                    className={s.fullscreenExitButton}
+                    title="全画面を閉じる (ESC)"
+                    aria-label="全画面を閉じる"
+                  >
+                    <Minimize2 size={16} />
+                  </button>
+                )}
                 <div className={s.cliMainCol}>
                   <div className={s.cliOutputWrapper}>
                     <AiOutput

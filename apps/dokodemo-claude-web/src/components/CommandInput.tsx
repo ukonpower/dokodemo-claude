@@ -9,6 +9,7 @@ import React, {
 import { Repeat, FileText, ImagePlus } from 'lucide-react';
 import type { AiProvider } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
+import { useOutsideClose } from '../hooks';
 import { resolveModelLabel } from '../utils/models';
 import LoopSettingsFields from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
@@ -379,8 +380,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       setIsAddModelOpen(false);
     };
 
-    // モデルドロップダウン外クリックで閉じる & 位置計算
+    // モデルドロップダウンの位置計算（スクロール/リサイズに追随）
     useEffect(() => {
+      if (!isModelDropdownOpen) return;
       const updatePosition = () => {
         if (modelButtonRef.current) {
           const rect = modelButtonRef.current.getBoundingClientRect();
@@ -390,30 +392,23 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           });
         }
       };
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          modelDropdownRef.current &&
-          !modelDropdownRef.current.contains(event.target as Node)
-        ) {
-          setIsModelDropdownOpen(false);
-          setIsAddModelOpen(false);
-        }
-      };
-
-      if (isModelDropdownOpen) {
-        updatePosition();
-        document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-      }
-
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }, [isModelDropdownOpen]);
+
+    // 外側クリック / Escape でドロップダウンを閉じる
+    const closeModelDropdown = useCallback(() => {
+      setIsModelDropdownOpen(false);
+      setIsAddModelOpen(false);
+    }, []);
+    useOutsideClose(isModelDropdownOpen, closeModelDropdown, {
+      ignore: [modelDropdownRef],
+    });
 
     const [command, setCommand] = useState(() => {
       // localStorage から初期値を読み込み（プロバイダー・リポジトリ別）
@@ -960,8 +955,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       [closeDrawing, insertFilesAsPaths]
     );
 
-    // 鉛筆メニューの位置計算 & 外クリックで閉じる（modelDropdown と同じ流儀）
+    // 鉛筆メニューの位置計算（スクロール/リサイズに追随）
     useEffect(() => {
+      if (!isSketchMenuOpen) return;
       const updatePosition = () => {
         if (sketchButtonRef.current) {
           const rect = sketchButtonRef.current.getBoundingClientRect();
@@ -971,29 +967,20 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           });
         }
       };
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          sketchMenuRef.current &&
-          !sketchMenuRef.current.contains(event.target as Node)
-        ) {
-          setIsSketchMenuOpen(false);
-        }
-      };
-
-      if (isSketchMenuOpen) {
-        updatePosition();
-        document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-      }
-
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }, [isSketchMenuOpen]);
+
+    // 外側クリック / Escape で鉛筆メニューを閉じる
+    const closeSketchMenu = useCallback(() => setIsSketchMenuOpen(false), []);
+    useOutsideClose(isSketchMenuOpen, closeSketchMenu, {
+      ignore: [sketchMenuRef, sketchButtonRef],
+    });
 
     // 末尾にパス文字列を追記（必要に応じてスペース区切り）
     const appendPathsToEnd = useCallback((paths: string[]) => {

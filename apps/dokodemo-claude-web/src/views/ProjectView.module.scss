@@ -587,6 +587,66 @@
   .cliOutputWrapper {
     min-height: 12rem;
   }
+
+  // 全画面表示中は送信・受信パネル（右列）を隠し、CLI を全幅で使う
+  .sideCol {
+    display: none;
+  }
+
+  // PC（lg 以上）では xterm が物理キー入力を直接受け取れるため補助キー行は冗長。
+  // 全画面時は隠して Claude 出力を縦に広げる（モバイルは物理キーが無いので残す）
+  .keyboardArea {
+    @include lg-up {
+      display: none;
+    }
+  }
+
+  // モバイル全画面は「Claude 出力 + キー操作（補助キー）」だけに絞る。
+  // 文字は xterm へ直接入力でき、補助キーの Enter が空送信で改行を CLI に流すため、
+  // 入力欄・Workflow 行・キューは隠して xterm を残り全部の高さまで広げる
+  // （通常時の 50dvh 固定もここで解除）。
+  @include sm-down {
+    .cliOutputWrapper {
+      flex: 1 1 0%;
+      height: auto;
+    }
+
+    .cliInputWrapper,
+    .mobileQueue {
+      display: none;
+    }
+  }
+
+  // 全画面終了ボタン: オーバーレイ（fixed）基準で右上に固定。xterm より前面に出す
+  .fullscreenExitButton {
+    @include flex-center;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    width: 2rem;
+    height: 2rem;
+    background-color: color.change($dark-bg-secondary, $alpha: 0.85);
+    border-radius: $radius;
+    border: 1px solid $dark-border-light;
+    color: white;
+    cursor: pointer;
+    transition: all $transition-fast $transition-easing;
+
+    @include sm-up {
+      top: 1rem;
+      right: 1rem;
+    }
+
+    &:hover {
+      background-color: $dark-bg-hover;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px $dark-border-focus;
+    }
+  }
 }
 
 .cliMainCol {
@@ -650,7 +710,7 @@
   }
 }
 
-// 右列：lg 以上では TabbedPanel（添付/受信/MD/Git）専用の列。
+// 右列：lg 以上では TabbedPanel（送信/受信/MD/Git）専用の列。
 // lg 未満では縦積みの最下部（旧 panelArea 相当・全幅）になる。
 .sideCol {
   flex-shrink: 0;

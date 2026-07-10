@@ -1,12 +1,19 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import {
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+} from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, RotateCcw, X } from 'lucide-react';
+import { MoreVertical, RotateCcw, X, Plus } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { AiInstance, AiProvider } from '../types';
 import { getProviderShortName } from '../utils/ai-provider-info';
+import { useOutsideClose } from '../hooks';
 import s from './AiInstanceTabs.module.scss';
 
 interface AiInstanceTabsProps {
@@ -68,7 +75,7 @@ function AiInstanceTabs({
   );
   const [tabMenuPosition, setTabMenuPosition] = useState<{
     top: number;
-    right: number;
+    left: number;
   } | null>(null);
   const tabMenuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const tabMenuRef = useRef<HTMLDivElement | null>(null);
@@ -107,24 +114,9 @@ function AiInstanceTabs({
     else openMenu();
   }, [showAddMenu, closeMenu, openMenu]);
 
-  useEffect(() => {
-    if (!showAddMenu) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        addButtonRef.current &&
-        !addButtonRef.current.contains(target)
-      ) {
-        closeMenu();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showAddMenu, closeMenu]);
+  useOutsideClose(showAddMenu, closeMenu, {
+    ignore: [addButtonRef, menuRef],
+  });
 
   const handleSelectProvider = (provider: AiProvider) => {
     closeMenu();
@@ -141,11 +133,15 @@ function AiInstanceTabs({
       .get(instanceId)
       ?.getBoundingClientRect();
     if (!rect) return;
-    // メニュー右端をボタン（⋮）の右端に合わせて右詰めで開く
-    setTabMenuPosition({
-      top: rect.bottom + 4,
-      right: window.innerWidth - rect.right,
-    });
+    // 既定はメニュー右端を⋮ボタンの右端に合わせる（右詰め）。
+    // 実幅は開いた後に useLayoutEffect で測って左端をクランプするので、
+    // ここでは仮幅で初期位置だけ決めておく。
+    const MENU_MARGIN = 8;
+    const ESTIMATED_WIDTH = 160;
+    let left = rect.right - ESTIMATED_WIDTH;
+    left = Math.min(left, window.innerWidth - ESTIMATED_WIDTH - MENU_MARGIN);
+    left = Math.max(left, MENU_MARGIN);
+    setTabMenuPosition({ top: rect.bottom + 4, left });
     setOpenMenuInstanceId(instanceId);
   }, []);
 
@@ -157,25 +153,34 @@ function AiInstanceTabs({
     [openMenuInstanceId, closeTabMenu, openTabMenu]
   );
 
-  useEffect(() => {
+  useOutsideClose(!!openMenuInstanceId, closeTabMenu, {
+    ignore: [
+      tabMenuRef,
+      () =>
+        openMenuInstanceId
+          ? (tabMenuButtonRefs.current.get(openMenuInstanceId) ?? null)
+          : null,
+    ],
+  });
+
+  // 開いたメニューの実幅を測り、画面外へはみ出さないよう left をクランプする。
+  // 一番左のタブでは右詰めのままだと左へはみ出すため、実測して左寄せに切り替える。
+  useLayoutEffect(() => {
     if (!openMenuInstanceId) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const btn = tabMenuButtonRefs.current.get(openMenuInstanceId);
-      if (
-        tabMenuRef.current &&
-        !tabMenuRef.current.contains(target) &&
-        btn &&
-        !btn.contains(target)
-      ) {
-        closeTabMenu();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openMenuInstanceId, closeTabMenu]);
+    const menu = tabMenuRef.current;
+    const btn = tabMenuButtonRefs.current.get(openMenuInstanceId);
+    if (!menu || !btn) return;
+    const btnRect = btn.getBoundingClientRect();
+    const width = menu.offsetWidth;
+    const MENU_MARGIN = 8;
+    // 既定は右詰め（メニュー右端を⋮ボタン右端に合わせる）
+    let left = btnRect.right - width;
+    left = Math.min(left, window.innerWidth - width - MENU_MARGIN);
+    left = Math.max(left, MENU_MARGIN);
+    setTabMenuPosition((prev) =>
+      prev && Math.abs(prev.left - left) > 0.5 ? { ...prev, left } : prev
+    );
+  }, [openMenuInstanceId]);
 
   return (
     <div className={s.root}>
@@ -241,14 +246,7 @@ function AiInstanceTabs({
               className={s.addBtn}
               title="新しい AI インスタンスを追加"
             >
-              <svg viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M8 3v10M3 8h10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <Plus size={14} strokeWidth={1.75} />
             </button>
           </div>
         </SwiperSlide>
@@ -296,7 +294,7 @@ function AiInstanceTabs({
               style={{
                 position: 'fixed',
                 top: tabMenuPosition.top,
-                right: tabMenuPosition.right,
+                left: tabMenuPosition.left,
               }}
             >
               {inst.isPrimary ? (

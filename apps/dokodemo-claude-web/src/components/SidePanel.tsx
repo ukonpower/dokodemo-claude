@@ -125,6 +125,21 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
 
   const sections: SectionDef[] = [
     {
+      id: 'files',
+      label: '送信',
+      icon: <Send size={ICON_SIZE} />,
+      count: userFiles.length,
+      body: (
+        <FileManager
+          rid={props.rid}
+          files={userFiles}
+          onRefresh={props.onRefreshFiles}
+          onDelete={props.onDeleteFile}
+          onAnnotate={props.onAnnotateImage}
+        />
+      ),
+    },
+    {
       id: 'preview',
       label: '受信',
       sub: 'Claude',
@@ -138,21 +153,6 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
           onDelete={props.onDeleteFile}
           readOnly
           emptyMessage="Claude がアップロードした画像がここに表示されます"
-          onAnnotate={props.onAnnotateImage}
-        />
-      ),
-    },
-    {
-      id: 'files',
-      label: '添付',
-      icon: <Send size={ICON_SIZE} />,
-      count: userFiles.length,
-      body: (
-        <FileManager
-          rid={props.rid}
-          files={userFiles}
-          onRefresh={props.onRefreshFiles}
-          onDelete={props.onDeleteFile}
           onAnnotate={props.onAnnotateImage}
         />
       ),

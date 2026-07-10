@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GitBranch, GitWorktree } from '../types';
 import type { PullState } from '../hooks/useBranchWorktree';
+import { useOutsideClose } from '../hooks';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
@@ -90,19 +91,11 @@ function BranchSelector({
   }, [pullState?.status, onClearPullState]);
 
   // ポップオーバー外クリックで閉じる。実行中は誤操作で消さないように維持する。
-  useEffect(() => {
-    if (!pullState || pullState.status === 'running') return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (pullPopupRef.current?.contains(target)) return;
-      if (buttonRef.current?.contains(target)) return;
-      onClearPullState();
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [pullState, onClearPullState]);
+  useOutsideClose(
+    !!pullState && pullState.status !== 'running',
+    onClearPullState,
+    { ignore: [pullPopupRef, buttonRef] }
+  );
 
   // ワークツリーで使用中のブランチ一覧
   const worktreeBranches = worktrees.map((wt) => wt.branch);
@@ -142,25 +135,9 @@ function BranchSelector({
     setDropdownPosition(null);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        closeDropdown();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, closeDropdown]);
+  useOutsideClose(isOpen, closeDropdown, {
+    ignore: [dropdownRef, buttonRef],
+  });
 
   const handleToggleDropdown = () => {
     if (isOpen) {

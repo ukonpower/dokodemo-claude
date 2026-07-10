@@ -159,6 +159,11 @@
     color: $gray-200;
     background-color: $dark-bg-hover;
   }
+
+  // スマホ: タブの縦サイズを少し詰める
+  @include sm-down {
+    height: 2rem;
+  }
 }
 
 .tabActive {

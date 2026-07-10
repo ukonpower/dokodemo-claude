@@ -4,6 +4,8 @@ export type { UseSocketReturn } from './useSocket';
 
 export { useMediaQuery } from './useMediaQuery';
 
+export { useOutsideClose } from './useOutsideClose';
+
 export { useAppSettings } from './useAppSettings';
 export type {
   UseAppSettingsReturn,
