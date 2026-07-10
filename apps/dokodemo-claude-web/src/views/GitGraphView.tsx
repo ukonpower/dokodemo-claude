@@ -1,6 +1,6 @@
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
-import { formatGraphDate } from '../utils/git-graph-layout';
+import GitGraphTable from '../components/GitGraphTable';
 import s from './GitGraphView.module.scss';
 
 interface GitGraphViewProps {
@@ -53,20 +53,7 @@ export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
           <div className={s.centerMessage}>コミットがありません</div>
         )}
 
-        {graph && graph.commits.length > 0 && (
-          <table className={s.table}>
-            <tbody>
-              {graph.commits.map((c) => (
-                <tr key={c.hash} className={s.row}>
-                  <td className={s.descCol}>{c.message}</td>
-                  <td className={s.dateCol}>{formatGraphDate(c.date)}</td>
-                  <td className={s.authorCol}>{c.author}</td>
-                  <td className={s.hashCol}>{c.hash.slice(0, 8)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {graph && graph.commits.length > 0 && <GitGraphTable graph={graph} />}
 
         {graph && graph.moreAvailable && (
           <div className={s.loadMoreWrap}>

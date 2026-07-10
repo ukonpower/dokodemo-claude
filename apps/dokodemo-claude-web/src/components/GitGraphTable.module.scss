@@ -1,0 +1,125 @@
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.graphOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+  table-layout: fixed;
+}
+
+.row {
+  height: 24px;
+
+  &:hover {
+    background-color: $dark-bg-secondary;
+  }
+}
+
+.graphCell {
+  height: 24px;
+  padding: 0;
+  // SVG が背後で描画するのでセル自体は透明のスペーサー
+  background: transparent;
+}
+
+.descCol,
+.dateCol,
+.authorCol,
+.hashCol {
+  height: 24px;
+  line-height: 24px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.descCol {
+  color: $dark-text-primary;
+}
+
+.uncommitted {
+  color: $dark-text-secondary;
+  font-style: italic;
+}
+
+.chips {
+  display: inline-flex;
+  gap: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 15px;
+  border-radius: 8px;
+  font-size: 10px;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.chipHead {
+  background-color: rgba(74, 222, 128, 0.18);
+  border-color: #4ade80;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.chipBranch {
+  background-color: rgba(96, 165, 250, 0.12);
+  border-color: #3b6aa0;
+  color: #9cc4f5;
+}
+
+.chipRemote {
+  background-color: rgba(96, 165, 250, 0.08);
+  border-color: #2a4a6a;
+  color: #6b9bd0;
+}
+
+.chipTag {
+  background-color: rgba(251, 191, 36, 0.15);
+  border-color: #b8860b;
+  color: #fbbf24;
+}
+
+.message {
+  vertical-align: middle;
+}
+
+.dateCol {
+  color: $dark-text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+.authorCol {
+  color: $dark-text-secondary;
+}
+
+.hashCol {
+  color: $dark-text-muted;
+  font-family: monospace;
+}

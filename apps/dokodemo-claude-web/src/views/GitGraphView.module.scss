@@ -97,56 +97,6 @@
   font-size: 13px;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.row {
-  height: 24px;
-
-  &:hover {
-    background-color: $dark-bg-secondary;
-  }
-}
-
-.descCol,
-.dateCol,
-.authorCol,
-.hashCol {
-  padding: 0 8px;
-  height: 24px;
-  line-height: 24px;
-  box-sizing: border-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.descCol {
-  color: $dark-text-primary;
-  max-width: 0;
-  width: 100%;
-}
-
-.dateCol {
-  color: $dark-text-secondary;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.authorCol {
-  color: $dark-text-secondary;
-  max-width: 140px;
-}
-
-.hashCol {
-  color: $dark-text-muted;
-  font-family: monospace;
-  white-space: nowrap;
-}
-
 .loadMoreWrap {
   display: flex;
   justify-content: center;
