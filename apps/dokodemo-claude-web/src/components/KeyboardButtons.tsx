@@ -248,22 +248,22 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   const isClaude = currentProvider === 'claude';
 
   // 操作コマンドの内訳:
-  // - Mode（Shift+Tab）: 使用頻度が低いので PC・モバイルとも「その他」に格納
-  // - Ctrl+C: PC はコマンドバー、モバイルは「その他」に置く
-  // Model は使用頻度が低いので常に「その他」の中に置き、コマンドバーには出さない。
+  // - Clear / Commit / Resume / Model: 常時コマンドバーに表示（使用頻度が高い）
+  // - Mode（Shift+Tab） / Ctrl+C / Alt+T / Usage / Preview: 「その他」に格納
   const hasModeCommand = Boolean(isClaude && onSendMode);
   const hasInterruptCommand = Boolean(onSendInterrupt);
   const hasModel = Boolean(isClaude && onChangeModel);
-  // 出番の少ない補助コマンド（Alt+T / Resume / Usage / Preview）
+  const hasResume = Boolean(isClaude && onSendResume);
+  // 「その他」に格納する補助コマンド（Alt+T / Usage / Preview）
   const hasExtraCommands = Boolean(
-    isClaude && (onSendAltT || onSendResume || onSendUsage || onSendPreview)
+    isClaude && (onSendAltT || onSendUsage || onSendPreview)
   );
 
   // 「その他」トグルの表示要否。
-  // PC は Mode / Model / 補助コマンドをここに格納するので、どれも無ければトグルごと隠す。
+  // PC は Mode / Ctrl+C / 補助コマンドをここに格納するので、どれも無ければトグルごと隠す。
   // モバイルはカスタム（＋追加ボタン）が常在するので常に表示。
   const showMoreToggle = isDesktop
-    ? hasModeCommand || hasModel || hasExtraCommands
+    ? hasModeCommand || hasInterruptCommand || hasExtraCommands
     : true;
 
   // Mode ボタン（「その他」内に配置）
@@ -362,11 +362,23 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           Commit
         </button>
       )}
+      {hasResume && onSendResume && (
+        <button
+          type="button"
+          onClick={onSendResume}
+          disabled={disabled}
+          className={s.resumeButton}
+          title="セッションを再開 (/resume)"
+        >
+          Resume
+        </button>
+      )}
+      {modelDropdownButton}
       {moreToggleButton}
     </div>
   );
 
-  // 補助コマンド群（Alt+T / Resume / Usage / Preview）
+  // 補助コマンド群（Alt+T / Usage / Preview）
   const extraCommandButtons = (
     <>
       {isClaude && onSendAltT && (
@@ -378,17 +390,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           title="Alt+Tキーを送信"
         >
           Alt+T
-        </button>
-      )}
-      {isClaude && onSendResume && (
-        <button
-          type="button"
-          onClick={onSendResume}
-          disabled={disabled}
-          className={s.grayButton}
-          title="セッションを再開 (/resume)"
-        >
-          Resume
         </button>
       )}
       {isClaude && onSendUsage && (
@@ -527,17 +528,11 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
       {/* 補助系（折りたたみ）: Mode / Ctrl+C / Model / 補助 / モバイルのカスタム */}
       {showMoreToggle && showAux && (
         <div className={s.auxContent}>
-          {/* Mode / Ctrl+C は使用頻度が低いので PC・モバイル共に「その他」に格納 */}
-          {(hasModeCommand || hasInterruptCommand) && (
+          {/* Mode / Ctrl+C / Alt+T / Usage / Preview は「その他」に格納 */}
+          {(hasModeCommand || hasInterruptCommand || hasExtraCommands) && (
             <div className={s.row}>
               {modeButton}
               {interruptButton}
-            </div>
-          )}
-          {/* Model + 補助コマンド */}
-          {(hasModel || hasExtraCommands) && (
-            <div className={s.row}>
-              {modelDropdownButton}
               {extraCommandButtons}
             </div>
           )}

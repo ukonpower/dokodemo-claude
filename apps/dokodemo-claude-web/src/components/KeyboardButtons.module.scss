@@ -157,15 +157,17 @@
   }
 }
 
-// Clear / Commit / 「その他」トグルは常に一列で並べる（改行させない）
+// Clear / Commit / Resume / Model / 「その他」トグルを一列に並べる。
+// 幅が足りない場合のみ折り返しを許可し、まとまりを保つ。
 .coreCommandRow {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 
-  & > button {
+  & > button,
+  & > .modelWrapper {
     flex: 0 0 auto;
   }
 }
@@ -348,6 +350,21 @@
 
   &:focus {
     box-shadow: 0 0 0 1px $accent-green;
+  }
+}
+
+.resumeButton {
+  @extend %btnBase;
+  border-color: $accent-cyan;
+  color: $accent-cyan;
+
+  &:hover {
+    border-color: $accent-cyan-hover;
+    color: $accent-cyan-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent-cyan;
   }
 }
 
