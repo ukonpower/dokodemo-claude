@@ -110,7 +110,14 @@
   padding: 12px;
 }
 
+.loadMoreSpinner {
+  animation: spin 1s linear infinite;
+}
+
 .loadMoreButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 16px;
   border: 1px solid $dark-border;
   border-radius: 4px;

@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
 import GitGraphTable from '../components/GitGraphTable';
 import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
+import GitGraphBranchDropdown from '../components/GitGraphBranchDropdown';
 import DiffViewer from '../components/DiffViewer';
 import s from './GitGraphView.module.scss';
 
@@ -19,6 +20,22 @@ interface GitGraphViewProps {
 export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
   const { graph, loading, error } = gitGraph;
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
+
+  // Load More 押下時のスクロール位置を保持し、再描画後に復元する
+  const contentRef = useRef<HTMLDivElement>(null);
+  const restoreScrollRef = useRef<number | null>(null);
+
+  const handleLoadMore = useCallback(() => {
+    restoreScrollRef.current = contentRef.current?.scrollTop ?? null;
+    gitGraph.loadMore();
+  }, [gitGraph]);
+
+  useEffect(() => {
+    if (restoreScrollRef.current !== null && contentRef.current) {
+      contentRef.current.scrollTop = restoreScrollRef.current;
+      restoreScrollRef.current = null;
+    }
+  }, [graph]);
 
   const handleSelectRow = useCallback(
     (hash: string) => {
@@ -47,6 +64,13 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
         </button>
         <span className={s.title}>Git Graph</span>
         <span className={s.repoName}>{repoName}</span>
+        {graph && (
+          <GitGraphBranchDropdown
+            branchOptions={graph.branchOptions}
+            selected={gitGraph.selectedBranch}
+            onSelect={gitGraph.setBranch}
+          />
+        )}
         <span className={s.spacer} />
         <button
           className={`${s.iconButton} ${loading ? s.spinning : ''}`}
@@ -60,7 +84,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       </div>
 
       {/* コンテンツ（テーブル） */}
-      <div className={s.content}>
+      <div className={s.content} ref={contentRef}>
         {error && <div className={s.errorBox}>{error}</div>}
 
         {!graph && loading && (
@@ -83,9 +107,12 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
           <div className={s.loadMoreWrap}>
             <button
               className={s.loadMoreButton}
-              onClick={gitGraph.loadMore}
+              onClick={handleLoadMore}
               disabled={loading}
             >
+              {loading && (
+                <RefreshCw size={13} className={s.loadMoreSpinner} />
+              )}
               {loading ? '読み込み中...' : 'さらに読み込む'}
             </button>
           </div>
