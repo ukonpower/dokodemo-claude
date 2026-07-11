@@ -230,3 +230,10 @@
   background-color: $dark-bg-secondary;
   @include scrollbar-thin;
 }
+
+.gitSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+

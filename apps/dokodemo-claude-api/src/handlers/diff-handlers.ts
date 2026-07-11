@@ -191,7 +191,8 @@ async function getGitDiffDetail(
       ]);
     }
   } else {
-    diff = await runGitCommand(repoPath, ['diff', '--', filename]);
+    // -U999999: 全行をコンテキストに含め、行を飛ばさないdiffを返す（左右分割表示用）
+    diff = await runGitCommand(repoPath, ['diff', '-U999999', '--', filename]);
   }
 
   return {

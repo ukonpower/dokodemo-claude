@@ -6,13 +6,14 @@
   gap: 0.5rem;
 }
 
-// 左=矢印キー+Enter群 / 右=コマンド群 を横並びにする
+// 左=矢印キー+Enter群 / 右=コマンド群 を横並びにする。
+// 折り返さず左寄せにし、コマンド群（2×2）を常に Enter の右余白に収める。
 .mainRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-start;
-  justify-content: center;
-  gap: 0.5rem 0.75rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
 }
 
 // PC（lg 以上）専用のコマンドバー。
@@ -52,43 +53,31 @@
 
 .commandGroup {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  align-content: flex-start;
-  justify-content: flex-end;
+  align-items: stretch;
   gap: 0.375rem;
   flex: 1 1 auto;
   min-width: 0;
   align-self: stretch;
 
-  // 各コマンドボタンを統一感のある幅に
-  & > button,
-  & > .modelWrapper > button {
-    min-width: 4.5rem;
-  }
+  // 幅が伸びても 2 列を維持しつつ、間延びしないよう控えめに頭打ちにする
+  max-width: 11rem;
 
-  // モバイル: 縦線の右側の余白を埋め、コマンドを左詰めで折り返す（細い縦一列に潰さない）
-  @include sm-down {
-    flex: 1 1 auto;
+  // Clear/Commit/Resume/Model は常に 2×2 グリッドで Enter の右余白にコンパクトに収める。
+  // 全幅に折り返して縦積みにしない。
+  .coreCommandRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.375rem;
+    width: 100%;
     min-width: 0;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: flex-start;
 
-    // 内側のコマンド行を余白いっぱいに広げ、ボタンを折り返させる
-    .coreCommandRow {
-      flex: 1 1 100%;
+    // 各セルを列いっぱいに広げて 2×2 を揃える
+    & > button,
+    & > .modelWrapper,
+    & > .modelWrapper > button {
+      width: 100%;
       min-width: 0;
     }
-  }
-
-  // sm 以上: natural width にして mainRow の中央寄せで arrowGroup + divider と一緒に集める
-  // PC（sideCol 280px）でも自然に折り返し中央寄せ
-  @include sm-up {
-    flex: 0 0 auto;
-    justify-content: flex-start;
-    align-self: auto;
   }
 }
 

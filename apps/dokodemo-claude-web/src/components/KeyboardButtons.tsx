@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CustomAiButton, CustomAiButtonScope } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
-import { useMediaQuery } from '../hooks';
+import { useMediaQuery, useOutsideClose } from '../hooks';
 import s from './KeyboardButtons.module.scss';
 
 // lg 以上（2カラムレイアウト＝物理キーボードのある PC 環境の目安）。
@@ -233,6 +233,11 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   onDeleteCustomButton,
 }) => {
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const modelWrapperRef = useRef<HTMLDivElement | null>(null);
+  const closeModelMenu = useCallback(() => setShowModelMenu(false), []);
+  useOutsideClose(showModelMenu, closeModelMenu, {
+    ignore: [modelWrapperRef],
+  });
   const [showAux, setShowAux] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>(null);
 
@@ -294,7 +299,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
 
   // Model ドロップダウン（「その他」の中に配置）
   const modelDropdownButton = hasModel && onChangeModel ? (
-    <div className={s.modelWrapper}>
+    <div className={s.modelWrapper} ref={modelWrapperRef}>
       <button
         type="button"
         onClick={() => setShowModelMenu(!showModelMenu)}

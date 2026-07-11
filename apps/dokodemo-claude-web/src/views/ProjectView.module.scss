@@ -444,8 +444,10 @@
   }
 
   @include sm-up {
-    flex: 3 1 0%;
-    min-height: 900px;
+    // xterm 高は cliOutputWrapper が dvh で自前確保するため、ここでは flex 伸長も
+    // px 固定の下限も持たせない。セクションを flex 配分に委ねると、兄弟要素
+    // （WorktreeOperations のメモ/開発サーバー一覧など）の高さ変化で伸縮してしまう。
+    flex: 0 0 auto;
   }
 }
 
@@ -584,7 +586,10 @@
     min-height: auto;
   }
 
+  // 全画面時は通常時の dvh 固定を解除し、画面いっぱいまで xterm を伸ばす
   .cliOutputWrapper {
+    flex: 1 1 0%;
+    height: auto;
     min-height: 12rem;
   }
 
@@ -616,38 +621,6 @@
       display: none;
     }
   }
-
-  // 全画面終了ボタン: オーバーレイ（fixed）基準で右上に固定。xterm より前面に出す
-  // TerminalOut の scrollHandle (z-index: 10) より上に重ねてクリックできるようにする
-  .fullscreenExitButton {
-    @include flex-center;
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    z-index: 20;
-    width: 2rem;
-    height: 2rem;
-    background-color: color.change($dark-bg-secondary, $alpha: 0.85);
-    border-radius: $radius;
-    border: 1px solid $dark-border-light;
-    color: white;
-    cursor: pointer;
-    transition: all $transition-fast $transition-easing;
-
-    @include sm-up {
-      top: 1rem;
-      right: 1rem;
-    }
-
-    &:hover {
-      background-color: $dark-bg-hover;
-    }
-
-    &:focus {
-      outline: none;
-      box-shadow: 0 0 0 1px $dark-border-focus;
-    }
-  }
 }
 
 .cliMainCol {
@@ -663,6 +636,15 @@
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
+
+  // PC ではビューポート比の固定高で xterm を確保する。
+  // flex 配分に任せると、確定高を持たない祖先（.root は min-height:100vh）の下で
+  // 兄弟要素の高さ変化に配分が引きずられ、xterm の行数が勝手に変わってしまう。
+  // dvh 基準の明示高でサイズを親コンテナから切り離し、安定させる（下限は rem で担保）。
+  @include sm-up {
+    flex: 0 0 auto;
+    height: max(26rem, 56dvh);
+  }
 
   // SP はページ全体が縦スクロールでセクション高がコンテンツ主導のため、
   // flex 配分だと xterm の行数が自身の高さを決めてしまい広がらない。

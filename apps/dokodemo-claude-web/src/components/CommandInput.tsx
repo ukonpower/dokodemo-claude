@@ -1365,8 +1365,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {/* ワークフローコントロール */}
+        {/* ワークフロー行（PCでは1行にまとめる） */}
         {onAddToQueue && !hideWorkflowControls && (
+          <div className={s.workflowRow}>
+        {/* ワークフローコントロール */}
           <div className={s.workflowControls}>
             {/* 行1: スキル選択 + Auto */}
             <div className={s.skillRow}>
@@ -1472,9 +1474,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             )}
 
           </div>
-        )}
         {/* ファイルリンク（右寄せ・ワークフローコンテナの外） */}
-        {onAddToQueue && onOpenWorkflowFile && !hideWorkflowControls && (
+        {onOpenWorkflowFile && (
           <div className={s.fileLinks}>
             {WORKFLOW_SKILLS.filter((sk): sk is typeof sk & { file: string } => 'file' in sk).map((skill) => (
               <button
@@ -1491,6 +1492,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 {skill.label.toLowerCase()}.md
               </button>
             ))}
+          </div>
+        )}
           </div>
         )}
 

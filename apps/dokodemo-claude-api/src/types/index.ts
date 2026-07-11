@@ -578,6 +578,26 @@ export interface ServerToClientEvents {
   }) => void;
   'git-diff-error': (data: { rid: string; message: string }) => void;
 
+  // Git Graph関連イベント
+  'git-graph': (data: { rid: string; graph: GitGraphData }) => void;
+  'git-graph-commit-detail': (data: {
+    rid: string;
+    hash: string;
+    detail: GitGraphCommitDetail;
+  }) => void;
+  'git-graph-file-diff': (data: {
+    rid: string;
+    hash: string;
+    detail: GitDiffDetail;
+  }) => void; // GitDiffDetail は既存型
+  'git-graph-error': (data: { rid: string; message: string }) => void;
+  'git-graph-action-result': (data: {
+    rid: string;
+    action: 'checkout' | 'merge';
+    success: boolean;
+    message: string;
+  }) => void;
+
   // AI Hooks設定関連イベント
   'hooks-status': (data: { configured: boolean; provider: AiProvider }) => void;
   'hooks-updated': (data: {
@@ -946,6 +966,33 @@ export interface ClientToServerEvents {
   'get-git-diff-summary': (data: { rid: string }) => void;
   'get-git-diff-detail': (data: { rid: string; filename: string }) => void;
 
+  // Git Graph関連イベント
+  'get-git-graph': (data: {
+    rid: string;
+    branches: string[] | null;
+    maxCommits: number;
+  }) => void;
+  'get-git-graph-commit-detail': (data: { rid: string; hash: string }) => void;
+  'get-git-graph-file-diff': (data: {
+    rid: string;
+    hash: string;
+    filename: string;
+    oldFilename?: string;
+  }) => void;
+  'git-graph-checkout': (data: {
+    rid: string;
+    kind: 'branch' | 'remote' | 'commit';
+    name: string; // ブランチ名 / リモートブランチ名 / コミット hash
+    localName?: string; // kind='remote' 時に作成するローカルブランチ名
+  }) => void;
+  'git-graph-merge': (data: {
+    rid: string;
+    target: string; // ブランチ名 or コミット hash
+    noFF: boolean;
+    squash: boolean;
+    noCommit: boolean;
+  }) => void;
+
   // AI Hooks設定関連イベント
   'check-hooks-status': (data: { provider: AiProvider }) => void;
   'add-dokodemo-hooks': (data: { provider: AiProvider }) => void;
@@ -1088,6 +1135,49 @@ export interface GitDiffSummary {
 export interface GitDiffDetail {
   filename: string;
   diff: string; // unified diff形式
+}
+
+// Git Graph関連の型定義
+export interface GitGraphRef {
+  name: string; // 'main', 'origin/main', 'v1.0' など refs/ プレフィックスを剥がした表示名
+  type: 'head' | 'branch' | 'remote' | 'tag';
+  // 他の worktree がチェックアウト中のローカルブランチ（type: 'branch' のときのみ意味を持つ）
+  worktree?: boolean;
+}
+export interface GitGraphCommit {
+  hash: string;
+  parents: string[];
+  author: string;
+  email: string;
+  date: number; // unix 秒
+  message: string; // subject 1 行
+  refs: GitGraphRef[];
+}
+export interface GitGraphData {
+  commits: GitGraphCommit[];
+  headHash: string; // detached でも HEAD の SHA。空リポジトリは ''
+  currentBranch: string | null; // チェックアウト中のローカルブランチ名（detached なら null）
+  uncommitted: { fileCount: number } | null;
+  branchOptions: { name: string; isRemote: boolean }[];
+  moreAvailable: boolean;
+}
+export interface GitGraphFileChange {
+  filename: string;
+  oldFilename?: string; // rename 時のみ
+  status: 'A' | 'M' | 'D' | 'R';
+  additions: number;
+  deletions: number;
+}
+export interface GitGraphCommitDetail {
+  hash: string;
+  parents: string[];
+  author: string;
+  email: string;
+  authorDate: number;
+  committer: string;
+  commitDate: number;
+  body: string; // フルメッセージ（%B）
+  files: GitGraphFileChange[];
 }
 
 // ファイルビュワー関連の型定義

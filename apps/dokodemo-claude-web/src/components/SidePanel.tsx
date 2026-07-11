@@ -147,14 +147,16 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     />
   );
   const diffBody = (
-    <DiffSummary
-      rid={props.rid}
-      summary={props.diffSummary}
-      isLoading={props.diffSummaryLoading}
-      error={props.diffSummaryError}
-      onRefresh={props.onRefreshDiffSummary}
-      onFileClick={props.onDiffFileClick}
-    />
+    <div className={s.gitSection}>
+      <DiffSummary
+        rid={props.rid}
+        summary={props.diffSummary}
+        isLoading={props.diffSummaryLoading}
+        error={props.diffSummaryError}
+        onRefresh={props.onRefreshDiffSummary}
+        onFileClick={props.onDiffFileClick}
+      />
+    </div>
   );
 
   const sections: SectionDef[] = [
