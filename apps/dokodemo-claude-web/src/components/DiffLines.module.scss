@@ -13,11 +13,10 @@
   font-family: $font-mono;
   font-size: $font-size-xs;
 
-  // 縦スクロールバーは非表示（ミニマップが表示範囲インジケーター兼スクロールバー）。
-  // 横スクロールバーは細く暗いテーマで残す
-  scrollbar-width: thin;
-  scrollbar-color: $gray-600 transparent;
-
+  // 縦スクロールバーは非表示（ミニマップが表示範囲インジケーター兼スクロールバー）、
+  // 横スクロールバーは細く暗いテーマで残す。方向別に幅を変えるため標準の
+  // scrollbar-width は使わず webkit 疑似要素だけで制御する
+  // （scrollbar-width を併記すると Chromium が ::-webkit-scrollbar を無視する）
   &::-webkit-scrollbar {
     width: 0;
     height: 8px;
