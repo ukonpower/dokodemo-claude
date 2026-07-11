@@ -679,6 +679,7 @@ function App() {
           url.searchParams.set('view', 'files');
           window.open(url.toString(), '_blank');
         }}
+        onOpenGraphView={gitGraph.openGraphView}
         startingCodeServer={editorLauncher.startingCodeServer}
         isLocalhost={editorLauncher.isLocalhost}
         availableEditors={editorLauncher.availableEditors}

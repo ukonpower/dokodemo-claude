@@ -1,5 +1,10 @@
 import { useState, type RefObject } from 'react';
-import { ChevronDown, ExternalLink, FolderOpen } from 'lucide-react';
+import {
+  ChevronDown,
+  ExternalLink,
+  FolderOpen,
+  GitCommitHorizontal,
+} from 'lucide-react';
 import type { AiInstance, EditorInfo, EditorType, GitRepository } from '../types';
 import s from './RepoHeader.module.scss';
 
@@ -16,6 +21,7 @@ interface RepoHeaderProps {
 
   // ツールボタン
   onOpenFileViewer: () => void;
+  onOpenGraphView: () => void;
   onOpenSettings: () => void;
   startingCodeServer: boolean;
 
@@ -61,6 +67,7 @@ export function RepoHeader({
   repositories,
   currentRepo,
   onOpenFileViewer,
+  onOpenGraphView,
   onOpenSettings,
   startingCodeServer,
   isLocalhost,
@@ -160,6 +167,15 @@ export function RepoHeader({
                 title="ファイルを開く"
               >
                 <FolderOpen size={16} />
+              </button>
+
+              <button
+                onClick={onOpenGraphView}
+                disabled={!isConnected}
+                className="btn-icon"
+                title="Git Graphを開く"
+              >
+                <GitCommitHorizontal size={16} />
               </button>
 
               {hasEditorButton && primaryEditor && (

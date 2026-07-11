@@ -577,6 +577,7 @@ export function ProjectView({
         repositories={repositories}
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
+        onOpenGraphView={onOpenGraphView}
         onOpenSettings={() => setShowSettingsModal(true)}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}
@@ -876,7 +877,6 @@ export function ProjectView({
                       diffSummaryError={diffSummaryError}
                       onRefreshDiffSummary={onRefreshDiffSummary}
                       onDiffFileClick={onDiffFileClick}
-                      onOpenGraphView={onOpenGraphView}
                       onAnnotateImage={handleAnnotateImage}
                     />
                   )}
