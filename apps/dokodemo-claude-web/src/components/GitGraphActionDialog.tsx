@@ -18,6 +18,14 @@ interface GitGraphActionDialogProps {
   input?: GitGraphDialogInput;
   checkboxes?: GitGraphDialogCheckbox[];
   confirmLabel: string;
+  /**
+   * 実行される git コマンドのプレビュー。入力値・チェック状態から組み立てて返す。
+   * 指定すると確認ボタンの上に実行コマンドを表示し、実際に何が走るかを明示する。
+   */
+  previewCommand?: (state: {
+    inputValue: string;
+    checks: Record<string, boolean>;
+  }) => string;
   onConfirm: (result: {
     inputValue: string;
     checks: Record<string, boolean>;
@@ -34,6 +42,7 @@ const GitGraphActionDialog: React.FC<GitGraphActionDialogProps> = ({
   input,
   checkboxes,
   confirmLabel,
+  previewCommand,
   onConfirm,
   onCancel,
 }) => {
@@ -104,6 +113,15 @@ const GitGraphActionDialog: React.FC<GitGraphActionDialogProps> = ({
                 <span>{cb.label}</span>
               </label>
             ))}
+          </div>
+        )}
+
+        {previewCommand && (
+          <div className={s.commandPreview}>
+            <span className={s.commandLabel}>実行するコマンド</span>
+            <code className={s.commandCode}>
+              {previewCommand({ inputValue: inputValue.trim(), checks })}
+            </code>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { FolderGit2 } from 'lucide-react';
 import type { GitGraphData, GitGraphRef } from '../types';
 import { useLongPress, useMediaQuery, type LongPressPoint } from '../hooks';
 import {
@@ -67,10 +68,13 @@ function RefChip({
         ? s.chipTag
         : r.type === 'remote'
           ? s.chipRemote
-          : s.chipBranch;
+          : r.worktree
+            ? s.chipWorktree
+            : s.chipBranch;
   return (
     <span
       className={`${s.chip} ${cls}`}
+      title={r.worktree ? `${r.name}（別のワークツリーで使用中）` : undefined}
       onPointerDown={(e) => {
         // 行側の長押しと二重発火しないよう伝播を止める
         e.stopPropagation();
@@ -98,6 +102,9 @@ function RefChip({
           : undefined
       }
     >
+      {r.worktree && (
+        <FolderGit2 size={10} className={s.chipIcon} aria-hidden="true" />
+      )}
       {r.name}
     </span>
   );

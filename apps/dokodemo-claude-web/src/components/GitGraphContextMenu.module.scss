@@ -17,7 +17,9 @@
 }
 
 .item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 6px 10px;
   border: none;
@@ -27,13 +29,22 @@
   font-size: 12px;
   color: $dark-text-primary;
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   &:hover {
     background-color: $dark-bg-hover;
   }
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: $dark-text-secondary;
+}
+
+.itemLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (pointer: coarse) {

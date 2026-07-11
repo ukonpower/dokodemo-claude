@@ -313,6 +313,8 @@ export interface GitDiffDetail {
 export interface GitGraphRef {
   name: string; // 'main', 'origin/main', 'v1.0' など refs/ プレフィックスを剥がした表示名
   type: 'head' | 'branch' | 'remote' | 'tag';
+  // 他の worktree がチェックアウト中のローカルブランチ（type: 'branch' のときのみ意味を持つ）
+  worktree?: boolean;
 }
 export interface GitGraphCommit {
   hash: string;

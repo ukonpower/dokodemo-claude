@@ -3,6 +3,7 @@ import s from './GitGraphContextMenu.module.scss';
 
 export interface GitGraphMenuItem {
   label: string;
+  icon?: React.ReactNode;
   onClick: () => void;
 }
 
@@ -69,7 +70,8 @@ const GitGraphContextMenu: React.FC<GitGraphContextMenuProps> = ({
               item.onClick();
             }}
           >
-            {item.label}
+            {item.icon && <span className={s.itemIcon}>{item.icon}</span>}
+            <span className={s.itemLabel}>{item.label}</span>
           </button>
         ))}
       </div>

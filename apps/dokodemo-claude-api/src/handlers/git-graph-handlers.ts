@@ -95,9 +95,37 @@ interface RefIndex {
   displayNameToRefName: Map<string, string>;
 }
 
-async function buildRefIndex(
+/**
+ * 他の worktree がチェックアウト中のローカルブランチ refname の集合を返す。
+ * `git worktree list --porcelain` の `branch refs/heads/xxx` 行を集める。
+ * 現在の worktree 自身のブランチ（currentRef）は 'head' 扱いなので除外する。
+ */
+async function getWorktreeCheckedOutRefs(
   repoPath: string,
   currentRef: string | null
+): Promise<Set<string>> {
+  const refs = new Set<string>();
+  try {
+    const out = await runGitCommand(repoPath, [
+      'worktree',
+      'list',
+      '--porcelain',
+    ]);
+    for (const line of out.split('\n')) {
+      if (!line.startsWith('branch ')) continue;
+      const refname = line.slice('branch '.length).trim();
+      if (refname && refname !== currentRef) refs.add(refname);
+    }
+  } catch {
+    // worktree 非対応・失敗時は空集合（印を付けないだけ）
+  }
+  return refs;
+}
+
+async function buildRefIndex(
+  repoPath: string,
+  currentRef: string | null,
+  worktreeRefs: Set<string>
 ): Promise<RefIndex> {
   const out = await runGitCommand(repoPath, [
     'for-each-ref',
@@ -125,10 +153,13 @@ async function buildRefIndex(
 
     let type: GitGraphRef['type'];
     let name: string;
+    let worktree = false;
     if (refname.startsWith('refs/heads/')) {
       name = refname.slice('refs/heads/'.length);
       // 現在ブランチは type 'head' として強調
       type = currentRef && refname === currentRef ? 'head' : 'branch';
+      // 他の worktree がチェックアウト中のブランチには印を付ける
+      worktree = type === 'branch' && worktreeRefs.has(refname);
       localBranches.push({ name, isRemote: false });
       displayNameToRefName.set(name, refname);
     } else if (refname.startsWith('refs/remotes/')) {
@@ -146,7 +177,7 @@ async function buildRefIndex(
       continue;
     }
 
-    const ref: GitGraphRef = { name, type };
+    const ref: GitGraphRef = worktree ? { name, type, worktree } : { name, type };
     const list = refsBySha.get(targetSha);
     if (list) {
       list.push(ref);
@@ -200,7 +231,8 @@ async function getGitGraph(
       ? currentRef.slice('refs/heads/'.length)
       : null;
 
-  const refIndex = await buildRefIndex(repoPath, currentRef);
+  const worktreeRefs = await getWorktreeCheckedOutRefs(repoPath, currentRef);
+  const refIndex = await buildRefIndex(repoPath, currentRef, worktreeRefs);
 
   // ref 部分の引数を決める
   let refArgs: string[];
@@ -420,8 +452,10 @@ async function getGitGraphFileDiff(
   const pathspec = oldFilename ? [oldFilename, filename] : [filename];
 
   // hash^! = そのコミット単体の diff（親との差分）
+  // -U999999: 全行をコンテキストに含め、行を飛ばさないdiffを返す（左右分割表示用）
   let diff = await runGitCommandAllowNonZero(repoPath, [
     'diff',
+    '-U999999',
     `${hash}^!`,
     '--',
     ...pathspec,
@@ -432,6 +466,7 @@ async function getGitGraphFileDiff(
     diff = await runGitCommandAllowNonZero(repoPath, [
       'diff-tree',
       '-p',
+      '-U999999',
       '--root',
       hash,
       '--',

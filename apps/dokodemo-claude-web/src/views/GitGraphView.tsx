@@ -1,5 +1,12 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Search,
+  GitBranch,
+  GitMerge,
+  GitCommitHorizontal,
+} from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
 import type { GitGraphRef } from '../types';
 import GitGraphTable from '../components/GitGraphTable';
@@ -10,7 +17,6 @@ import GitGraphContextMenu, {
   type GitGraphMenuItem,
 } from '../components/GitGraphContextMenu';
 import GitGraphActionDialog from '../components/GitGraphActionDialog';
-import DiffViewer from '../components/DiffViewer';
 import s from './GitGraphView.module.scss';
 
 /** checkout / merge 確認ダイアログの内容（種別ごとの discriminated union） */
@@ -29,7 +35,7 @@ interface GitGraphViewProps {
  * Git Graph 全画面ビュー（閲覧専用）
  * コミット詳細は下部固定パネル（Docked to Bottom）方式で表示する。
  */
-export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
+export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
   const { graph, loading, error } = gitGraph;
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
 
@@ -134,7 +140,9 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
     (target: string, targetLabel: string): GitGraphMenuItem | null => {
       if (!currentBranch || target === currentBranch) return null;
       return {
-        label: `${currentBranchLabel}にマージ...`,
+        // マージ元 → マージ先（現在ブランチ）を、マージアイコン + 矢印でパッと見せる
+        icon: <GitMerge size={14} />,
+        label: `merge: ${target} → ${currentBranch}`,
         onClick: () => setActionDialog({ type: 'merge', target, targetLabel }),
       };
     },
@@ -146,14 +154,16 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       const items: GitGraphMenuItem[] = [];
       if (ref.type === 'branch') {
         items.push({
-          label: `ブランチ「${ref.name}」をチェックアウト`,
+          icon: <GitBranch size={14} />,
+          label: `checkout: ${ref.name}`,
           onClick: () => gitGraph.checkout('branch', ref.name),
         });
         const mergeItem = buildMergeItem(ref.name, `ブランチ「${ref.name}」`);
         if (mergeItem) items.push(mergeItem);
       } else if (ref.type === 'remote') {
         items.push({
-          label: `リモートブランチ「${ref.name}」をチェックアウト...`,
+          icon: <GitBranch size={14} />,
+          label: `checkout: ${ref.name}`,
           onClick: () =>
             setActionDialog({ type: 'checkout-remote', remoteName: ref.name }),
         });
@@ -191,7 +201,8 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       const short = hash.slice(0, 8);
       const items: GitGraphMenuItem[] = [
         {
-          label: `コミット ${short} をチェックアウト...`,
+          icon: <GitCommitHorizontal size={14} />,
+          label: `checkout: ${short}`,
           onClick: () => setActionDialog({ type: 'checkout-commit', hash }),
         },
       ];
@@ -201,8 +212,6 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
     },
     [buildMergeItem]
   );
-
-  const fileDiffOpen = gitGraph.fileDiffHash !== null;
 
   return (
     <div className={s.container}>
@@ -298,16 +307,24 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
         )}
       </div>
 
-      {/* コミット詳細（下部固定パネル） */}
+      {/* コミット詳細（下部固定パネル・左右2ペイン） */}
       {selectedHash && (
         <GitGraphCommitDetail
           hash={selectedHash}
           detail={gitGraph.detailByHash[selectedHash] ?? null}
           isLoading={gitGraph.detailLoadingHash === selectedHash}
+          fileDiff={gitGraph.fileDiff}
+          fileDiffLoading={gitGraph.fileDiffLoading}
+          fileDiffFilename={gitGraph.fileDiffFilename}
+          fileDiffHash={gitGraph.fileDiffHash}
           onFileClick={(filename, oldFilename) =>
             gitGraph.requestFileDiff(selectedHash, filename, oldFilename)
           }
-          onClose={() => setSelectedHash(null)}
+          onRefreshFileDiff={gitGraph.refreshFileDiff}
+          onClose={() => {
+            setSelectedHash(null);
+            gitGraph.closeFileDiff();
+          }}
         />
       )}
 
@@ -333,6 +350,9 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
               .join('/'),
           }}
           confirmLabel="チェックアウト"
+          previewCommand={({ inputValue }) =>
+            `git checkout -b ${inputValue || '<ブランチ名>'} --track ${actionDialog.remoteName}`
+          }
           onConfirm={({ inputValue }) => {
             setActionDialog(null);
             gitGraph.checkout('remote', actionDialog.remoteName, inputValue);
@@ -344,6 +364,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
         <GitGraphActionDialog
           message={`コミット ${actionDialog.hash.slice(0, 8)} をチェックアウトしますか？（detached HEAD 状態になります）`}
           confirmLabel="チェックアウト"
+          previewCommand={() => `git checkout ${actionDialog.hash.slice(0, 8)}`}
           onConfirm={() => {
             setActionDialog(null);
             gitGraph.checkout('commit', actionDialog.hash);
@@ -353,7 +374,7 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
       )}
       {actionDialog?.type === 'merge' && (
         <GitGraphActionDialog
-          message={`${actionDialog.targetLabel}を${currentBranchLabel}にマージしますか？`}
+          message={`マージ: ${actionDialog.target} → ${currentBranch ?? 'HEAD'}\n${actionDialog.targetLabel}を${currentBranchLabel}にマージします。`}
           checkboxes={[
             {
               key: 'noFF',
@@ -372,6 +393,15 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
             },
           ]}
           confirmLabel="マージ"
+          previewCommand={({ checks }) => {
+            // バックエンド（git-graph-handlers）の引数構築と同じ順序で組み立てる
+            const args = ['git', 'merge'];
+            if (checks.squash) args.push('--squash');
+            else if (checks.noFF) args.push('--no-ff');
+            if (checks.noCommit) args.push('--no-commit');
+            args.push(actionDialog.target);
+            return args.join(' ');
+          }}
           onConfirm={({ checks }) => {
             setActionDialog(null);
             gitGraph.merge(actionDialog.target, {
@@ -382,21 +412,6 @@ export function GitGraphView({ gitGraph, repoName, rid }: GitGraphViewProps) {
           }}
           onCancel={() => setActionDialog(null)}
         />
-      )}
-
-      {/* ファイル diff（全画面オーバーレイ） */}
-      {fileDiffOpen && (
-        <div className={s.diffOverlay}>
-          <DiffViewer
-            rid={rid}
-            filename={gitGraph.fileDiffFilename}
-            detail={gitGraph.fileDiff}
-            isLoading={gitGraph.fileDiffLoading}
-            error={null}
-            onRefresh={gitGraph.refreshFileDiff}
-            onBack={gitGraph.closeFileDiff}
-          />
-        </div>
       )}
     </div>
   );

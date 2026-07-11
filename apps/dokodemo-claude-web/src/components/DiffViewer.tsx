@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { GitDiffDetail } from '../types';
+import DiffLines from './DiffLines';
 import s from './DiffViewer.module.scss';
 
 interface DiffViewerProps {
@@ -19,73 +20,6 @@ interface DiffViewerProps {
   onBack: () => void;
 }
 
-interface DiffLine {
-  type: 'header' | 'hunk' | 'context' | 'addition' | 'deletion' | 'empty';
-  content: string;
-  lineNumber?: {
-    old?: number;
-    new?: number;
-  };
-}
-
-/**
- * 差分テキストをパースして行ごとの情報を返す
- */
-function parseDiff(diff: string): DiffLine[] {
-  const lines = diff.split('\n');
-  const result: DiffLine[] = [];
-  let oldLineNum = 0;
-  let newLineNum = 0;
-
-  for (const line of lines) {
-    if (
-      line.startsWith('diff ') ||
-      line.startsWith('index ') ||
-      line.startsWith('---') ||
-      line.startsWith('+++')
-    ) {
-      result.push({ type: 'header', content: line });
-    } else if (line.startsWith('@@')) {
-      // ハンクヘッダーをパース (@@ -1,3 +1,4 @@)
-      const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-      if (match) {
-        oldLineNum = parseInt(match[1], 10);
-        newLineNum = parseInt(match[2], 10);
-      }
-      result.push({ type: 'hunk', content: line });
-    } else if (line.startsWith('+')) {
-      result.push({
-        type: 'addition',
-        content: line.substring(1),
-        lineNumber: { new: newLineNum },
-      });
-      newLineNum++;
-    } else if (line.startsWith('-')) {
-      result.push({
-        type: 'deletion',
-        content: line.substring(1),
-        lineNumber: { old: oldLineNum },
-      });
-      oldLineNum++;
-    } else if (line.startsWith(' ')) {
-      result.push({
-        type: 'context',
-        content: line.substring(1),
-        lineNumber: { old: oldLineNum, new: newLineNum },
-      });
-      oldLineNum++;
-      newLineNum++;
-    } else if (line === '') {
-      result.push({ type: 'empty', content: '' });
-    } else {
-      // その他の行（No newline at end of file など）
-      result.push({ type: 'context', content: line });
-    }
-  }
-
-  return result;
-}
-
 /**
  * 差分表示コンポーネント
  */
@@ -103,12 +37,6 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
   useEffect(() => {
     onRefresh();
   }, [onRefresh]);
-
-  // 差分をパース
-  const parsedLines = useMemo(() => {
-    if (!detail?.diff) return [];
-    return parseDiff(detail.diff);
-  }, [detail]);
 
   return (
     <div className={s.container}>
@@ -219,93 +147,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
 
         {/* 差分表示 */}
         {!error && detail && detail.diff && (
-          <div className={s.diffContainer}>
-            {parsedLines.map((line, index) => {
-              let bgClass = '';
-              let textClass = s.textDefault;
-              let lineNumClass = s.lineNumDefault;
-
-              switch (line.type) {
-                case 'header':
-                  bgClass = s.bgHeader;
-                  textClass = s.textHeader;
-                  break;
-                case 'hunk':
-                  bgClass = s.bgHunk;
-                  textClass = s.textHunk;
-                  break;
-                case 'addition':
-                  bgClass = s.bgAddition;
-                  textClass = s.textAddition;
-                  lineNumClass = s.lineNumAddition;
-                  break;
-                case 'deletion':
-                  bgClass = s.bgDeletion;
-                  textClass = s.textDeletion;
-                  lineNumClass = s.lineNumDeletion;
-                  break;
-                case 'context':
-                  bgClass = '';
-                  textClass = s.textContext;
-                  break;
-                case 'empty':
-                  break;
-              }
-
-              return (
-                <div
-                  key={index}
-                  className={`${s.diffLine} ${bgClass}`}
-                >
-                  {/* 行番号 */}
-                  {(line.type === 'addition' ||
-                    line.type === 'deletion' ||
-                    line.type === 'context') && (
-                    <>
-                      <span
-                        className={`${s.lineNum} ${lineNumClass}`}
-                      >
-                        {line.lineNumber?.old ?? ''}
-                      </span>
-                      <span
-                        className={`${s.lineNum} ${lineNumClass}`}
-                      >
-                        {line.lineNumber?.new ?? ''}
-                      </span>
-                    </>
-                  )}
-
-                  {/* 記号 */}
-                  {(line.type === 'addition' ||
-                    line.type === 'deletion' ||
-                    line.type === 'context') && (
-                    <span
-                      className={`${s.signCol} ${
-                        line.type === 'addition'
-                          ? s.signAddition
-                          : line.type === 'deletion'
-                            ? s.signDeletion
-                            : s.signContext
-                      }`}
-                    >
-                      {line.type === 'addition'
-                        ? '+'
-                        : line.type === 'deletion'
-                          ? '-'
-                          : ' '}
-                    </span>
-                  )}
-
-                  {/* コンテンツ */}
-                  <span
-                    className={`${wordWrap ? s.contentColWrap : s.contentCol} ${textClass}`}
-                  >
-                    {line.content}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <DiffLines diff={detail.diff} wordWrap={wordWrap} />
         )}
       </div>
     </div>

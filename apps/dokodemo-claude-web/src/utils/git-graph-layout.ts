@@ -4,21 +4,24 @@
 // 入力はコミットの hash と parents のみ。上（新しいコミット）から 1 パスで
 // レーンを割り当て、ノード（ドット）とエッジ（線分）を返す。
 
+// 近黒背景（#0a0a0a）のダーク UI で発色する、キリッと引き締まったレーン色。
+// 原色ネオンは避けつつ明度・彩度を上げ、暗い背景でも各レーンが
+// くっきり判別できるモダンな配色にする。
 export const GRAPH_COLORS = [
-  '#0085d9',
-  '#d9008f',
-  '#00d90a',
-  '#d98500',
-  '#a300d9',
-  '#ff0000',
-  '#00d9cc',
-  '#e138e8',
-  '#85d900',
-  '#dc5b23',
-  '#6f24d6',
-  '#ffcc00',
+  '#4cc9f0', // azure
+  '#ff70a6', // rose
+  '#2ec4b6', // spring green
+  '#ffb703', // marigold
+  '#b388eb', // amethyst
+  '#ff7847', // coral
+  '#80ed99', // mint
+  '#f15bb5', // magenta
+  '#ffd166', // dandelion
+  '#7c8cf0', // periwinkle
+  '#06d6a0', // teal
+  '#ff9770', // peach
 ];
-export const UNCOMMITTED_COLOR = '#808080';
+export const UNCOMMITTED_COLOR = '#6b7280';
 export const ROW_HEIGHT = 24;
 export const LANE_WIDTH = 16;
 

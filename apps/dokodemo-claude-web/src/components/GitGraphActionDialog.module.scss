@@ -22,6 +22,7 @@
   line-height: 1.6;
   color: $dark-text-primary;
   word-break: break-all;
+  white-space: pre-line;
 }
 
 .inputRow {
@@ -70,6 +71,33 @@
     margin: 0;
     cursor: pointer;
   }
+}
+
+.commandPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.commandLabel {
+  font-size: 11px;
+  color: $dark-text-secondary;
+}
+
+.commandCode {
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid $dark-border;
+  border-left: 3px solid $color-warning;
+  border-radius: 4px;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .buttons {

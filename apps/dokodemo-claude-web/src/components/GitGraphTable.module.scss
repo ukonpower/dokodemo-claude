@@ -129,6 +129,20 @@
   color: #fbbf24;
 }
 
+// 他の worktree がチェックアウト中のブランチ。破線ボーダー + アイコンで
+// 「別の作業場で使用中」を控えめに示す（通常ブランチより一段淡いトーン）。
+.chipWorktree {
+  background-color: rgba(148, 163, 184, 0.06);
+  border-color: #3a4453;
+  border-style: dashed;
+  color: #8a94a6;
+}
+
+.chipIcon {
+  vertical-align: -1px;
+  margin-right: 3px;
+}
+
 .message {
   // vertical-align: middle は CJK フォールバック時に行ボックスを 24px 超に押し広げ、
   // SVG グラフとの行対応が下に行くほどずれるため baseline のままにする
