@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { formatGraphDate } from '../utils/git-graph-layout';
 import DiffLines from './DiffLines';
+import { UNCOMMITTED_HASH } from './GitGraphSvg';
 import s from './GitGraphCommitDetail.module.scss';
 
 interface GitGraphCommitDetailProps {
@@ -117,9 +118,15 @@ const GitGraphCommitDetail: React.FC<GitGraphCommitDetailProps> = ({
         title="ドラッグで高さを変更"
       />
       <div className={s.header}>
-        <span className={s.headerHash}>{hash.slice(0, 8)}</span>
+        <span className={s.headerHash}>
+          {hash === UNCOMMITTED_HASH ? 'WORKING' : hash.slice(0, 8)}
+        </span>
         <span className={s.headerTitle}>
-          {detail ? detail.body.split('\n')[0] : ''}
+          {hash === UNCOMMITTED_HASH
+            ? `Uncommitted Changes${detail ? ` (${detail.files.length})` : ''}`
+            : detail
+              ? detail.body.split('\n')[0]
+              : ''}
         </span>
         <span className={s.spacer} />
         <button
@@ -142,30 +149,45 @@ const GitGraphCommitDetail: React.FC<GitGraphCommitDetailProps> = ({
             {/* 左ペイン: メタ情報 + メッセージ + ファイル一覧 */}
             <div className={s.leftPane}>
               <div className={s.meta}>
-                <div className={s.metaRow}>
-                  <span className={s.metaLabel}>Author</span>
-                  <span className={s.metaValue}>
-                    {detail.author} &lt;{detail.email}&gt; ·{' '}
-                    {formatGraphDate(detail.authorDate)}
-                  </span>
-                </div>
-                <div className={s.metaRow}>
-                  <span className={s.metaLabel}>Committer</span>
-                  <span className={s.metaValue}>
-                    {detail.committer} · {formatGraphDate(detail.commitDate)}
-                  </span>
-                </div>
-                <div className={s.metaRow}>
-                  <span className={s.metaLabel}>Parents</span>
-                  <span className={s.metaValue}>
-                    {detail.parents.length > 0
-                      ? detail.parents.map((p) => p.slice(0, 8)).join(', ')
-                      : '(なし)'}
-                  </span>
-                </div>
+                {hash === UNCOMMITTED_HASH ? (
+                  <div className={s.metaRow}>
+                    <span className={s.metaLabel}>Base</span>
+                    <span className={s.metaValue}>
+                      HEAD
+                      {detail.parents[0]
+                        ? ` (${detail.parents[0].slice(0, 8)})`
+                        : ''}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className={s.metaRow}>
+                      <span className={s.metaLabel}>Author</span>
+                      <span className={s.metaValue}>
+                        {detail.author} &lt;{detail.email}&gt; ·{' '}
+                        {formatGraphDate(detail.authorDate)}
+                      </span>
+                    </div>
+                    <div className={s.metaRow}>
+                      <span className={s.metaLabel}>Committer</span>
+                      <span className={s.metaValue}>
+                        {detail.committer} ·{' '}
+                        {formatGraphDate(detail.commitDate)}
+                      </span>
+                    </div>
+                    <div className={s.metaRow}>
+                      <span className={s.metaLabel}>Parents</span>
+                      <span className={s.metaValue}>
+                        {detail.parents.length > 0
+                          ? detail.parents.map((p) => p.slice(0, 8)).join(', ')
+                          : '(なし)'}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {detail.body.trim() && (
+              {hash !== UNCOMMITTED_HASH && detail.body.trim() && (
                 <pre className={s.message}>{detail.body.trim()}</pre>
               )}
 
