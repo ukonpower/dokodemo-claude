@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import s from './DiffLines.module.scss';
@@ -109,27 +109,25 @@ function displayWidthCh(text: string): number {
   return width;
 }
 
-/** 折り返しOFF時の列幅計算に使う各種最大値 */
+/** 折り返しOFF時の横スクロール幅計算に使う各種最大値 */
 function computeMetrics(rows: DiffRow[]): {
-  maxLeftCh: number;
-  maxRightCh: number;
+  maxContentCh: number;
   maxLineNumber: number;
 } {
-  let maxLeftCh = 0;
-  let maxRightCh = 0;
+  let maxContentCh = 0;
   let maxLineNumber = 1;
   for (const row of rows) {
     if (row.kind !== 'line') continue;
     if (row.left) {
-      maxLeftCh = Math.max(maxLeftCh, displayWidthCh(row.left.content));
+      maxContentCh = Math.max(maxContentCh, displayWidthCh(row.left.content));
       maxLineNumber = Math.max(maxLineNumber, row.left.lineNumber);
     }
     if (row.right) {
-      maxRightCh = Math.max(maxRightCh, displayWidthCh(row.right.content));
+      maxContentCh = Math.max(maxContentCh, displayWidthCh(row.right.content));
       maxLineNumber = Math.max(maxLineNumber, row.right.lineNumber);
     }
   }
-  return { maxLeftCh, maxRightCh, maxLineNumber };
+  return { maxContentCh, maxLineNumber };
 }
 
 /** 連続する変更行をブロックにまとめる */
@@ -200,18 +198,28 @@ interface DiffLinesProps {
 /**
  * 差分をVSCode風の左右分割（左=変更前、右=変更後）で描画する。
  * 巨大ファイルでも耐えられるよう、行は仮想スクロールで描画する。
- * 左右の仕切り（右ペインの行番号列）はドラッグで位置調整でき、ダブルクリックでリセット。
+ *
+ * 折り返しOFF時の横スクロールは「仕切り・行番号は画面に固定し、テキストだけが
+ * 左右ペインの中でスクロールする」方式（VSCodeのside-by-side相当）。
+ * 実装上は行の枠を translateX(+scrollLeft) で画面に留め、テキストを
+ * translateX(-scrollLeft) で流す（CSS変数 --dc-hscroll 経由、再レンダーなし）。
+ *
+ * 左右の仕切り（右ペインの行番号列）はドラッグで比率を調整でき、ダブルクリックでリセット。
  * 右端のミニマップ（overview ruler）と↑↓ボタンで変更行へジャンプできる。
  * このコンポーネント自身がスクロールコンテナを持つ（親は高さを与えるだけでよい）。
  * DiffViewer と Git Graph のコミット詳細で共用する。
  */
 const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const rulerRef = useRef<HTMLDivElement>(null);
 
-  // 仕切り位置: wrap時は左右比率、noWrap時は左内容列の実幅px（nullで自動 = 最長行幅）
+  // 左右ペインの分割比率（両モード共通）
   const [splitRatio, setSplitRatio] = useState(0.5);
-  const [leftColPx, setLeftColPx] = useState<number | null>(null);
+  // スクロールバーを除いた表示幅。行の枠はこの幅で画面に固定する
+  const [paneWidth, setPaneWidth] = useState<number | null>(null);
+  // 表示高さ（ミニマップの表示範囲インジケーター用）
+  const [paneHeight, setPaneHeight] = useState<number | null>(null);
 
   const rows = useMemo(() => parseSideBySide(diff), [diff]);
   const metrics = useMemo(() => computeMetrics(rows), [rows]);
@@ -224,27 +232,49 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
     overscan: 20,
   });
 
+  // 表示幅の追従（リサイズ・スクロールバー出現）
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const update = () => {
+      setPaneWidth(scroller.clientWidth);
+      setPaneHeight(scroller.clientHeight);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, []);
+
+  // 横スクロール位置をCSS変数に反映（再レンダーせずテキストだけ流す）
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    innerRef.current?.style.setProperty(
+      '--dc-hscroll',
+      `${e.currentTarget.scrollLeft}px`
+    );
+  };
+
+  // 折り返し切替時は横スクロールをリセット
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (scroller) scroller.scrollLeft = 0;
+    innerRef.current?.style.setProperty('--dc-hscroll', '0px');
+  }, [wordWrap]);
+
   // 行番号列の幅（桁数 + 余白）
   const numColCh = String(metrics.maxLineNumber).length + 2;
 
-  // 折り返しOFF: 仮想化で行が絶対配置になるため、内容列の幅を最長行から固定で与えて
-  // 全行の列位置を揃える（横スクロールはコンテナ全体で行う）。
-  // 左右とも「長い方の最長行」で同じ幅にし、仕切りが常に中央に来るようにする
-  const contentColCh = Math.max(metrics.maxLeftCh, metrics.maxRightCh);
-  const gridTemplateColumns = wordWrap
-    ? `${numColCh}ch minmax(0, ${splitRatio}fr) ${numColCh}ch minmax(0, ${1 - splitRatio}fr)`
-    : `${numColCh}ch ${
-        leftColPx != null
-          ? `${leftColPx}px`
-          : `minmax(${contentColCh}ch, 1fr)`
-      } ${numColCh}ch minmax(${contentColCh}ch, 1fr)`;
+  // 仕切りは常にビューポート基準の比率位置（デフォルト中央）
+  const gridTemplateColumns = `${numColCh}ch minmax(0, ${splitRatio}fr) ${numColCh}ch minmax(0, ${1 - splitRatio}fr)`;
 
-  // 内容セルの左右padding（0.5rem x 2 x 2列）ぶんを上乗せした最小幅
+  // 折り返しOFF: 最長行がペイン内でスクロールしきれる幅のダミー領域を確保する
+  // （狭い方のペイン = min(ratio, 1-ratio) 側でも末尾まで読めるようにする）
+  const narrowRatio = Math.min(splitRatio, 1 - splitRatio);
   const innerMinWidth = wordWrap
     ? undefined
-    : leftColPx != null
-      ? `calc(${numColCh * 2 + contentColCh}ch + ${leftColPx}px + 2rem)`
-      : `calc(${(numColCh + contentColCh) * 2}ch + 2rem)`;
+    : `max(100%, calc(${Math.round((1 - narrowRatio) * 100)}% + ${
+        metrics.maxContentCh + numColCh * 2
+      }ch + 2rem))`;
 
   /** 仕切り（右ペイン行番号列）のドラッグ開始 */
   const handleDividerPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
@@ -258,18 +288,13 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
     const startLeftW = cell.offsetLeft - numColW;
     const contentTotal = row.clientWidth - numColW * 2;
     const startX = e.clientX;
-    const isWrap = wordWrap;
 
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
     const onMove = (ev: PointerEvent) => {
       const newLeftW = startLeftW + (ev.clientX - startX);
-      if (isWrap) {
-        setSplitRatio(clamp(newLeftW / contentTotal, 0.1, 0.9));
-      } else {
-        setLeftColPx(clamp(newLeftW, 60, 10000));
-      }
+      setSplitRatio(clamp(newLeftW / contentTotal, 0.1, 0.9));
     };
     const onUp = () => {
       document.body.style.cursor = '';
@@ -284,7 +309,6 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
   /** 仕切り位置をリセット */
   const handleDividerReset = () => {
     setSplitRatio(0.5);
-    setLeftColPx(null);
   };
 
   /** 前/次の変更ブロックへスクロール */
@@ -332,10 +356,26 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
     window.addEventListener('pointerup', onUp);
   };
 
+  // 行の枠を画面に固定するためのスタイル（横スクロール分だけ逆方向に補正）
+  const rowWidth = paneWidth != null ? `${paneWidth}px` : '100%';
+
+  const renderContent = (cell: DiffCell | null, contentClass: string) => (
+    <span
+      className={`${wordWrap ? s.contentColWrap : s.contentCol} ${contentClass}`}
+    >
+      {wordWrap ? (
+        (cell?.content ?? '')
+      ) : (
+        <span className={s.hscrollText}>{cell?.content ?? ''}</span>
+      )}
+    </span>
+  );
+
   return (
     <div className={s.wrapper}>
-      <div ref={scrollerRef} className={s.scroller}>
+      <div ref={scrollerRef} className={s.scroller} onScroll={handleScroll}>
         <div
+          ref={innerRef}
           className={s.inner}
           style={{
             height: `${virtualizer.getTotalSize()}px`,
@@ -345,7 +385,8 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
           {virtualizer.getVirtualItems().map((virtualItem) => {
             const row = rows[virtualItem.index];
             const rowStyle: React.CSSProperties = {
-              transform: `translateY(${virtualItem.start}px)`,
+              transform: `translate(var(--dc-hscroll, 0px), ${virtualItem.start}px)`,
+              width: rowWidth,
             };
 
             if (row.kind === 'separator') {
@@ -376,11 +417,7 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
                 <span className={`${s.lineNum} ${left.num}`}>
                   {row.left?.lineNumber ?? ''}
                 </span>
-                <span
-                  className={`${wordWrap ? s.contentColWrap : s.contentCol} ${left.content}`}
-                >
-                  {row.left?.content ?? ''}
-                </span>
+                {renderContent(row.left, left.content)}
                 <span
                   className={`${s.lineNum} ${s.divider} ${right.num}`}
                   onPointerDown={handleDividerPointerDown}
@@ -389,11 +426,7 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
                 >
                   {row.right?.lineNumber ?? ''}
                 </span>
-                <span
-                  className={`${wordWrap ? s.contentColWrap : s.contentCol} ${right.content}`}
-                >
-                  {row.right?.content ?? ''}
-                </span>
+                {renderContent(row.right, right.content)}
               </div>
             );
           })}
@@ -406,6 +439,16 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
         className={s.ruler}
         onPointerDown={handleRulerPointerDown}
       >
+        {/* 現在の表示範囲インジケーター（スクロールバーのthumb相当） */}
+        {paneHeight != null && virtualizer.getTotalSize() > paneHeight && (
+          <div
+            className={s.rulerViewport}
+            style={{
+              top: `${((virtualizer.scrollOffset ?? 0) / virtualizer.getTotalSize()) * 100}%`,
+              height: `${(paneHeight / virtualizer.getTotalSize()) * 100}%`,
+            }}
+          />
+        )}
         {changeBlocks.map((block, i) => {
           const top = (block.start / rows.length) * 100;
           const height = Math.max(
