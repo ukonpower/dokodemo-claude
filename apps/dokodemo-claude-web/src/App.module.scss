@@ -1,5 +1,8 @@
 .diffViewWrapper {
-  min-height: 100vh;
+  // 高さを確定させ、スクロールはDiffViewer内部（DiffLinesの仮想スクロール）に任せる
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background-color: $dark-bg-primary;
   // 画面下部固定の RepositorySwitcher 分の余白
   padding-bottom: 3rem;

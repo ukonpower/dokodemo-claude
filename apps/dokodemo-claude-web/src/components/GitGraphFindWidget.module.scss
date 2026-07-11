@@ -1,0 +1,70 @@
+.widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid $dark-border-light;
+  border-radius: 4px;
+  background-color: $dark-bg-tertiary;
+
+  @include sm-down {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.searchIcon {
+  color: $dark-text-muted;
+  flex-shrink: 0;
+}
+
+.input {
+  width: 180px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: $dark-text-primary;
+  font-size: 12px;
+  outline: none;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  @include sm-down {
+    width: 100%;
+    flex: 1;
+  }
+}
+
+.count {
+  min-width: 44px;
+  text-align: right;
+  font-size: 11px;
+  color: $dark-text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+.navButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: $dark-text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}

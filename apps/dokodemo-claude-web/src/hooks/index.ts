@@ -4,6 +4,9 @@ export type { UseSocketReturn } from './useSocket';
 
 export { useMediaQuery } from './useMediaQuery';
 
+export { useLongPress } from './useLongPress';
+export type { LongPressPoint, LongPressHandlers } from './useLongPress';
+
 export { useOutsideClose } from './useOutsideClose';
 
 export { useAppSettings } from './useAppSettings';
@@ -31,6 +34,9 @@ export type { UsePromptQueueReturn } from './usePromptQueue';
 
 export { useGitDiff } from './useGitDiff';
 export type { UseGitDiffReturn } from './useGitDiff';
+
+export { useGitGraph } from './useGitGraph';
+export type { UseGitGraphReturn } from './useGitGraph';
 
 export { useFileManager } from './useFileManager';
 export type { UseFileManagerReturn } from './useFileManager';

@@ -61,6 +61,8 @@ interface DashboardViewProps {
 
   // RepoHeader 用
   onOpenFileViewer: () => void;
+  /** Git Graph（コミットグラフ）全画面ビューを開く */
+  onOpenGraphView: () => void;
   startingCodeServer: boolean;
   isLocalhost: boolean;
   availableEditors: EditorInfo[];
@@ -181,6 +183,7 @@ export function DashboardView({
   onOpenWorktree,
   onSwitchRepository,
   onOpenFileViewer,
+  onOpenGraphView,
   startingCodeServer,
   isLocalhost,
   availableEditors,
@@ -469,6 +472,7 @@ export function DashboardView({
         repositories={repositories}
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
+        onOpenGraphView={onOpenGraphView}
         onOpenSettings={() => setShowSettings(true)}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}

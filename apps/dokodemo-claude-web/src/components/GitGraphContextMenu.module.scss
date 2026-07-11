@@ -1,0 +1,55 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.menu {
+  position: fixed;
+  z-index: 41;
+  min-width: 220px;
+  max-width: 340px;
+  padding: 4px;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+  color: $dark-text-primary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: $dark-text-secondary;
+}
+
+.itemLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .item {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+}
