@@ -228,21 +228,23 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
   const numColCh = String(metrics.maxLineNumber).length + 2;
 
   // 折り返しOFF: 仮想化で行が絶対配置になるため、内容列の幅を最長行から固定で与えて
-  // 全行の列位置を揃える（横スクロールはコンテナ全体で行う）
+  // 全行の列位置を揃える（横スクロールはコンテナ全体で行う）。
+  // 左右とも「長い方の最長行」で同じ幅にし、仕切りが常に中央に来るようにする
+  const contentColCh = Math.max(metrics.maxLeftCh, metrics.maxRightCh);
   const gridTemplateColumns = wordWrap
     ? `${numColCh}ch minmax(0, ${splitRatio}fr) ${numColCh}ch minmax(0, ${1 - splitRatio}fr)`
     : `${numColCh}ch ${
         leftColPx != null
           ? `${leftColPx}px`
-          : `minmax(${metrics.maxLeftCh}ch, 1fr)`
-      } ${numColCh}ch minmax(${metrics.maxRightCh}ch, 1fr)`;
+          : `minmax(${contentColCh}ch, 1fr)`
+      } ${numColCh}ch minmax(${contentColCh}ch, 1fr)`;
 
   // 内容セルの左右padding（0.5rem x 2 x 2列）ぶんを上乗せした最小幅
   const innerMinWidth = wordWrap
     ? undefined
     : leftColPx != null
-      ? `calc(${numColCh * 2 + metrics.maxRightCh}ch + ${leftColPx}px + 2rem)`
-      : `calc(${numColCh * 2 + metrics.maxLeftCh + metrics.maxRightCh}ch + 2rem)`;
+      ? `calc(${numColCh * 2 + contentColCh}ch + ${leftColPx}px + 2rem)`
+      : `calc(${(numColCh + contentColCh) * 2}ch + 2rem)`;
 
   /** 仕切り（右ペイン行番号列）のドラッグ開始 */
   const handleDividerPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
