@@ -322,7 +322,8 @@ export function useGitGraph(
       if (!socket || !currentRepo) return;
       const rid = repositoryIdMap.getRid(currentRepo);
       if (!rid) return;
-      if (detailByHash[hash]) return; // 取得済みは再要求しない
+      // 未コミット変更は作業ツリーが変わり得るので毎回再要求する
+      if (hash !== '*' && detailByHash[hash]) return;
       setDetailLoadingHash(hash);
       socket.emit('get-git-graph-commit-detail', { rid, hash });
     },

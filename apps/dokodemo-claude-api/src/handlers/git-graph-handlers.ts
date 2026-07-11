@@ -13,6 +13,9 @@ import { cleanChildEnv } from '../utils/clean-env.js';
 
 const NUL = '\x00';
 
+/** 未コミット変更を表すセンチネル hash（クライアントの UNCOMMITTED_HASH と合わせる） */
+const UNCOMMITTED_HASH = '*';
+
 /**
  * Gitコマンドを実行するヘルパー関数
  * diff-handlers.ts と同じ spawn ラップ（cwd + cleanChildEnv）
@@ -478,6 +481,150 @@ async function getGitGraphFileDiff(
 }
 
 /**
+ * `git status --porcelain=v1 -z` の XY コードから GitGraphFileChange.status を判定する
+ */
+function statusFromCode(x: string, y: string): GitGraphFileChange['status'] {
+  if (x === '?' && y === '?') return 'A'; // untracked を「追加」相当で表示
+  if (x === 'R' || y === 'R') return 'R';
+  if (x === 'D' || y === 'D') return 'D';
+  if (x === 'A' || y === 'A') return 'A';
+  return 'M';
+}
+
+/**
+ * 未コミット変更（作業ツリー + index）を GitGraphCommitDetail として返す。
+ * hash に UNCOMMITTED_HASH（'*'）を入れ、parents は HEAD にする。
+ */
+async function getUncommittedDetail(
+  repoPath: string
+): Promise<GitGraphCommitDetail> {
+  let headHash = '';
+  try {
+    headHash = (await runGitCommand(repoPath, ['rev-parse', 'HEAD'])).trim();
+  } catch {
+    headHash = '';
+  }
+
+  // -z: XY + SP + path + NUL、rename の場合は続けて orig_path + NUL
+  const statusOut = await runGitCommand(repoPath, [
+    'status',
+    '--porcelain=v1',
+    '-z',
+    '--untracked-files=all',
+  ]);
+
+  const files: GitGraphFileChange[] = [];
+  const tokens = statusOut.split(NUL);
+  // 末尾は空文字になるので末尾要素は空扱い
+  for (let i = 0; i < tokens.length; i++) {
+    const entry = tokens[i];
+    if (!entry || entry.length < 3) continue;
+    const x = entry.charAt(0);
+    const y = entry.charAt(1);
+    const path = entry.slice(3); // 3 文字目は SP
+    const status = statusFromCode(x, y);
+    let filename = path;
+    let oldFilename: string | undefined;
+    if (x === 'R' || y === 'R' || x === 'C' || y === 'C') {
+      // 直後のエントリが rename 元
+      const orig = tokens[i + 1];
+      if (orig) {
+        oldFilename = orig;
+        i += 1;
+      }
+    }
+    files.push({
+      filename,
+      oldFilename,
+      status,
+      additions: 0,
+      deletions: 0,
+    });
+  }
+
+  // numstat（tracked の add/del）で埋める。untracked は対象外
+  if (headHash) {
+    try {
+      const numstatOut = await runGitCommand(repoPath, [
+        'diff',
+        'HEAD',
+        '--numstat',
+        '--find-renames',
+      ]);
+      const numMap = new Map<
+        string,
+        { additions: number; deletions: number }
+      >();
+      for (const line of numstatOut.split('\n')) {
+        if (!line.trim()) continue;
+        const cols = line.split('\t');
+        if (cols.length < 3) continue;
+        const additions = cols[0] === '-' ? 0 : parseInt(cols[0], 10) || 0;
+        const deletions = cols[1] === '-' ? 0 : parseInt(cols[1], 10) || 0;
+        const pathField =
+          cols.length >= 4 ? cols[cols.length - 1] : numstatNewPath(cols[2]);
+        numMap.set(pathField, { additions, deletions });
+      }
+      for (const f of files) {
+        const n = numMap.get(f.filename);
+        if (n) {
+          f.additions = n.additions;
+          f.deletions = n.deletions;
+        }
+      }
+    } catch {
+      // numstat 失敗時は 0 のまま
+    }
+  }
+
+  return {
+    hash: UNCOMMITTED_HASH,
+    parents: headHash ? [headHash] : [],
+    author: '',
+    email: '',
+    authorDate: 0,
+    committer: '',
+    commitDate: 0,
+    body: 'Uncommitted Changes',
+    files,
+  };
+}
+
+/**
+ * 未コミット変更 1 ファイル分の diff を取得する（HEAD → 作業ツリー）。
+ * - 追跡外（untracked）は `diff --no-index /dev/null <file>` で全行追加として返す
+ */
+async function getUncommittedFileDiff(
+  repoPath: string,
+  filename: string,
+  oldFilename?: string
+): Promise<GitDiffDetail> {
+  const pathspec = oldFilename ? [oldFilename, filename] : [filename];
+  // HEAD → 作業ツリー（staged/unstaged 両方を含む）
+  let diff = await runGitCommandAllowNonZero(repoPath, [
+    'diff',
+    'HEAD',
+    '-U999999',
+    '--',
+    ...pathspec,
+  ]);
+
+  if (!diff.trim()) {
+    // untracked / HEAD 不在（空リポジトリ）等は no-index で全行追加として表示
+    diff = await runGitCommandAllowNonZero(repoPath, [
+      'diff',
+      '--no-index',
+      '-U999999',
+      '--',
+      '/dev/null',
+      filename,
+    ]);
+  }
+
+  return { filename, diff };
+}
+
+/**
  * Socket.IOイベントハンドラーを登録
  */
 export function registerGitGraphHandlers(ctx: HandlerContext): void {
@@ -504,7 +651,10 @@ export function registerGitGraphHandlers(ctx: HandlerContext): void {
     const { rid, hash } = data;
     const repoPath = repositoryIdManager.getPath(rid);
     try {
-      const detail = await getGitGraphCommitDetail(repoPath, hash);
+      const detail =
+        hash === UNCOMMITTED_HASH
+          ? await getUncommittedDetail(repoPath)
+          : await getGitGraphCommitDetail(repoPath, hash);
       socket.emit('git-graph-commit-detail', { rid, hash, detail });
     } catch (error) {
       const message =
@@ -597,12 +747,10 @@ export function registerGitGraphHandlers(ctx: HandlerContext): void {
     const { rid, hash, filename, oldFilename } = data;
     const repoPath = repositoryIdManager.getPath(rid);
     try {
-      const detail = await getGitGraphFileDiff(
-        repoPath,
-        hash,
-        filename,
-        oldFilename
-      );
+      const detail =
+        hash === UNCOMMITTED_HASH
+          ? await getUncommittedFileDiff(repoPath, filename, oldFilename)
+          : await getGitGraphFileDiff(repoPath, hash, filename, oldFilename);
       socket.emit('git-graph-file-diff', { rid, hash, detail });
     } catch (error) {
       const message =

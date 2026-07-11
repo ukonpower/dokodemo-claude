@@ -202,8 +202,17 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
         <tbody>
           {rows.map((row) => {
             if (row.isUncommitted) {
+              const isSelected = selectedHash === UNCOMMITTED_HASH;
               return (
-                <tr key="uncommitted" className={s.row}>
+                <tr
+                  key="uncommitted"
+                  data-hash={UNCOMMITTED_HASH}
+                  className={`${s.row} ${s.clickable} ${isSelected ? s.selected : ''}`}
+                  onClick={() => {
+                    if (longPress.consumeLongPress()) return;
+                    onSelectRow(UNCOMMITTED_HASH);
+                  }}
+                >
                   <td className={s.graphCell} />
                   <td
                     className={`${s.descCol} ${s.uncommitted}`}
