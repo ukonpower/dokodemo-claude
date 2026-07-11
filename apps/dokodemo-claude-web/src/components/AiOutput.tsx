@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 import { getProviderInfo } from '../utils/ai-provider-info';
@@ -49,6 +49,10 @@ interface AiOutputProps {
   fontSize?: number;
   /** ターミナル上にファイルがドロップされた際のコールバック */
   onFileDrop?: (files: File[]) => void;
+  /** 全画面表示中かどうか */
+  isFullscreen?: boolean;
+  /** 全画面表示の切り替えコールバック */
+  onToggleFullscreen?: () => void;
 }
 
 /**
@@ -74,6 +78,8 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       onResize,
       fontSize,
       onFileDrop,
+      isFullscreen = false,
+      onToggleFullscreen,
     },
     ref
   ) => {
@@ -411,15 +417,29 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             onFileDrop={onFileDrop}
           />
 
-          {/* 右上のリサイズボタン */}
-          <div className={s.resizeButtonWrapper}>
+          {/* 右上のツールボタン群（リサイズ・全画面切替） */}
+          <div className={s.toolButtonWrapper}>
             <button
               onClick={resizeTerminal}
-              className={s.resizeButton}
+              className={s.toolButton}
               title="ターミナルをリサイズ"
             >
               <RefreshCw size={10} />
             </button>
+            {onToggleFullscreen && (
+              <button
+                onClick={onToggleFullscreen}
+                className={s.toolButton}
+                title={isFullscreen ? '全画面を閉じる' : '全画面表示'}
+                aria-pressed={isFullscreen}
+              >
+                {isFullscreen ? (
+                  <Minimize2 size={10} />
+                ) : (
+                  <Maximize2 size={10} />
+                )}
+              </button>
+            )}
           </div>
 
           {/* 右下のスクロールボタン */}

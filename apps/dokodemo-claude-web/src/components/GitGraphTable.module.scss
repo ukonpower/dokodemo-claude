@@ -9,7 +9,9 @@
   left: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
+  // テーブル(z-index:1)より前面に置く。背後だと行ホバー時の
+  // 不透明な行背景が透明な graphCell を透かしてグラフを覆い隠す
+  z-index: 2;
 }
 
 .table {

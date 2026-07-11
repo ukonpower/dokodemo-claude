@@ -13,6 +13,19 @@
   }
 }
 
+.workflowRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  // PC ではスキル行とファイルリンクを 1 行に並べる
+  @include lg-up {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
 .workflowControls {
   display: flex;
   flex-direction: column;
@@ -224,6 +237,11 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.375rem;
+
+  // PC ではスキル行の右側へ寄せて同一行に配置
+  @include lg-up {
+    margin-left: auto;
+  }
 }
 
 .fileLink {

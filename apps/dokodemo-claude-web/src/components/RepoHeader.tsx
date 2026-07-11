@@ -3,7 +3,7 @@ import {
   ChevronDown,
   ExternalLink,
   FolderOpen,
-  GitCommitHorizontal,
+  GitFork,
 } from 'lucide-react';
 import type { AiInstance, EditorInfo, EditorType, GitRepository } from '../types';
 import s from './RepoHeader.module.scss';
@@ -175,7 +175,7 @@ export function RepoHeader({
                 className="btn-icon"
                 title="Git Graphを開く"
               >
-                <GitCommitHorizontal size={16} />
+                <GitFork size={16} />
               </button>
 
               {hasEditorButton && primaryEditor && (

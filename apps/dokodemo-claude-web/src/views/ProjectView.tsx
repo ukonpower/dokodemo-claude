@@ -1,8 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import {
   LayoutDashboard,
-  Maximize2,
-  Minimize2,
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react';
@@ -708,20 +706,6 @@ export function ProjectView({
                     <PanelRightClose size={14} />
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleToggleCliFullscreen}
-                  disabled={!activeInstance}
-                  className="btn-icon-xs"
-                  title={isCliFullscreen ? '全画面を閉じる' : '全画面表示'}
-                  aria-pressed={isCliFullscreen}
-                >
-                  {isCliFullscreen ? (
-                    <Minimize2 size={14} />
-                  ) : (
-                    <Maximize2 size={14} />
-                  )}
-                </button>
               </div>
             </div>
 
@@ -729,20 +713,6 @@ export function ProjectView({
               <div
                 className={`${s.cliInnerRow} ${isCliFullscreen ? s.cliInnerRowFullscreen : ''}`}
               >
-                {/* 全画面終了ボタン。全画面時はオーバーレイ（fixed）がタブバーの
-                    全画面ボタンを覆い隠すため、物理 ESC の無いモバイルでも解除できるよう
-                    オーバーレイ内の右上に常設する */}
-                {isCliFullscreen && (
-                  <button
-                    type="button"
-                    onClick={handleToggleCliFullscreen}
-                    className={s.fullscreenExitButton}
-                    title="全画面を閉じる (ESC)"
-                    aria-label="全画面を閉じる"
-                  >
-                    <Minimize2 size={16} />
-                  </button>
-                )}
                 <div className={s.cliMainCol}>
                   <div className={s.cliOutputWrapper}>
                     <AiOutput
@@ -755,6 +725,8 @@ export function ProjectView({
                       onResize={onResize}
                       fontSize={terminalFontSize}
                       onFileDrop={handleAiTerminalFileDrop}
+                      isFullscreen={isCliFullscreen}
+                      onToggleFullscreen={handleToggleCliFullscreen}
                     />
                   </div>
 
