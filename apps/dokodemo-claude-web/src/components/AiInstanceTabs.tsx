@@ -261,22 +261,22 @@ function AiInstanceTabs({
                   <button
                     onClick={() => {
                       closeTabMenu();
-                      onClose(inst.instanceId);
-                    }}
-                    className={s.addMenuItem}
-                  >
-                    <Power size={14} />
-                    <span>シャットダウン</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      closeTabMenu();
                       onRestart(inst.instanceId);
                     }}
                     className={s.addMenuItem}
                   >
                     <RotateCcw size={14} />
                     <span>再起動</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onClose(inst.instanceId);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <Power size={14} />
+                    <span>シャットダウン</span>
                   </button>
                 </>
               )
