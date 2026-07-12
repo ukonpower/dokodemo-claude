@@ -331,6 +331,7 @@ export interface GitGraphData {
   currentBranch: string | null; // チェックアウト中のローカルブランチ名（detached なら null）
   uncommitted: { fileCount: number } | null;
   branchOptions: { name: string; isRemote: boolean }[];
+  remotes: string[]; // 登録済み remote 名の一覧（push 先選択用）
   moreAvailable: boolean;
 }
 export interface GitGraphFileChange {
@@ -676,6 +677,21 @@ export interface ServerToClientEvents {
     rid?: string;
   }) => void;
 
+  // ブランチ同期状態（ahead/behind）
+  'branch-sync-status': (data: {
+    rid: string;
+    upstream: string | null; // 例 'origin/main'。追跡ブランチが無ければ null（ahead/behind は 0）
+    ahead: number; // ローカルだけにあるコミット数（push で送られる分）
+    behind: number; // upstream だけにあるコミット数（pull で取り込まれる分）
+  }) => void;
+  'branch-push-started': (data: { rid: string }) => void;
+  'branch-push-progress': (data: {
+    rid: string;
+    chunk: string;
+    stream: 'stdout' | 'stderr';
+  }) => void;
+  'branch-pushed': (data: { rid: string; success: boolean; message: string }) => void;
+
   // プロンプトキュー関連イベント
   'prompt-queue-updated': (data: {
     rid?: string; // リポジトリID（必須）
@@ -760,9 +776,13 @@ export interface ServerToClientEvents {
   'git-graph-error': (data: { rid: string; message: string }) => void;
   'git-graph-action-result': (data: {
     rid: string;
-    action: 'checkout' | 'merge';
+    action: 'checkout' | 'merge' | 'pull' | 'push' | 'fetch';
     success: boolean;
     message: string;
+  }) => void;
+  'git-graph-remotes-result': (data: {
+    rid: string;
+    remotes: string[];
   }) => void;
 
   // ファイルビュワー関連イベント
@@ -1003,6 +1023,10 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
   }) => void;
 
+  // 現在ブランチの同期状態（ahead/behind）取得・push
+  'get-branch-sync-status': (data: { rid: string }) => void;
+  'push-branch': (data: { rid: string }) => void;
+
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {
     rid: string; // リポジトリID（必須）
@@ -1127,6 +1151,15 @@ export interface ClientToServerEvents {
     squash: boolean;
     noCommit: boolean;
   }) => void;
+  'git-graph-remotes': (data: { rid: string }) => void;
+  'git-graph-pull': (data: { rid: string }) => void;
+  'git-graph-push': (data: {
+    rid: string;
+    remote?: string; // push 先 remote 名（未指定なら upstream 追跡先へ）
+    force?: boolean;
+    setUpstream?: boolean;
+  }) => void;
+  'git-graph-fetch': (data: { rid: string; prune?: boolean }) => void;
 
   // ファイルビュワー関連イベント
   'read-directory': (data: { rid: string; path: string }) => void;

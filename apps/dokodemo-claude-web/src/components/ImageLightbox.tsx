@@ -9,6 +9,7 @@ import {
   Download,
   Pencil,
 } from 'lucide-react';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './ImageLightbox.module.scss';
 
 export interface LightboxItem {
@@ -175,18 +176,14 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
     onIndexChange,
   ]);
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === containerRef.current) {
-      onClose();
-    }
-  };
+  const overlayProps = useOverlayClose(onClose);
 
   if (!isOpen || !currentItem) return null;
 
   return (
     <div
       ref={containerRef}
-      onClick={handleBackdropClick}
+      {...overlayProps}
       className={s.backdrop}
     >
       {/* ヘッダー */}

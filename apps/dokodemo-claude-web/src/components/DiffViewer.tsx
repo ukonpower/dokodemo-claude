@@ -147,7 +147,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
 
         {/* 差分表示 */}
         {!error && detail && detail.diff && (
-          <DiffLines diff={detail.diff} wordWrap={wordWrap} />
+          <DiffLines diff={detail.diff} filePath={filename} wordWrap={wordWrap} />
         )}
       </div>
     </div>

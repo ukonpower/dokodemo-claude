@@ -52,6 +52,91 @@
   transform: rotate(180deg);
 }
 
+// VSCode 風の ahead/behind インジケーター
+.syncIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin-left: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  min-width: 3rem;
+  justify-content: center;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-300;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-100;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncIndicatorClean {
+  color: $gray-500;
+}
+
+// ロード中に矢印インジケーター分の幅を確保するプレースホルダー
+.syncIndicatorPlaceholder {
+  display: inline-block;
+  min-width: 3rem;
+  margin-left: 0.25rem;
+}
+
+.syncIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.syncPopover {
+  position: fixed;
+  min-width: 11rem;
+  box-sizing: border-box;
+  background-color: $gray-800;
+  border: 1px solid $dark-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.syncPopoverButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  color: $gray-200;
+  text-align: left;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $gray-700;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .dropdown {
   position: fixed;
   width: 16rem;

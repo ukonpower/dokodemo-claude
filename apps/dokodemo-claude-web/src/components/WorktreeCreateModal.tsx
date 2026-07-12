@@ -16,6 +16,7 @@ import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
 } from '../hooks/useBranchWorktree';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './WorktreeCreateModal.module.scss';
 
 interface WorktreeCreateModalProps {
@@ -338,8 +339,10 @@ function WorktreeCreateModal({
   const loaded =
     hasInitializedRows || syncConfig?.parentRepoPath === parentRepoPath;
 
+  const overlayProps = useOverlayClose(onClose);
+
   return (
-    <div className={s.modalOverlay}>
+    <div className={s.modalOverlay} {...overlayProps}>
       <div className={s.modalContent} onKeyDown={handleKeyDown}>
         <div className={s.modalHeader}>
           <h3 className={s.modalTitle}>ワークツリーを作成</h3>

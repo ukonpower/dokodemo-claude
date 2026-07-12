@@ -497,6 +497,27 @@ export interface ServerToClientEvents {
     rid?: string;
   }) => void;
 
+  // ブランチ ahead/behind 状態通知
+  'branch-sync-status': (data: {
+    rid: string;
+    upstream: string | null;
+    ahead: number;
+    behind: number;
+  }) => void;
+
+  // ブランチ push 開始通知
+  'branch-push-started': (data: { rid: string }) => void;
+
+  // ブランチ push 進行ログ（stdout/stderr のストリーミング配信）
+  'branch-push-progress': (data: {
+    rid: string;
+    chunk: string;
+    stream: 'stdout' | 'stderr';
+  }) => void;
+
+  // ブランチ push 結果通知
+  'branch-pushed': (data: { rid: string; success: boolean; message: string }) => void;
+
   // プロンプトキュー関連イベント
   'prompt-queue-updated': (data: {
     rid?: string; // リポジトリID（必須）
@@ -593,9 +614,13 @@ export interface ServerToClientEvents {
   'git-graph-error': (data: { rid: string; message: string }) => void;
   'git-graph-action-result': (data: {
     rid: string;
-    action: 'checkout' | 'merge';
+    action: 'checkout' | 'merge' | 'pull' | 'push' | 'fetch';
     success: boolean;
     message: string;
+  }) => void;
+  'git-graph-remotes-result': (data: {
+    rid: string;
+    remotes: string[];
   }) => void;
 
   // AI Hooks設定関連イベント
@@ -867,6 +892,12 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
   }) => void;
 
+  // 現在ブランチの ahead/behind 状態を取得（fetch はしない）
+  'get-branch-sync-status': (data: { rid: string }) => void;
+
+  // 現在ブランチの push
+  'push-branch': (data: { rid: string }) => void;
+
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {
     rid: string;
@@ -992,6 +1023,15 @@ export interface ClientToServerEvents {
     squash: boolean;
     noCommit: boolean;
   }) => void;
+  'git-graph-remotes': (data: { rid: string }) => void;
+  'git-graph-pull': (data: { rid: string }) => void;
+  'git-graph-push': (data: {
+    rid: string;
+    remote?: string; // push 先 remote 名（未指定なら upstream 追跡先へ）
+    force?: boolean;
+    setUpstream?: boolean;
+  }) => void;
+  'git-graph-fetch': (data: { rid: string; prune?: boolean }) => void;
 
   // AI Hooks設定関連イベント
   'check-hooks-status': (data: { provider: AiProvider }) => void;
@@ -1159,6 +1199,7 @@ export interface GitGraphData {
   currentBranch: string | null; // チェックアウト中のローカルブランチ名（detached なら null）
   uncommitted: { fileCount: number } | null;
   branchOptions: { name: string; isRemote: boolean }[];
+  remotes: string[]; // 登録済み remote 名の一覧（push 先選択用）
   moreAvailable: boolean;
 }
 export interface GitGraphFileChange {

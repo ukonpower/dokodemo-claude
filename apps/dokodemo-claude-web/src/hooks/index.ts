@@ -9,6 +9,8 @@ export type { LongPressPoint, LongPressHandlers } from './useLongPress';
 
 export { useOutsideClose } from './useOutsideClose';
 
+export { useOverlayClose } from './useOverlayClose';
+
 export { useAppSettings } from './useAppSettings';
 export type {
   UseAppSettingsReturn,
@@ -58,3 +60,22 @@ export type { UseCustomAiButtonsReturn } from './useCustomAiButtons';
 
 export { useWorktreeDashboard } from './useWorktreeDashboard';
 export type { UseWorktreeDashboardReturn } from './useWorktreeDashboard';
+
+export { useNpmScripts } from './useNpmScripts';
+export type { UseNpmScriptsReturn } from './useNpmScripts';
+
+export { useSocketBootstrap } from './useSocketBootstrap';
+export type { UseSocketBootstrapOptions } from './useSocketBootstrap';
+
+export { useRepositorySwitchFromList } from './useRepositorySwitchFromList';
+
+export { useViewRouting } from './useViewRouting';
+export type {
+  UseViewRoutingOptions,
+  UseViewRoutingReturn,
+} from './useViewRouting';
+
+export { useDocumentTitle } from './useDocumentTitle';
+
+export { useAppHotkeys } from './useAppHotkeys';
+export type { UseAppHotkeysOptions } from './useAppHotkeys';

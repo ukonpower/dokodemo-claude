@@ -215,6 +215,7 @@ async function getGitGraph(
       currentBranch: null,
       uncommitted: null,
       branchOptions: [],
+      remotes: await getRemotes(repoPath),
       moreAvailable: false,
     };
   }
@@ -303,8 +304,24 @@ async function getGitGraph(
     currentBranch,
     uncommitted,
     branchOptions: refIndex.branchOptions,
+    remotes: await getRemotes(repoPath),
     moreAvailable,
   };
+}
+
+/**
+ * 登録済み remote 名の一覧を取得する（push 先選択用）
+ */
+async function getRemotes(repoPath: string): Promise<string[]> {
+  try {
+    const out = await runGitCommand(repoPath, ['remote']);
+    return out
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -736,6 +753,105 @@ export function registerGitGraphHandlers(ctx: HandlerContext): void {
       socket.emit('git-graph-action-result', {
         rid,
         action: 'merge',
+        success: false,
+        message,
+      });
+    }
+  });
+
+  // remotes 一覧取得（グラフ未表示でも push 先選択できるよう単体で提供）
+  socket.on('git-graph-remotes', async (data) => {
+    const { rid } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    const remotes = await getRemotes(repoPath);
+    socket.emit('git-graph-remotes-result', { rid, remotes });
+  });
+
+  // pull（現在のブランチを upstream から pull）
+  socket.on('git-graph-pull', async (data) => {
+    const { rid } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    try {
+      await runGitCommand(repoPath, ['pull']);
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'pull',
+        success: true,
+        message: 'pull しました',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'pull に失敗しました';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'pull',
+        success: false,
+        message,
+      });
+    }
+  });
+
+  // push（現在のブランチを指定 remote / upstream に push）
+  socket.on('git-graph-push', async (data) => {
+    const { rid, remote, force, setUpstream } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    try {
+      // remote は必ず実在する登録済み remote に限定する（オプションインジェクション防止）
+      let target: string | null = null;
+      if (remote) {
+        const remotes = await getRemotes(repoPath);
+        if (!remotes.includes(remote)) {
+          throw new Error(`remote "${remote}" が見つかりません`);
+        }
+        target = remote;
+      }
+
+      const args = ['push'];
+      if (force) args.push('--force-with-lease');
+      // -u は remote/ref 指定とセットでしか使えないため target がある時のみ付与
+      if (setUpstream && target) args.push('-u');
+      // remote 指定時は `push [-u] <remote> HEAD`、未指定時は追跡先へ暗黙 push
+      if (target) args.push(target, 'HEAD');
+      await runGitCommand(repoPath, args);
+      const dest = target ? ` (${target})` : '';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'push',
+        success: true,
+        message: force ? `force push しました${dest}` : `push しました${dest}`,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'push に失敗しました';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'push',
+        success: false,
+        message,
+      });
+    }
+  });
+
+  // fetch（origin から fetch）
+  socket.on('git-graph-fetch', async (data) => {
+    const { rid, prune } = data;
+    const repoPath = repositoryIdManager.getPath(rid);
+    try {
+      const args = ['fetch', '--all'];
+      if (prune) args.push('--prune');
+      await runGitCommand(repoPath, args);
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'fetch',
+        success: true,
+        message: 'fetch しました',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'fetch に失敗しました';
+      socket.emit('git-graph-action-result', {
+        rid,
+        action: 'fetch',
         success: false,
         message,
       });

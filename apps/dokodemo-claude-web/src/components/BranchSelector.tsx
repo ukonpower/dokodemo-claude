@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { ArrowDown, ArrowUp, CloudUpload } from 'lucide-react';
 import type { GitBranch, GitWorktree } from '../types';
-import type { PullState } from '../hooks/useBranchWorktree';
+import type { PullState, BranchSyncStatus } from '../hooks/useBranchWorktree';
 import { useOutsideClose } from '../hooks';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
@@ -16,6 +17,10 @@ interface BranchSelectorProps {
   onPullBranch: () => void;
   pullState: PullState | null;
   onClearPullState: () => void;
+  syncStatus: BranchSyncStatus | null;
+  pushState: PullState | null;
+  onPushBranch: () => void;
+  onClearPushState: () => void;
   worktrees?: GitWorktree[];
   isConnected: boolean;
 }
@@ -30,11 +35,17 @@ function BranchSelector({
   onPullBranch,
   pullState,
   onClearPullState,
+  syncStatus,
+  pushState,
+  onPushBranch,
+  onClearPushState,
   worktrees = [],
   isConnected,
 }: BranchSelectorProps) {
   const isPulling = pullState?.status === 'running';
+  const isPushing = pushState?.status === 'running';
   const pullLogRef = useRef<HTMLPreElement>(null);
+  const pushLogRef = useRef<HTMLPreElement>(null);
 
   // ログが追記されたら自動で末尾までスクロール
   useEffect(() => {
@@ -42,6 +53,11 @@ function BranchSelector({
       pullLogRef.current.scrollTop = pullLogRef.current.scrollHeight;
     }
   }, [pullState?.log]);
+  useEffect(() => {
+    if (pushLogRef.current) {
+      pushLogRef.current.scrollTop = pushLogRef.current.scrollHeight;
+    }
+  }, [pushState?.log]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -53,9 +69,21 @@ function BranchSelector({
     top: number;
     left: number;
   } | null>(null);
+  const [pushPopupPosition, setPushPopupPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const [isSyncPopoverOpen, setIsSyncPopoverOpen] = useState(false);
+  const [syncPopoverPosition, setSyncPopoverPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pullPopupRef = useRef<HTMLDivElement>(null);
+  const pushPopupRef = useRef<HTMLDivElement>(null);
+  const syncIndicatorRef = useRef<HTMLButtonElement>(null);
+  const syncPopoverRef = useRef<HTMLDivElement>(null);
 
   // Pull モーダル（ツールチップ風ポップオーバー）の出現位置を
   // トリガーボタンの直下に揃える。表示中は scroll/resize にも追随する。
@@ -96,6 +124,65 @@ function BranchSelector({
     onClearPullState,
     { ignore: [pullPopupRef, buttonRef] }
   );
+
+  // Push 進行状況ポップオーバーの出現位置を同期インジケーターの直下に揃える。
+  useEffect(() => {
+    if (!pushState) {
+      setPushPopupPosition(null);
+      return;
+    }
+
+    const updatePosition = (): void => {
+      const rect = syncIndicatorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPushPopupPosition({ top: rect.bottom + 6, left: rect.left });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [pushState]);
+
+  // 成功時は一定時間後に自動で閉じる。失敗時は自動非表示しない（pull と同じ挙動）。
+  useEffect(() => {
+    if (pushState?.status !== 'success') return;
+    const timer = setTimeout(() => {
+      onClearPushState();
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [pushState?.status, onClearPushState]);
+
+  // ポップオーバー外クリックで閉じる。実行中は誤操作で消さないように維持する。
+  useOutsideClose(
+    !!pushState && pushState.status !== 'running',
+    onClearPushState,
+    { ignore: [pushPopupRef, syncIndicatorRef] }
+  );
+
+  const closeSyncPopover = useCallback(() => {
+    setIsSyncPopoverOpen(false);
+    setSyncPopoverPosition(null);
+  }, []);
+
+  useOutsideClose(isSyncPopoverOpen, closeSyncPopover, {
+    ignore: [syncPopoverRef, syncIndicatorRef],
+  });
+
+  const handleToggleSyncPopover = () => {
+    if (isSyncPopoverOpen) {
+      closeSyncPopover();
+    } else {
+      const rect = syncIndicatorRef.current?.getBoundingClientRect();
+      if (rect) {
+        setSyncPopoverPosition({ top: rect.bottom + 4, left: rect.left });
+      }
+      setIsSyncPopoverOpen(true);
+    }
+  };
 
   // ワークツリーで使用中のブランチ一覧
   const worktreeBranches = worktrees.map((wt) => wt.branch);
@@ -221,6 +308,85 @@ function BranchSelector({
           />
         </svg>
       </button>
+
+      {/* VSCode 風の ahead/behind インジケーター */}
+      {!syncStatus && <span className={s.syncIndicatorPlaceholder} aria-hidden />}
+      {syncStatus && (
+        <button
+          ref={syncIndicatorRef}
+          onClick={handleToggleSyncPopover}
+          disabled={!isConnected}
+          className={`${s.syncIndicator} ${
+            syncStatus.upstream !== null &&
+            syncStatus.ahead === 0 &&
+            syncStatus.behind === 0
+              ? s.syncIndicatorClean
+              : ''
+          }`}
+          title={
+            syncStatus.upstream
+              ? `${syncStatus.upstream} と比較して ↓${syncStatus.behind} ↑${syncStatus.ahead}`
+              : 'ブランチが未公開です'
+          }
+        >
+          {syncStatus.upstream === null ? (
+            <CloudUpload className={s.syncIcon} />
+          ) : (
+            <>
+              <ArrowDown className={s.syncIcon} />
+              <span>{syncStatus.behind}</span>
+              <ArrowUp className={s.syncIcon} />
+              <span>{syncStatus.ahead}</span>
+            </>
+          )}
+        </button>
+      )}
+
+      {isSyncPopoverOpen &&
+        syncPopoverPosition &&
+        createPortal(
+          <div
+            ref={syncPopoverRef}
+            className={s.syncPopover}
+            style={{
+              zIndex: 9999,
+              top: syncPopoverPosition.top,
+              left: syncPopoverPosition.left,
+            }}
+          >
+            <button
+              onClick={() => {
+                onPullBranch();
+                closeSyncPopover();
+              }}
+              disabled={!syncStatus || syncStatus.behind === 0 || isPulling}
+              className={s.syncPopoverButton}
+            >
+              <ArrowDown className={s.syncIcon} />
+              <span>Pull（{syncStatus?.behind ?? 0}件取り込み）</span>
+            </button>
+            <button
+              onClick={() => {
+                onPushBranch();
+                closeSyncPopover();
+              }}
+              disabled={
+                !syncStatus ||
+                (syncStatus.upstream !== null && syncStatus.ahead === 0) ||
+                isPushing
+              }
+              className={s.syncPopoverButton}
+            >
+              <ArrowUp className={s.syncIcon} />
+              <span>
+                {syncStatus?.upstream === null
+                  ? 'Push（ブランチを公開）'
+                  : `Push（${syncStatus?.ahead ?? 0}件送信）`}
+              </span>
+            </button>
+          </div>,
+          document.body,
+        )}
 
       {isOpen && dropdownPosition && createPortal(
         <div
@@ -549,6 +715,77 @@ function BranchSelector({
                   <span className={s.pullPopupLogPlaceholder}>
                     {pullState.status === 'running'
                       ? 'Pull中…'
+                      : '出力なし'}
+                  </span>
+                )}
+              </pre>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Push 進行状況 / 結果ポップオーバー（Pull ポップオーバーと同一の UI・挙動） */}
+      {pushState &&
+        pushPopupPosition &&
+        createPortal(
+          <div
+            ref={pushPopupRef}
+            className={`${s.pullPopup} ${
+              pushState.status === 'error'
+                ? s.pullPopupError
+                : pushState.status === 'success'
+                  ? s.pullPopupSuccess
+                  : s.pullPopupRunning
+            }`}
+            style={{
+              top: pushPopupPosition.top,
+              left: pushPopupPosition.left,
+            }}
+          >
+            <div className={s.pullPopupHeader}>
+              <span className={s.pullPopupStatusDot} aria-hidden />
+              <span className={s.pullPopupTitle}>
+                {pushState.status === 'running'
+                  ? 'Pushing'
+                  : pushState.status === 'success'
+                    ? 'Push 完了'
+                    : 'Push 失敗'}
+                {currentBranch && (
+                  <span className={s.pullPopupBranch}>{currentBranch}</span>
+                )}
+              </span>
+              <button
+                onClick={onClearPushState}
+                disabled={pushState.status === 'running'}
+                className={s.pullPopupClose}
+                title={pushState.status === 'running' ? 'Push 実行中' : '閉じる'}
+                aria-label="閉じる"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className={s.pullPopupBody}>
+              {pushState.status !== 'running' && pushState.message && (
+                <div className={s.pullPopupMessage}>{pushState.message}</div>
+              )}
+              <pre ref={pushLogRef} className={s.pullPopupLog}>
+                {pushState.log ? (
+                  pushState.log
+                ) : (
+                  <span className={s.pullPopupLogPlaceholder}>
+                    {pushState.status === 'running'
+                      ? 'Push中…'
                       : '出力なし'}
                   </span>
                 )}
