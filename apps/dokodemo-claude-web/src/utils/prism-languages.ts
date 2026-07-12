@@ -27,3 +27,4 @@ import 'prismjs/components/prism-hcl';
 import 'prismjs/components/prism-vim';
 import 'prismjs/components/prism-r';
 import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-sql';
