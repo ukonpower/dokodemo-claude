@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Eye, EyeOff, StickyNote, X } from 'lucide-react';
 import type { GitWorktree } from '../types';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './DashboardFilterModal.module.scss';
 
 interface DashboardFilterModalProps {
@@ -31,15 +32,12 @@ function DashboardFilterModal({
     [worktreesWithRid, visibleRids]
   );
 
+  const overlayProps = useOverlayClose(onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div
-      className={s.overlay}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className={s.overlay} {...overlayProps}>
       <div className={s.modal}>
         <header className={s.header}>
           <span className={s.title}>表示する worktree</span>

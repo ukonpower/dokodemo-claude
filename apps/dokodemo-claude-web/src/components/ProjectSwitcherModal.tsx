@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import type { GitRepository, RepoProcessStatus } from '../types';
 import { fuzzyMatch } from '../utils/fuzzy-match';
 import ProjectAiStatusBadge from './ProjectAiStatusBadge';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './ProjectSwitcherModal.module.scss';
 
 interface ProjectSwitcherModalProps {
@@ -123,6 +124,8 @@ function ProjectSwitcherModal({
     el?.scrollIntoView({ block: 'nearest' });
   }, [isOpen, selectedIndex, filtered.length]);
 
+  const overlayProps = useOverlayClose(onClose);
+
   if (!isOpen) return null;
 
   const statusByPath = new Map(
@@ -180,12 +183,7 @@ function ProjectSwitcherModal({
   };
 
   return (
-    <div
-      className={s.overlay}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className={s.overlay} {...overlayProps}>
       <div className={s.modal}>
         <div className={s.inputRow}>
           <Search size={16} aria-hidden className={s.inputIcon} />

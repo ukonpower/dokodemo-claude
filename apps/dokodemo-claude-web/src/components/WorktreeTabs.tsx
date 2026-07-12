@@ -167,11 +167,6 @@ function SortableWorktreeTab({
           </span>
         )}
         {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
-        {isActive && (
-          <span
-            className={`${s.activeDot} ${compact ? s.compact : s.normal}`}
-          ></span>
-        )}
       </a>
 
       {/* 3点リーダーメニュー */}
@@ -480,9 +475,6 @@ function WorktreeTabs({
                 </span>
                 {mainWorktree.prInfo && (
                   <PrBadge pr={mainWorktree.prInfo} compact={compact} />
-                )}
-                {isWorktreeActive(mainWorktree) && (
-                  <span className={`${s.activeDot} ${compact ? s.compact : s.normal}`}></span>
                 )}
               </a>
             </div>

@@ -314,23 +314,6 @@
   }
 }
 
-.activeDot {
-  background-color: $blue-500;
-  border-radius: 9999px;
-
-  &.compact {
-    margin-left: 0.25rem;
-    width: 0.25rem;
-    height: 0.25rem;
-  }
-
-  &.normal {
-    margin-left: 0.5rem;
-    width: 0.5rem;
-    height: 0.5rem;
-  }
-}
-
 .menuButton {
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;

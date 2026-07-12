@@ -3,6 +3,7 @@ import { X, Link2, Bell, Package } from 'lucide-react';
 import type { Socket } from 'socket.io-client';
 import type { AiProvider } from '../types';
 import { useWebPush } from '../hooks/useWebPush';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './SettingsModal.module.scss';
 
 /**
@@ -179,6 +180,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const overlayProps = useOverlayClose(onClose);
+
   if (!isOpen) return null;
 
   const handleFontSizeChange = (preset: FontSizePreset) => {
@@ -205,12 +208,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       socket.emit('uninstall-plugin');
     } else {
       socket.emit('install-plugin');
-    }
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
     }
   };
 
@@ -253,10 +250,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   );
 
   return (
-    <div
-      className={s.overlay}
-      onClick={handleBackdropClick}
-    >
+    <div className={s.overlay} {...overlayProps}>
       <div className={s.modal}>
         {/* ヘッダー */}
         <div className={s.header}>

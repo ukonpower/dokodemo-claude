@@ -12,6 +12,8 @@ import {
   mergeWorktreeBranch,
   createBranch,
   pullBranch,
+  getBranchSyncStatus,
+  pushBranch,
 } from '../utils/git-utils.js';
 import { getWorktreePrsByBranch } from '../utils/gh-utils.js';
 import { startBranchWatching } from '../services/branch-watcher.js';
@@ -602,6 +604,54 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         success: false,
         message: `pull エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         output: '',
+        rid,
+      });
+    }
+  });
+
+  // 現在ブランチの ahead/behind と upstream を取得（fetch はしない）
+  socket.on('get-branch-sync-status', async (data) => {
+    const { rid } = data;
+    const repositoryPath = resolveRepositoryPath({ rid });
+    if (!repositoryPath) return;
+
+    try {
+      const status = await getBranchSyncStatus(repositoryPath);
+      socket.emit('branch-sync-status', { rid, ...status });
+    } catch {
+      socket.emit('branch-sync-status', {
+        rid,
+        upstream: null,
+        ahead: 0,
+        behind: 0,
+      });
+    }
+  });
+
+  // 現在ブランチの push
+  socket.on('push-branch', async (data) => {
+    const { rid } = data;
+    const repositoryPath = resolveRepositoryPath({ rid });
+    if (!repositoryPath) return;
+
+    // 開始イベント（モーダル表示などのトリガー）
+    socket.emit('branch-push-started', { rid });
+
+    try {
+      const result = await pushBranch(repositoryPath, (chunk, stream) => {
+        // stdout/stderr のチャンクを逐次配信
+        socket.emit('branch-push-progress', { rid, chunk, stream });
+      });
+
+      socket.emit('branch-pushed', {
+        success: result.success,
+        message: result.message,
+        rid,
+      });
+    } catch (error) {
+      socket.emit('branch-pushed', {
+        success: false,
+        message: `push エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         rid,
       });
     }

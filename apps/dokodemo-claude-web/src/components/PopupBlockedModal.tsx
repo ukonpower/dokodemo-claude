@@ -1,4 +1,5 @@
 import React from 'react';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './PopupBlockedModal.module.scss';
 
 interface PopupBlockedModalProps {
@@ -13,17 +14,13 @@ export const PopupBlockedModal: React.FC<PopupBlockedModalProps> = ({
   onClose,
   onOpenInNewTab,
 }) => {
+  const overlayProps = useOverlayClose(onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div
-      className={s.overlay}
-      onClick={onClose}
-    >
-      <div
-        className={s.modal}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className={s.overlay} {...overlayProps}>
+      <div className={s.modal}>
         <div className={s.headerRow}>
           <div className={s.iconWrapper}>
             <svg

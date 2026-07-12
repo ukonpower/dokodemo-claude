@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Highlight, themes } from 'prism-react-renderer';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { detectDiffLanguage } from '../utils/diff-language';
+import '../utils/prism-languages';
 import s from './DiffLines.module.scss';
 
 interface DiffCell {
@@ -155,7 +158,10 @@ function computeChangeBlocks(rows: DiffRow[]): ChangeBlock[] {
   return blocks;
 }
 
-function cellClasses(cell: DiffCell | null): {
+function cellClasses(
+  cell: DiffCell | null,
+  hasLanguage: boolean
+): {
   num: string;
   content: string;
 } {
@@ -166,12 +172,12 @@ function cellClasses(cell: DiffCell | null): {
     case 'addition':
       return {
         num: `${s.bgAddition} ${s.lineNumAddition}`,
-        content: `${s.bgAddition} ${s.textAddition}`,
+        content: `${s.bgAddition} ${hasLanguage ? '' : s.textAddition}`,
       };
     case 'deletion':
       return {
         num: `${s.bgDeletion} ${s.lineNumDeletion}`,
-        content: `${s.bgDeletion} ${s.textDeletion}`,
+        content: `${s.bgDeletion} ${hasLanguage ? '' : s.textDeletion}`,
       };
     default:
       return {
@@ -180,6 +186,31 @@ function cellClasses(cell: DiffCell | null): {
       };
   }
 }
+
+// 1行分のコードをシンタックスハイライトして inline に描画する。
+// 行単位のトークナイズなので複数行コメントの継続は表現されないが、diff 用途では許容する
+const HighlightedCode = React.memo(function HighlightedCode({
+  code,
+  language,
+}: {
+  code: string;
+  language: string;
+}) {
+  return (
+    <Highlight theme={themes.vsDark} code={code} language={language}>
+      {({ tokens, getTokenProps }) => (
+        <>
+          {tokens[0]?.map((token, i) => (
+            <span
+              key={i}
+              {...(getTokenProps({ token }) as React.HTMLAttributes<HTMLSpanElement>)}
+            />
+          ))}
+        </>
+      )}
+    </Highlight>
+  );
+});
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -191,6 +222,8 @@ const ESTIMATED_ROW_HEIGHT = 20;
 interface DiffLinesProps {
   /** 差分テキスト */
   diff: string;
+  /** ファイルパス（シンタックスハイライトの言語判定に使用） */
+  filePath?: string;
   /** 折り返し */
   wordWrap?: boolean;
 }
@@ -209,10 +242,19 @@ interface DiffLinesProps {
  * このコンポーネント自身がスクロールコンテナを持つ（親は高さを与えるだけでよい）。
  * DiffViewer と Git Graph のコミット詳細で共用する。
  */
-const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
+const DiffLines: React.FC<DiffLinesProps> = ({
+  diff,
+  filePath,
+  wordWrap = false,
+}) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const rulerRef = useRef<HTMLDivElement>(null);
+
+  const language = useMemo(
+    () => (filePath ? detectDiffLanguage(filePath) : null),
+    [filePath]
+  );
 
   // 左右ペインの分割比率（両モード共通）
   const [splitRatio, setSplitRatio] = useState(0.5);
@@ -359,17 +401,21 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
   // 行の枠を画面に固定するためのスタイル（横スクロール分だけ逆方向に補正）
   const rowWidth = paneWidth != null ? `${paneWidth}px` : '100%';
 
-  const renderContent = (cell: DiffCell | null, contentClass: string) => (
-    <span
-      className={`${wordWrap ? s.contentColWrap : s.contentCol} ${contentClass}`}
-    >
-      {wordWrap ? (
-        (cell?.content ?? '')
+  const renderContent = (cell: DiffCell | null, contentClass: string) => {
+    const inner =
+      language && cell ? (
+        <HighlightedCode code={cell.content} language={language} />
       ) : (
-        <span className={s.hscrollText}>{cell?.content ?? ''}</span>
-      )}
-    </span>
-  );
+        (cell?.content ?? '')
+      );
+    return (
+      <span
+        className={`${wordWrap ? s.contentColWrap : s.contentCol} ${contentClass}`}
+      >
+        {wordWrap ? inner : <span className={s.hscrollText}>{inner}</span>}
+      </span>
+    );
+  };
 
   return (
     <div className={s.wrapper}>
@@ -403,8 +449,8 @@ const DiffLines: React.FC<DiffLinesProps> = ({ diff, wordWrap = false }) => {
               );
             }
 
-            const left = cellClasses(row.left);
-            const right = cellClasses(row.right);
+            const left = cellClasses(row.left, language != null);
+            const right = cellClasses(row.right, language != null);
 
             return (
               <div

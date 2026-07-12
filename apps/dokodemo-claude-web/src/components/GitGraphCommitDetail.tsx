@@ -270,7 +270,11 @@ const GitGraphCommitDetail: React.FC<GitGraphCommitDetailProps> = ({
                       </div>
                     )}
                     {activeMatchesHash && fileDiff && fileDiff.diff && (
-                      <DiffLines diff={fileDiff.diff} wordWrap={wordWrap} />
+                      <DiffLines
+                        diff={fileDiff.diff}
+                        filePath={fileDiffFilename ?? undefined}
+                        wordWrap={wordWrap}
+                      />
                     )}
                   </div>
                 </>

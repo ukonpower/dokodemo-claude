@@ -1,15 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   AiOutputLine,
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
 import { repositoryIdMap } from './utils/repository-id-map';
-import {
-  getLastWorktreeForParent,
-  setLastWorktreeForParent,
-  pruneStaleLastWorktreeRefs,
-} from './utils/last-tab-storage';
 
 // フック
 import {
@@ -26,6 +21,12 @@ import {
   useEditorLauncher,
   useFileViewer,
   useCustomAiButtons,
+  useNpmScripts,
+  useSocketBootstrap,
+  useRepositorySwitchFromList,
+  useViewRouting,
+  useDocumentTitle,
+  useAppHotkeys,
 } from './hooks';
 
 // ビュー
@@ -41,6 +42,8 @@ import {
 import DiffViewer from './components/DiffViewer';
 import RepositorySwitcher from './components/RepositorySwitcher';
 import ProjectSwitcherModal from './components/ProjectSwitcherModal';
+import CommandPaletteModal from './components/CommandPaletteModal';
+import { buildCommands, type CommandPaletteCommand } from './commands';
 import { Socket } from 'socket.io-client';
 
 import s from './App.module.scss';
@@ -57,20 +60,6 @@ function App() {
 
   // リポジトリ管理
   const repository = useRepository(socket, initialRepo);
-
-  // ダッシュボードビューモードの状態管理
-  // URL に ?view=dashboard が付いていれば最優先で有効化、無ければ localStorage
-  // から前回の状態を復元する。ファイルビュワー (?view=files) や diff が
-  // アクティブなら下流の条件分岐で隠れるため、ここでは購読範囲のみ管理する。
-  const [dashboardMode, setDashboardMode] = useState<boolean>(() => {
-    if (initialViewFromUrl === 'dashboard') return true;
-    if (!initialRepo) return false;
-    try {
-      return localStorage.getItem(`dokodemo-view-mode-${initialRepo}`) === 'dashboard';
-    } catch {
-      return false;
-    }
-  });
 
   // アプリケーション設定
   const appSettings = useAppSettings(repository.currentRepo);
@@ -130,32 +119,10 @@ function App() {
   // エディタ起動管理
   const editorLauncher = useEditorLauncher(socket, repository.currentRepo);
 
-  // npmスクリプト関連
-  const [npmScripts, setNpmScripts] = useState<Record<string, string>>({});
-
   // プロジェクト切り替えポップアップ
   const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
-
-  // currentRepoの参照
-  const currentRepoRef = useRef(repository.currentRepo);
-  const primaryProviderRef = useRef<typeof primaryProvider>(primaryProvider);
-  const activeInstanceIdRef = useRef(activeInstance?.instanceId);
-  // useEffect 依存に repository 全体を入れると毎レンダリングで effect が
-  // 再発火するため、最新の switchRepository だけを ref 経由で参照する。
-  const switchRepositoryRef = useRef(repository.switchRepository);
-
-  useEffect(() => {
-    currentRepoRef.current = repository.currentRepo;
-  }, [repository.currentRepo]);
-  useEffect(() => {
-    primaryProviderRef.current = primaryProvider;
-  }, [primaryProvider]);
-  useEffect(() => {
-    activeInstanceIdRef.current = activeInstance?.instanceId;
-  }, [activeInstance]);
-  useEffect(() => {
-    switchRepositoryRef.current = repository.switchRepository;
-  }, [repository.switchRepository]);
+  // コマンドパレット
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // active instance が決まったら履歴を取得
   useEffect(() => {
@@ -171,278 +138,29 @@ function App() {
     socket.emit('get-prompt-queue', { rid, provider: primaryProvider });
   }, [socket, repository.currentRepo, primaryProvider]);
 
-  // Socket接続時の初期化処理
-  useEffect(() => {
-    if (!socket || !isConnected) return;
+  // npmスクリプト関連
+  const npm = useNpmScripts(socket, repository.currentRepo, terminal.activeTerminalId);
 
-    // リポジトリ一覧を取得
-    socket.emit('list-repos');
-    // 利用可能なエディタリストを取得
-    socket.emit('get-available-editors');
+  // Socket接続時の初期化処理・追加イベントリスナー
+  useSocketBootstrap({
+    socket,
+    isConnected,
+    currentRepo: repository.currentRepo,
+    primaryProvider,
+    aiTerminalSize,
+    permissionMode: appSettings.appSettings.permissionMode,
+    switchRepository: repository.switchRepository,
+  });
 
-    // リポジトリが選択されている場合は各種情報を取得
-    const currentPath = currentRepoRef.current;
-    if (!currentPath) return;
-
-    // URL の `?repo=<path>` 経由で復元された path は、ユーザがその worktree を
-    // ブラウザに開いたまま削除した結果として実体が消えている可能性がある。
-    // そのまま `switch-repo` を投げると node-pty が cwd 不存在で失敗し、
-    // UI が「何もできない」状態のまま残ってしまうため、事前に存在確認する。
-    // - 存在する → 通常どおり switch-repo
-    // - 存在しない & 親リポを推測できる → 親リポへフォールバック
-    // - それ以外 → URL を消してホームへ戻す
-    const switchOptions = {
-      initialSize: aiTerminalSize || undefined,
-      permissionMode: appSettings.appSettings.permissionMode,
-    } as const;
-
-    const handler = (
-      data: Parameters<ServerToClientEvents['repo-path-checked']>[0]
-    ) => {
-      if (data.path !== currentPath) return;
-      socket.off('repo-path-checked', handler);
-
-      if (data.exists) {
-        socket.emit('switch-repo', { path: currentPath, ...switchOptions });
-        return;
-      }
-
-      // 削除済み worktree への参照を localStorage からも掃除する
-      // （`last-worktree-for-parent` の親→最終 worktree マップが
-      // この path を指したままだと、後でホーム経由で開き直しても再び
-      // 同じ broken state に飛んでしまう）
-      pruneStaleLastWorktreeRefs(currentPath);
-
-      if (data.fallbackParentPath && data.fallbackParentExists) {
-        switchRepositoryRef.current(data.fallbackParentPath);
-      } else {
-        // 親も推測できない/存在しない場合はホームへ戻す
-        switchRepositoryRef.current('');
-      }
-    };
-    socket.on('repo-path-checked', handler);
-    socket.emit('check-repo-path', { path: currentPath });
-
-    return () => {
-      socket.off('repo-path-checked', handler);
-    };
-  }, [socket, isConnected, aiTerminalSize, appSettings.appSettings.permissionMode]);
-
-  // Socket追加イベントリスナー
-  useEffect(() => {
-    if (!socket) return;
-
-    // IDマッピング受信時の処理
-    const handleIdMapping = (
-      data: Parameters<ServerToClientEvents['id-mapping']>[0]
-    ) => {
-      repositoryIdMap.update(data);
-
-      const currentPath = currentRepoRef.current;
-      if (currentPath) {
-        const rid = repositoryIdMap.getRid(currentPath);
-        if (rid) {
-          socket.emit('list-ai-instances', { rid });
-          socket.emit('list-worktrees', { rid });
-          socket.emit('list-terminals', { rid });
-          socket.emit('list-shortcuts', { rid });
-          socket.emit('list-branches', { rid });
-          socket.emit('get-npm-scripts', { rid });
-          const provider = primaryProviderRef.current;
-          if (provider) {
-            socket.emit('get-prompt-queue', { rid, provider });
-          }
-          socket.emit('get-files', { rid });
-        }
-      }
-    };
-
-    const handleIdMappingUpdated = (
-      data: Parameters<ServerToClientEvents['id-mapping-updated']>[0]
-    ) => {
-      repositoryIdMap.update(data);
-      const currentPath = currentRepoRef.current;
-      if (currentPath) {
-        const rid = repositoryIdMap.getRid(currentPath);
-        if (rid) {
-          socket.emit('list-worktrees', { rid });
-        }
-      }
-    };
-
-    // npmスクリプト関連
-    const handleNpmScriptsList = (
-      data: Parameters<ServerToClientEvents['npm-scripts-list']>[0]
-    ) => {
-      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
-      if (data.rid === currentRid) {
-        setNpmScripts(data.scripts);
-      }
-    };
-
-    // Self pulled
-    const handleSelfPulled = (
-      data: Parameters<ServerToClientEvents['self-pulled']>[0]
-    ) => {
-      if (data.success) {
-        alert(`✅ ${data.message}\n\n${data.output}`);
-      } else {
-        alert(`❌ ${data.message}\n\n${data.output}`);
-      }
-    };
-
-    // リポジトリ切り替え完了時に追加データを取得
-    const handleRepoSwitched = (
-      data: Parameters<ServerToClientEvents['repo-switched']>[0]
-    ) => {
-      if (data.success && data.rid) {
-        socket.emit('list-ai-instances', { rid: data.rid });
-        if (data.primaryProvider) {
-          socket.emit('get-prompt-queue', {
-            rid: data.rid,
-            provider: data.primaryProvider,
-          });
-        }
-        socket.emit('list-worktrees', { rid: data.rid });
-        socket.emit('list-terminals', { rid: data.rid });
-        socket.emit('list-shortcuts', { rid: data.rid });
-        socket.emit('list-branches', { rid: data.rid });
-        socket.emit('get-npm-scripts', { rid: data.rid });
-        socket.emit('get-files', { rid: data.rid });
-        socket.emit('get-git-diff-summary', { rid: data.rid });
-        socket.emit('get-repos-process-status');
-        // @ts-expect-error get-remote-url is not in ClientToServerEvents
-        socket.emit('get-remote-url', { rid: data.rid });
-      }
-    };
-
-    socket.on('id-mapping', handleIdMapping);
-    socket.on('id-mapping-updated', handleIdMappingUpdated);
-    socket.on('npm-scripts-list', handleNpmScriptsList);
-    socket.on('self-pulled', handleSelfPulled);
-    socket.on('repo-switched', handleRepoSwitched);
-
-    return () => {
-      socket.off('id-mapping', handleIdMapping);
-      socket.off('id-mapping-updated', handleIdMappingUpdated);
-      socket.off('npm-scripts-list', handleNpmScriptsList);
-      socket.off('self-pulled', handleSelfPulled);
-      socket.off('repo-switched', handleRepoSwitched);
-    };
-  }, [socket]);
-
-  // npmスクリプト実行ハンドラ
-  const handleExecuteNpmScript = useCallback(
-    (scriptName: string) => {
-      if (socket && repository.currentRepo) {
-        const rid = repositoryIdMap.getRid(repository.currentRepo);
-        if (!rid) return;
-        socket.emit('execute-npm-script', {
-          rid,
-          scriptName,
-          terminalId: terminal.activeTerminalId || undefined,
-        });
-      }
-    },
-    [socket, repository.currentRepo, terminal.activeTerminalId]
-  );
-
-  // npmスクリプト更新ハンドラ
-  const handleRefreshNpmScripts = useCallback(() => {
-    if (socket && repository.currentRepo) {
-      const rid = repositoryIdMap.getRid(repository.currentRepo);
-      if (!rid) return;
-      socket.emit('get-npm-scripts', { rid });
-    }
-  }, [socket, repository.currentRepo]);
-
-  // ブラウザの戻る/進むボタン対応
-  useEffect(() => {
-    const handlePopState = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const repoFromUrl = urlParams.get('repo') || '';
-      const viewFromUrl = urlParams.get('view');
-      const fileFromUrl = urlParams.get('file') || '';
-
-      // リポジトリが変化していれば切り替え（URL は既にブラウザ側で更新済み）
-      if (repoFromUrl !== currentRepoRef.current) {
-        repository.switchRepository(repoFromUrl, { skipPushState: true });
-        return;
-      }
-
-      if (viewFromUrl === 'graph') {
-        setDashboardMode(false);
-        gitDiff.handleDiffViewBack();
-        fileViewer.clearState();
-        gitGraph.syncActive(true);
-        return;
-      }
-
-      // graph 以外へ遷移する場合は graph ビューを閉じる
-      gitGraph.syncActive(false);
-
-      if (viewFromUrl === 'files') {
-        // ファイルビュワーのpopstate対応はフック内で状態管理
-        setDashboardMode(false);
-      } else if (viewFromUrl === 'diff' && fileFromUrl) {
-        setDashboardMode(false);
-        gitDiff.handleDiffFileClick(fileFromUrl);
-      } else if (viewFromUrl === 'dashboard') {
-        setDashboardMode(true);
-        gitDiff.handleDiffViewBack();
-        fileViewer.clearState();
-      } else {
-        setDashboardMode(false);
-        gitDiff.handleDiffViewBack();
-        fileViewer.clearState();
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [repository, gitDiff, fileViewer, gitGraph]);
-
-  // リポジトリ切り替え時にダッシュボードモードを localStorage から復元
-  useEffect(() => {
-    if (!repository.currentRepo) return;
-    try {
-      const saved = localStorage.getItem(
-        `dokodemo-view-mode-${repository.currentRepo}`
-      );
-      setDashboardMode(saved === 'dashboard');
-    } catch {
-      /* noop */
-    }
-  }, [repository.currentRepo]);
-
-  // ダッシュボードモード切替（URL と localStorage に反映）
-  const setDashboardModeAndPersist = useCallback(
-    (next: boolean) => {
-      setDashboardMode(next);
-      const repo = currentRepoRef.current;
-      if (repo) {
-        try {
-          localStorage.setItem(
-            `dokodemo-view-mode-${repo}`,
-            next ? 'dashboard' : 'project'
-          );
-        } catch {
-          /* noop */
-        }
-      }
-      // URL も同期（リポジトリ切替で消えるので個別管理）
-      const url = new URL(window.location.href);
-      if (next) {
-        url.searchParams.set('view', 'dashboard');
-      } else {
-        if (url.searchParams.get('view') === 'dashboard') {
-          url.searchParams.delete('view');
-        }
-      }
-      window.history.pushState({}, '', url.toString());
-    },
-    []
-  );
+  // ビュールーティング（dashboardMode の管理 + popstate 対応）
+  const { dashboardMode, setDashboardModeAndPersist } = useViewRouting({
+    initialRepo,
+    initialViewFromUrl,
+    repository,
+    gitDiff,
+    fileViewer,
+    gitGraph,
+  });
 
   // ファイルビュワーが開かれたらGit差分サマリーを取得
   useEffect(() => {
@@ -452,87 +170,31 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileViewer.isActive]);
 
-  // Ctrl+Shift+P / Cmd+Shift+P でプロジェクト切り替えポップアップを開く
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
-        e.preventDefault();
-        setIsProjectSwitcherOpen((open) => !open);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  // Ctrl+P / Cmd+P でプロジェクト切り替え、Ctrl+Shift+P / Cmd+Shift+P でコマンドパレット
+  useAppHotkeys({
+    onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
+    onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
+    // Ctrl/Cmd+Shift+←→: プロジェクトビューでAIインスタンスタブを循環切り替え
+    onSwitchAiInstance: (direction) => {
+      if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
+      const sorted = [...aiCli.aiInstances].sort((a, b) => a.order - b.order);
+      if (sorted.length < 2) return;
+      const currentIndex = sorted.findIndex(
+        (i) => i.instanceId === aiCli.activeInstance?.instanceId
+      );
+      const next =
+        sorted[(currentIndex + direction + sorted.length) % sorted.length];
+      aiCli.activateInstance(next.instanceId);
+    },
+  });
 
   // ビュー別ページタイトル設定
-  useEffect(() => {
-    const repoInfo = repository.repositories.find((r) => r.path === repository.currentRepo);
-    let repoName: string;
-    if (repoInfo?.isWorktree && repoInfo?.parentRepoName && repoInfo?.worktreeBranch) {
-      repoName = `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`;
-    } else if (repoInfo) {
-      repoName = repoInfo.name;
-    } else if (repository.currentRepo) {
-      repoName = repository.currentRepo.split('/').filter(Boolean).pop() || 'Repository';
-    } else {
-      document.title = 'dokodemo-claude';
-      return;
-    }
+  useDocumentTitle(repository, fileViewer, gitDiff);
 
-    if (fileViewer.isActive) {
-      if (fileViewer.selectedFilePath) {
-        const fileName = fileViewer.selectedFilePath.split('/').pop() || 'Files';
-        document.title = `${fileName} | ${repoName}`;
-      } else {
-        document.title = `Files | ${repoName}`;
-      }
-    } else if (gitDiff.currentView === 'diff' && gitDiff.diffViewFilename) {
-      document.title = `Diff | ${repoName}`;
-    } else {
-      document.title = repoName;
-    }
-  }, [
-    repository.currentRepo,
-    repository.repositories,
-    fileViewer.isActive,
-    fileViewer.selectedFilePath,
-    gitDiff.currentView,
-    gitDiff.diffViewFilename,
-  ]);
-
-  // リポジトリ一覧（HomeView / RepositorySwitcher）からのクリック時に、
-  // 親リポに紐づく「最後に選んだ worktree」が保存されていれば差し替える。
-  // 自動 restore は本ハンドラ呼び出し時にのみ発火（描画時の useEffect では
-  // やらない）。これにより「topに戻る」ボタンを押してもホームに留まれる。
-  // 保存された worktree が削除済みだった場合は親リポへフォールバックし、
-  // 保存値をクリアして次回以降の無効参照を防ぐ。
-  const switchRepositoryFromList = useCallback(
-    (path: string) => {
-      if (!path) {
-        repository.switchRepository(path);
-        return;
-      }
-      const lastPath = getLastWorktreeForParent(path);
-      if (!lastPath || lastPath === path || !socket) {
-        repository.switchRepository(path);
-        return;
-      }
-      // サーバに存在確認 → 結果次第で worktree か親リポへ切り替える
-      const handler = (data: { path: string; exists: boolean }) => {
-        if (data.path !== lastPath) return;
-        socket.off('repo-path-checked', handler);
-        if (data.exists) {
-          repository.switchRepository(lastPath);
-        } else {
-          // 削除されていた worktree への参照を捨てて親リポへ戻す
-          setLastWorktreeForParent(path, path);
-          repository.switchRepository(path);
-        }
-      };
-      socket.on('repo-path-checked', handler);
-      socket.emit('check-repo-path', { path: lastPath });
-    },
-    [repository, socket]
+  // リポジトリ一覧（HomeView / RepositorySwitcher）からのクリック時の切り替え
+  const switchRepositoryFromList = useRepositorySwitchFromList(
+    socket,
+    repository.switchRepository
   );
 
   // どのビューでも共通でレンダリングするプロジェクト切り替えポップアップ
@@ -545,6 +207,46 @@ function App() {
       repoProcessStatuses={repository.repoProcessStatuses}
       onSwitchRepository={switchRepositoryFromList}
     />
+  );
+
+  // コマンドパレットを開いたら push 先選択用に remote 一覧を取得しておく
+  useEffect(() => {
+    if (isCommandPaletteOpen && repository.currentRepo) {
+      gitGraph.requestRemotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCommandPaletteOpen, repository.currentRepo]);
+
+  // コマンドパレット。リポジトリ選択中ならどのビューでも pull/push/fetch を出す。
+  const paletteCommands = useMemo<CommandPaletteCommand[]>(
+    () =>
+      buildCommands({
+        currentRepo: repository.currentRepo,
+        gitGraph,
+        dashboardMode,
+        setDashboardMode: setDashboardModeAndPersist,
+        openFileViewer: () => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('view', 'files');
+          window.open(url.toString(), '_blank');
+        },
+      }),
+    [gitGraph, repository.currentRepo, dashboardMode, setDashboardModeAndPersist]
+  );
+
+  const commandPalette = (
+    <CommandPaletteModal
+      isOpen={isCommandPaletteOpen}
+      onClose={() => setIsCommandPaletteOpen(false)}
+      commands={paletteCommands}
+    />
+  );
+
+  const overlays = (
+    <>
+      {projectSwitcher}
+      {commandPalette}
+    </>
   );
 
   // リポジトリが選択されていない場合はホーム画面
@@ -575,7 +277,7 @@ function App() {
         onConfirmStopProcesses={repository.confirmStopProcesses}
         onCancelStopProcesses={repository.cancelStopProcesses}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -593,7 +295,7 @@ function App() {
         diffSummary={gitDiff.diffSummary}
         rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -618,7 +320,7 @@ function App() {
           repoName={graphRepoName}
           rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
         />
-        {projectSwitcher}
+        {overlays}
       </>
     );
   }
@@ -644,7 +346,7 @@ function App() {
           onSwitchRepository={switchRepositoryFromList}
         />
       </div>
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -689,7 +391,7 @@ function App() {
         onOpenInEditor={editorLauncher.openInEditor}
         remoteUrl={editorLauncher.remoteUrl}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -768,6 +470,10 @@ function App() {
       onPullBranch={branchWorktree.pullBranch}
       pullState={branchWorktree.pullState}
       onClearPullState={branchWorktree.clearPullState}
+      syncStatus={branchWorktree.syncStatus}
+      pushState={branchWorktree.pushState}
+      onPushBranch={branchWorktree.pushBranch}
+      onClearPushState={branchWorktree.clearPushState}
       onCreateWorktree={branchWorktree.createWorktree}
       onReorderWorktrees={branchWorktree.reorderWorktrees}
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}
@@ -813,9 +519,9 @@ function App() {
       onRefreshDiffSummary={gitDiff.refreshDiffSummary}
       onDiffFileClick={gitDiff.handleDiffFileClick}
       // npmスクリプト関連
-      npmScripts={npmScripts}
-      onExecuteNpmScript={handleExecuteNpmScript}
-      onRefreshNpmScripts={handleRefreshNpmScripts}
+      npmScripts={npm.npmScripts}
+      onExecuteNpmScript={npm.executeNpmScript}
+      onRefreshNpmScripts={npm.refreshNpmScripts}
       // エディタ関連
       availableEditors={editorLauncher.availableEditors}
       showEditorMenu={editorLauncher.showEditorMenu}
@@ -873,7 +579,7 @@ function App() {
       // Git Graph 表示
       onOpenGraphView={gitGraph.openGraphView}
     />
-    {projectSwitcher}
+    {overlays}
     </>
   );
 }

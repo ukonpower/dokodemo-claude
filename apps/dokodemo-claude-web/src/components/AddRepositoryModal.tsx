@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, GitBranch, FolderPlus } from 'lucide-react';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './AddRepositoryModal.module.scss';
 
 interface AddRepositoryModalProps {
@@ -80,6 +81,8 @@ const AddRepositoryModal: React.FC<AddRepositoryModalProps> = ({
     }
   };
 
+  const overlayProps = useOverlayClose(handleClose);
+
   if (!isOpen) return null;
 
   const modes = [
@@ -88,14 +91,8 @@ const AddRepositoryModal: React.FC<AddRepositoryModalProps> = ({
   ];
 
   return (
-    <div
-      className={s.overlay}
-      onClick={handleClose}
-    >
-      <div
-        className={s.modal}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className={s.overlay} {...overlayProps}>
+      <div className={s.modal}>
         {/* ヘッダー */}
         <div className={s.header}>
           <h2 className={s.headerTitle}>

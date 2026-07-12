@@ -47,6 +47,12 @@ export interface UseGitGraphReturn {
     target: string,
     opts: { noFF: boolean; squash: boolean; noCommit: boolean }
   ) => void;
+  pull: () => void;
+  push: (opts?: { remote?: string; force?: boolean; setUpstream?: boolean }) => void;
+  fetch: (opts?: { prune?: boolean }) => void;
+  // push 先選択用の remote 一覧と、その取得要求
+  remotes: string[];
+  requestRemotes: () => void;
 
   // アクション
   openGraphView: () => void;
@@ -94,6 +100,9 @@ export function useGitGraph(
   );
 
   const [actionInProgress, setActionInProgress] = useState(false);
+
+  // push 先選択用の remote 一覧（グラフ未表示でも requestRemotes で取得できる）
+  const [remotes, setRemotes] = useState<string[]>([]);
 
   const [fileDiff, setFileDiff] = useState<GitDiffDetail | null>(null);
   const [fileDiffLoading, setFileDiffLoading] = useState(false);
@@ -153,8 +162,18 @@ export function useGitGraph(
       const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
       if (data.rid === currentRid) {
         setGraph(data.graph);
+        setRemotes(data.graph.remotes);
         setLoading(false);
         setError(null);
+      }
+    };
+
+    const handleRemotesResult = (
+      data: Parameters<ServerToClientEvents['git-graph-remotes-result']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid === currentRid) {
+        setRemotes(data.remotes);
       }
     };
 
@@ -239,6 +258,7 @@ export function useGitGraph(
     };
 
     socket.on('git-graph', handleGraph);
+    socket.on('git-graph-remotes-result', handleRemotesResult);
     socket.on('git-graph-commit-detail', handleCommitDetail);
     socket.on('git-graph-file-diff', handleFileDiff);
     socket.on('git-graph-error', handleError);
@@ -248,6 +268,7 @@ export function useGitGraph(
 
     return () => {
       socket.off('git-graph', handleGraph);
+      socket.off('git-graph-remotes-result', handleRemotesResult);
       socket.off('git-graph-commit-detail', handleCommitDetail);
       socket.off('git-graph-file-diff', handleFileDiff);
       socket.off('git-graph-error', handleError);
@@ -398,6 +419,46 @@ export function useGitGraph(
     [socket, currentRepo]
   );
 
+  const pull = useCallback(() => {
+    if (!socket || !currentRepo) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    setActionInProgress(true);
+    setError(null);
+    socket.emit('git-graph-pull', { rid });
+  }, [socket, currentRepo]);
+
+  const push = useCallback(
+    (opts?: { remote?: string; force?: boolean; setUpstream?: boolean }) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      setActionInProgress(true);
+      setError(null);
+      socket.emit('git-graph-push', { rid, ...(opts ?? {}) });
+    },
+    [socket, currentRepo]
+  );
+
+  const fetchRemote = useCallback(
+    (opts?: { prune?: boolean }) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      setActionInProgress(true);
+      setError(null);
+      socket.emit('git-graph-fetch', { rid, ...(opts ?? {}) });
+    },
+    [socket, currentRepo]
+  );
+
+  const requestRemotes = useCallback(() => {
+    if (!socket || !currentRepo) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    socket.emit('git-graph-remotes', { rid });
+  }, [socket, currentRepo]);
+
   const clearState = useCallback(() => {
     setIsActive(false);
     setGraph(null);
@@ -428,6 +489,11 @@ export function useGitGraph(
     actionInProgress,
     checkout,
     merge,
+    pull,
+    push,
+    fetch: fetchRemote,
+    remotes,
+    requestRemotes,
     openGraphView,
     handleBack,
     syncActive,
