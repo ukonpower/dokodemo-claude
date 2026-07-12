@@ -677,6 +677,21 @@ export interface ServerToClientEvents {
     rid?: string;
   }) => void;
 
+  // ブランチ同期状態（ahead/behind）
+  'branch-sync-status': (data: {
+    rid: string;
+    upstream: string | null; // 例 'origin/main'。追跡ブランチが無ければ null（ahead/behind は 0）
+    ahead: number; // ローカルだけにあるコミット数（push で送られる分）
+    behind: number; // upstream だけにあるコミット数（pull で取り込まれる分）
+  }) => void;
+  'branch-push-started': (data: { rid: string }) => void;
+  'branch-push-progress': (data: {
+    rid: string;
+    chunk: string;
+    stream: 'stdout' | 'stderr';
+  }) => void;
+  'branch-pushed': (data: { rid: string; success: boolean; message: string }) => void;
+
   // プロンプトキュー関連イベント
   'prompt-queue-updated': (data: {
     rid?: string; // リポジトリID（必須）
@@ -1007,6 +1022,10 @@ export interface ClientToServerEvents {
     rid?: string;
     repositoryPath?: string;
   }) => void;
+
+  // 現在ブランチの同期状態（ahead/behind）取得・push
+  'get-branch-sync-status': (data: { rid: string }) => void;
+  'push-branch': (data: { rid: string }) => void;
 
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {

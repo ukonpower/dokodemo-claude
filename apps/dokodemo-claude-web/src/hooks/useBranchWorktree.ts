@@ -61,6 +61,16 @@ export interface PullState {
   message?: string;
 }
 
+/** 現在ブランチの同期状態（null は未取得） */
+export interface BranchSyncStatus {
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+}
+
+// sync status のポーリング間隔（判断済み事項どおり 30 秒）
+const SYNC_STATUS_POLL_INTERVAL_MS = 30000;
+
 /**
  * useBranchWorktree フックの戻り値
  */
@@ -85,12 +95,18 @@ export interface UseBranchWorktreeReturn {
   // pull 状態（実行中・成功・失敗 + 進行ログ）
   pullState: PullState | null;
 
+  // 現在ブランチの同期状態（ahead/behind。null は未取得）
+  syncStatus: BranchSyncStatus | null;
+  // push 状態（実行中・成功・失敗 + 進行ログ。pullState と同形式）
+  pushState: PullState | null;
+
   // ブランチアクション
   switchBranch: (branchName: string) => void;
   deleteBranch: (branchName: string, deleteRemote?: boolean) => void;
   createBranch: (branchName: string, baseBranch?: string) => void;
   refreshBranches: () => void;
   pullBranch: () => void;
+  pushBranch: () => void;
 
   // ワークツリーアクション
   createWorktree: (
@@ -123,6 +139,7 @@ export interface UseBranchWorktreeReturn {
     } | null
   ) => void;
   clearPullState: () => void;
+  clearPushState: () => void;
   clearWorktreeCreateError: () => void;
 
   // クリア関数（リポジトリ切り替え時用）
@@ -164,6 +181,11 @@ export function useBranchWorktree(
   // pull 状態（running / success / error + 進行ログ）
   const [pullState, setPullState] = useState<PullState | null>(null);
 
+  // 現在ブランチの同期状態（ahead/behind）
+  const [syncStatus, setSyncStatus] = useState<BranchSyncStatus | null>(null);
+  // push 状態（running / success / error + 進行ログ）
+  const [pushState, setPushState] = useState<PullState | null>(null);
+
   // ワークツリー同期設定
   const [worktreeSyncConfig, setWorktreeSyncConfig] =
     useState<WorktreeSyncConfigState | null>(null);
@@ -184,6 +206,34 @@ export function useBranchWorktree(
     parentRepoPathRef.current = parentRepoPath;
   }, [parentRepoPath]);
 
+  // リポジトリ切替時は同期状態を未取得にリセットする
+  useEffect(() => {
+    setSyncStatus(null);
+  }, [currentRepo]);
+
+  // 現在ブランチの同期状態（ahead/behind）を要求する。
+  // ref 経由で currentRepo を参照するため socket 以外に依存せず、
+  // listener effect の依存配列に含めても再購読を引き起こさない。
+  const requestSyncStatus = useCallback(() => {
+    if (!socket) return;
+    const repoPath = currentRepoRef.current;
+    if (!repoPath) return;
+    const rid = repositoryIdMap.getRid(repoPath);
+    if (!rid) return;
+    socket.emit('get-branch-sync-status', { rid });
+  }, [socket]);
+
+  // 30秒間隔ポーリング（socket 接続中かつタブがアクティブなときのみ）
+  useEffect(() => {
+    if (!socket) return;
+    const interval = setInterval(() => {
+      if (socket.connected && document.visibilityState === 'visible') {
+        requestSyncStatus();
+      }
+    }, SYNC_STATUS_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [socket, requestSyncStatus]);
+
   // Socketイベントリスナー
   useEffect(() => {
     if (!socket) return;
@@ -199,6 +249,8 @@ export function useBranchWorktree(
         if (current) {
           setCurrentBranch(current.name);
         }
+        // ブランチ切替・HEAD 変更に追随して同期状態を取り直す
+        requestSyncStatus();
       }
     };
 
@@ -365,6 +417,57 @@ export function useBranchWorktree(
         log: data.output,
         message: data.message,
       });
+      requestSyncStatus();
+    };
+
+    // ブランチ同期状態（ahead/behind）
+    const handleBranchSyncStatus = (
+      data: Parameters<ServerToClientEvents['branch-sync-status']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setSyncStatus({
+        upstream: data.upstream,
+        ahead: data.ahead,
+        behind: data.behind,
+      });
+    };
+
+    // ブランチ push 開始
+    const handleBranchPushStarted = (
+      data: Parameters<ServerToClientEvents['branch-push-started']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setPushState({ status: 'running', log: '' });
+    };
+
+    // ブランチ push 進行ログ（stdout/stderr のチャンク）
+    const handleBranchPushProgress = (
+      data: Parameters<ServerToClientEvents['branch-push-progress']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setPushState((prev) => {
+        // 進行ログは running 中だけ追記する（完了後の遅延チャンクは無視）
+        if (!prev || prev.status !== 'running') return prev;
+        return { ...prev, log: prev.log + data.chunk };
+      });
+    };
+
+    // ブランチ push 結果
+    // 契約上 output は無いため、progress で積み上げた log をそのまま保持する
+    const handleBranchPushed = (
+      data: Parameters<ServerToClientEvents['branch-pushed']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setPushState((prev) => ({
+        status: data.success ? 'success' : 'error',
+        log: prev?.log ?? '',
+        message: data.message,
+      }));
+      requestSyncStatus();
     };
 
     // ワークツリー同期設定（取得）
@@ -424,6 +527,10 @@ export function useBranchWorktree(
     socket.on('branch-pull-started', handleBranchPullStarted);
     socket.on('branch-pull-progress', handleBranchPullProgress);
     socket.on('branch-pulled', handleBranchPulled);
+    socket.on('branch-sync-status', handleBranchSyncStatus);
+    socket.on('branch-push-started', handleBranchPushStarted);
+    socket.on('branch-push-progress', handleBranchPushProgress);
+    socket.on('branch-pushed', handleBranchPushed);
     socket.on('worktree-sync-config', handleWorktreeSyncConfig);
     socket.on('worktree-sync-config-saved', handleWorktreeSyncConfigSaved);
     socket.on('worktree-sync-candidates', handleWorktreeSyncCandidates);
@@ -439,11 +546,15 @@ export function useBranchWorktree(
       socket.off('branch-pull-started', handleBranchPullStarted);
       socket.off('branch-pull-progress', handleBranchPullProgress);
       socket.off('branch-pulled', handleBranchPulled);
+      socket.off('branch-sync-status', handleBranchSyncStatus);
+      socket.off('branch-push-started', handleBranchPushStarted);
+      socket.off('branch-push-progress', handleBranchPushProgress);
+      socket.off('branch-pushed', handleBranchPushed);
       socket.off('worktree-sync-config', handleWorktreeSyncConfig);
       socket.off('worktree-sync-config-saved', handleWorktreeSyncConfigSaved);
       socket.off('worktree-sync-candidates', handleWorktreeSyncCandidates);
     };
-  }, [socket, currentProvider, onBranchError, onSwitchRepository]);
+  }, [socket, currentProvider, onBranchError, onSwitchRepository, requestSyncStatus]);
 
   // アクション関数
   const switchBranch = useCallback(
@@ -496,6 +607,19 @@ export function useBranchWorktree(
 
   const clearPullState = useCallback(() => {
     setPullState(null);
+  }, []);
+
+  const pushBranch = useCallback(() => {
+    if (!socket || !currentRepo) return;
+    const rid = repositoryIdMap.getRid(currentRepo);
+    if (!rid) return;
+    // 開始イベントが来る前にもポップオーバーを出したいので、ここで楽観的に running をセット
+    setPushState({ status: 'running', log: '' });
+    socket.emit('push-branch', { rid });
+  }, [socket, currentRepo]);
+
+  const clearPushState = useCallback(() => {
+    setPushState(null);
   }, []);
 
   const createWorktree = useCallback(
@@ -660,6 +784,8 @@ export function useBranchWorktree(
     setWorktrees([]);
     setParentRepoPath('');
     setPullState(null);
+    setSyncStatus(null);
+    setPushState(null);
     setWorktreeCreateError(null);
     setWorktreeSyncConfig(null);
     setWorktreeSyncCandidates(null);
@@ -676,11 +802,14 @@ export function useBranchWorktree(
     isDeletingWorktree,
     deletingWorktreePath,
     pullState,
+    syncStatus,
+    pushState,
     switchBranch,
     deleteBranch,
     createBranch,
     refreshBranches,
     pullBranch,
+    pushBranch,
     createWorktree,
     deleteWorktree,
     mergeWorktree,
@@ -689,6 +818,7 @@ export function useBranchWorktree(
     saveWorktreeMemo,
     setMergeError,
     clearPullState,
+    clearPushState,
     clearWorktreeCreateError,
     clearState,
     worktreeSyncConfig,

@@ -470,6 +470,10 @@ function App() {
       onPullBranch={branchWorktree.pullBranch}
       pullState={branchWorktree.pullState}
       onClearPullState={branchWorktree.clearPullState}
+      syncStatus={branchWorktree.syncStatus}
+      pushState={branchWorktree.pushState}
+      onPushBranch={branchWorktree.pushBranch}
+      onClearPushState={branchWorktree.clearPushState}
       onCreateWorktree={branchWorktree.createWorktree}
       onReorderWorktrees={branchWorktree.reorderWorktrees}
       worktreeSyncConfig={branchWorktree.worktreeSyncConfig}

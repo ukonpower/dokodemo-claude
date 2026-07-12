@@ -227,6 +227,171 @@ export async function pullBranch(
 }
 
 /**
+ * 現在ブランチの upstream と ahead/behind を返す。
+ * upstream が未設定（または detached HEAD）の場合は upstream: null を返す。
+ * ネットワークアクセス（fetch）は行わない。ローカルの remote-tracking ref のみを参照する。
+ */
+export async function getBranchSyncStatus(repoPath: string): Promise<{
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+}> {
+  const fallback = { upstream: null, ahead: 0, behind: 0 };
+
+  const upstream = await new Promise<string | null>((resolve) => {
+    const gitProcess = spawn(
+      'git',
+      ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
+      { cwd: repoPath, env: cleanChildEnv() }
+    );
+    let stdout = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    gitProcess.on('exit', (code) => {
+      resolve(code === 0 ? stdout.trim() : null);
+    });
+
+    gitProcess.on('error', () => {
+      resolve(null);
+    });
+  });
+
+  if (!upstream) {
+    return fallback;
+  }
+
+  return new Promise((resolve) => {
+    const gitProcess = spawn(
+      'git',
+      ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'],
+      { cwd: repoPath, env: cleanChildEnv() }
+    );
+    let stdout = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    gitProcess.on('exit', (code) => {
+      if (code !== 0) {
+        resolve(fallback);
+        return;
+      }
+      const parts = stdout.trim().split(/\s+/);
+      const behind = Number(parts[0]);
+      const ahead = Number(parts[1]);
+      if (parts.length !== 2 || Number.isNaN(behind) || Number.isNaN(ahead)) {
+        resolve(fallback);
+        return;
+      }
+      resolve({ upstream, ahead, behind });
+    });
+
+    gitProcess.on('error', () => {
+      resolve(fallback);
+    });
+  });
+}
+
+/**
+ * 現在ブランチを push する。upstream 未設定なら --set-upstream origin <branch> で publish する。
+ *
+ * onProgress を渡すと stdout/stderr のチャンクを逐次受け取れる
+ * （ストリーミング UI 用）。git は進捗情報を stderr に出すため、
+ * 進捗を見たい場合は --progress を付けて呼び出す。
+ */
+export async function pushBranch(
+  repoPath: string,
+  onProgress?: (chunk: string, stream: 'stdout' | 'stderr') => void
+): Promise<{ success: boolean; message: string; output: string }> {
+  const { upstream } = await getBranchSyncStatus(repoPath);
+
+  let args = ['push', '--progress'];
+  if (!upstream) {
+    const branchName = await new Promise<string | null>((resolve) => {
+      const gitProcess = spawn(
+        'git',
+        ['rev-parse', '--abbrev-ref', 'HEAD'],
+        { cwd: repoPath, env: cleanChildEnv() }
+      );
+      let stdout = '';
+
+      gitProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      gitProcess.on('exit', (code) => {
+        resolve(code === 0 ? stdout.trim() : null);
+      });
+
+      gitProcess.on('error', () => {
+        resolve(null);
+      });
+    });
+
+    if (branchName) {
+      args = ['push', '--progress', '--set-upstream', 'origin', branchName];
+    }
+  }
+
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', args, {
+      cwd: repoPath,
+      env: cleanChildEnv(),
+    });
+    let stdout = '';
+    let stderr = '';
+
+    gitProcess.stdout.on('data', (data) => {
+      const text = data.toString();
+      stdout += text;
+      onProgress?.(text, 'stdout');
+    });
+
+    gitProcess.stderr.on('data', (data) => {
+      const text = data.toString();
+      stderr += text;
+      onProgress?.(text, 'stderr');
+    });
+
+    const timeout = setTimeout(() => {
+      gitProcess.kill('SIGTERM');
+      resolve({
+        success: false,
+        message: 'git push がタイムアウトしました',
+        output: stdout + stderr,
+      });
+    }, 60000);
+
+    gitProcess.on('exit', (code) => {
+      clearTimeout(timeout);
+      const combinedOutput = [stdout, stderr]
+        .filter((s) => s.length > 0)
+        .join('\n')
+        .trim();
+      const output = combinedOutput || '(出力なし)';
+      resolve({
+        success: code === 0,
+        message: code === 0 ? 'push が完了しました' : 'push に失敗しました',
+        output,
+      });
+    });
+
+    gitProcess.on('error', (err) => {
+      clearTimeout(timeout);
+      resolve({
+        success: false,
+        message: `push エラー: ${err.message}`,
+        output: '',
+      });
+    });
+  });
+}
+
+/**
  * ブランチを作成して切り替え (`git checkout -b`)
  */
 export async function createBranch(

@@ -497,6 +497,27 @@ export interface ServerToClientEvents {
     rid?: string;
   }) => void;
 
+  // ブランチ ahead/behind 状態通知
+  'branch-sync-status': (data: {
+    rid: string;
+    upstream: string | null;
+    ahead: number;
+    behind: number;
+  }) => void;
+
+  // ブランチ push 開始通知
+  'branch-push-started': (data: { rid: string }) => void;
+
+  // ブランチ push 進行ログ（stdout/stderr のストリーミング配信）
+  'branch-push-progress': (data: {
+    rid: string;
+    chunk: string;
+    stream: 'stdout' | 'stderr';
+  }) => void;
+
+  // ブランチ push 結果通知
+  'branch-pushed': (data: { rid: string; success: boolean; message: string }) => void;
+
   // プロンプトキュー関連イベント
   'prompt-queue-updated': (data: {
     rid?: string; // リポジトリID（必須）
@@ -870,6 +891,12 @@ export interface ClientToServerEvents {
     rid?: string;
     repositoryPath?: string;
   }) => void;
+
+  // 現在ブランチの ahead/behind 状態を取得（fetch はしない）
+  'get-branch-sync-status': (data: { rid: string }) => void;
+
+  // 現在ブランチの push
+  'push-branch': (data: { rid: string }) => void;
 
   // プロンプトキュー関連イベント
   'add-to-prompt-queue': (data: {
