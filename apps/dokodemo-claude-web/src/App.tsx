@@ -174,6 +174,18 @@ function App() {
   useAppHotkeys({
     onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
     onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
+    // Ctrl/Cmd+Shift+←→: プロジェクトビューでAIインスタンスタブを循環切り替え
+    onSwitchAiInstance: (direction) => {
+      if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
+      const sorted = [...aiCli.aiInstances].sort((a, b) => a.order - b.order);
+      if (sorted.length < 2) return;
+      const currentIndex = sorted.findIndex(
+        (i) => i.instanceId === aiCli.activeInstance?.instanceId
+      );
+      const next =
+        sorted[(currentIndex + direction + sorted.length) % sorted.length];
+      aiCli.activateInstance(next.instanceId);
+    },
   });
 
   // ビュー別ページタイトル設定
