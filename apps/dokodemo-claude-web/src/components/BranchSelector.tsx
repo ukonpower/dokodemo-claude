@@ -310,6 +310,7 @@ function BranchSelector({
       </button>
 
       {/* VSCode 風の ahead/behind インジケーター */}
+      {!syncStatus && <span className={s.syncIndicatorPlaceholder} aria-hidden />}
       {syncStatus && (
         <button
           ref={syncIndicatorRef}
