@@ -1,19 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { fuzzyMatch } from '../utils/fuzzy-match';
+import type { CommandPaletteCommand } from '../commands/types';
 import s from './CommandPaletteModal.module.scss';
-
-export interface CommandPaletteCommand {
-  id: string;
-  label: string;
-  description?: string;
-  category?: string;
-  icon?: React.ReactNode;
-  disabled?: boolean;
-  // children を持つコマンドは実行せずサブメニューへ遷移する（run は無視される）
-  children?: CommandPaletteCommand[];
-  run?: () => void;
-}
 
 interface CommandPaletteModalProps {
   isOpen: boolean;
