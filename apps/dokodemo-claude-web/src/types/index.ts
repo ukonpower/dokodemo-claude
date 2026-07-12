@@ -331,6 +331,7 @@ export interface GitGraphData {
   currentBranch: string | null; // チェックアウト中のローカルブランチ名（detached なら null）
   uncommitted: { fileCount: number } | null;
   branchOptions: { name: string; isRemote: boolean }[];
+  remotes: string[]; // 登録済み remote 名の一覧（push 先選択用）
   moreAvailable: boolean;
 }
 export interface GitGraphFileChange {
@@ -760,9 +761,13 @@ export interface ServerToClientEvents {
   'git-graph-error': (data: { rid: string; message: string }) => void;
   'git-graph-action-result': (data: {
     rid: string;
-    action: 'checkout' | 'merge';
+    action: 'checkout' | 'merge' | 'pull' | 'push' | 'fetch';
     success: boolean;
     message: string;
+  }) => void;
+  'git-graph-remotes-result': (data: {
+    rid: string;
+    remotes: string[];
   }) => void;
 
   // ファイルビュワー関連イベント
@@ -1127,6 +1132,15 @@ export interface ClientToServerEvents {
     squash: boolean;
     noCommit: boolean;
   }) => void;
+  'git-graph-remotes': (data: { rid: string }) => void;
+  'git-graph-pull': (data: { rid: string }) => void;
+  'git-graph-push': (data: {
+    rid: string;
+    remote?: string; // push 先 remote 名（未指定なら upstream 追跡先へ）
+    force?: boolean;
+    setUpstream?: boolean;
+  }) => void;
+  'git-graph-fetch': (data: { rid: string; prune?: boolean }) => void;
 
   // ファイルビュワー関連イベント
   'read-directory': (data: { rid: string; path: string }) => void;

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { GitPullRequest, Upload, Download, RefreshCw } from 'lucide-react';
 import type {
   AiOutputLine,
   ServerToClientEvents,
@@ -41,6 +42,9 @@ import {
 import DiffViewer from './components/DiffViewer';
 import RepositorySwitcher from './components/RepositorySwitcher';
 import ProjectSwitcherModal from './components/ProjectSwitcherModal';
+import CommandPaletteModal, {
+  type CommandPaletteCommand,
+} from './components/CommandPaletteModal';
 import { Socket } from 'socket.io-client';
 
 import s from './App.module.scss';
@@ -135,6 +139,8 @@ function App() {
 
   // プロジェクト切り替えポップアップ
   const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
+  // コマンドパレット
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
@@ -452,11 +458,15 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileViewer.isActive]);
 
-  // Ctrl+Shift+P / Cmd+Shift+P でプロジェクト切り替えポップアップを開く
+  // Ctrl+P / Cmd+P でプロジェクト切り替え、Ctrl+Shift+P / Cmd+Shift+P でコマンドパレット
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
-        e.preventDefault();
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key.toLowerCase() !== 'p') return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        setIsCommandPaletteOpen((open) => !open);
+      } else {
         setIsProjectSwitcherOpen((open) => !open);
       }
     };
@@ -547,6 +557,134 @@ function App() {
     />
   );
 
+  // コマンドパレットを開いたら push 先選択用に remote 一覧を取得しておく
+  useEffect(() => {
+    if (isCommandPaletteOpen && repository.currentRepo) {
+      gitGraph.requestRemotes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCommandPaletteOpen, repository.currentRepo]);
+
+  // コマンドパレット。リポジトリ選択中ならどのビューでも pull/push/fetch を出す。
+  const paletteCommands = useMemo<CommandPaletteCommand[]>(() => {
+    const cmds: CommandPaletteCommand[] = [];
+    if (!repository.currentRepo) return cmds;
+
+    const disabled = gitGraph.actionInProgress;
+    const remotes = gitGraph.remotes;
+
+    // push 系コマンドを生成する。remote が 2 つ以上なら宛先ピッカー（サブメニュー）を出し、
+    // 0/1 個ならそのまま実行する（0 個は upstream 追跡先へ暗黙 push）。
+    const makePush = (
+      idBase: string,
+      label: string,
+      description: string,
+      pushOpts: { force?: boolean; setUpstream?: boolean },
+      confirmMessage?: string
+    ): CommandPaletteCommand => {
+      const runFor = (remote?: string) => {
+        if (confirmMessage && !window.confirm(confirmMessage)) return;
+        gitGraph.push({ ...pushOpts, remote });
+      };
+      const base = {
+        id: idBase,
+        label,
+        category: 'Git',
+        icon: <Upload size={14} />,
+        disabled,
+      };
+      if (remotes.length <= 1) {
+        return { ...base, description, run: () => runFor(remotes[0]) };
+      }
+      return {
+        ...base,
+        description: `${description}（宛先を選択）`,
+        children: remotes.map((r) => ({
+          id: `${idBase}.${r}`,
+          label: r,
+          description: `${r} へ ${pushOpts.setUpstream ? '(-u) ' : ''}push`,
+          icon: <Upload size={14} />,
+          disabled,
+          run: () => runFor(r),
+        })),
+      };
+    };
+
+    cmds.push(
+      {
+        id: 'git.pull',
+        label: 'Git: Pull',
+        description: '現在のブランチを upstream から pull',
+        category: 'Git',
+        icon: <Download size={14} />,
+        disabled,
+        run: () => gitGraph.pull(),
+      },
+      makePush('git.push', 'Git: Push', '現在のブランチを push', {}),
+      makePush(
+        'git.push.upstream',
+        'Git: Push (upstream 設定)',
+        'upstream を紐付けて push (-u)',
+        { setUpstream: true }
+      ),
+      makePush(
+        'git.push.force',
+        'Git: Force Push',
+        'git push --force-with-lease',
+        { force: true },
+        'force push (--force-with-lease) を実行しますか？'
+      ),
+      {
+        id: 'git.fetch',
+        label: 'Git: Fetch (all)',
+        description: 'すべてのリモートから fetch',
+        category: 'Git',
+        icon: <GitPullRequest size={14} />,
+        disabled,
+        run: () => gitGraph.fetch(),
+      },
+      {
+        id: 'git.fetch.prune',
+        label: 'Git: Fetch (prune)',
+        description: 'fetch --all --prune',
+        category: 'Git',
+        icon: <GitPullRequest size={14} />,
+        disabled,
+        run: () => gitGraph.fetch({ prune: true }),
+      }
+    );
+
+    // グラフ再取得はグラフ表示中のみ意味があるので、その時だけ出す
+    if (gitGraph.isActive) {
+      cmds.push({
+        id: 'git.refresh',
+        label: 'Git: Refresh Graph',
+        description: 'グラフを再取得',
+        category: 'Git Graph',
+        icon: <RefreshCw size={14} />,
+        disabled,
+        run: () => gitGraph.refresh(),
+      });
+    }
+
+    return cmds;
+  }, [gitGraph, repository.currentRepo]);
+
+  const commandPalette = (
+    <CommandPaletteModal
+      isOpen={isCommandPaletteOpen}
+      onClose={() => setIsCommandPaletteOpen(false)}
+      commands={paletteCommands}
+    />
+  );
+
+  const overlays = (
+    <>
+      {projectSwitcher}
+      {commandPalette}
+    </>
+  );
+
   // リポジトリが選択されていない場合はホーム画面
   if (!repository.currentRepo) {
     return (
@@ -575,7 +713,7 @@ function App() {
         onConfirmStopProcesses={repository.confirmStopProcesses}
         onCancelStopProcesses={repository.cancelStopProcesses}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -593,7 +731,7 @@ function App() {
         diffSummary={gitDiff.diffSummary}
         rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -618,7 +756,7 @@ function App() {
           repoName={graphRepoName}
           rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
         />
-        {projectSwitcher}
+        {overlays}
       </>
     );
   }
@@ -644,7 +782,7 @@ function App() {
           onSwitchRepository={switchRepositoryFromList}
         />
       </div>
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -689,7 +827,7 @@ function App() {
         onOpenInEditor={editorLauncher.openInEditor}
         remoteUrl={editorLauncher.remoteUrl}
       />
-      {projectSwitcher}
+      {overlays}
       </>
     );
   }
@@ -873,7 +1011,7 @@ function App() {
       // Git Graph 表示
       onOpenGraphView={gitGraph.openGraphView}
     />
-    {projectSwitcher}
+    {overlays}
     </>
   );
 }
