@@ -11,6 +11,7 @@ import {
 import type { UploadedFileInfo } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
 import MarkdownViewer from './MarkdownViewer';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './MarkdownLightbox.module.scss';
 
 interface MarkdownLightboxProps {
@@ -81,12 +82,11 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
     };
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    // backdrop 自身、または body の空白域（.contentCard の外）クリックで閉じる
-    if (e.target === backdropRef.current || e.target === bodyRef.current) {
-      onClose();
-    }
-  };
+  // backdrop 自身、または body の空白域（.contentCard の外）を「背景」として扱う
+  const overlayProps = useOverlayClose(
+    onClose,
+    (e) => e.target === backdropRef.current || e.target === bodyRef.current
+  );
 
   const handleCopy = useCallback(async () => {
     if (content === null) return;
@@ -143,7 +143,7 @@ const MarkdownLightbox: React.FC<MarkdownLightboxProps> = ({
     file.filename;
 
   return (
-    <div ref={backdropRef} onClick={handleBackdropClick} className={s.backdrop}>
+    <div ref={backdropRef} {...overlayProps} className={s.backdrop}>
       <div className={s.header}>
         <div className={s.headerLeft}>
           <span className={s.headerTitle}>{headerTitle}</span>

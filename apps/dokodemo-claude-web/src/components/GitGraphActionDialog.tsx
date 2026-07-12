@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './GitGraphActionDialog.module.scss';
 
 export interface GitGraphDialogCheckbox {
@@ -69,14 +70,16 @@ const GitGraphActionDialog: React.FC<GitGraphActionDialogProps> = ({
 
   const confirmDisabled = input !== undefined && inputValue.trim() === '';
 
+  const overlayProps = useOverlayClose(onCancel);
+
   const handleConfirm = () => {
     if (confirmDisabled) return;
     onConfirm({ inputValue: inputValue.trim(), checks });
   };
 
   return (
-    <div className={s.overlay} onMouseDown={onCancel}>
-      <div className={s.dialog} onMouseDown={(e) => e.stopPropagation()}>
+    <div className={s.overlay} {...overlayProps}>
+      <div className={s.dialog}>
         <div className={s.message}>{message}</div>
 
         {input && (

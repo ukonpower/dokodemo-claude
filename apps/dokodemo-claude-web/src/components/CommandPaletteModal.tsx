@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { fuzzyMatch } from '../utils/fuzzy-match';
 import type { CommandPaletteCommand } from '../commands/types';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './CommandPaletteModal.module.scss';
 
 interface CommandPaletteModalProps {
@@ -105,6 +106,8 @@ function CommandPaletteModal({ isOpen, onClose, commands }: CommandPaletteModalP
     el?.scrollIntoView({ block: 'nearest' });
   }, [isOpen, selectedIndex, filtered.length]);
 
+  const overlayProps = useOverlayClose(onClose);
+
   if (!isOpen) return null;
 
   const popStack = () => {
@@ -153,12 +156,7 @@ function CommandPaletteModal({ isOpen, onClose, commands }: CommandPaletteModalP
   };
 
   return (
-    <div
-      className={s.overlay}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className={s.overlay} {...overlayProps}>
       <div className={s.modal}>
         <div className={s.inputRow}>
           <Search size={16} aria-hidden className={s.inputIcon} />

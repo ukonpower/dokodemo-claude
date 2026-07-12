@@ -9,6 +9,8 @@ export type { LongPressPoint, LongPressHandlers } from './useLongPress';
 
 export { useOutsideClose } from './useOutsideClose';
 
+export { useOverlayClose } from './useOverlayClose';
+
 export { useAppSettings } from './useAppSettings';
 export type {
   UseAppSettingsReturn,

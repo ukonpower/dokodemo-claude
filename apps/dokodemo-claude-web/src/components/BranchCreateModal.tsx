@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { GitBranch } from '../types';
+import { useOverlayClose } from '../hooks/useOverlayClose';
 import s from './BranchCreateModal.module.scss';
 
 interface BranchCreateModalProps {
@@ -34,8 +35,10 @@ function BranchCreateModal({
     }
   };
 
+  const overlayProps = useOverlayClose(onClose);
+
   return (
-    <div className={s.modalOverlay}>
+    <div className={s.modalOverlay} {...overlayProps}>
       <div className={s.modalContent} onKeyDown={handleKeyDown}>
         <div className={s.modalHeader}>
           <h3 className={s.modalTitle}>ブランチを作成</h3>
