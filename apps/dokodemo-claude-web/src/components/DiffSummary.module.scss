@@ -71,28 +71,32 @@
   font-family: Inter, sans-serif;
 }
 
+.fileIcon {
+  @include flex-center;
+  flex-shrink: 0;
+}
+
 .filePath {
   flex: 1 1 0%;
   min-width: 0;
   display: flex;
+  align-items: baseline;
+  gap: 6px;
   @include truncate;
 }
 
 .filePathDir {
   color: #6b7280;
-  font-size: 11px;
+  font-size: 10px;
   font-family: Inter, sans-serif;
-}
-
-.filePathArrow {
-  color: #4b5563;
-  font-size: 11px;
-  margin: 0 4px;
+  @include truncate;
 }
 
 .filePathName {
+  flex-shrink: 0;
   color: #d1d5db;
   font-size: 11px;
+  font-weight: 600;
   font-family: Inter, sans-serif;
 }
 
