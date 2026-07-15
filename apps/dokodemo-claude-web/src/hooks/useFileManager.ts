@@ -122,24 +122,32 @@ export function useFileManager(
         setIsUploadingFile(true);
         setUploadProgress(0);
 
+        // アップロード完了後に file-uploaded 通知を待つ保険タイマー。
+        // アップロード所要時間とはレースさせず、onSuccess 後にだけ張る。
+        let fallbackTimeout: ReturnType<typeof setTimeout> | undefined;
+        let settled = false;
+
         const cleanup = () => {
           socket.off('file-uploaded', handler);
-          clearTimeout(timeout);
+          if (fallbackTimeout) clearTimeout(fallbackTimeout);
           setIsUploadingFile(false);
           setUploadProgress(null);
         };
 
-        const timeout = setTimeout(() => {
+        // 完了判定は一度きり。tus の onSuccess/onError と socket 通知が
+        // 二重に走っても最初の 1 回だけ resolve する。
+        const finish = (value: string | undefined) => {
+          if (settled) return;
+          settled = true;
           cleanup();
-          resolve(undefined);
-        }, 10000);
+          resolve(value);
+        };
 
         const handler = (
           data: Parameters<ServerToClientEvents['file-uploaded']>[0]
         ) => {
           if (data.rid === rid && data.success && data.file) {
-            cleanup();
-            resolve(data.file.path);
+            finish(data.file.path);
           }
         };
         socket.on('file-uploaded', handler);
@@ -160,11 +168,16 @@ export function useFileManager(
           },
           onSuccess() {
             socket.emit('get-files', { rid });
+            // アップロード自体は完了済み。ここから file-uploaded 通知を
+            // 待つが、来なくても 10 秒でフォールバック解決する。
+            if (fallbackTimeout) clearTimeout(fallbackTimeout);
+            fallbackTimeout = setTimeout(() => {
+              finish(undefined);
+            }, 10000);
           },
           onError() {
             console.error('ファイルアップロードエラー');
-            cleanup();
-            resolve(undefined);
+            finish(undefined);
           },
         });
         upload.start();
