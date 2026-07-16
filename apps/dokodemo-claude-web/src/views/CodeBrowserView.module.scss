@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
@@ -24,16 +24,63 @@
   }
 }
 
-.headerTitle {
-  font-size: $font-size-sm;
-  font-weight: 500;
-  color: $dark-text-primary;
-}
-
 .headerRepoName {
   font-size: $font-size-xs;
   color: $dark-text-muted;
   @include truncate;
+}
+
+.headerSpacer {
+  flex: 1 1 0%;
+}
+
+// モードタブ（変更 / ツリー / グラフ）
+.modeTabs {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: 0.375rem;
+  background-color: $dark-bg-primary;
+  flex-shrink: 0;
+}
+
+.modeTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.3rem;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-secondary;
+  }
+}
+
+.modeTabActive {
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+  }
+}
+
+.modeTabLabel {
+  // 狭い画面ではラベルを隠しアイコンのみにする
+  @include sm-down {
+    display: none;
+  }
+}
+
+// グラフモード（GitGraphView をそのまま埋め込む）
+.graphArea {
+  flex: 1 1 0%;
+  overflow: hidden;
+  min-height: 0;
 }
 
 // モバイルレイアウト
@@ -48,21 +95,21 @@
   }
 }
 
-.mobileTreeFull {
+.mobileListFull {
   overflow-y: auto;
   flex-shrink: 0;
   flex: 1 1 0%;
 }
 
-.mobileTreeCompact {
+.mobileListCompact {
   overflow-y: auto;
   flex-shrink: 0;
-  height: 10%;
+  height: 30%;
   border-bottom: 1px solid $dark-border;
 }
 
 .mobileFileContent {
-  height: 85%;
+  height: 70%;
   overflow: hidden;
 }
 
@@ -82,14 +129,14 @@
   }
 }
 
-.desktopTree {
-  width: 16rem;
+.desktopList {
+  width: 18rem;
   border-right: 1px solid $dark-border;
   overflow-y: auto;
   flex-shrink: 0;
 
   @include lg-up {
-    width: 18rem;
+    width: 20rem;
   }
 }
 
