@@ -66,6 +66,8 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [markdownFile, setMarkdownFile] = useState<UploadedFileInfo | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 進行中アップロードの中断ハンドラ（cancelUpload から呼ぶ）
+  const activeUploadRef = useRef<(() => void) | null>(null);
   const { copiedText, copyToClipboard } = useCopyToClipboard();
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const isTouchDevice = useRef(false);
@@ -120,6 +122,16 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
         setUploadProgress(0);
         setUploadError(null);
 
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          activeUploadRef.current = null;
+          setIsUploading(false);
+          setUploadProgress(null);
+          resolve();
+        };
+
         const upload = new tus.Upload(file, {
           endpoint: `${BACKEND_URL}/api/tus`,
           chunkSize: 5 * 1024 * 1024,
@@ -136,22 +148,29 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
           },
           onSuccess() {
             onRefresh();
-            setIsUploading(false);
-            setUploadProgress(null);
-            resolve();
+            finish();
           },
           onError() {
             setUploadError('ファイルのアップロードに失敗しました');
-            setIsUploading(false);
-            setUploadProgress(null);
-            resolve();
+            finish();
           },
         });
+
+        // キャンセル時は tus を中断（サーバ側の部分アップロードも破棄）して解決する。
+        activeUploadRef.current = () => {
+          upload.abort(true).catch(() => undefined);
+          finish();
+        };
+
         upload.start();
       });
     },
     [rid, onRefresh]
   );
+
+  const cancelUpload = useCallback(() => {
+    activeUploadRef.current?.();
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -285,11 +304,27 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
       />
 
       {isUploading && (
-        <div className={s.uploadProgress}>
-          <div
-            className={s.uploadProgressFill}
-            style={{ width: `${uploadProgress ?? 0}%` }}
-          />
+        <div className={s.uploadStatus}>
+          <div className={s.uploadProgress}>
+            <div
+              className={s.uploadProgressFill}
+              style={{ width: `${uploadProgress ?? 0}%` }}
+            />
+          </div>
+          <div className={s.uploadStatusRow}>
+            <span className={s.uploadStatusText}>
+              アップロード中... {uploadProgress ?? 0}%
+            </span>
+            <button
+              type="button"
+              onClick={cancelUpload}
+              className={s.uploadCancelButton}
+              title="アップロードをキャンセル"
+              aria-label="アップロードをキャンセル"
+            >
+              キャンセル
+            </button>
+          </div>
         </div>
       )}
 

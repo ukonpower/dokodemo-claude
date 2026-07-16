@@ -370,6 +370,8 @@ function App() {
         onSettingsChange={appSettings.handleSettingsChange}
         onPasteFile={fileManager.uploadFile}
         isUploadingFile={fileManager.isUploadingFile}
+        uploadProgress={fileManager.uploadProgress}
+        onCancelUpload={fileManager.cancelUpload}
         onSwitchToProjectView={() => setDashboardModeAndPersist(false)}
         onOpenWorktree={(path) => {
           setDashboardModeAndPersist(false);
@@ -509,6 +511,8 @@ function App() {
       // ファイル管理関連
       files={fileManager.files}
       isUploadingFile={fileManager.isUploadingFile}
+      uploadProgress={fileManager.uploadProgress}
+      onCancelUpload={fileManager.cancelUpload}
       onRefreshFiles={fileManager.refreshFiles}
       onDeleteFile={fileManager.deleteFile}
       onPasteFile={fileManager.uploadFile}

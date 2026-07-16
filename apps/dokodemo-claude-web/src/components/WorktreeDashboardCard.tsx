@@ -65,6 +65,8 @@ interface WorktreeDashboardCardProps {
   provider: AiProvider;
   onPasteFile?: (file: File) => Promise<string | undefined>;
   isUploadingFile: boolean;
+  uploadProgress?: number | null;
+  onCancelUpload?: () => void;
   onToggleSelected: (rid: string) => void;
   onOpenInNormalView: (path: string) => void;
   /** 個別カードからの即時送信 */
@@ -93,6 +95,8 @@ function WorktreeDashboardCard({
   provider,
   onPasteFile,
   isUploadingFile,
+  uploadProgress,
+  onCancelUpload,
   onToggleSelected,
   onOpenInNormalView,
   onSendCommand,
@@ -371,6 +375,8 @@ function WorktreeDashboardCard({
             onSendSettingsChange={setSendSettings}
             onPasteFile={onPasteFile}
             isUploadingFile={isUploadingFile}
+            uploadProgress={uploadProgress}
+            onCancelUpload={onCancelUpload}
             hideWorkflowControls
           />
         </div>

@@ -16,6 +16,8 @@ export interface UseFileManagerReturn {
   refreshFiles: () => void;
   deleteFile: (filename: string) => void;
   uploadFile: (file: File) => Promise<string | undefined>;
+  /** 進行中のアップロードを中断する（進捗リセット・resolve(undefined)） */
+  cancelUpload: () => void;
   clearState: () => void;
 }
 
@@ -28,6 +30,9 @@ export function useFileManager(
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const currentRepoRef = useRef(currentRepo);
+
+  // 進行中アップロードの中断ハンドラ。uploadFile 内でセットし、cancelUpload から呼ぶ。
+  const activeUploadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     currentRepoRef.current = currentRepo;
@@ -130,6 +135,7 @@ export function useFileManager(
         const cleanup = () => {
           socket.off('file-uploaded', handler);
           if (fallbackTimeout) clearTimeout(fallbackTimeout);
+          activeUploadRef.current = null;
           setIsUploadingFile(false);
           setUploadProgress(null);
         };
@@ -180,13 +186,26 @@ export function useFileManager(
             finish(undefined);
           },
         });
+
+        // キャンセル時は tus を中断（サーバ側の部分アップロードも破棄）し、
+        // undefined で解決する。abort の失敗は握りつぶす。
+        activeUploadRef.current = () => {
+          upload.abort(true).catch(() => undefined);
+          finish(undefined);
+        };
+
         upload.start();
       });
     },
     [currentRepo, socket]
   );
 
+  const cancelUpload = useCallback(() => {
+    activeUploadRef.current?.();
+  }, []);
+
   const clearState = useCallback(() => {
+    activeUploadRef.current?.();
     setFiles([]);
     setIsUploadingFile(false);
     setUploadProgress(null);
@@ -205,6 +224,7 @@ export function useFileManager(
     refreshFiles,
     deleteFile,
     uploadFile,
+    cancelUpload,
     clearState,
   };
 }

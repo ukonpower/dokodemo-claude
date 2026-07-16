@@ -151,6 +151,10 @@ interface TextInputProps {
   onPasteFile?: (file: File) => Promise<string | undefined>;
   /** ファイルアップロード中フラグ（オプション） */
   isUploadingFile?: boolean;
+  /** アップロード進捗（0〜100。未取得時は null） */
+  uploadProgress?: number | null;
+  /** 進行中のアップロードを中断するハンドラ（オプション） */
+  onCancelUpload?: () => void;
   /** ワークフローファイルを開くハンドラ（オプション） */
   onOpenWorkflowFile?: (path: string) => void;
   /** ワークフローコントロール（research/plan/Auto 等）とファイルリンクを非表示にする */
@@ -203,6 +207,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       onSendSettingsChange,
       onPasteFile,
       isUploadingFile = false,
+      uploadProgress = null,
+      onCancelUpload,
       onOpenWorkflowFile,
       hideWorkflowControls = false,
     },
@@ -1519,27 +1525,49 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             {isUploadingFile && (
               <div className={s.uploadOverlay}>
                 <div className={s.uploadContent}>
-                  <svg
-                    className={s.spinner}
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className={s.spinnerCircle}
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className={s.spinnerPath}
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span className={s.uploadText}>ファイルをアップロード中...</span>
+                  <div className={s.uploadHeaderRow}>
+                    <svg
+                      className={s.spinner}
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className={s.spinnerCircle}
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className={s.spinnerPath}
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span className={s.uploadText}>
+                      ファイルをアップロード中...
+                      {uploadProgress !== null && ` ${uploadProgress}%`}
+                    </span>
+                    {onCancelUpload && (
+                      <button
+                        type="button"
+                        onClick={onCancelUpload}
+                        className={s.uploadCancelButton}
+                        title="アップロードをキャンセル"
+                        aria-label="アップロードをキャンセル"
+                      >
+                        キャンセル
+                      </button>
+                    )}
+                  </div>
+                  <div className={s.uploadProgressBar}>
+                    <div
+                      className={s.uploadProgressFill}
+                      style={{ width: `${uploadProgress ?? 0}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
