@@ -5,6 +5,7 @@ import type { FileContent, GitDiffDetail } from '../types';
 import { BACKEND_URL } from '../utils/backend-url';
 import '../utils/prism-languages';
 import MarkdownViewer from './MarkdownViewer';
+import DiffLines from './DiffLines';
 import s from './FileContentViewer.module.scss';
 
 const LANGUAGE_FALLBACK: Record<string, string> = {
@@ -14,68 +15,6 @@ const LANGUAGE_FALLBACK: Record<string, string> = {
 
 function normalizeLang(lang: string): string {
   return LANGUAGE_FALLBACK[lang] || lang;
-}
-
-interface DiffLine {
-  type: 'header' | 'hunk' | 'context' | 'addition' | 'deletion' | 'empty';
-  content: string;
-  lineNumber?: {
-    old?: number;
-    new?: number;
-  };
-}
-
-function parseDiff(diff: string): DiffLine[] {
-  const lines = diff.split('\n');
-  const result: DiffLine[] = [];
-  let oldLineNum = 0;
-  let newLineNum = 0;
-
-  for (const line of lines) {
-    if (
-      line.startsWith('diff ') ||
-      line.startsWith('index ') ||
-      line.startsWith('---') ||
-      line.startsWith('+++')
-    ) {
-      result.push({ type: 'header', content: line });
-    } else if (line.startsWith('@@')) {
-      const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-      if (match) {
-        oldLineNum = parseInt(match[1], 10);
-        newLineNum = parseInt(match[2], 10);
-      }
-      result.push({ type: 'hunk', content: line });
-    } else if (line.startsWith('+')) {
-      result.push({
-        type: 'addition',
-        content: line.substring(1),
-        lineNumber: { new: newLineNum },
-      });
-      newLineNum++;
-    } else if (line.startsWith('-')) {
-      result.push({
-        type: 'deletion',
-        content: line.substring(1),
-        lineNumber: { old: oldLineNum },
-      });
-      oldLineNum++;
-    } else if (line.startsWith(' ')) {
-      result.push({
-        type: 'context',
-        content: line.substring(1),
-        lineNumber: { old: oldLineNum, new: newLineNum },
-      });
-      oldLineNum++;
-      newLineNum++;
-    } else if (line === '') {
-      result.push({ type: 'empty', content: '' });
-    } else {
-      result.push({ type: 'context', content: line });
-    }
-  }
-
-  return result;
 }
 
 function getChangedLineNumbers(diff: string): Set<number> {
@@ -139,11 +78,6 @@ export default function FileContentViewer({
   const changedLines = useMemo(() => {
     if (!diffDetail?.diff) return new Set<number>();
     return getChangedLineNumbers(diffDetail.diff);
-  }, [diffDetail]);
-
-  const parsedDiffLines = useMemo(() => {
-    if (!diffDetail?.diff) return [];
-    return parseDiff(diffDetail.diff);
   }, [diffDetail]);
 
   const hasGitChange = gitStatus && gitStatus !== '';
@@ -309,89 +243,12 @@ export default function FileContentViewer({
           /* Markdown プレビューモード */
           <MarkdownViewer content={content.content} padded />
         ) : isDiffMode && hasDiff ? (
-          /* 差分モード */
-          <div className={s.diffContainer}>
-            {parsedDiffLines.map((line, index) => {
-              let bgClass = '';
-              let textClass = s.textDefault;
-              let lineNumClass = s.lineNumDefault;
-
-              switch (line.type) {
-                case 'header':
-                  bgClass = s.bgHeader;
-                  textClass = s.textHeader;
-                  break;
-                case 'hunk':
-                  bgClass = s.bgHunk;
-                  textClass = s.textHunk;
-                  break;
-                case 'addition':
-                  bgClass = s.bgAddition;
-                  textClass = s.textAddition;
-                  lineNumClass = s.lineNumAddition;
-                  break;
-                case 'deletion':
-                  bgClass = s.bgDeletion;
-                  textClass = s.textDeletion;
-                  lineNumClass = s.lineNumDeletion;
-                  break;
-                case 'context':
-                  bgClass = '';
-                  textClass = s.textContext;
-                  break;
-                case 'empty':
-                  break;
-              }
-
-              return (
-                <div
-                  key={index}
-                  className={`${s.diffLine} ${bgClass}`}
-                >
-                  {(line.type === 'addition' ||
-                    line.type === 'deletion' ||
-                    line.type === 'context') && (
-                    <>
-                      <span
-                        className={`${s.lineNum} ${lineNumClass}`}
-                      >
-                        {line.lineNumber?.old ?? ''}
-                      </span>
-                      <span
-                        className={`${s.lineNum} ${lineNumClass}`}
-                      >
-                        {line.lineNumber?.new ?? ''}
-                      </span>
-                    </>
-                  )}
-                  {(line.type === 'addition' ||
-                    line.type === 'deletion' ||
-                    line.type === 'context') && (
-                    <span
-                      className={`${s.signCol} ${
-                        line.type === 'addition'
-                          ? s.signAddition
-                          : line.type === 'deletion'
-                            ? s.signDeletion
-                            : s.signContext
-                      }`}
-                    >
-                      {line.type === 'addition'
-                        ? '+'
-                        : line.type === 'deletion'
-                          ? '-'
-                          : ' '}
-                    </span>
-                  )}
-                  <span
-                    className={`${wordWrap ? s.contentColWrap : s.contentCol} ${textClass}`}
-                  >
-                    {line.content}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          /* 差分モード（DiffLines で左右分割表示。Git Graph のコミット差分と共通コンポーネント） */
+          <DiffLines
+            diff={diffDetail?.diff ?? ''}
+            filePath={content.path}
+            wordWrap={wordWrap}
+          />
         ) : (
           /* コードモード */
           <Highlight theme={themes.vsDark} code={content.content} language={normalizeLang(content.language)}>

@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { GitBranch } from 'lucide-react';
 import type { GitDiffFile, GitDiffSummary } from '../types';
 import EmptyState from './EmptyState';
+import { FileIcon, splitFilePath } from '../utils/file-icon';
 import s from './DiffSummary.module.scss';
 
 interface DiffSummaryProps {
@@ -81,12 +82,29 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
         <div className={s.fileList}>
           {summary.files.map((file) => {
             const statusDisplay = getStatusDisplay(file.status);
+            const { name, dir } = splitFilePath(file.filename);
             return (
               <button
                 key={file.filename}
                 onClick={() => handleFileClick(file.filename)}
                 className={s.fileButton}
               >
+                {/* ファイル種別アイコン */}
+                <span className={s.fileIcon}>
+                  <FileIcon filename={file.filename} />
+                </span>
+
+                {/* ファイル名 + ディレクトリパス */}
+                <span className={s.filePath}>
+                  <span className={s.filePathName}>{name}</span>
+                  {dir && <span className={s.filePathDir}>{dir}</span>}
+                  {file.oldFilename && (
+                    <span className={s.filePathDir}>
+                      ← {file.oldFilename}
+                    </span>
+                  )}
+                </span>
+
                 {/* ステータスバッジ */}
                 <span
                   className={s.statusBadge}
@@ -96,44 +114,6 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
                   }}
                 >
                   {statusDisplay.icon}
-                </span>
-
-                {/* ファイルパス */}
-                <span className={s.filePath}>
-                  {file.oldFilename ? (
-                    <>
-                      <span className={s.filePathDir}>
-                        {file.oldFilename}
-                      </span>
-                      <span className={s.filePathArrow}>→</span>
-                      <span className={s.filePathName}>
-                        {file.filename}
-                      </span>
-                    </>
-                  ) : (
-                    (() => {
-                      const lastSlash = file.filename.lastIndexOf('/');
-                      if (lastSlash === -1) {
-                        return (
-                          <span className={s.filePathName}>
-                            {file.filename}
-                          </span>
-                        );
-                      }
-                      const dir = file.filename.substring(0, lastSlash + 1);
-                      const name = file.filename.substring(lastSlash + 1);
-                      return (
-                        <>
-                          <span className={s.filePathDir}>
-                            {dir}
-                          </span>
-                          <span className={s.filePathName}>
-                            {name}
-                          </span>
-                        </>
-                      );
-                    })()
-                  )}
                 </span>
 
                 {/* 追加・削除行数 */}

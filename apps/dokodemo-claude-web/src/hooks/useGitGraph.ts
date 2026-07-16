@@ -295,12 +295,16 @@ export function useGitGraph(
     setSelectedBranch(null);
   }, [currentRepo]);
 
+  // グラフビューを別ブラウザタブで開く（元タブは現在のビューのまま維持する）
   const openGraphView = useCallback(() => {
-    setIsActive(true);
+    // 統合コード/git ブラウザをグラフモードで別ブラウザタブに開く
     const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('view', 'graph');
-    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-    window.history.pushState({}, '', newUrl);
+    urlParams.set('view', 'files');
+    urlParams.set('mode', 'graph');
+    urlParams.delete('file');
+    urlParams.delete('fullscreen');
+    const url = `${window.location.pathname}?${urlParams.toString()}`;
+    window.open(url, '_blank');
   }, []);
 
   const handleBack = useCallback(() => {
