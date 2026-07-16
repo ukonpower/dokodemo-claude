@@ -11,8 +11,8 @@
     {
       "name": "dokodemo-claude-tools",
       "source": "./dokodemo-claude-tools",
-      "description": "dokodemo-claude で利用する統合ツールセット（MCP 経由の worktree/terminal/prompt/preview, workflow, autopilot, git など）",
-      "version": "1.9.0",
+      "description": "dokodemo-claude で利用する統合ツールセット（MCP 経由の worktree/terminal/prompt/preview, workflow, git など）",
+      "version": "2.0.0",
       "author": {
         "name": "dokodemo-claude"
       },
@@ -21,7 +21,6 @@
         "preview",
         "screenshot",
         "workflow",
-        "autopilot",
         "git"
       ]
     }
