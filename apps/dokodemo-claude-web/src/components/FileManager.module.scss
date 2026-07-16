@@ -13,20 +13,60 @@
   box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45);
 }
 
+.uploadStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
 .uploadProgress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: rgba(255, 255, 255, 0.04);
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 
 .uploadProgressFill {
   height: 100%;
+  border-radius: 9999px;
   background-color: $blue-500;
   transition: width 0.2s;
+}
+
+.uploadStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.uploadStatusText {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: Inter, sans-serif;
+}
+
+.uploadCancelButton {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: Inter, sans-serif;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .errorBox {

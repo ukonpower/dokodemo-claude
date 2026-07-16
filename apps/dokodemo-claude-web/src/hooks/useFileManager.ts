@@ -16,6 +16,8 @@ export interface UseFileManagerReturn {
   refreshFiles: () => void;
   deleteFile: (filename: string) => void;
   uploadFile: (file: File) => Promise<string | undefined>;
+  /** 進行中のアップロードを中断する（進捗リセット・resolve(undefined)） */
+  cancelUpload: () => void;
   clearState: () => void;
 }
 
@@ -28,6 +30,9 @@ export function useFileManager(
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const currentRepoRef = useRef(currentRepo);
+
+  // 進行中アップロードの中断ハンドラ。uploadFile 内でセットし、cancelUpload から呼ぶ。
+  const activeUploadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     currentRepoRef.current = currentRepo;
@@ -122,24 +127,33 @@ export function useFileManager(
         setIsUploadingFile(true);
         setUploadProgress(0);
 
+        // アップロード完了後に file-uploaded 通知を待つ保険タイマー。
+        // アップロード所要時間とはレースさせず、onSuccess 後にだけ張る。
+        let fallbackTimeout: ReturnType<typeof setTimeout> | undefined;
+        let settled = false;
+
         const cleanup = () => {
           socket.off('file-uploaded', handler);
-          clearTimeout(timeout);
+          if (fallbackTimeout) clearTimeout(fallbackTimeout);
+          activeUploadRef.current = null;
           setIsUploadingFile(false);
           setUploadProgress(null);
         };
 
-        const timeout = setTimeout(() => {
+        // 完了判定は一度きり。tus の onSuccess/onError と socket 通知が
+        // 二重に走っても最初の 1 回だけ resolve する。
+        const finish = (value: string | undefined) => {
+          if (settled) return;
+          settled = true;
           cleanup();
-          resolve(undefined);
-        }, 10000);
+          resolve(value);
+        };
 
         const handler = (
           data: Parameters<ServerToClientEvents['file-uploaded']>[0]
         ) => {
           if (data.rid === rid && data.success && data.file) {
-            cleanup();
-            resolve(data.file.path);
+            finish(data.file.path);
           }
         };
         socket.on('file-uploaded', handler);
@@ -160,20 +174,38 @@ export function useFileManager(
           },
           onSuccess() {
             socket.emit('get-files', { rid });
+            // アップロード自体は完了済み。ここから file-uploaded 通知を
+            // 待つが、来なくても 10 秒でフォールバック解決する。
+            if (fallbackTimeout) clearTimeout(fallbackTimeout);
+            fallbackTimeout = setTimeout(() => {
+              finish(undefined);
+            }, 10000);
           },
           onError() {
             console.error('ファイルアップロードエラー');
-            cleanup();
-            resolve(undefined);
+            finish(undefined);
           },
         });
+
+        // キャンセル時は tus を中断（サーバ側の部分アップロードも破棄）し、
+        // undefined で解決する。abort の失敗は握りつぶす。
+        activeUploadRef.current = () => {
+          upload.abort(true).catch(() => undefined);
+          finish(undefined);
+        };
+
         upload.start();
       });
     },
     [currentRepo, socket]
   );
 
+  const cancelUpload = useCallback(() => {
+    activeUploadRef.current?.();
+  }, []);
+
   const clearState = useCallback(() => {
+    activeUploadRef.current?.();
     setFiles([]);
     setIsUploadingFile(false);
     setUploadProgress(null);
@@ -192,6 +224,7 @@ export function useFileManager(
     refreshFiles,
     deleteFile,
     uploadFile,
+    cancelUpload,
     clearState,
   };
 }

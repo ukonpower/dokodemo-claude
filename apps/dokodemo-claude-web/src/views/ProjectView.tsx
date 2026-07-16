@@ -228,6 +228,8 @@ interface ProjectViewProps {
   // ファイル管理関連
   files: UploadedFileInfo[];
   isUploadingFile: boolean;
+  uploadProgress: number | null;
+  onCancelUpload: () => void;
   onRefreshFiles: () => void;
   onDeleteFile: (filename: string) => void;
   onPasteFile: (file: File) => Promise<string | undefined>;
@@ -412,6 +414,8 @@ export function ProjectView({
   onDismissLoopEnd,
   files,
   isUploadingFile,
+  uploadProgress,
+  onCancelUpload,
   onRefreshFiles,
   onDeleteFile,
   onPasteFile,
@@ -759,6 +763,8 @@ export function ProjectView({
                       onSendSettingsChange={onSendSettingsChange}
                       onPasteFile={onPasteFile}
                       isUploadingFile={isUploadingFile}
+                      uploadProgress={uploadProgress}
+                      onCancelUpload={onCancelUpload}
                       onOpenWorkflowFile={onOpenWorkflowFile}
                     />
                   </div>
