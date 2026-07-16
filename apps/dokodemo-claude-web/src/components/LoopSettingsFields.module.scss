@@ -123,6 +123,23 @@
   white-space: nowrap;
 }
 
+// 定期プランニングのモデル選択
+.planningModelSelect {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-blue;
+  }
+}
+
 // AI 判断の判定基準テキストエリア
 .criteriaTextarea {
   width: 100%;

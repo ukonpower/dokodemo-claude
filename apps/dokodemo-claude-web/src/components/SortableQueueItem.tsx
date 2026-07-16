@@ -5,7 +5,10 @@ import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
 import { useOutsideClose } from '../hooks';
-import LoopSettingsFields from './LoopSettingsFields';
+import LoopSettingsFields, {
+  DEFAULT_PLANNING_MODEL,
+  DEFAULT_PLANNING_EVERY_N,
+} from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './SortableQueueItem.module.scss';
 
@@ -328,6 +331,10 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                             judgeEveryN: 1,
                             intervalSec: 0,
                             judgeCriteria: '',
+                            planningEnabled: false,
+                            planningEveryN: DEFAULT_PLANNING_EVERY_N,
+                            planningModel: DEFAULT_PLANNING_MODEL,
+                            planningPrompt: '',
                           })
                         }
                         className={s.loopEnableButton}

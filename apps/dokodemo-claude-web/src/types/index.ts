@@ -219,6 +219,14 @@ export interface CodeServer {
 
 
 // プロンプトループ関連の型定義（backend と手動同期）
+
+// 定期プランニング設定: N 周ごとに強いモデルで計画ターンを 1 回差し込む
+export interface PromptLoopPlanning {
+  everyN: number;
+  model: string;
+  prompt: string;
+}
+
 export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
@@ -231,6 +239,10 @@ export interface PromptLoopState {
   pendingJudge?: boolean;
   awaitingUserApproval?: boolean;
   lastJudgeReason?: string;
+  planning?: PromptLoopPlanning;
+  pendingPlanning?: boolean;
+  planningActive?: boolean;
+  modelRestorePending?: boolean;
 }
 
 // プロンプトキュー関連の型定義
@@ -1041,6 +1053,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     };
   }) => void;
   'remove-from-prompt-queue': (data: {
@@ -1062,6 +1075,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     } | null;
   }) => void;
   'get-prompt-queue': (data: {

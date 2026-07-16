@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { useModelOptions } from '../hooks/useModelOptions';
 import s from './LoopSettingsFields.module.scss';
 
-// ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準）
+// ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準・定期プランニング）
 export interface LoopSettingsValue {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
   intervalSec: number;
   judgeCriteria: string;
+  // 定期プランニング（N 周ごとに強いモデルで計画ターンを 1 回差し込む）
+  planningEnabled: boolean;
+  planningEveryN: number;
+  planningModel: string;
+  planningPrompt: string;
 }
+
+// プランニングのデフォルト値（UI 初期値として使用）
+export const DEFAULT_PLANNING_MODEL = 'claude-opus-4-8';
+export const DEFAULT_PLANNING_EVERY_N = 5;
+export const DEFAULT_PLANNING_PROMPT =
+  'ここまでのループの進捗と現状の課題を整理してください。そのうえで残りの作業の優先順位と進め方を見直し、以降の周回が従うべき方針を簡潔にまとめてください。';
 
 // 判断方式の選択肢とキャプション
 const JUDGE_OPTIONS: {
@@ -109,6 +121,9 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
 }) => {
   const selectedOption = JUDGE_OPTIONS.find((o) => o.value === value.judge);
   const intervalMin = Math.floor(value.intervalSec / 60);
+  // プランニングのモデル選択肢（「未指定」は除外。モデル指定が本機能の目的のため）
+  const { options: modelOptions } = useModelOptions();
+  const planningModelOptions = modelOptions.filter((o) => o.value);
 
   return (
     <div className={`${s.root} ${disabled ? s.disabled : ''}`}>
@@ -175,6 +190,92 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
           onChange={(n) => onChange({ ...value, intervalSec: n * 60 })}
         />
       </div>
+
+      {/* 定期プランニング */}
+      <div className={s.field}>
+        <div className={s.fieldLabel}>定期プランニング</div>
+        <div className={s.segmented}>
+          <button
+            type="button"
+            onClick={() => onChange({ ...value, planningEnabled: false })}
+            disabled={disabled}
+            className={`${s.segmentButton} ${
+              !value.planningEnabled ? s.segmentActive : ''
+            }`}
+          >
+            なし
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...value, planningEnabled: true })}
+            disabled={disabled}
+            className={`${s.segmentButton} ${
+              value.planningEnabled ? s.segmentActive : ''
+            }`}
+          >
+            あり
+          </button>
+        </div>
+        <div className={s.fieldCaption}>
+          N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します
+        </div>
+      </div>
+
+      {value.planningEnabled && (
+        <>
+          <div className={s.field}>
+            <div className={s.fieldLabel}>プランニング間隔</div>
+            <Stepper
+              value={value.planningEveryN}
+              min={1}
+              suffix="周ごと"
+              disabled={disabled}
+              onChange={(n) => onChange({ ...value, planningEveryN: n })}
+            />
+          </div>
+
+          <div className={s.field}>
+            <div className={s.fieldLabel}>プランニングモデル</div>
+            <select
+              value={value.planningModel}
+              onChange={(e) =>
+                onChange({ ...value, planningModel: e.target.value })
+              }
+              disabled={disabled}
+              className={s.planningModelSelect}
+            >
+              {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
+              {value.planningModel &&
+                !planningModelOptions.some(
+                  (o) => o.value === value.planningModel
+                ) && (
+                  <option value={value.planningModel}>
+                    {value.planningModel}
+                  </option>
+                )}
+              {planningModelOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={s.field}>
+            <div className={s.fieldLabel}>プランニングプロンプト</div>
+            <textarea
+              value={value.planningPrompt}
+              onChange={(e) =>
+                onChange({ ...value, planningPrompt: e.target.value })
+              }
+              disabled={disabled}
+              placeholder={DEFAULT_PLANNING_PROMPT}
+              rows={3}
+              className={s.criteriaTextarea}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

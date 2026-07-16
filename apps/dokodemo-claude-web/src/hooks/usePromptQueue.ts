@@ -13,6 +13,12 @@ export interface LoopSettings {
   judgeEveryN: number;
   intervalSec: number;
   judgeCriteria?: string;
+  // 定期プランニング: N 周ごとに強いモデルで計画ターンを 1 回差し込む
+  planning?: {
+    everyN: number;
+    model: string;
+    prompt: string;
+  };
 }
 
 /**
