@@ -108,6 +108,12 @@ interface LoopSettingsFieldsProps {
   value: LoopSettingsValue;
   disabled?: boolean;
   onChange: (next: LoopSettingsValue) => void;
+  /**
+   * 作業ターン（通常周回）のモデル。キューアイテムの「モデル」設定と同一の値を
+   * 共有し、ここでの変更はキュー側のモデル設定にも反映される。
+   */
+  workModel?: string;
+  onWorkModelChange?: (model: string) => void;
 }
 
 /**
@@ -118,6 +124,8 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   value,
   disabled,
   onChange,
+  workModel,
+  onWorkModelChange,
 }) => {
   const selectedOption = JUDGE_OPTIONS.find((o) => o.value === value.judge);
   const intervalMin = Math.floor(value.intervalSec / 60);
@@ -127,6 +135,33 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
 
   return (
     <div className={`${s.root} ${disabled ? s.disabled : ''}`}>
+      {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
+      {onWorkModelChange && (
+        <div className={s.field}>
+          <div className={s.fieldLabel}>作業モデル</div>
+          <select
+            value={workModel ?? ''}
+            onChange={(e) => onWorkModelChange(e.target.value)}
+            disabled={disabled}
+            className={s.planningModelSelect}
+          >
+            {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
+            {workModel &&
+              !modelOptions.some((o) => o.value === workModel) && (
+                <option value={workModel}>{workModel}</option>
+              )}
+            {modelOptions.map((opt) => (
+              <option key={opt.value || 'unset'} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <div className={s.fieldCaption}>
+            周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま
+          </div>
+        </div>
+      )}
+
       {/* 継続の判断（セグメントボタン） */}
       <div className={s.field}>
         <div className={s.fieldLabel}>継続の判断</div>

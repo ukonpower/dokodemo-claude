@@ -347,6 +347,8 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     <LoopSettingsFields
                       value={editLoop}
                       onChange={setEditLoop}
+                      workModel={editModel}
+                      onWorkModelChange={setEditModel}
                     />
                   )}
                 </div>

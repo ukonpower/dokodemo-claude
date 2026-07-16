@@ -2007,6 +2007,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 }}
                 disabled={!loopEnabled}
                 onChange={handleLoopSettingsChange}
+                workModel={model}
+                onWorkModelChange={(v) => handleSettingChange('model', v)}
               />
             </div>
           </div>
