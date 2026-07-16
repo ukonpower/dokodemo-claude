@@ -33,20 +33,14 @@ import {
 import {
   HomeView,
   ProjectView,
-  FileViewerView,
+  CodeBrowserView,
   DashboardView,
-  GitGraphView,
 } from './views';
 
-// 差分詳細ビュー
-import DiffViewer from './components/DiffViewer';
-import RepositorySwitcher from './components/RepositorySwitcher';
 import ProjectSwitcherModal from './components/ProjectSwitcherModal';
 import CommandPaletteModal from './components/CommandPaletteModal';
 import { buildCommands, type CommandPaletteCommand } from './commands';
 import { Socket } from 'socket.io-client';
-
-import s from './App.module.scss';
 
 function App() {
   // 基盤フック
@@ -282,29 +276,12 @@ function App() {
     );
   }
 
-  // ファイルビュワービュー
+  // 統合コード/git ブラウザ（変更ファイル / ツリー / グラフ を 1 画面に集約）
   if (fileViewer.isActive) {
-    const repoName =
-      repository.repositories.find((r) => r.path === repository.currentRepo)
-        ?.name || '';
-    return (
-      <>
-      <FileViewerView
-        fileViewer={fileViewer}
-        repoName={repoName}
-        diffSummary={gitDiff.diffSummary}
-        rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
-      />
-      {overlays}
-      </>
-    );
-  }
-
-  // Git Graph ビュー（diff 分岐より上。file diff オーバーレイを graph 側に持たせる）
-  if (gitGraph.isActive) {
     const repoInfo = repository.repositories.find(
       (r) => r.path === repository.currentRepo
     );
+    const repoName = repoInfo?.name || '';
     const graphRepoName =
       repoInfo?.isWorktree &&
       repoInfo?.parentRepoName &&
@@ -315,37 +292,15 @@ function App() {
           '';
     return (
       <>
-        <GitGraphView
-          gitGraph={gitGraph}
-          repoName={graphRepoName}
-          rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
-        />
-        {overlays}
-      </>
-    );
-  }
-
-  // 差分詳細ビュー
-  if (gitDiff.currentView === 'diff' && gitDiff.diffViewFilename) {
-    return (
-      <>
-      <div className={s.diffViewWrapper}>
-        <DiffViewer
-          rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
-          filename={gitDiff.diffViewFilename}
-          detail={gitDiff.diffDetail}
-          isLoading={gitDiff.diffDetailLoading}
-          error={gitDiff.diffDetailError}
-          onRefresh={gitDiff.refreshDiffDetail}
-          onBack={gitDiff.handleDiffViewBack}
-        />
-        <RepositorySwitcher
-          repositories={repository.repositories}
-          currentRepo={repository.currentRepo}
-          repoProcessStatuses={repository.repoProcessStatuses}
-          onSwitchRepository={switchRepositoryFromList}
-        />
-      </div>
+      <CodeBrowserView
+        fileViewer={fileViewer}
+        gitDiff={gitDiff}
+        gitGraph={gitGraph}
+        repoName={repoName}
+        graphRepoName={graphRepoName}
+        currentRepo={repository.currentRepo}
+        rid={repositoryIdMap.getRid(repository.currentRepo) || ''}
+      />
       {overlays}
       </>
     );
@@ -517,7 +472,15 @@ function App() {
       diffSummaryLoading={gitDiff.diffSummaryLoading}
       diffSummaryError={gitDiff.diffSummaryError}
       onRefreshDiffSummary={gitDiff.refreshDiffSummary}
-      onDiffFileClick={gitDiff.handleDiffFileClick}
+      onDiffFileClick={(filename) => {
+        // 統合コード/git ブラウザを変更モードで別タブに開き、該当ファイルの差分を右ペインに表示
+        const url = new URL(window.location.href);
+        url.searchParams.set('view', 'files');
+        url.searchParams.set('mode', 'changes');
+        url.searchParams.set('file', filename);
+        url.searchParams.delete('fullscreen');
+        window.open(url.toString(), '_blank');
+      }}
       // npmスクリプト関連
       npmScripts={npm.npmScripts}
       onExecuteNpmScript={npm.executeNpmScript}

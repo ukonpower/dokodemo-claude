@@ -247,7 +247,7 @@
 .fileButtonActive {
   background-color: $dark-bg-hover;
 
-  .filePath {
+  .filePathName {
     color: $dark-text-primary;
   }
 }
@@ -264,10 +264,34 @@
   font-weight: 600;
 }
 
+.fileIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .filePath {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filePathName {
+  flex-shrink: 0;
   font-size: 12px;
+  font-weight: 600;
   color: $dark-text-secondary;
+}
+
+.filePathDir {
+  font-size: 10px;
+  color: $dark-text-muted;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

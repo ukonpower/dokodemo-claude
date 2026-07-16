@@ -35,7 +35,7 @@ export interface UseFileViewerReturn {
   open: () => void;
   close: () => void;
   toggleDir: (path: string) => void;
-  selectFile: (path: string, gitStatus?: string) => void;
+  selectFile: (path: string, gitStatus?: string, openInDiff?: boolean) => void;
   backToTree: () => void;
   clearState: () => void;
   toggleDiffMode: () => void;
@@ -338,13 +338,14 @@ export function useFileViewer(
   );
 
   const selectFile = useCallback(
-    (filePath: string, gitStatus?: string) => {
+    (filePath: string, gitStatus?: string, openInDiff = false) => {
       setSelectedFilePath(filePath);
       setFileContent(null);
       setIsLoadingFile(true);
       setError(null);
       setDiffDetail(null);
-      setIsDiffMode(false);
+      // 変更ファイルを差分モードで開く指定があれば diff 表示から始める
+      setIsDiffMode(openInDiff && !!gitStatus && gitStatus !== 'D');
 
       if (socket && currentRepo) {
         const rid = repositoryIdMap.getRid(currentRepo);

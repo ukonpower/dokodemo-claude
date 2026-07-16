@@ -29,13 +29,15 @@ interface GitGraphViewProps {
   gitGraph: UseGitGraphReturn;
   repoName: string;
   rid: string;
+  /** 統合コード/git ブラウザ内に埋め込む場合、自前の戻る/タイトル/リポジトリ名を省く */
+  embedded?: boolean;
 }
 
 /**
  * Git Graph 全画面ビュー（閲覧専用）
  * コミット詳細は下部固定パネル（Docked to Bottom）方式で表示する。
  */
-export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
+export function GitGraphView({ gitGraph, repoName, embedded = false }: GitGraphViewProps) {
   const { graph, loading, error } = gitGraph;
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
 
@@ -217,16 +219,20 @@ export function GitGraphView({ gitGraph, repoName }: GitGraphViewProps) {
     <div className={s.container}>
       {/* ヘッダ（1 行） */}
       <div className={`${s.header} ${findOpen ? s.headerFindOpen : ''}`}>
-        <button
-          className={s.iconButton}
-          onClick={gitGraph.handleBack}
-          title="戻る"
-          aria-label="戻る"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <span className={s.title}>Git Graph</span>
-        <span className={s.repoName}>{repoName}</span>
+        {!embedded && (
+          <>
+            <button
+              className={s.iconButton}
+              onClick={gitGraph.handleBack}
+              title="戻る"
+              aria-label="戻る"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className={s.title}>Git Graph</span>
+            <span className={s.repoName}>{repoName}</span>
+          </>
+        )}
         {graph && (
           <GitGraphBranchDropdown
             branchOptions={graph.branchOptions}

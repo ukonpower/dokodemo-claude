@@ -6,6 +6,7 @@ import type {
   GitDiffDetail,
 } from '../types';
 import { formatGraphDate } from '../utils/git-graph-layout';
+import { FileIcon, splitFilePath } from '../utils/file-icon';
 import DiffLines from './DiffLines';
 import { UNCOMMITTED_HASH } from './GitGraphSvg';
 import s from './GitGraphCommitDetail.module.scss';
@@ -196,22 +197,30 @@ const GitGraphCommitDetail: React.FC<GitGraphCommitDetailProps> = ({
                   const st = statusStyle(f.status);
                   const isActive =
                     activeMatchesHash && fileDiffFilename === f.filename;
+                  const { name, dir } = splitFilePath(f.filename);
                   return (
                     <button
                       key={f.filename}
                       className={`${s.fileButton} ${isActive ? s.fileButtonActive : ''}`}
                       onClick={() => onFileClick(f.filename, f.oldFilename)}
                     >
+                      <span className={s.fileIcon}>
+                        <FileIcon filename={f.filename} />
+                      </span>
+                      <span className={s.filePath}>
+                        <span className={s.filePathName}>{name}</span>
+                        {dir && <span className={s.filePathDir}>{dir}</span>}
+                        {f.oldFilename && (
+                          <span className={s.filePathDir}>
+                            ← {f.oldFilename}
+                          </span>
+                        )}
+                      </span>
                       <span
                         className={s.statusBadge}
                         style={{ color: st.color, backgroundColor: st.bg }}
                       >
                         {st.label}
-                      </span>
-                      <span className={s.filePath}>
-                        {f.oldFilename
-                          ? `${f.oldFilename} → ${f.filename}`
-                          : f.filename}
                       </span>
                       <span className={s.stats}>
                         {f.additions > 0 && (
