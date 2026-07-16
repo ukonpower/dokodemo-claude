@@ -55,6 +55,8 @@ interface DashboardViewProps {
   onSettingsChange: (settings: AppSettings) => void;
   onPasteFile?: (file: File) => Promise<string | undefined>;
   isUploadingFile: boolean;
+  uploadProgress?: number | null;
+  onCancelUpload?: () => void;
   onSwitchToProjectView: () => void;
   onOpenWorktree: (path: string) => void;
   onSwitchRepository: (path: string) => void;
@@ -179,6 +181,8 @@ export function DashboardView({
   onSettingsChange,
   onPasteFile,
   isUploadingFile,
+  uploadProgress,
+  onCancelUpload,
   onSwitchToProjectView,
   onOpenWorktree,
   onSwitchRepository,
@@ -615,6 +619,8 @@ export function DashboardView({
                     provider={provider}
                     onPasteFile={onPasteFile}
                     isUploadingFile={isUploadingFile}
+                    uploadProgress={uploadProgress}
+                    onCancelUpload={onCancelUpload}
                     onToggleSelected={handleToggleSelected}
                     onOpenInNormalView={onOpenWorktree}
                     onSendCommand={handleSendCommandToWorktree}
@@ -648,6 +654,8 @@ export function DashboardView({
               onSendSettingsChange={setBroadcastSendSettings}
               onPasteFile={onPasteFile}
               isUploadingFile={isUploadingFile}
+              uploadProgress={uploadProgress}
+              onCancelUpload={onCancelUpload}
               hideWorkflowControls
             />
           </div>
