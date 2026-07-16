@@ -17,49 +17,25 @@
 
 .fieldLabel {
   font-size: $font-size-xs;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
+}
+
+// ラベル左・入力右の 1 行レイアウト（ステッパー・スリムなセレクト用）
+.rowField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+
+  .fieldLabel {
+    flex-shrink: 0;
+  }
 }
 
 .fieldCaption {
   font-size: 10px;
   color: $dark-text-muted;
-}
-
-// 判断方式のセグメントボタン
-.segmented {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: $radius;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
-}
-
-.segmentButton {
-  flex: 1;
-  min-height: 32px;
-  padding: 4px 6px;
-  font-size: $font-size-xs;
-  border: none;
-  border-radius: $radius-sm;
-  background: transparent;
-  color: $dark-text-muted;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all $transition-fast $transition-easing;
-
-  &:hover {
-    color: $dark-text-primary;
-  }
-}
-
-.segmentActive {
-  background-color: $accent-blue;
-  color: white;
-
-  &:hover {
-    color: white;
-  }
 }
 
 // 数値ステッパー
@@ -76,8 +52,8 @@
 .stepperButton {
   @include flex-center;
   flex-shrink: 0;
-  width: 40px;
-  min-height: 32px;
+  width: 34px;
+  min-height: 30px;
   border: none;
   background: transparent;
   color: $dark-text-primary;
@@ -98,13 +74,12 @@
 
 .stepperValue {
   @include flex-center;
-  flex: 1;
   gap: 4px;
   min-width: 0;
 }
 
 .stepperInput {
-  width: 3.5rem;
+  width: 2.4rem;
   padding: 4px 0;
   font-size: $font-size-sm;
   text-align: center;
@@ -121,10 +96,83 @@
   font-size: $font-size-xs;
   color: $dark-text-muted;
   white-space: nowrap;
+  padding-right: 6px;
 }
 
-// 定期プランニングのモデル選択
-.planningModelSelect {
+// 定期プランニングの有効/無効トグル行
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.toggleTrack {
+  position: relative;
+  width: 1.5rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  transition: background-color $transition-normal $transition-easing;
+
+  &.on {
+    background-color: $accent-blue;
+  }
+
+  &.off {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 0.125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background-color: white;
+  transition: all $transition-normal $transition-easing;
+
+  &.on {
+    left: 0.75rem;
+  }
+
+  &.off {
+    left: 0.125rem;
+  }
+}
+
+// 定期プランニング有効時の子設定（左ボーダーでネストを表現）
+.subGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 2px solid $dark-border-light;
+
+  .fieldLabel {
+    color: $dark-text-muted;
+  }
+}
+
+// rowField 内で使う幅控えめのセレクト
+.selectSlim {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  max-width: 240px;
+}
+
+// セレクト共通（作業モデル・継続の判断・プランニングモデル）
+.selectInput {
   width: 100%;
   min-height: 32px;
   padding: 4px 8px;

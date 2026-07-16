@@ -1935,21 +1935,25 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     </button>
                   </div>
 
-                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に） */}
+                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に。
+                      モデルチップと同じ「ラベル＋値＋シェブロン」の開閉ボタン形式 */}
                   <div className={`${s.optGroup} ${s.optGroupWide}`}>
                   <button
                     type="button"
                     onClick={() => setIsLoopExpanded(!isLoopExpanded)}
                     disabled={disabled}
-                    className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
+                    className={`${s.modelButton} ${loopEnabled ? s.active : ''}`}
                     title="ループ: 完了後に同じプロンプトを繰り返し送信"
                   >
                     <Repeat size={12} />
-                    {loopEnabled
-                      ? loopJudge === 'none'
-                        ? '無限'
-                        : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
-                      : 'ループ'}
+                    <span className={s.optLabel}>ループ</span>
+                    <span className={s.optValue}>
+                      {loopEnabled
+                        ? loopJudge === 'none'
+                          ? '無限'
+                          : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
+                        : 'オフ'}
+                    </span>
                     <svg
                       className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
                       fill="none"

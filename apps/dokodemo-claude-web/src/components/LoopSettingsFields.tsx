@@ -143,7 +143,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             value={workModel ?? ''}
             onChange={(e) => onWorkModelChange(e.target.value)}
             disabled={disabled}
-            className={s.planningModelSelect}
+            className={s.selectInput}
           >
             {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
             {workModel &&
@@ -162,23 +162,27 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
         </div>
       )}
 
-      {/* 継続の判断（セグメントボタン） */}
+      {/* 継続の判断（プルダウン） */}
       <div className={s.field}>
-        <div className={s.fieldLabel}>継続の判断</div>
-        <div className={s.segmented}>
-          {JUDGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange({ ...value, judge: opt.value })}
-              disabled={disabled}
-              className={`${s.segmentButton} ${
-                value.judge === opt.value ? s.segmentActive : ''
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className={s.rowField}>
+          <div className={s.fieldLabel}>継続の判断</div>
+          <select
+            value={value.judge}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                judge: e.target.value as LoopSettingsValue['judge'],
+              })
+            }
+            disabled={disabled}
+            className={`${s.selectInput} ${s.selectSlim}`}
+          >
+            {JUDGE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
         {selectedOption && (
           <div className={s.fieldCaption}>{selectedOption.caption}</div>
@@ -187,7 +191,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
 
       {/* 判断間隔（判断ありの場合のみ） */}
       {value.judge !== 'none' && (
-        <div className={s.field}>
+        <div className={s.rowField}>
           <div className={s.fieldLabel}>判断間隔</div>
           <Stepper
             value={value.judgeEveryN}
@@ -215,7 +219,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
       )}
 
       {/* 再送までの待機時間 */}
-      <div className={s.field}>
+      <div className={s.rowField}>
         <div className={s.fieldLabel}>再送待機</div>
         <Stepper
           value={intervalMin}
@@ -226,40 +230,38 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
         />
       </div>
 
-      {/* 定期プランニング */}
+      {/* 定期プランニング（トグルで有効化、子設定は左ボーダーでネスト） */}
       <div className={s.field}>
-        <div className={s.fieldLabel}>定期プランニング</div>
-        <div className={s.segmented}>
-          <button
-            type="button"
-            onClick={() => onChange({ ...value, planningEnabled: false })}
-            disabled={disabled}
-            className={`${s.segmentButton} ${
-              !value.planningEnabled ? s.segmentActive : ''
+        <button
+          type="button"
+          onClick={() =>
+            onChange({ ...value, planningEnabled: !value.planningEnabled })
+          }
+          disabled={disabled}
+          className={s.toggleRow}
+        >
+          <span className={s.fieldLabel}>定期プランニング</span>
+          <div
+            className={`${s.toggleTrack} ${
+              value.planningEnabled ? s.on : s.off
             }`}
           >
-            なし
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange({ ...value, planningEnabled: true })}
-            disabled={disabled}
-            className={`${s.segmentButton} ${
-              value.planningEnabled ? s.segmentActive : ''
-            }`}
-          >
-            あり
-          </button>
-        </div>
+            <div
+              className={`${s.toggleThumb} ${
+                value.planningEnabled ? s.on : s.off
+              }`}
+            />
+          </div>
+        </button>
         <div className={s.fieldCaption}>
           N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します
         </div>
       </div>
 
       {value.planningEnabled && (
-        <>
-          <div className={s.field}>
-            <div className={s.fieldLabel}>プランニング間隔</div>
+        <div className={s.subGroup}>
+          <div className={s.rowField}>
+            <div className={s.fieldLabel}>間隔</div>
             <Stepper
               value={value.planningEveryN}
               min={1}
@@ -269,15 +271,15 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             />
           </div>
 
-          <div className={s.field}>
-            <div className={s.fieldLabel}>プランニングモデル</div>
+          <div className={s.rowField}>
+            <div className={s.fieldLabel}>モデル</div>
             <select
               value={value.planningModel}
               onChange={(e) =>
                 onChange({ ...value, planningModel: e.target.value })
               }
               disabled={disabled}
-              className={s.planningModelSelect}
+              className={`${s.selectInput} ${s.selectSlim}`}
             >
               {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
               {value.planningModel &&
@@ -297,7 +299,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
           </div>
 
           <div className={s.field}>
-            <div className={s.fieldLabel}>プランニングプロンプト</div>
+            <div className={s.fieldLabel}>プロンプト</div>
             <textarea
               value={value.planningPrompt}
               onChange={(e) =>
@@ -309,7 +311,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
               className={s.criteriaTextarea}
             />
           </div>
-        </>
+        </div>
       )}
     </div>
   );
