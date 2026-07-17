@@ -174,3 +174,6 @@ apps/dokodemo-claude-api/uploads/
 
 # handoff（委譲引き継ぎ書）
 .handoff/
+
+# 更新ボタンによる再起動要求フラグ（supervisorが消費）
+.dc-restart-request
