@@ -7,7 +7,13 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import {
+  ArrowDown,
+  RefreshCw,
+  Maximize2,
+  Minimize2,
+  TextSelect,
+} from 'lucide-react';
 import type { AiProvider, AiOutputLine } from '../types';
 import TerminalOut from './TerminalOut';
 import { getProviderInfo } from '../utils/ai-provider-info';
@@ -181,6 +187,14 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
       },
       [onResize]
     );
+
+    /**
+     * TerminalOutからコピーモードを開く関数を受け取る
+     */
+    const openCopyMode = useRef<(() => void) | null>(null);
+    const handleCopyModeReady = useCallback((open: () => void) => {
+      openCopyMode.current = open;
+    }, []);
 
     /**
      * TerminalOutからターミナルインスタンスを受け取る
@@ -415,10 +429,18 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
             cursorBlink={false}
             fontSize={fontSize}
             onFileDrop={onFileDrop}
+            onCopyModeReady={handleCopyModeReady}
           />
 
-          {/* 右上のツールボタン群（リサイズ・全画面切替） */}
+          {/* 右上のツールボタン群（コピーモード・リサイズ・全画面切替） */}
           <div className={s.toolButtonWrapper}>
+            <button
+              onClick={() => openCopyMode.current?.()}
+              className={s.toolButton}
+              title="コピーモード（テキスト選択）"
+            >
+              <TextSelect size={10} />
+            </button>
             <button
               onClick={resizeTerminal}
               className={s.toolButton}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal, IDisposable, ILink } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -85,6 +85,12 @@ interface TerminalOutProps {
    * このコールバックに渡される
    */
   onFileDrop?: (files: File[]) => void;
+
+  /**
+   * コピーモード（テキスト選択オーバーレイ）を開く関数を親に渡すコールバック
+   * 親側のボタン等からコピーモードを起動したい場合に使用
+   */
+  onCopyModeReady?: (openCopyMode: () => void) => void;
 }
 
 /**
@@ -104,6 +110,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   scrollOnUserInput = false,
   isActive,
   onFileDrop,
+  onCopyModeReady,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
@@ -119,17 +126,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const isComposing = useRef<boolean>(false);
   const compositionEndTime = useRef<number>(0);
 
-  // iOS検出（コンポーネントスコープで共有）
-  const isIOS = useMemo(
-    () =>
-      /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
-    []
-  );
-
-  // iOS長押しテキスト選択用
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressTouchPos = useRef<{ x: number; y: number } | null>(null);
+  // テキスト選択オーバーレイ（コピーモード）用
   const [showTextOverlay, setShowTextOverlay] = useState(false);
   const [overlayText, setOverlayText] = useState('');
 
@@ -672,30 +669,16 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     return result;
   }, []);
 
-  // タッチの起点がスクロールUI（xterm のスクロールバー/トラック、または右端の
-  // カスタムスクロールハンドル）かどうかを判定する。スクロールUI上の長押しは
-  // スクロール位置の保持や慣性スクロールの停止が目的のため、コピペモード
-  // （テキスト選択オーバーレイ）の起動対象から除外する。
-  const isScrollUiTarget = useCallback(
-    (target: EventTarget | null): boolean => {
-      if (!(target instanceof Element)) return false;
-      // xterm のスクロールバー領域（.xterm-scroll-area も viewport 配下）
-      if (target.closest('.xterm-viewport')) return true;
-      // 右端のカスタムスクロールハンドル
-      if (target.closest(`.${s.scrollHandle}`)) return true;
-      return false;
-    },
-    []
-  );
+  // テキストオーバーレイ（コピーモード）を開く
+  const openTextOverlay = useCallback(() => {
+    setOverlayText(getVisibleText());
+    setShowTextOverlay(true);
+  }, [getVisibleText]);
 
-  // 長押しタイマーをキャンセル
-  const cancelLongPress = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    longPressTouchPos.current = null;
-  }, []);
+  // コピーモードを開く関数を親に渡す
+  useEffect(() => {
+    onCopyModeReady?.(openTextOverlay);
+  }, [onCopyModeReady, openTextOverlay]);
 
   // テキストオーバーレイを閉じる
   const closeTextOverlay = useCallback(() => {
@@ -735,49 +718,19 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     [disableStdin, focusTerminal, onClick]
   );
 
-  // 二本指スクロールの開始を検出 & iOS長押し検出
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (e.touches.length === 2) {
-        // 二本指タッチを検出
-        cancelLongPress();
-        isTwoFingerScroll.current = true;
-        lastTouchY.current =
-          (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      } else if (e.touches.length === 1) {
-        isTwoFingerScroll.current = false;
-
-        // iOS: 長押し検出開始（スクロールUI起点の長押しはコピペモードを起動しない）
-        if (isIOS && !isScrollUiTarget(e.target)) {
-          longPressTouchPos.current = {
-            x: e.touches[0].clientX,
-            y: e.touches[0].clientY,
-          };
-          longPressTimer.current = setTimeout(() => {
-            const text = getVisibleText();
-            setOverlayText(text);
-            setShowTextOverlay(true);
-            navigator.vibrate?.(10);
-          }, 500);
-        }
-      }
-    },
-    [isIOS, cancelLongPress, getVisibleText, isScrollUiTarget]
-  );
-
-  // 二本指スクロールの移動を処理 & 長押しキャンセル
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // 1本指の移動で長押しをキャンセル
-    if (longPressTouchPos.current && e.touches.length === 1) {
-      const dx = Math.abs(
-        e.touches[0].clientX - longPressTouchPos.current.x
-      );
-      const dy = Math.abs(
-        e.touches[0].clientY - longPressTouchPos.current.y
-      );
-      if (dx > 10 || dy > 10) cancelLongPress();
+  // 二本指スクロールの開始を検出
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // 二本指タッチを検出
+      isTwoFingerScroll.current = true;
+      lastTouchY.current = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    } else if (e.touches.length === 1) {
+      isTwoFingerScroll.current = false;
     }
+  }, []);
 
+  // 二本指スクロールの移動を処理
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (isTwoFingerScroll.current && e.touches.length === 2) {
       // 二本指の中点のY座標を計算
       const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
@@ -797,14 +750,13 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       // デフォルト動作を防止
       e.preventDefault();
     }
-  }, [cancelLongPress]);
+  }, []);
 
   // 二本指スクロールの終了を検出
   const handleTouchEnd = useCallback(() => {
-    cancelLongPress();
     isTwoFingerScroll.current = false;
     isScrollHandleDrag.current = false;
-  }, [cancelLongPress]);
+  }, []);
 
   // スクロールハンドルのタッチ開始
   const handleScrollHandleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -907,7 +859,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         </div>
       </div>
 
-      {/* iOS長押しテキスト選択オーバーレイ */}
+      {/* テキスト選択オーバーレイ（コピーモード） */}
       {showTextOverlay && (
         <div
           className={s.textOverlay}
