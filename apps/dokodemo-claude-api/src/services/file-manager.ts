@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { UploadedFileInfo, FileSource, FileType } from '../types/index.js';
+import { getMaxUploadSizeBytes } from '../utils/clean-env.js';
 
 const METADATA_FILENAME = 'metadata.json';
 
@@ -15,7 +16,6 @@ interface FileMetadata {
 
 const UPLOADS_ROOT_DIR = 'uploads';
 
-export const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 class FileManager {
   private projectRoot: string;
@@ -191,10 +191,11 @@ class FileManager {
       };
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    const maxSize = getMaxUploadSizeBytes();
+    if (file.size > maxSize) {
       return {
         success: false,
-        message: `ファイルサイズが大きすぎます。最大サイズ: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        message: `ファイルサイズが大きすぎます。最大サイズ: ${(maxSize / 1024 / 1024 / 1024).toFixed(1)}GB`,
       };
     }
 

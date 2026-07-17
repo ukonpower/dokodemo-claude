@@ -7,7 +7,8 @@ import type { Express, RequestHandler } from 'express';
 import { Server as TusServer } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import type { HandlerContext, TypedServer } from './types.js';
-import { fileManager, MAX_FILE_SIZE } from '../services/file-manager.js';
+import { fileManager } from '../services/file-manager.js';
+import { getMaxUploadSizeBytes } from '../utils/clean-env.js';
 import type { FileSource, UploadedFileInfo } from '../types/index.js';
 
 // プレビューAPI: raw binary POST受け取り時の上限
@@ -79,7 +80,7 @@ function createTusServer(io: TypedServer): TusServer {
     path: '/api/tus',
     relativeLocation: true,
     datastore: new FileStore({ directory: fileManager.getTusStorePath() }),
-    maxSize: MAX_FILE_SIZE,
+    maxSize: getMaxUploadSizeBytes(),
     // CORS設定: @tus/server自身にCORS処理を任せる
     // （express側のcorsミドルウェアと併用するとプリフライトでtus固有ヘッダーが
     // Access-Control-Allow-Headersから漏れてCORSエラーになるため）

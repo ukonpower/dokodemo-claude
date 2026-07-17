@@ -85,6 +85,13 @@ export function getMcpPort(): number {
   return parseInt(process.env.DC_API_PORT || '8001', 10) + 1;
 }
 
+// ファイルアップロードの最大サイズ（バイト）。DC_MAX_UPLOAD_GB（GB単位）で指定、既定 10GB。
+export function getMaxUploadSizeBytes(): number {
+  const gb = parseFloat(process.env.DC_MAX_UPLOAD_GB || '');
+  const resolved = Number.isFinite(gb) && gb > 0 ? gb : 10;
+  return Math.floor(resolved * 1024 * 1024 * 1024);
+}
+
 // MCP エンドポイントの URL を返す。
 // MCP は loopback 限定の専用 HTTP サーバで提供するため、DC_USE_HTTPS の値に関係なく
 // 常に http://127.0.0.1 を指す（自己署名証明書の問題を回避する）。
