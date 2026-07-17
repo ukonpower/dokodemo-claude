@@ -7,6 +7,7 @@ import {
   AiInstance,
   PromptQueueItem,
   PromptQueueState,
+  PromptLoopPlanning,
   RepoProcessStatus,
   PermissionMode,
   AiExecutionStatus,
@@ -755,6 +756,7 @@ export class ProcessManager extends EventEmitter {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     }
   ): Promise<PromptQueueItem> {
     const result = await this.promptQueueManager.addToQueue(
@@ -898,6 +900,7 @@ export class ProcessManager extends EventEmitter {
           judgeEveryN: number;
           intervalSec: number;
           judgeCriteria?: string;
+          planning?: PromptLoopPlanning;
         }
       | null
   ): Promise<boolean> {
