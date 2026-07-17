@@ -1,4 +1,6 @@
 import { spawn } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { HandlerContext } from './types.js';
 import { getRemoteUrl } from '../utils/git-utils.js';
 import * as CodeServerManager from '../code-server.js';
@@ -273,10 +275,27 @@ export function registerMiscHandlers(
         clearTimeout(pullTimeout);
 
         if (code === 0) {
+          let message =
+            'dokodemo-claudeを最新版に更新しました。数十秒後に自動的に切り替わります。';
+
+          // prod (npm run start) では supervisor (scripts/start-prod.js) が
+          // このフラグを検知して npm install → 全プロセス再起動を行う
+          if (process.env.DC_MODE === 'prod') {
+            try {
+              fs.writeFileSync(
+                path.join(selfRepoPath, '.dc-restart-request'),
+                `${new Date().toISOString()}\n`
+              );
+              message =
+                'dokodemo-claudeを最新版に更新しました。依存関係の更新とサーバー再起動を行うため、1〜2分ほど待ってからページを再読み込みしてください。';
+            } catch {
+              // フラグが書けない場合は従来どおり tsx watch の自動再起動に任せる
+            }
+          }
+
           socket.emit('self-pulled', {
             success: true,
-            message:
-              'dokodemo-claudeを最新版に更新しました。数十秒後に自動的に切り替わります。',
+            message,
             output: output || errorOutput,
           });
         } else {

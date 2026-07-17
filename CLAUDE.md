@@ -148,6 +148,7 @@ npx nx type-check dokodemo-claude-api
    ```
    - ブラウザで `https://localhost:<DC_PROD_PORT>` にアクセス（既定 8000）
    - Express が Web (dist) + API を 1 ポートで配信
+   - 実体は `scripts/start-prod.js`（supervisor）。UI の更新ボタン（pull-self）が成功すると `.dc-restart-request` フラグが書かれ、supervisor が npm install（root/api/web）→ 全プロセス再起動を行う
 
 ## ビルドチェックフロー
 
