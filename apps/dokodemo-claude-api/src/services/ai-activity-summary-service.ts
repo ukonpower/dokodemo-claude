@@ -1,10 +1,10 @@
 /**
  * AI タブの指示内容要約サービス
  *
- * プロンプトキューから AI へ送信されたユーザーのプロンプトを受け取り、
- * 「そのタブの AI に何を頼んだか」の短い日本語要約を Agent SDK（haiku）で
- * 生成する。生成した要約は 'summary' イベントで通知し、server.ts が
- * Socket.IO でクライアントへ配信する。
+ * AI へ送信されたユーザーのプロンプト（キュー経由・ターミナルへの直接入力
+ * の両方）を受け取り、「そのタブの AI に何を頼んだか」の短い日本語要約を
+ * Agent SDK（haiku）で生成する。生成した要約は 'summary' イベントで通知し、
+ * server.ts が Socket.IO でクライアントへ配信する。
  *
  * - 短い 1 行プロンプトは要約せずそのまま使う（SDK 呼び出し不要）
  * - 生成中に新しいプロンプトが届いたら最新の 1 件だけを保持し、
@@ -48,6 +48,8 @@ interface InstanceSummaryState {
   provider: AiProvider;
   // 生成中に届いた最新プロンプト（完了後に処理する）
   pendingPrompt: string | null;
+  // 最後に受け付けたプロンプト（キュー経路と hook 経路の二重要約を防ぐ）
+  lastPrompt: string;
   lastSummary: string;
   inFlight: boolean;
   abort: AbortController | null;
@@ -75,8 +77,9 @@ export class AiActivitySummaryService extends EventEmitter {
   private states = new Map<string, InstanceSummaryState>();
 
   /**
-   * キューから AI へプロンプトが送信された通知。
-   * server.ts の 'prompt-queue-item-sent' ハンドラから呼ばれる。
+   * AI へプロンプトが送信された通知。
+   * server.ts の 'prompt-queue-item-sent' ハンドラ（キュー経由）と
+   * UserPromptSubmit hook（直接入力を含む全プロンプト）の両方から呼ばれる。
    */
   notifyPrompt(data: {
     instanceId: string;
@@ -93,12 +96,17 @@ export class AiActivitySummaryService extends EventEmitter {
         repositoryPath: data.repositoryPath,
         provider: data.provider,
         pendingPrompt: null,
+        lastPrompt: '',
         lastSummary: '',
         inFlight: false,
         abort: null,
       };
       this.states.set(data.instanceId, state);
     }
+    // 同じプロンプトが複数経路から届いたら 1 回だけ要約する
+    // （キュー送信分は 'prompt-queue-item-sent' と UserPromptSubmit hook の両方で届く）
+    if (prompt === state.lastPrompt) return;
+    state.lastPrompt = prompt;
     state.repositoryPath = data.repositoryPath;
     state.provider = data.provider;
     state.pendingPrompt = prompt;

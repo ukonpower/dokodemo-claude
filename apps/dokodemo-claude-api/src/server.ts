@@ -504,10 +504,10 @@ const NOTIFICATION_EVENT_EMOJIS: Record<string, string> = {
 // AI Hook共通処理関数
 async function handleAiHookEvent(
   hookProvider: AiProvider,
-  body: { event?: string; metadata?: Record<string, unknown>; transcript_path?: string; cwd?: string; session_id?: string }
+  body: { event?: string; metadata?: Record<string, unknown>; transcript_path?: string; cwd?: string; session_id?: string; prompt?: string }
 ): Promise<void> {
   try {
-    const { event, metadata, transcript_path, cwd, session_id } = body;
+    const { event, metadata, transcript_path, cwd, session_id, prompt } = body;
 
     if (!event || typeof event !== 'string') return;
 
@@ -521,6 +521,8 @@ async function handleAiHookEvent(
     let instance = session_id
       ? processManager.aiSessionManager.getInstanceBySessionId(session_id)
       : undefined;
+    // session_id で厳密に特定できたか（cwd フォールバックと区別する）
+    const isDirectInstance = instance !== undefined;
     let repositoryPath: string | null = instance?.repositoryPath ?? null;
 
     // フォールバック: cwd からリポジトリルートを探索（インスタンス特定不可の hook）
@@ -551,6 +553,23 @@ async function handleAiHookEvent(
         instance.instanceId,
         event === 'Stop' ? 'completed' : 'running'
       );
+    }
+
+    // 直接入力を含む全プロンプトをタブ表示用の指示内容要約へ渡す。
+    // cwd フォールバックで引いた instance は除外する（Agent SDK 経由の
+    // 内部呼び出しや無関係セッションのプロンプトを誤って拾わないため）
+    if (
+      event === 'UserPromptSubmit' &&
+      typeof prompt === 'string' &&
+      instance &&
+      isDirectInstance
+    ) {
+      aiActivitySummaryService.notifyPrompt({
+        instanceId: instance.instanceId,
+        repositoryPath,
+        provider: hookProvider,
+        prompt,
+      });
     }
 
     const repositoryName = path.basename(repositoryPath);
