@@ -202,6 +202,7 @@ export interface IOSSimulatorFrame {
 }
 
 export interface IOSSimulatorStreamSettings {
+  // 0 は auto（idb の dynamic fps = 画面変化時のみフレーム送信）
   fps: number;
   scale: number;
   quality: number;
@@ -214,6 +215,18 @@ export interface ServerToClientEvents {
     idbAvailable: boolean;
   }) => void;
   'ios-simulator-frame': (data: IOSSimulatorFrame) => void;
+  // H.264 ストリーム（idb video-stream）。codec は WebCodecs 用の 'avc1.xxxxxx'
+  'ios-simulator-video-config': (data: {
+    udid: string;
+    codec: string;
+  }) => void;
+  // data は Annex B 形式の1アクセスユニット（=1フレーム）
+  'ios-simulator-video-chunk': (data: {
+    udid: string;
+    data: Uint8Array;
+    key: boolean;
+    timestamp: number;
+  }) => void;
   'ios-simulator-status': (data: {
     state: 'idle' | 'streaming' | 'view-only' | 'error';
     udid?: string;
@@ -701,16 +714,22 @@ export interface ClientToServerEvents {
   'ios-simulator-start-stream': (data: {
     udid: string;
     settings: IOSSimulatorStreamSettings;
+    // クライアントが WebCodecs (VideoDecoder) を使えるか。
+    // true かつ idb ありなら H.264 ストリーム、それ以外はスクショポーリング
+    supportsVideo: boolean;
   }) => void;
   'ios-simulator-stop-stream': () => void;
   'ios-simulator-refresh': (data: {
     udid: string;
     settings: IOSSimulatorStreamSettings;
   }) => void;
+  // frameWidth/frameHeight は表示中フレームのピクセル寸法（向き判定に使用）
   'ios-simulator-tap': (data: {
     udid: string;
     x: number;
     y: number;
+    frameWidth: number;
+    frameHeight: number;
   }) => void;
   'ios-simulator-swipe': (data: {
     udid: string;
@@ -719,6 +738,8 @@ export interface ClientToServerEvents {
     endX: number;
     endY: number;
     durationMs: number;
+    frameWidth: number;
+    frameHeight: number;
   }) => void;
 
   'clone-repo': (data: { url: string; name: string }) => void;

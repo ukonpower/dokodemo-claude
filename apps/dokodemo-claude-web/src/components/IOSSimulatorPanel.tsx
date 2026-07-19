@@ -25,7 +25,7 @@ interface PointerStart {
 }
 
 function normalizedPoint(
-  element: HTMLImageElement,
+  element: HTMLElement,
   clientX: number,
   clientY: number
 ): { x: number; y: number } {
@@ -47,9 +47,11 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
   const simulator = useIOSSimulator({ socket });
   const visibleFrame =
     simulator.frame?.udid === simulator.selectedUdid ? simulator.frame : null;
-  const canInteract = simulator.idbAvailable && Boolean(visibleFrame);
+  const showVideo = simulator.videoActive;
+  const hasScreen = showVideo ? simulator.hasVideoFrame : Boolean(visibleFrame);
+  const canInteract = simulator.idbAvailable && hasScreen;
 
-  const handlePointerDown = (event: PointerEvent<HTMLImageElement>): void => {
+  const handlePointerDown = (event: PointerEvent<HTMLElement>): void => {
     if (!canInteract || (event.pointerType === 'mouse' && event.button !== 0)) {
       return;
     }
@@ -70,7 +72,7 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
     };
   };
 
-  const handlePointerUp = (event: PointerEvent<HTMLImageElement>): void => {
+  const handlePointerUp = (event: PointerEvent<HTMLElement>): void => {
     const start = pointerStartRef.current;
     pointerStartRef.current = null;
     if (!start || start.pointerId !== event.pointerId) return;
@@ -143,10 +145,10 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
               })
             }
           >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={5}>5</option>
+            <option value={0}>auto</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={30}>30</option>
           </select>
         </label>
         <label>
@@ -215,10 +217,22 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
         {!simulator.selectedUdid && (
           <p className={s.empty}>起動済みのiOSシミュレータがありません</p>
         )}
-        {simulator.selectedUdid && !visibleFrame && (
+        {simulator.selectedUdid && !hasScreen && (
           <p className={s.empty}>画面を取得しています…</p>
         )}
-        {visibleFrame && (
+        {/* H.264 ストリーム時は decoder が直接描画する canvas を表示する */}
+        <canvas
+          ref={simulator.videoCanvasRef}
+          aria-label="iOSシミュレータの画面"
+          className={`${s.screen} ${canInteract ? s.interactive : ''}`}
+          style={showVideo && hasScreen ? undefined : { display: 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={() => {
+            pointerStartRef.current = null;
+          }}
+        />
+        {!showVideo && visibleFrame && (
           <img
             src={simulator.frameUrl}
             alt="iOSシミュレータの画面"

@@ -306,9 +306,11 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   // lg 未満：タブ切替
   const activeSection =
     sections.find((sec) => sec.id === activeTab) ?? sections[0];
+  // sim タブはシミュレータ画面を丸ごと収める（スクロールさせない）ため高さを広げる
+  const isSimTab = activeSection.id === 'sim';
   return (
     <>
-      <div className={s.root}>
+      <div className={`${s.root} ${isSimTab ? s.rootSim : ''}`}>
         <div className={s.tabBar}>
           {sections.map((sec) => {
             const isActive = sec.id === activeTab;
@@ -335,7 +337,11 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
             </button>
           )}
         </div>
-        <div className={s.tabContent}>{activeSection.body}</div>
+        <div
+          className={`${s.tabContent} ${isSimTab ? s.tabContentFill : ''}`}
+        >
+          {activeSection.body}
+        </div>
       </div>
       {fullscreenOverlay}
     </>

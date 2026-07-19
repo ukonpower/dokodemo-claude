@@ -57,12 +57,30 @@
   }
 }
 
-// SidePanel タブ（スマホ）用のインライン表示
+// SidePanel タブ（スマホ）用のインライン表示。
+// 親（tabContentFill）の高さいっぱいに広がり、画面イメージはスクロールさせず
+// 残り高さに収まるよう縮める（img は max-width/max-height 制約のみなので
+// 要素ボックス = 描画イメージが保たれ、タップ座標の正規化が狂わない）
 .inline {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
   .body {
-    border-top: 0;
+    flex: 1;
+    min-height: 0;
     max-height: none;
+    border-top: 0;
     padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+  }
+
+  .screenArea {
+    min-height: 0;
+  }
+
+  .screen {
+    max-height: 100%;
   }
 }
 
