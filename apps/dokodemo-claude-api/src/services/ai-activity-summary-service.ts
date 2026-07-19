@@ -6,7 +6,6 @@
  * Agent SDK（haiku）で生成する。生成した要約は 'summary' イベントで通知し、
  * server.ts が Socket.IO でクライアントへ配信する。
  *
- * - 短い 1 行プロンプトは要約せずそのまま使う（SDK 呼び出し不要）
  * - 生成中に新しいプロンプトが届いたら最新の 1 件だけを保持し、
  *   完了後に続けて処理する（常に最後に送った指示の要約へ収束する）
  *
@@ -27,8 +26,6 @@ export interface AiActivitySummaryEvent {
   timestamp: number;
 }
 
-// この長さ以下の 1 行プロンプトは要約せずそのまま表示する
-const SHORT_PROMPT_MAX_CHARS = 24;
 // SDK へ渡すプロンプト先頭の最大長（指示の核は冒頭にあることが多い）
 const PROMPT_MAX_CHARS = 4000;
 // 要約の生成モデル（コスト配慮で安価なモデルを既定にする）
@@ -59,11 +56,11 @@ function buildSummaryPrompt(provider: AiProvider, userPrompt: string): string {
   const providerName = provider === 'claude' ? 'Claude Code' : 'Codex';
   return [
     `以下はユーザーが ${providerName} CLI（AI コーディングエージェント）に送った指示です。`,
-    '何を頼んだかが一目で分かるよう、日本語 1 行で簡潔に要約してください。',
+    '何を頼んだかが一目で分かるよう、文ではなく一言（体言止めの短いフレーズ）でまとめてください。',
     '',
-    '例:「型エラーの修正」「READMEの整備」「ログイン画面の実装」',
+    '例:「型エラー修正」「README整備」「ログイン画面の実装」',
     '',
-    '- 体言止めで簡潔に。句点・引用符・絵文字は付けない',
+    '- 句点・引用符・絵文字は付けない',
     '- 手順が羅列されている場合は目的レベルでまとめる',
     '',
     '## ユーザーの指示',
@@ -140,13 +137,6 @@ export class AiActivitySummaryService extends EventEmitter {
     const prompt = state.pendingPrompt;
     if (!prompt) return;
     state.pendingPrompt = null;
-
-    // 短い 1 行プロンプトはそのまま表示する
-    if (prompt.length <= SHORT_PROMPT_MAX_CHARS && !prompt.includes('\n')) {
-      this.emitSummary(instanceId, state, prompt);
-      return;
-    }
-
     void this.runSummary(instanceId, state, prompt);
   }
 
