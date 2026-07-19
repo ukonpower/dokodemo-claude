@@ -183,8 +183,47 @@ export interface EditorInfo {
   available: boolean;
 }
 
+export interface IOSSimulatorDevice {
+  udid: string;
+  name: string;
+  runtime: string;
+  deviceTypeIdentifier: string;
+}
+
+export interface IOSSimulatorFrame {
+  udid: string;
+  image: Uint8Array;
+  mimeType: 'image/jpeg';
+  width: number;
+  height: number;
+  pointWidth?: number;
+  pointHeight?: number;
+  capturedAt: number;
+}
+
+export interface IOSSimulatorStreamSettings {
+  fps: number;
+  scale: number;
+  quality: number;
+}
+
 // Socket.IO通信関連の型定義
 export interface ServerToClientEvents {
+  'ios-simulator-devices': (data: {
+    devices: IOSSimulatorDevice[];
+    idbAvailable: boolean;
+  }) => void;
+  'ios-simulator-frame': (data: IOSSimulatorFrame) => void;
+  'ios-simulator-status': (data: {
+    state: 'idle' | 'streaming' | 'view-only' | 'error';
+    udid?: string;
+    message?: string;
+  }) => void;
+  'ios-simulator-error': (data: {
+    scope: 'list' | 'stream' | 'interaction';
+    message: string;
+  }) => void;
+
   // IDマッピング関連イベント
   'id-mapping': (data: IdMappingData) => void;
   'id-mapping-updated': (data: IdMappingData) => void;
@@ -658,6 +697,30 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  'ios-simulator-list-devices': () => void;
+  'ios-simulator-start-stream': (data: {
+    udid: string;
+    settings: IOSSimulatorStreamSettings;
+  }) => void;
+  'ios-simulator-stop-stream': () => void;
+  'ios-simulator-refresh': (data: {
+    udid: string;
+    settings: IOSSimulatorStreamSettings;
+  }) => void;
+  'ios-simulator-tap': (data: {
+    udid: string;
+    x: number;
+    y: number;
+  }) => void;
+  'ios-simulator-swipe': (data: {
+    udid: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    durationMs: number;
+  }) => void;
+
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
   'stop-repo-processes': (data: { rid: string }) => void;

@@ -79,3 +79,6 @@ export { useDocumentTitle } from './useDocumentTitle';
 
 export { useAppHotkeys } from './useAppHotkeys';
 export type { UseAppHotkeysOptions } from './useAppHotkeys';
+
+export { useIOSSimulator } from './useIOSSimulator';
+export type { UseIOSSimulatorReturn } from './useIOSSimulator';
