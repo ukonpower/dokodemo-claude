@@ -120,7 +120,7 @@ interface ProjectViewProps {
   onSendMode: () => void;
   onChangeModel: (model: string) => void;
   onChangePrimaryProvider: (provider: AiProvider) => void;
-  onRestartCli: (instanceId?: string) => void;
+  onRestartCli: (instanceId?: string, fresh?: boolean) => void;
   onKeyInput: (key: string) => void;
   onResize: (cols: number, rows: number) => void;
 

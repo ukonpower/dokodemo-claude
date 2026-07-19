@@ -191,7 +191,7 @@ function App() {
       }
       aiCli.activateInstance(sorted[targetIndex].instanceId);
     },
-    // Shift+↓: 選択中タブのメニュー（再起動 / シャットダウン等）を開く
+    // Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
     onOpenActiveTabMenu: () => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
       const active = aiCli.activeInstance;

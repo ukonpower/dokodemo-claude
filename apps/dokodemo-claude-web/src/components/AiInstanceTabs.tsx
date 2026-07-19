@@ -8,7 +8,13 @@ import {
   useImperativeHandle,
 } from 'react';
 import type { ForwardedRef } from 'react';
-import { MoreVertical, RotateCcw, Power, Plus } from 'lucide-react';
+import {
+  MoreVertical,
+  RotateCcw,
+  Power,
+  Plus,
+  MessageSquarePlus,
+} from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
@@ -34,8 +40,11 @@ interface AiInstanceTabsProps {
   onClose: (instanceId: string) => void;
   /** プライマリインスタンスのプロバイダー切替 */
   onChangePrimaryProvider: (provider: AiProvider) => void;
-  /** インスタンスの AI CLI セッションを再起動 */
-  onRestart: (instanceId: string) => void;
+  /**
+   * インスタンスの AI CLI セッションを再起動する。
+   * fresh=true で会話を破棄して新しいセッションとして起動する。
+   */
+  onRestart: (instanceId: string, fresh?: boolean) => void;
 }
 
 /** 親からメニューを開くための命令的ハンドル（Shift+→ の右端追加 / Shift+↓ のタブメニュー） */
@@ -391,6 +400,16 @@ function AiInstanceTabs({
                     <RotateCcw size={14} />
                     <span>再起動</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onRestart(inst.instanceId, true);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <MessageSquarePlus size={14} />
+                    <span>新規セッション</span>
+                  </button>
                 </>
               ) : (
                 <>
@@ -403,6 +422,16 @@ function AiInstanceTabs({
                   >
                     <RotateCcw size={14} />
                     <span>再起動</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeTabMenu();
+                      onRestart(inst.instanceId, true);
+                    }}
+                    className={s.addMenuItem}
+                  >
+                    <MessageSquarePlus size={14} />
+                    <span>新規セッション</span>
                   </button>
                   <button
                     onClick={() => {
