@@ -477,7 +477,8 @@
   border-bottom: 1px solid $dark-border;
   border-radius: $radius-lg $radius-lg 0 0;
   padding-right: 0.5rem;
-  min-height: 2.2rem;
+  // ラベル + 指示内容要約の 2 行タブが収まる高さ（要約の有無で高さが揺れないよう固定）
+  min-height: 2.75rem;
 
   // SP時は親の角丸消去に合わせて0に
   @include sm-down {

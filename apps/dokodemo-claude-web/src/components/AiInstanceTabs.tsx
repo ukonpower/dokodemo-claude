@@ -131,11 +131,13 @@ function AiInstanceTabs({
                     onActivate(inst.instanceId);
                   }
                 }}
-                className={`${s.tab} ${isActive ? s.active : ''} ${providerClass} ${summary ? s.hasSummary : ''}`}
+                className={`${s.tab} ${isActive ? s.active : ''} ${providerClass}`}
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}${summary ? ` — ${summary}` : ''}`}
               >
-                <span className={s.label}>{label}</span>
-                {summary && <span className={s.summary}>{summary}</span>}
+                <span className={s.tabTexts}>
+                  <span className={s.label}>{label}</span>
+                  {summary && <span className={s.summary}>{summary}</span>}
+                </span>
                 <button
                   ref={(el) => {
                     if (el) {
