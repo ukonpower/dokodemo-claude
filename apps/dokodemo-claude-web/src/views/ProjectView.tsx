@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useMediaQuery } from '../hooks';
 import {
   LayoutDashboard,
   PanelRightClose,
@@ -53,6 +54,10 @@ import WorktreeOperations from '../components/WorktreeOperations';
 import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
+import {
+  IOSSimulatorFloatingPanel,
+  IOSSimulatorPanelBoundary,
+} from '../components/IOSSimulatorPanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
@@ -70,6 +75,17 @@ function getSideColCollapseKey(repo: string): string {
 function getStoredSideColCollapsed(repo: string): boolean {
   try {
     return localStorage.getItem(getSideColCollapseKey(repo)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+// iOS シミュレータのフローティングパネル表示状態（シミュレータはマシン共通なのでリポジトリ単位にしない）
+const SIMULATOR_OPEN_KEY = 'dokodemo-ios-simulator-open';
+
+function getStoredSimulatorOpen(): boolean {
+  try {
+    return localStorage.getItem(SIMULATOR_OPEN_KEY) === '1';
   } catch {
     return false;
   }
@@ -507,6 +523,25 @@ export function ProjectView({
     requestAnimationFrame(() => aiOutputRef.current?.resize());
   }, [currentRepo]);
 
+  // iOS シミュレータのフローティングパネル（PC のみ）。SidePanel のメニューから開閉する。
+  // lg 未満では SidePanel の sim タブでインライン表示するためフローティングは出さない
+  const isLgViewport = useMediaQuery('(min-width: 860px)');
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(
+    getStoredSimulatorOpen
+  );
+
+  const handleToggleSimulator = useCallback(() => {
+    setIsSimulatorOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIMULATOR_OPEN_KEY, next ? '1' : '0');
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
   // ESC キーで全画面解除。ただし textarea / input フォーカス中の ESC は
   // CLI への ESC 送信（プロンプト中断等）に使われるため対象外にする
   // （xterm のヘルパー textarea もここで除外される）
@@ -860,6 +895,9 @@ export function ProjectView({
                     <SidePanel
                       currentRepo={currentRepo}
                       rid={currentRid}
+                      socket={socket}
+                      isSimulatorOpen={isSimulatorOpen}
+                      onToggleSimulator={handleToggleSimulator}
                       files={files}
                       onRefreshFiles={onRefreshFiles}
                       onDeleteFile={onDeleteFile}
@@ -1260,6 +1298,16 @@ export function ProjectView({
         onClose={() => setAnnotateImageUrl(null)}
         onComplete={handleAnnotateComplete}
       />
+
+      {/* iOS シミュレータのフローティングパネル（PC のみ・SidePanel のメニューから開閉） */}
+      {isLgViewport && isSimulatorOpen && (
+        <IOSSimulatorPanelBoundary>
+          <IOSSimulatorFloatingPanel
+            socket={socket}
+            onClose={handleToggleSimulator}
+          />
+        </IOSSimulatorPanelBoundary>
+      )}
     </div>
   );
 }

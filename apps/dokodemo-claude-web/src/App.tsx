@@ -39,10 +39,6 @@ import {
 
 import ProjectSwitcherModal from './components/ProjectSwitcherModal';
 import CommandPaletteModal from './components/CommandPaletteModal';
-import {
-  IOSSimulatorPanel,
-  IOSSimulatorPanelBoundary,
-} from './components/IOSSimulatorPanel';
 import { buildCommands, type CommandPaletteCommand } from './commands';
 import { Socket } from 'socket.io-client';
 
@@ -244,9 +240,6 @@ function App() {
     <>
       {projectSwitcher}
       {commandPalette}
-      <IOSSimulatorPanelBoundary>
-        <IOSSimulatorPanel socket={socket} />
-      </IOSSimulatorPanelBoundary>
     </>
   );
 

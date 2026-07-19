@@ -237,3 +237,38 @@
   min-height: 100%;
 }
 
+// lg 以上の最下部に置く iOS シミュレータ（フローティングパネル）の起動メニュー
+.simLauncher {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.5rem 0 0.6rem;
+  flex-shrink: 0;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-top: 1px solid $dark-border;
+  color: $gray-400;
+  cursor: pointer;
+  user-select: none;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-200;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.simLauncherActive {
+  color: $dark-text-primary;
+}
+
+.simLauncherHint {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: $gray-500;
+  font-family: $font-sans;
+  line-height: 1;
+}
+

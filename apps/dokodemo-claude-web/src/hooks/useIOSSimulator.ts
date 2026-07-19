@@ -13,7 +13,6 @@ type SimulatorStatus = 'idle' | 'streaming' | 'view-only' | 'error';
 
 interface UseIOSSimulatorOptions {
   socket: SimulatorSocket | null;
-  isOpen: boolean;
 }
 
 export interface UseIOSSimulatorReturn {
@@ -49,9 +48,9 @@ const DEFAULT_SETTINGS: IOSSimulatorStreamSettings = {
   quality: 70,
 };
 
+// マウント中 = パネル表示中として扱う（表示側がマウントを制御する）
 export function useIOSSimulator({
   socket,
-  isOpen,
 }: UseIOSSimulatorOptions): UseIOSSimulatorReturn {
   const [devices, setDevices] = useState<IOSSimulatorDevice[]>([]);
   const [selectedUdid, setSelectedUdid] = useState('');
@@ -68,11 +67,11 @@ export function useIOSSimulator({
   const frameUrlRef = useRef('');
 
   const refreshDevices = useCallback(() => {
-    if (!isOpen || !socket) return;
+    if (!socket) return;
     setIsLoadingDevices(true);
     setError('');
     socket.emit('ios-simulator-list-devices');
-  }, [isOpen, socket]);
+  }, [socket]);
 
   useEffect(() => {
     if (!socket) return;
@@ -115,7 +114,7 @@ export function useIOSSimulator({
       if (nextError.scope === 'list') setIsLoadingDevices(false);
     };
     const handleConnect = (): void => {
-      if (isOpen) refreshDevices();
+      refreshDevices();
     };
 
     socket.on('ios-simulator-devices', handleDevices);
@@ -130,16 +129,15 @@ export function useIOSSimulator({
       socket.off('ios-simulator-error', handleError);
       socket.off('connect', handleConnect);
     };
-  }, [isOpen, refreshDevices, socket]);
+  }, [refreshDevices, socket]);
 
   useEffect(() => {
-    if (!isOpen) return;
     refreshDevices();
-  }, [isOpen, refreshDevices]);
+  }, [refreshDevices]);
 
   useEffect(() => {
     if (!socket) return;
-    if (!isOpen || !isLive || !selectedUdid) {
+    if (!isLive || !selectedUdid) {
       socket.emit('ios-simulator-stop-stream');
       return;
     }
@@ -150,7 +148,7 @@ export function useIOSSimulator({
     return () => {
       socket.emit('ios-simulator-stop-stream');
     };
-  }, [isLive, isOpen, selectedUdid, settings, socket]);
+  }, [isLive, selectedUdid, settings, socket]);
 
   useEffect(() => {
     return () => {

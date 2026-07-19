@@ -1,16 +1,33 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
+import {
+  Send,
+  Inbox,
+  GitBranch,
+  FileText,
+  ExternalLink,
+  Smartphone,
+} from 'lucide-react';
+import type { Socket } from 'socket.io-client';
 import { useMediaQuery } from '../hooks';
 import s from './SidePanel.module.scss';
-import type { UploadedFileInfo, GitDiffSummary } from '../types';
+import type {
+  UploadedFileInfo,
+  GitDiffSummary,
+  ServerToClientEvents,
+  ClientToServerEvents,
+} from '../types';
 import FileManager from './FileManager';
 import DiffSummary from './DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
 import SectionFullscreen from './SectionFullscreen';
 import MarkdownFullscreen from './MarkdownFullscreen';
+import {
+  IOSSimulatorInlinePanel,
+  IOSSimulatorPanelBoundary,
+} from './IOSSimulatorPanel';
 
 
-type SectionId = 'preview' | 'files' | 'md' | 'git';
+type SectionId = 'preview' | 'files' | 'md' | 'git' | 'sim';
 
 const TAB_KEY_PREFIX = 'dokodemo-sidepanel-tab';
 
@@ -22,11 +39,15 @@ const ICON_SIZE = 13;
 // lg 以上（右列配置）ではセクション縦積み表示、lg 未満ではタブ切替表示
 const LG_MEDIA_QUERY = '(min-width: 860px)';
 
-const SECTION_IDS: SectionId[] = ['preview', 'files', 'md', 'git'];
+const SECTION_IDS: SectionId[] = ['preview', 'files', 'md', 'git', 'sim'];
 
 interface SidePanelProps {
   currentRepo: string;
   rid: string;
+  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
+  /** PC（lg 以上）: フローティングのシミュレータパネルの表示状態とトグル */
+  isSimulatorOpen: boolean;
+  onToggleSimulator: () => void;
   files: UploadedFileInfo[];
   onRefreshFiles: () => void;
   onDeleteFile: (filename: string) => void;
@@ -201,6 +222,20 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
       body: diffBody,
       fullscreenBody: diffBody,
     },
+    // sim は lg 未満のタブでのみ表示（lg 以上ではフローティング起動メニューになる）。
+    // 別ウィンドウ表示にするとストリームが二重になるため fullscreen は非対応
+    {
+      id: 'sim',
+      label: 'sim',
+      icon: <Smartphone size={ICON_SIZE} />,
+      count: 0,
+      body: (
+        <IOSSimulatorPanelBoundary variant="inline">
+          <IOSSimulatorInlinePanel socket={props.socket} />
+        </IOSSimulatorPanelBoundary>
+      ),
+      fullscreenBody: null,
+    },
   ];
 
   const fullscreenSection =
@@ -221,11 +256,12 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   );
 
   // lg 以上：セクション縦積み（全表示・各ボディ内スクロール）
+  // sim はセクションとして積まず、フローティングパネルの起動メニューを最下部に置く
   if (isLg) {
     return (
       <>
         <div className={s.root}>
-          {sections.map((sec) => (
+          {sections.filter((sec) => sec.id !== 'sim').map((sec) => (
             <div key={sec.id} className={`${s.section} ${s.sectionOpen}`}>
               <div className={`${s.header} ${s.headerStatic}`}>
                 <span className={s.headerIcon}>{sec.icon}</span>
@@ -245,6 +281,22 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
               <div className={s.body}>{sec.body}</div>
             </div>
           ))}
+          <button
+            type="button"
+            className={`${s.simLauncher} ${
+              props.isSimulatorOpen ? s.simLauncherActive : ''
+            }`}
+            onClick={props.onToggleSimulator}
+          >
+            <span className={s.headerIcon}>
+              <Smartphone size={ICON_SIZE} />
+            </span>
+            <span className={s.headerLabel}>iOS Simulator</span>
+            <span className={s.spacer} />
+            <span className={s.simLauncherHint}>
+              {props.isSimulatorOpen ? '表示中' : '開く'}
+            </span>
+          </button>
         </div>
         {fullscreenOverlay}
       </>
@@ -272,14 +324,16 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
               </button>
             );
           })}
-          <button
-            className={s.tabMaximizeButton}
-            onClick={() => setFullscreenId(activeSection.id)}
-            aria-label="別ウィンドウで開く"
-            title="別ウィンドウで開く"
-          >
-            <ExternalLink size={13} strokeWidth={2} />
-          </button>
+          {activeSection.fullscreenBody !== null && (
+            <button
+              className={s.tabMaximizeButton}
+              onClick={() => setFullscreenId(activeSection.id)}
+              aria-label="別ウィンドウで開く"
+              title="別ウィンドウで開く"
+            >
+              <ExternalLink size={13} strokeWidth={2} />
+            </button>
+          )}
         </div>
         <div className={s.tabContent}>{activeSection.body}</div>
       </div>
