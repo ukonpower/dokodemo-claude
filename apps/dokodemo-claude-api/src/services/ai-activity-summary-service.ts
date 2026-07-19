@@ -59,7 +59,7 @@ function buildSummaryPrompt(provider: AiProvider, userPrompt: string): string {
   const providerName = provider === 'claude' ? 'Claude Code' : 'Codex';
   return [
     `以下はユーザーが ${providerName} CLI（AI コーディングエージェント）に送った指示です。`,
-    '何を頼んだかが一目で分かるよう、日本語 20 文字以内の 1 行で要約してください。',
+    '何を頼んだかが一目で分かるよう、日本語 1 行で簡潔に要約してください。',
     '',
     '例:「型エラーの修正」「READMEの整備」「ログイン画面の実装」',
     '',
