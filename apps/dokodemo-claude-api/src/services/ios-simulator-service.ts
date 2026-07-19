@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'crypto';
 import { spawn } from 'child_process';
-import { promises as fs } from 'fs';
+import type { ChildProcess } from 'child_process';
+import { createReadStream, promises as fs } from 'fs';
+import type { ReadStream } from 'fs';
 import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
@@ -17,7 +19,6 @@ export interface IOSSimulatorDevice {
 }
 
 export interface IOSSimulatorStreamSettings {
-  // 0 は auto（idb の dynamic fps = 画面変化時のみフレーム送信）
   fps: number;
   scale: number;
   quality: number;
@@ -224,6 +225,10 @@ export class AnnexBStreamParser {
     }
     if (starts.length > 0) {
       this.buffer = this.buffer.subarray(starts[starts.length - 1]);
+    }
+    // start code を含まない継続チャンクでもタイマーを張り直す
+    // （張り直さないと、複数チャンクに分かれた最終フレームが配信されない）
+    if (this.buffer.length > 0) {
       this.flushTimer = setTimeout(() => {
         this.flushTail();
       }, TAIL_FLUSH_DELAY_MS);
@@ -237,8 +242,13 @@ export class AnnexBStreamParser {
   }
 
   private flushTail(): void {
-    // バッファは start code から始まっている。中身があれば完全な NAL とみなす
-    if (this.buffer.length > 4) {
+    // バッファが start code から始まっていれば、中身を完全な NAL とみなす
+    if (
+      this.buffer.length > 4 &&
+      this.buffer[0] === 0 &&
+      this.buffer[1] === 0 &&
+      this.buffer[2] === 1
+    ) {
       this.processNal(this.buffer.subarray(3));
       this.buffer = Buffer.alloc(0);
     }
@@ -394,64 +404,95 @@ export class IOSSimulatorService {
     };
   }
 
-  // idb video-stream を起動し、H.264 アクセスユニット単位でコールバックする
+  // idb video-stream を起動し、H.264 アクセスユニット単位でコールバックする。
+  // 注意: node の stdio パイプ（実体は socketpair）を stdout に渡すと idb が
+  // 映像を書き出さない（ファイル/FIFO なら書く）ため、FIFO 経由で受信する。
   startVideoStream(
     udid: string,
     settings: IOSSimulatorStreamSettings,
     handlers: IOSSimulatorVideoStreamHandlers
   ): IOSSimulatorVideoStreamHandle {
     const normalized = normalizeStreamSettings(settings);
-    const args = [
-      'video-stream',
-      '--udid',
-      udid,
-      '--format',
-      'h264',
-      '--compression-quality',
-      String(normalized.quality / 100),
-      '--scale-factor',
-      String(normalized.scale),
-    ];
-    if (normalized.fps > 0) {
-      args.push('--fps', String(normalized.fps));
-    }
-
-    const child = spawn('idb', args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env,
-    });
+    const fifoPath = path.join(
+      os.tmpdir(),
+      `dokodemo-simulator-${randomUUID()}.fifo`
+    );
     const parser = new AnnexBStreamParser(
       handlers.onConfig,
       handlers.onAccessUnit
     );
     const stderrChunks: Buffer[] = [];
+    let child: ChildProcess | null = null;
+    let reader: ReadStream | null = null;
     let stopped = false;
 
-    child.stdout.on('data', (chunk: Buffer) => {
-      if (!stopped) parser.push(chunk);
-    });
-    child.stderr.on('data', (chunk: Buffer) => {
-      // メッセージ用に末尾だけ保持する
-      stderrChunks.push(chunk);
-      while (stderrChunks.length > 20) stderrChunks.shift();
-    });
-    child.on('error', (error) => {
+    const finishWithError = (error: Error): void => {
       if (stopped) return;
       stopped = true;
       parser.dispose();
       handlers.onError(error);
-    });
-    child.on('close', (code) => {
-      if (stopped) return;
-      stopped = true;
-      parser.dispose();
-      if (code !== 0) {
-        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
-        handlers.onError(
-          new Error(stderr || `idb video-stream が終了コード ${String(code)} で失敗しました`)
-        );
-      }
       handlers.onExit();
+    };
+
+    const start = async (): Promise<void> => {
+      await runCommand('/usr/bin/mkfifo', [fifoPath]);
+      if (stopped) {
+        await fs.rm(fifoPath, { force: true });
+        return;
+      }
+      const command = [
+        'exec idb video-stream',
+        `--udid '${udid}'`,
+        "--format h264",
+        `--fps ${String(normalized.fps)}`,
+        `--compression-quality ${String(normalized.quality / 100)}`,
+        `--scale-factor ${String(normalized.scale)}`,
+        `> '${fifoPath}'`,
+      ].join(' ');
+      child = spawn('/bin/sh', ['-c', command], {
+        stdio: ['ignore', 'ignore', 'pipe'],
+        // PYTHONUNBUFFERED: idb(Python) の 8KB ブロックバッファを無効化して
+        // フレームを書き込み単位で即時配信させる
+        env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      });
+      child.stderr?.on('data', (chunk: Buffer) => {
+        // エラーメッセージ用に末尾だけ保持する
+        stderrChunks.push(chunk);
+        while (stderrChunks.length > 20) stderrChunks.shift();
+      });
+      child.on('error', finishWithError);
+      child.on('close', (code) => {
+        if (stopped) return;
+        stopped = true;
+        parser.dispose();
+        if (code !== 0) {
+          const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
+          handlers.onError(
+            new Error(
+              stderr ||
+                `idb video-stream が終了コード ${String(code)} で失敗しました`
+            )
+          );
+        }
+        handlers.onExit();
+        void fs.rm(fifoPath, { force: true });
+      });
+
+      reader = createReadStream(fifoPath);
+      reader.on('data', (chunk) => {
+        if (!stopped) parser.push(chunk as Buffer);
+      });
+      reader.on('error', (error) => {
+        finishWithError(error);
+      });
+    };
+
+    void start().catch((error: unknown) => {
+      finishWithError(
+        error instanceof Error
+          ? error
+          : new Error('idb video-stream の起動に失敗しました')
+      );
     });
 
     return {
@@ -459,7 +500,19 @@ export class IOSSimulatorService {
         if (stopped) return;
         stopped = true;
         parser.dispose();
-        child.kill('SIGKILL');
+        child?.kill('SIGKILL');
+        void (async () => {
+          try {
+            // FIFO の読み取り側 open がブロックしたまま残らないよう、
+            // 書き込み側を一度開いてから閉じ、reader と FIFO を破棄する
+            const fh = await fs.open(fifoPath, 'a');
+            await fh.close();
+          } catch {
+            // FIFO が既に無い場合などは無視
+          }
+          reader?.destroy();
+          await fs.rm(fifoPath, { force: true });
+        })();
       },
     };
   }
@@ -582,7 +635,7 @@ export function normalizeStreamSettings(
   settings: IOSSimulatorStreamSettings
 ): IOSSimulatorStreamSettings {
   return {
-    fps: Math.round(clamp(settings.fps, 0, 30)),
+    fps: Math.round(clamp(settings.fps, 1, 30)),
     scale: clamp(settings.scale, 0.25, 1),
     quality: Math.round(clamp(settings.quality, 35, 95)),
   };

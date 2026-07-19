@@ -48,7 +48,7 @@ export interface UseIOSSimulatorReturn {
 }
 
 const DEFAULT_SETTINGS: IOSSimulatorStreamSettings = {
-  fps: 0, // auto: 画面変化時のみフレーム送信
+  fps: 30,
   scale: 0.5,
   quality: 70,
 };

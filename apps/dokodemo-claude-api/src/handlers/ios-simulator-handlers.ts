@@ -7,10 +7,8 @@ import type { HandlerContext } from './types.js';
 
 const simulatorService = new IOSSimulatorService();
 
-// スクショポーリング（フォールバック）時の fps 範囲。auto(0) は 2fps 扱い
-const SCREENSHOT_MIN_FPS = 1;
+// スクショポーリング（フォールバック）時の fps 上限
 const SCREENSHOT_MAX_FPS = 5;
-const SCREENSHOT_AUTO_FPS = 2;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '不明なエラーが発生しました';
@@ -155,13 +153,7 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
         message: idbAvailable ? undefined : 'idbがないため表示のみです',
       });
 
-      const fps =
-        normalizedSettings.fps > 0
-          ? Math.min(
-              Math.max(normalizedSettings.fps, SCREENSHOT_MIN_FPS),
-              SCREENSHOT_MAX_FPS
-            )
-          : SCREENSHOT_AUTO_FPS;
+      const fps = Math.min(normalizedSettings.fps, SCREENSHOT_MAX_FPS);
       while (streamToken === token) {
         const startedAt = Date.now();
         try {

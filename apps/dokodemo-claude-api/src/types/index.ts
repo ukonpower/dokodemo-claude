@@ -202,7 +202,6 @@ export interface IOSSimulatorFrame {
 }
 
 export interface IOSSimulatorStreamSettings {
-  // 0 は auto（idb の dynamic fps = 画面変化時のみフレーム送信）
   fps: number;
   scale: number;
   quality: number;
