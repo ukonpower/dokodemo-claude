@@ -83,12 +83,17 @@ interface IdbDescribeResponse {
 function runCommand(
   command: string,
   args: string[],
-  timeoutMs = COMMAND_TIMEOUT_MS
+  timeoutMs = COMMAND_TIMEOUT_MS,
+  // idb は最初のコマンド実行時に companion デーモンを子として起動し、
+  // companion は親のプロセスグループを引き継ぐ。detached で切り離さないと
+  // サーバ再起動のグループkillに companion が巻き込まれて死ぬ
+  detached = false
 ): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: process.env,
+      detached,
     });
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
@@ -147,6 +152,12 @@ function parseJson<T>(buffer: Buffer, source: string): T {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+// companion が死んでも /tmp/idb/state にエントリが残っていると idb は
+// 自動復旧せずこのエラーを出し続ける（disconnect でエントリを消すと直る）
+function isCompanionConnectError(message: string): boolean {
+  return message.includes('Failed to connect to companion');
 }
 
 function readPngSize(png: Buffer): { width: number; height: number } {
@@ -313,6 +324,35 @@ export class IOSSimulatorService {
     return this.idbAvailablePromise;
   }
 
+  // companion 接続エラー時は state エントリを消して1回だけリトライする
+  private async runIdb(
+    args: string[],
+    udid: string | null,
+    timeoutMs = COMMAND_TIMEOUT_MS
+  ): Promise<CommandResult> {
+    try {
+      return await runCommand('idb', args, timeoutMs, true);
+    } catch (error) {
+      if (
+        udid &&
+        error instanceof Error &&
+        isCompanionConnectError(error.message)
+      ) {
+        await this.recoverCompanion(udid);
+        return runCommand('idb', args, timeoutMs, true);
+      }
+      throw error;
+    }
+  }
+
+  private async recoverCompanion(udid: string): Promise<void> {
+    try {
+      await runCommand('idb', ['disconnect', udid], COMMAND_TIMEOUT_MS, true);
+    } catch {
+      // disconnect の失敗は無視して後続のリトライに任せる
+    }
+  }
+
   async listBootedDevices(): Promise<IOSSimulatorDevice[]> {
     const { stdout } = await runCommand(XCRUN_PATH, [
       'simctl',
@@ -413,18 +453,31 @@ export class IOSSimulatorService {
     handlers: IOSSimulatorVideoStreamHandlers
   ): IOSSimulatorVideoStreamHandle {
     const normalized = normalizeStreamSettings(settings);
-    const fifoPath = path.join(
-      os.tmpdir(),
-      `dokodemo-simulator-${randomUUID()}.fifo`
-    );
     const parser = new AnnexBStreamParser(
       handlers.onConfig,
       handlers.onAccessUnit
     );
-    const stderrChunks: Buffer[] = [];
     let child: ChildProcess | null = null;
     let reader: ReadStream | null = null;
+    let fifoPath = '';
     let stopped = false;
+    let companionRetryUsed = false;
+
+    // FIFO の読み取り側 open がブロックしたまま残らないよう、
+    // 書き込み側を一度開いてから閉じ、reader と FIFO を破棄する
+    const releaseFifo = async (
+      fifo: string,
+      fifoReader: ReadStream | null
+    ): Promise<void> => {
+      try {
+        const fh = await fs.open(fifo, 'a');
+        await fh.close();
+      } catch {
+        // FIFO が既に無い場合などは無視
+      }
+      fifoReader?.destroy();
+      await fs.rm(fifo, { force: true });
+    };
 
     const finishWithError = (error: Error): void => {
       if (stopped) return;
@@ -434,10 +487,15 @@ export class IOSSimulatorService {
       handlers.onExit();
     };
 
-    const start = async (): Promise<void> => {
-      await runCommand('/usr/bin/mkfifo', [fifoPath]);
+    const startAttempt = async (): Promise<void> => {
+      fifoPath = path.join(
+        os.tmpdir(),
+        `dokodemo-simulator-${randomUUID()}.fifo`
+      );
+      const currentFifo = fifoPath;
+      await runCommand('/usr/bin/mkfifo', [currentFifo]);
       if (stopped) {
-        await fs.rm(fifoPath, { force: true });
+        await fs.rm(currentFifo, { force: true });
         return;
       }
       const command = [
@@ -447,13 +505,24 @@ export class IOSSimulatorService {
         `--fps ${String(normalized.fps)}`,
         `--compression-quality ${String(normalized.quality / 100)}`,
         `--scale-factor ${String(normalized.scale)}`,
-        `> '${fifoPath}'`,
+        `> '${currentFifo}'`,
       ].join(' ');
+      const stderrChunks: Buffer[] = [];
       child = spawn('/bin/sh', ['-c', command], {
         stdio: ['ignore', 'ignore', 'pipe'],
         // PYTHONUNBUFFERED: idb(Python) の 8KB ブロックバッファを無効化して
         // フレームを書き込み単位で即時配信させる
         env: { ...process.env, PYTHONUNBUFFERED: '1' },
+        // サーバのグループkillに companion を巻き込まない
+        detached: true,
+      });
+      const currentReader = createReadStream(currentFifo);
+      reader = currentReader;
+      currentReader.on('data', (chunk) => {
+        if (!stopped) parser.push(chunk as Buffer);
+      });
+      currentReader.on('error', (error) => {
+        finishWithError(error);
       });
       child.stderr?.on('data', (chunk: Buffer) => {
         // エラーメッセージ用に末尾だけ保持する
@@ -463,10 +532,25 @@ export class IOSSimulatorService {
       child.on('error', finishWithError);
       child.on('close', (code) => {
         if (stopped) return;
+        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
+        // companion が死んで state が残っている場合は復旧して1回だけやり直す
+        if (!companionRetryUsed && isCompanionConnectError(stderr)) {
+          companionRetryUsed = true;
+          void releaseFifo(currentFifo, currentReader);
+          void this.recoverCompanion(udid)
+            .then(() => startAttempt())
+            .catch((error: unknown) => {
+              finishWithError(
+                error instanceof Error
+                  ? error
+                  : new Error('idb video-stream の再起動に失敗しました')
+              );
+            });
+          return;
+        }
         stopped = true;
         parser.dispose();
         if (code !== 0) {
-          const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
           handlers.onError(
             new Error(
               stderr ||
@@ -475,19 +559,11 @@ export class IOSSimulatorService {
           );
         }
         handlers.onExit();
-        void fs.rm(fifoPath, { force: true });
-      });
-
-      reader = createReadStream(fifoPath);
-      reader.on('data', (chunk) => {
-        if (!stopped) parser.push(chunk as Buffer);
-      });
-      reader.on('error', (error) => {
-        finishWithError(error);
+        void releaseFifo(currentFifo, currentReader);
       });
     };
 
-    void start().catch((error: unknown) => {
+    void startAttempt().catch((error: unknown) => {
       finishWithError(
         error instanceof Error
           ? error
@@ -501,18 +577,7 @@ export class IOSSimulatorService {
         stopped = true;
         parser.dispose();
         child?.kill('SIGKILL');
-        void (async () => {
-          try {
-            // FIFO の読み取り側 open がブロックしたまま残らないよう、
-            // 書き込み側を一度開いてから閉じ、reader と FIFO を破棄する
-            const fh = await fs.open(fifoPath, 'a');
-            await fh.close();
-          } catch {
-            // FIFO が既に無い場合などは無視
-          }
-          reader?.destroy();
-          await fs.rm(fifoPath, { force: true });
-        })();
+        if (fifoPath) void releaseFifo(fifoPath, reader);
       },
     };
   }
@@ -531,14 +596,10 @@ export class IOSSimulatorService {
       frameWidth,
       frameHeight
     );
-    await runCommand('idb', [
-      'ui',
-      'tap',
-      String(point.x),
-      String(point.y),
-      '--udid',
-      udid,
-    ]);
+    await this.runIdb(
+      ['ui', 'tap', String(point.x), String(point.y), '--udid', udid],
+      udid
+    );
   }
 
   async swipe(
@@ -566,24 +627,31 @@ export class IOSSimulatorService {
       frameHeight
     );
     const durationSeconds = clamp(durationMs, 100, 3_000) / 1_000;
-    await runCommand('idb', [
-      'ui',
-      'swipe',
-      String(start.x),
-      String(start.y),
-      String(end.x),
-      String(end.y),
-      '--duration',
-      String(durationSeconds),
-      '--udid',
-      udid,
-    ]);
+    await this.runIdb(
+      [
+        'ui',
+        'swipe',
+        String(start.x),
+        String(start.y),
+        String(end.x),
+        String(end.y),
+        '--duration',
+        String(durationSeconds),
+        '--udid',
+        udid,
+      ],
+      udid
+    );
   }
 
   private getScreenDimensions(udid: string): Promise<ScreenDimensions | null> {
     let promise = this.screenDimensions.get(udid);
     if (!promise) {
-      promise = this.loadScreenDimensions(udid);
+      promise = this.loadScreenDimensions(udid).then((screen) => {
+        // 失敗(null)はキャッシュしない（companion 復旧後に再取得できるように）
+        if (!screen) this.screenDimensions.delete(udid);
+        return screen;
+      });
       this.screenDimensions.set(udid, promise);
     }
     return promise;
@@ -594,12 +662,10 @@ export class IOSSimulatorService {
   ): Promise<ScreenDimensions | null> {
     if (!(await this.isIdbAvailable())) return null;
     try {
-      const { stdout } = await runCommand('idb', [
-        'describe',
-        '--udid',
-        udid,
-        '--json',
-      ]);
+      const { stdout } = await this.runIdb(
+        ['describe', '--udid', udid, '--json'],
+        udid
+      );
       const response = parseJson<IdbDescribeResponse>(stdout, 'idb');
       const widthPoints = response.screen_dimensions?.width_points;
       const heightPoints = response.screen_dimensions?.height_points;
