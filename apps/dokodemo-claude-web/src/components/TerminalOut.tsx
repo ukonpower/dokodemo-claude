@@ -235,7 +235,9 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         background: '#0a0a0a', // dark-bg-primary
         foreground: '#d1d5db',
         cursor: '#9ca3af',
-        selectionBackground: '#374151',
+        // 不透明色にすると選択時に文字が塗りつぶされて読めなくなるため半透明にする
+        selectionBackground: 'rgba(120, 150, 200, 0.35)',
+        selectionInactiveBackground: 'rgba(120, 150, 200, 0.2)',
         black: '#1f2937',
         red: '#f87171',
         green: '#86efac',

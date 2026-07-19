@@ -114,7 +114,11 @@ pre {
   position: absolute !important;
   left: 0 !important;
   top: 0 !important;
-  z-index: 1 !important;
+  // 選択レイヤー(.xterm-selection, z-index:1)より上に文字を積む。
+  // DOM レンダラーは選択矩形を不透明色で描くため、同 z-index だと DOM 順で
+  // 後ろにある選択レイヤーが文字を塗りつぶして読めなくなる。文字を上に置くと
+  // 選択色は文字の背後（グリフの隙間）にだけ見えてハイライトとして機能する。
+  z-index: 2 !important;
 }
 
 .xterm .xterm-screen {
