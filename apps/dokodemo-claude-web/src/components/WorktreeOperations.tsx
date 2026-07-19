@@ -173,6 +173,8 @@ function WorktreeOperations({
 }: WorktreeOperationsProps) {
   // メモは worktree（非メイン）でのみ編集可能
   const showMemo = !!currentWorktree && !currentWorktree.isMain;
+  // メモの折りたたみ状態（note ラベルのクリックで切替。ワークツリーを跨いでも維持）
+  const [isMemoCollapsed, setIsMemoCollapsed] = useState(false);
   // 今開いているワークツリーで検出された開発サーバーポート
   const currentPorts = currentWorktree
     ? (devServerPortsByRepo.get(currentWorktree.path.replace(/\/+$/, '')) ?? [])
@@ -188,12 +190,35 @@ function WorktreeOperations({
     <div className={s.container}>
       {showMemo && currentWorktree && (
         <div className={s.section}>
-          <span className={s.sectionLabel}>note</span>
-          <WorktreeMemoEditor
-            key={currentWorktree.path}
-            memo={currentWorktree.memo ?? ''}
-            onSave={(memo) => onSaveMemo(currentWorktree.path, memo)}
-          />
+          <button
+            className={s.sectionToggle}
+            onClick={() => setIsMemoCollapsed((prev) => !prev)}
+            title={isMemoCollapsed ? 'メモを展開' : 'メモを折りたたむ'}
+          >
+            <svg
+              className={`${s.sectionChevron} ${
+                isMemoCollapsed ? s.sectionChevronCollapsed : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+            <span className={s.sectionLabel}>note</span>
+          </button>
+          {!isMemoCollapsed && (
+            <WorktreeMemoEditor
+              key={currentWorktree.path}
+              memo={currentWorktree.memo ?? ''}
+              onSave={(memo) => onSaveMemo(currentWorktree.path, memo)}
+            />
+          )}
         </div>
       )}
 
