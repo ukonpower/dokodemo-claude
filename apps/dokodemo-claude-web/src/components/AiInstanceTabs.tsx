@@ -11,7 +11,7 @@ import s from './AiInstanceTabs.module.scss';
 
 interface AiInstanceTabsProps {
   instances: AiInstance[];
-  /** instanceId → 実行内容の要約（タブのサブテキスト表示用） */
+  /** instanceId → 指示内容の要約（タブのサブテキスト表示用） */
   activitySummaries: Record<string, string>;
   activeInstanceId: string;
   isConnected: boolean;

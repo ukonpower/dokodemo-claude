@@ -1,15 +1,14 @@
 /**
- * AI タブの実行内容要約サービス
+ * AI タブの指示内容要約サービス
  *
- * 各 AI インスタンス（タブ）のターミナル出力を受け取り、「そのタブの AI が
- * 今何をしているか」の短い日本語要約を Agent SDK（haiku）で生成する。
- * 生成した要約は 'summary' イベントで通知し、server.ts が Socket.IO で
- * クライアントへ配信する。
+ * プロンプトキューから AI へ送信されたユーザーのプロンプトを受け取り、
+ * 「そのタブの AI に何を頼んだか」の短い日本語要約を Agent SDK（haiku）で
+ * 生成する。生成した要約は 'summary' イベントで通知し、server.ts が
+ * Socket.IO でクライアントへ配信する。
  *
- * SDK 呼び出しは高頻度にならないよう間引く:
- * - 前回要約以降に一定量の新規出力がなければ呼ばない
- * - 出力が静止した（作業の区切り）か、大量に出力が溜まった時のみ呼ぶ
- * - インスタンスごとに最小呼び出し間隔を設ける
+ * - 短い 1 行プロンプトは要約せずそのまま使う（SDK 呼び出し不要）
+ * - 生成中に新しいプロンプトが届いたら最新の 1 件だけを保持し、
+ *   完了後に続けて処理する（常に最後に送った指示の要約へ収束する）
  *
  * 認証は loop-judge-service と同じく Claude Code CLI のログイン
  * （サブスクリプション）を使うため、API キー系の env は明示的に除外する。
@@ -18,7 +17,6 @@
 import { EventEmitter } from 'events';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { cleanChildEnv } from '../utils/clean-env.js';
-import { stripAnsi } from '../utils/strip-ansi.js';
 import type { AiProvider } from '../types/index.js';
 
 export interface AiActivitySummaryEvent {
@@ -29,18 +27,10 @@ export interface AiActivitySummaryEvent {
   timestamp: number;
 }
 
-// 出力がこの時間途切れたら「作業の区切り」とみなして要約する
-const QUIET_PERIOD_MS = 3000;
-// 前回要約以降の新規出力（ANSI 除去後）がこれ未満なら要約しない
-const MIN_NEW_OUTPUT_CHARS = 200;
-// 出力が静止しなくても、これだけ溜まったら要約する（長時間作業中の追従用）
-const FORCE_OUTPUT_CHARS = 2000;
-// SDK 呼び出しの最小間隔（インスタンスごと）
-const MIN_INTERVAL_MS = 30_000;
-// プロンプトへ渡す出力末尾の最大長
-const TAIL_MAX_CHARS = 3000;
-// トリガー条件の確認ポーリング間隔
-const CHECK_INTERVAL_MS = 1000;
+// この長さ以下の 1 行プロンプトは要約せずそのまま表示する
+const SHORT_PROMPT_MAX_CHARS = 24;
+// SDK へ渡すプロンプト先頭の最大長（指示の核は冒頭にあることが多い）
+const PROMPT_MAX_CHARS = 4000;
 // 要約の生成モデル（コスト配慮で安価なモデルを既定にする）
 const SUMMARY_MODEL = 'haiku';
 
@@ -56,42 +46,27 @@ const SUMMARY_SCHEMA = {
 interface InstanceSummaryState {
   repositoryPath: string;
   provider: AiProvider;
-  // ANSI 除去済み出力の末尾（要約プロンプト用）
-  tail: string;
-  // 前回要約の開始以降に届いた出力の文字数
-  pendingChars: number;
-  lastOutputAt: number;
-  lastSummaryStartedAt: number;
+  // 生成中に届いた最新プロンプト（完了後に処理する）
+  pendingPrompt: string | null;
   lastSummary: string;
   inFlight: boolean;
-  timer: NodeJS.Timeout | null;
   abort: AbortController | null;
 }
 
-/**
- * PTY 出力チャンクを要約プロンプト向けのプレーンテキストへ整形する。
- * stripAnsi は CSI 本体（"[...m" 等）だけを消すため、残った ESC と
- * その他の制御文字もここで除去する。
- */
-function cleanOutputChunk(chunk: string): string {
-  return stripAnsi(chunk).replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '');
-}
-
-function buildSummaryPrompt(provider: AiProvider, tail: string): string {
+function buildSummaryPrompt(provider: AiProvider, userPrompt: string): string {
   const providerName = provider === 'claude' ? 'Claude Code' : 'Codex';
   return [
-    `以下は ${providerName} CLI（AI コーディングエージェント）のターミナル出力の末尾です。`,
-    'このエージェントが「今何をしているか」を日本語 20 文字以内の 1 行で要約してください。',
+    `以下はユーザーが ${providerName} CLI（AI コーディングエージェント）に送った指示です。`,
+    '何を頼んだかが一目で分かるよう、日本語 20 文字以内の 1 行で要約してください。',
     '',
-    '例:「型エラーの修正中」「テストを実行中」「実装方針を検討中」「ユーザーの入力待ち」',
+    '例:「型エラーの修正」「READMEの整備」「ログイン画面の実装」',
     '',
     '- 体言止めで簡潔に。句点・引用符・絵文字は付けない',
-    '- TUI の枠線やスピナー等の描画ノイズは無視する',
-    '- 何をしているか判別できない場合は「待機中」とする',
+    '- 手順が羅列されている場合は目的レベルでまとめる',
     '',
-    '## ターミナル出力（末尾）',
+    '## ユーザーの指示',
     '```',
-    tail,
+    userPrompt,
     '```',
   ].join('\n');
 }
@@ -100,40 +75,34 @@ export class AiActivitySummaryService extends EventEmitter {
   private states = new Map<string, InstanceSummaryState>();
 
   /**
-   * PTY 出力の到着通知。server.ts の 'ai-output' ハンドラから呼ばれる。
+   * キューから AI へプロンプトが送信された通知。
+   * server.ts の 'prompt-queue-item-sent' ハンドラから呼ばれる。
    */
-  notifyOutput(data: {
+  notifyPrompt(data: {
     instanceId: string;
     repositoryPath: string;
     provider: AiProvider;
-    content: string;
+    prompt: string;
   }): void {
+    const prompt = data.prompt.trim();
+    if (!prompt) return;
+
     let state = this.states.get(data.instanceId);
-    if (!state || state.provider !== data.provider) {
-      // 新規 or プライマリの provider 切替: 出力の蓄積をリセットする
-      if (state?.timer) clearTimeout(state.timer);
+    if (!state) {
       state = {
         repositoryPath: data.repositoryPath,
         provider: data.provider,
-        tail: '',
-        pendingChars: 0,
-        lastOutputAt: 0,
-        lastSummaryStartedAt: 0,
+        pendingPrompt: null,
         lastSummary: '',
         inFlight: false,
-        timer: null,
         abort: null,
       };
       this.states.set(data.instanceId, state);
     }
-
-    const cleaned = cleanOutputChunk(data.content);
-    state.lastOutputAt = Date.now();
-    if (cleaned.trim().length > 0) {
-      state.tail = (state.tail + cleaned).slice(-TAIL_MAX_CHARS);
-      state.pendingChars += cleaned.length;
-    }
-    this.scheduleCheck(data.instanceId, state);
+    state.repositoryPath = data.repositoryPath;
+    state.provider = data.provider;
+    state.pendingPrompt = prompt;
+    this.processNext(data.instanceId, state);
   }
 
   /**
@@ -150,79 +119,65 @@ export class AiActivitySummaryService extends EventEmitter {
   clearInstance(instanceId: string): void {
     const state = this.states.get(instanceId);
     if (!state) return;
-    if (state.timer) clearTimeout(state.timer);
     state.abort?.abort();
     this.states.delete(instanceId);
   }
 
-  private scheduleCheck(
-    instanceId: string,
-    state: InstanceSummaryState
-  ): void {
-    if (state.timer) return;
-    state.timer = setTimeout(() => {
-      state.timer = null;
-      this.maybeSummarize(instanceId, state);
-    }, CHECK_INTERVAL_MS);
+  /**
+   * 保持中の最新プロンプトを 1 件処理する。
+   * 実行中なら何もしない（完了時に再度呼ばれる）。
+   */
+  private processNext(instanceId: string, state: InstanceSummaryState): void {
+    if (state.inFlight) return;
+    const prompt = state.pendingPrompt;
+    if (!prompt) return;
+    state.pendingPrompt = null;
+
+    // 短い 1 行プロンプトはそのまま表示する
+    if (prompt.length <= SHORT_PROMPT_MAX_CHARS && !prompt.includes('\n')) {
+      this.emitSummary(instanceId, state, prompt);
+      return;
+    }
+
+    void this.runSummary(instanceId, state, prompt);
   }
 
-  private maybeSummarize(
+  private emitSummary(
     instanceId: string,
-    state: InstanceSummaryState
+    state: InstanceSummaryState,
+    summary: string
   ): void {
-    // 実行中なら完了時に再チェックされるのでここでは何もしない
-    if (state.inFlight) return;
-    if (state.pendingChars < MIN_NEW_OUTPUT_CHARS) return;
-
-    const now = Date.now();
-    const sinceLast = now - state.lastSummaryStartedAt;
-    if (sinceLast < MIN_INTERVAL_MS) {
-      // 最小間隔が明けたタイミングで再チェック
-      state.timer = setTimeout(() => {
-        state.timer = null;
-        this.maybeSummarize(instanceId, state);
-      }, MIN_INTERVAL_MS - sinceLast + 100);
-      return;
-    }
-
-    const quietFor = now - state.lastOutputAt;
-    if (quietFor < QUIET_PERIOD_MS && state.pendingChars < FORCE_OUTPUT_CHARS) {
-      // まだ出力が流れていて量も少ない: 静止を待つ
-      this.scheduleCheck(instanceId, state);
-      return;
-    }
-
-    void this.runSummary(instanceId, state);
+    if (summary === state.lastSummary) return;
+    state.lastSummary = summary;
+    const event: AiActivitySummaryEvent = {
+      instanceId,
+      repositoryPath: state.repositoryPath,
+      provider: state.provider,
+      summary,
+      timestamp: Date.now(),
+    };
+    this.emit('summary', event);
   }
 
   private async runSummary(
     instanceId: string,
-    state: InstanceSummaryState
+    state: InstanceSummaryState,
+    prompt: string
   ): Promise<void> {
     state.inFlight = true;
-    state.lastSummaryStartedAt = Date.now();
-    state.pendingChars = 0;
     state.abort = new AbortController();
 
     try {
       const summary = await this.generateSummary(
         state.repositoryPath,
         state.provider,
-        state.tail,
+        prompt,
         state.abort
       );
       // 破棄済み（clearInstance 後）なら通知しない
       if (this.states.get(instanceId) !== state) return;
-      if (summary && summary !== state.lastSummary) {
-        state.lastSummary = summary;
-        const event: AiActivitySummaryEvent = {
-          instanceId,
-          repositoryPath: state.repositoryPath,
-          provider: state.provider,
-          summary,
-          timestamp: Date.now(),
-        };
-        this.emit('summary', event);
+      if (summary) {
+        this.emitSummary(instanceId, state, summary);
       }
     } catch (error) {
       // 要約は補助表示なので失敗しても本体機能には影響させない
@@ -231,12 +186,9 @@ export class AiActivitySummaryService extends EventEmitter {
     } finally {
       state.inFlight = false;
       state.abort = null;
-      // 実行中に新規出力が溜まっていれば次のサイクルを予約
-      if (
-        this.states.get(instanceId) === state &&
-        state.pendingChars >= MIN_NEW_OUTPUT_CHARS
-      ) {
-        this.scheduleCheck(instanceId, state);
+      // 生成中に届いた最新プロンプトがあれば続けて処理する
+      if (this.states.get(instanceId) === state) {
+        this.processNext(instanceId, state);
       }
     }
   }
@@ -244,10 +196,13 @@ export class AiActivitySummaryService extends EventEmitter {
   private async generateSummary(
     repositoryPath: string,
     provider: AiProvider,
-    tail: string,
+    userPrompt: string,
     abort: AbortController
   ): Promise<string | null> {
-    const prompt = buildSummaryPrompt(provider, tail);
+    const prompt = buildSummaryPrompt(
+      provider,
+      userPrompt.slice(0, PROMPT_MAX_CHARS)
+    );
     // API キー系を除外して、spawn される Claude Code CLI に
     // ログイン認証（サブスクリプション）を使わせる
     const env = cleanChildEnv({

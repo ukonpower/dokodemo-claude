@@ -38,7 +38,7 @@ function emitSystemMessage(
 }
 
 /**
- * 保持済みの実行内容要約を送信（再接続・リポジトリ切替時の初期表示用）
+ * 保持済みの指示内容要約を送信（再接続・リポジトリ切替時の初期表示用）
  */
 function emitStoredActivitySummaries(
   socket: TypedSocket,

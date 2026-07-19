@@ -40,7 +40,7 @@
   white-space: nowrap;
   max-width: 9rem;
 
-  // 実行内容の要約サブテキストが付くタブは少し広げる（1 行のまま横に伸ばす）
+  // 指示内容の要約サブテキストが付くタブは少し広げる（1 行のまま横に伸ばす）
   &.hasSummary {
     max-width: 19rem;
   }
@@ -70,7 +70,7 @@
   max-width: 6rem;
 }
 
-// タブの AI が今何をしているかの要約（ラベル横のサブテキスト。全文は title で表示）
+// タブの AI に何を頼んだかの要約（ラベル横のサブテキスト。全文は title で表示）
 .summary {
   @include truncate;
   max-width: 10rem;

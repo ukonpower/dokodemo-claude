@@ -1044,17 +1044,27 @@ processManager.on('ai-output', (data) => {
     provider: data.provider,
     outputLine: data.outputLine,
   });
-
-  // タブ表示用の実行内容要約（間引きは service 側で行う）
-  aiActivitySummaryService.notifyOutput({
-    instanceId: data.instanceId,
-    repositoryPath: data.repositoryPath,
-    provider: data.provider,
-    content: data.outputLine.content,
-  });
 });
 
-// 実行内容の要約が生成されたらタブ表示用にクライアントへ配信
+// キューから AI へ送信されたユーザープロンプトをタブ表示用に要約する
+processManager.on(
+  'prompt-queue-item-sent',
+  (data: { repositoryPath: string; provider: AiProvider; prompt: string }) => {
+    // キューの送信先は常にプライマリインスタンス
+    const primary = processManager.aiSessionManager.getPrimaryInstance(
+      data.repositoryPath
+    );
+    if (!primary) return;
+    aiActivitySummaryService.notifyPrompt({
+      instanceId: primary.instanceId,
+      repositoryPath: data.repositoryPath,
+      provider: data.provider,
+      prompt: data.prompt,
+    });
+  }
+);
+
+// 指示内容の要約が生成されたらタブ表示用にクライアントへ配信
 aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
   emitToParentScopedClients(data.repositoryPath, 'ai-activity-summary', {

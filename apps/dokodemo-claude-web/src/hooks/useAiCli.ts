@@ -27,7 +27,7 @@ export interface UseAiCliReturn {
   primaryInstance: AiInstance | undefined;
   currentAiMessages: AiOutputLine[];
   aiTerminalSize: { cols: number; rows: number } | null;
-  // instanceId → 実行内容の要約（タブのサブテキスト表示用）
+  // instanceId → 指示内容の要約（タブのサブテキスト表示用）
   aiActivitySummaries: Record<string, string>;
 
   // タブ操作

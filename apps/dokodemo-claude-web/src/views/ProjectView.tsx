@@ -91,7 +91,7 @@ interface ProjectViewProps {
 
   // AI CLI関連
   aiInstances: AiInstance[];
-  // instanceId → 実行内容の要約（タブのサブテキスト表示用）
+  // instanceId → 指示内容の要約（タブのサブテキスト表示用）
   aiActivitySummaries: Record<string, string>;
   activeInstance: AiInstance | undefined;
   primaryInstance: AiInstance | undefined;
