@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { AiInstanceTabsHandle } from './components/AiInstanceTabs';
 import type {
   AiOutputLine,
   ServerToClientEvents,
@@ -66,6 +67,9 @@ function App() {
   // AI CLI管理
   const aiCli = useAiCli(socket, repository.currentRepo, onAiOutputReceived);
   const { aiTerminalSize, primaryInstance, activeInstance } = aiCli;
+
+  // AIインスタンスタブの追加メニューを Shift+→（右端）から開くための ref
+  const aiInstanceTabsRef = useRef<AiInstanceTabsHandle>(null);
   const primaryProvider = primaryInstance?.provider;
 
   // ターミナル管理
@@ -168,17 +172,30 @@ function App() {
   useAppHotkeys({
     onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
     onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
-    // Ctrl/Cmd+Shift+←→: プロジェクトビューでAIインスタンスタブを循環切り替え
+    // Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
+    // （右端でさらに右を押すと provider を選ぶ追加メニューを開く）
     onSwitchAiInstance: (direction) => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
       const sorted = [...aiCli.aiInstances].sort((a, b) => a.order - b.order);
-      if (sorted.length < 2) return;
+      if (sorted.length === 0) return;
       const currentIndex = sorted.findIndex(
         (i) => i.instanceId === aiCli.activeInstance?.instanceId
       );
-      const next =
-        sorted[(currentIndex + direction + sorted.length) % sorted.length];
-      aiCli.activateInstance(next.instanceId);
+      const targetIndex = currentIndex + direction;
+      // 左端でさらに左：何もしない
+      if (targetIndex < 0) return;
+      // 右端でさらに右：provider（Claude / Codex）を選ぶ追加メニューを開く
+      if (targetIndex >= sorted.length) {
+        aiInstanceTabsRef.current?.openAddMenu();
+        return;
+      }
+      aiCli.activateInstance(sorted[targetIndex].instanceId);
+    },
+    // Shift+↓: 選択中タブのメニュー（再起動 / シャットダウン等）を開く
+    onOpenActiveTabMenu: () => {
+      if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
+      const active = aiCli.activeInstance;
+      if (active) aiInstanceTabsRef.current?.openTabMenu(active.instanceId);
     },
   });
 
@@ -364,6 +381,7 @@ function App() {
       repositories={repository.repositories}
       currentRepo={repository.currentRepo}
       repoProcessStatuses={repository.repoProcessStatuses}
+      aiInstanceTabsRef={aiInstanceTabsRef}
       aiInstances={aiCli.aiInstances}
       activeInstance={aiCli.activeInstance}
       primaryInstance={aiCli.primaryInstance}

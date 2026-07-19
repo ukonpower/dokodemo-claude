@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import type { Ref } from 'react';
 import {
   LayoutDashboard,
   PanelRightClose,
@@ -54,6 +55,7 @@ import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import type { AiInstanceTabsHandle } from '../components/AiInstanceTabs';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
@@ -98,6 +100,7 @@ interface ProjectViewProps {
   terminalFontSize: number;
 
   // タブ操作
+  aiInstanceTabsRef: Ref<AiInstanceTabsHandle>;
   onActivateInstance: (instanceId: string) => void;
   onCreateInstance: (provider: AiProvider) => void;
   onCloseInstance: (instanceId: string) => void;
@@ -325,6 +328,7 @@ export function ProjectView({
   currentAiMessages,
   isLoadingRepoData,
   terminalFontSize,
+  aiInstanceTabsRef,
   onActivateInstance,
   onCreateInstance,
   onCloseInstance,
@@ -692,6 +696,7 @@ export function ProjectView({
             <div className={s.cliTabBar}>
               <div className={s.cliTabsScroll}>
                 <AiInstanceTabs
+                  ref={aiInstanceTabsRef}
                   instances={aiInstances}
                   activeInstanceId={activeInstance?.instanceId ?? ''}
                   isConnected={isConnected}
