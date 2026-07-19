@@ -1,4 +1,4 @@
-import type { IOSSimulatorVideoStreamHandle } from '../services/ios-simulator-service.js';
+import type { IOSSimulatorStreamHandle } from '../services/ios-simulator-service.js';
 import {
   IOSSimulatorService,
   normalizeStreamSettings,
@@ -20,19 +20,18 @@ function delay(milliseconds: number): Promise<void> {
 
 export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
   let streamToken: symbol | null = null;
-  let videoStream: IOSSimulatorVideoStreamHandle | null = null;
+  let activeStream: IOSSimulatorStreamHandle | null = null;
   let selectedUdid: string | null = null;
   let lastHash: string | null = null;
-  let lastTimestamp = 0;
 
-  const stopVideoStream = (): void => {
-    videoStream?.stop();
-    videoStream = null;
+  const stopActiveStream = (): void => {
+    activeStream?.stop();
+    activeStream = null;
   };
 
   const stopStream = (): void => {
     streamToken = null;
-    stopVideoStream();
+    stopActiveStream();
     socket.emit('ios-simulator-status', {
       state: 'idle',
       udid: selectedUdid ?? undefined,
@@ -79,9 +78,9 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
 
   socket.on(
     'ios-simulator-start-stream',
-    async ({ udid, settings, supportsVideo }) => {
+    async ({ udid, settings }) => {
       streamToken = null;
-      stopVideoStream();
+      stopActiveStream();
       selectedUdid = udid;
       lastHash = null;
 
@@ -102,27 +101,16 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
       const idbAvailable = await simulatorService.isIdbAvailable();
       if (streamToken !== token) return;
 
-      if (idbAvailable && supportsVideo) {
-        // H.264 ストリーム: idb video-stream をパースして中継する
+      if (idbAvailable) {
+        // idb の BGRA ストリームを独立 JPEG フレームとして中継する
         socket.emit('ios-simulator-status', { state: 'streaming', udid });
-        videoStream = simulatorService.startVideoStream(
+        activeStream = simulatorService.startStream(
           udid,
           normalizedSettings,
           {
-            onConfig: (codec) => {
+            onFrame: (frame) => {
               if (streamToken !== token) return;
-              socket.emit('ios-simulator-video-config', { udid, codec });
-            },
-            onAccessUnit: ({ data, key }) => {
-              if (streamToken !== token) return;
-              // VideoDecoder 用に単調増加のタイムスタンプ（µs）を振る
-              lastTimestamp = Math.max(Date.now() * 1000, lastTimestamp + 1);
-              socket.emit('ios-simulator-video-chunk', {
-                udid,
-                data,
-                key,
-                timestamp: lastTimestamp,
-              });
+              socket.emit('ios-simulator-frame', frame);
             },
             onError: (error) => {
               if (streamToken !== token) return;
@@ -134,7 +122,7 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
             onExit: () => {
               if (streamToken !== token) return;
               streamToken = null;
-              videoStream = null;
+              activeStream = null;
               socket.emit('ios-simulator-status', {
                 state: 'error',
                 udid,
@@ -249,7 +237,7 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
 
   socket.on('disconnect', () => {
     streamToken = null;
-    stopVideoStream();
+    stopActiveStream();
     selectedUdid = null;
   });
 }

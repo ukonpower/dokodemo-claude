@@ -402,18 +402,6 @@ export interface ServerToClientEvents {
     idbAvailable: boolean;
   }) => void;
   'ios-simulator-frame': (data: IOSSimulatorFrame) => void;
-  // H.264 ストリーム（idb video-stream）。codec は WebCodecs 用の 'avc1.xxxxxx'
-  'ios-simulator-video-config': (data: {
-    udid: string;
-    codec: string;
-  }) => void;
-  // data は Annex B 形式の1アクセスユニット（=1フレーム）
-  'ios-simulator-video-chunk': (data: {
-    udid: string;
-    data: ArrayBuffer;
-    key: boolean;
-    timestamp: number;
-  }) => void;
   'ios-simulator-status': (data: {
     state: 'idle' | 'streaming' | 'view-only' | 'error';
     udid?: string;
@@ -866,9 +854,6 @@ export interface ClientToServerEvents {
   'ios-simulator-start-stream': (data: {
     udid: string;
     settings: IOSSimulatorStreamSettings;
-    // クライアントが WebCodecs (VideoDecoder) を使えるか。
-    // true かつ idb ありなら H.264 ストリーム、それ以外はスクショポーリング
-    supportsVideo: boolean;
   }) => void;
   'ios-simulator-stop-stream': () => void;
   'ios-simulator-refresh': (data: {

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 import type {
   ClientToServerEvents,
@@ -31,10 +30,6 @@ export interface UseIOSSimulatorReturn {
   error: string;
   frame: IOSSimulatorFrame | null;
   frameUrl: string;
-  // H.264 ストリーム表示用。videoActive の間は canvas に直接描画される
-  videoCanvasRef: RefObject<HTMLCanvasElement | null>;
-  videoActive: boolean;
-  hasVideoFrame: boolean;
   refreshDevices: () => void;
   refreshFrame: () => void;
   tap: (x: number, y: number) => void;
@@ -53,8 +48,6 @@ const DEFAULT_SETTINGS: IOSSimulatorStreamSettings = {
   quality: 70,
 };
 
-const supportsVideo = typeof VideoDecoder === 'function';
-
 // マウント中 = パネル表示中として扱う（表示側がマウントを制御する）
 export function useIOSSimulator({
   socket,
@@ -71,27 +64,9 @@ export function useIOSSimulator({
   const [error, setError] = useState('');
   const [frame, setFrame] = useState<IOSSimulatorFrame | null>(null);
   const [frameUrl, setFrameUrl] = useState('');
-  const [videoActive, setVideoActive] = useState(false);
-  const [hasVideoFrame, setHasVideoFrame] = useState(false);
   const frameUrlRef = useRef('');
-  const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const decoderRef = useRef<VideoDecoder | null>(null);
-  const awaitingKeyRef = useRef(true);
   // tap/swipe の向き判定用に、最後に表示したフレームのピクセル寸法を持つ
   const frameSizeRef = useRef<{ width: number; height: number } | null>(null);
-
-  const closeDecoder = useCallback(() => {
-    const decoder = decoderRef.current;
-    decoderRef.current = null;
-    awaitingKeyRef.current = true;
-    if (decoder && decoder.state !== 'closed') decoder.close();
-  }, []);
-
-  const resetVideo = useCallback(() => {
-    closeDecoder();
-    setVideoActive(false);
-    setHasVideoFrame(false);
-  }, [closeDecoder]);
 
   const refreshDevices = useCallback(() => {
     if (!socket) return;
@@ -132,54 +107,6 @@ export function useIOSSimulator({
       setFrameUrl(nextUrl);
       setError('');
     };
-    const handleVideoConfig: ServerToClientEvents['ios-simulator-video-config'] =
-      ({ codec }) => {
-        closeDecoder();
-        const decoder = new VideoDecoder({
-          output: (videoFrame) => {
-            const canvas = videoCanvasRef.current;
-            if (canvas) {
-              const { displayWidth, displayHeight } = videoFrame;
-              if (canvas.width !== displayWidth) canvas.width = displayWidth;
-              if (canvas.height !== displayHeight) {
-                canvas.height = displayHeight;
-              }
-              canvas
-                .getContext('2d')
-                ?.drawImage(videoFrame, 0, 0, displayWidth, displayHeight);
-              frameSizeRef.current = {
-                width: displayWidth,
-                height: displayHeight,
-              };
-              setHasVideoFrame(true);
-              setError('');
-            }
-            videoFrame.close();
-          },
-          error: (decodeError) => {
-            setError(`映像のデコードに失敗しました: ${decodeError.message}`);
-          },
-        });
-        // Annex B 形式なので description は渡さない
-        decoder.configure({ codec, optimizeForLatency: true });
-        decoderRef.current = decoder;
-        awaitingKeyRef.current = true;
-        setVideoActive(true);
-      };
-    const handleVideoChunk: ServerToClientEvents['ios-simulator-video-chunk'] =
-      ({ data, key, timestamp }) => {
-        const decoder = decoderRef.current;
-        if (!decoder || decoder.state !== 'configured') return;
-        if (awaitingKeyRef.current && !key) return;
-        awaitingKeyRef.current = false;
-        decoder.decode(
-          new EncodedVideoChunk({
-            type: key ? 'key' : 'delta',
-            timestamp,
-            data: new Uint8Array(data),
-          })
-        );
-      };
     const handleStatus: ServerToClientEvents['ios-simulator-status'] = (
       nextStatus
     ) => {
@@ -198,21 +125,17 @@ export function useIOSSimulator({
 
     socket.on('ios-simulator-devices', handleDevices);
     socket.on('ios-simulator-frame', handleFrame);
-    socket.on('ios-simulator-video-config', handleVideoConfig);
-    socket.on('ios-simulator-video-chunk', handleVideoChunk);
     socket.on('ios-simulator-status', handleStatus);
     socket.on('ios-simulator-error', handleError);
     socket.on('connect', handleConnect);
     return () => {
       socket.off('ios-simulator-devices', handleDevices);
       socket.off('ios-simulator-frame', handleFrame);
-      socket.off('ios-simulator-video-config', handleVideoConfig);
-      socket.off('ios-simulator-video-chunk', handleVideoChunk);
       socket.off('ios-simulator-status', handleStatus);
       socket.off('ios-simulator-error', handleError);
       socket.off('connect', handleConnect);
     };
-  }, [closeDecoder, refreshDevices, socket]);
+  }, [refreshDevices, socket]);
 
   useEffect(() => {
     refreshDevices();
@@ -221,20 +144,17 @@ export function useIOSSimulator({
   useEffect(() => {
     if (!socket) return;
     if (!isLive || !selectedUdid) {
-      resetVideo();
       socket.emit('ios-simulator-stop-stream');
       return;
     }
     socket.emit('ios-simulator-start-stream', {
       udid: selectedUdid,
       settings,
-      supportsVideo,
     });
     return () => {
-      resetVideo();
       socket.emit('ios-simulator-stop-stream');
     };
-  }, [isLive, resetVideo, selectedUdid, settings, socket]);
+  }, [isLive, selectedUdid, settings, socket]);
 
   useEffect(() => {
     return () => {
@@ -302,9 +222,6 @@ export function useIOSSimulator({
     error,
     frame,
     frameUrl,
-    videoCanvasRef,
-    videoActive,
-    hasVideoFrame,
     refreshDevices,
     refreshFrame,
     tap,

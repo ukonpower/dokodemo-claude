@@ -24,19 +24,13 @@ export interface IOSSimulatorStreamSettings {
   quality: number;
 }
 
-export interface IOSSimulatorVideoAccessUnit {
-  data: Buffer;
-  key: boolean;
-}
-
-export interface IOSSimulatorVideoStreamHandlers {
-  onConfig: (codec: string) => void;
-  onAccessUnit: (accessUnit: IOSSimulatorVideoAccessUnit) => void;
+export interface IOSSimulatorStreamHandlers {
+  onFrame: (frame: IOSSimulatorFrame) => void;
   onError: (error: Error) => void;
   onExit: () => void;
 }
 
-export interface IOSSimulatorVideoStreamHandle {
+export interface IOSSimulatorStreamHandle {
   stop: () => void;
 }
 
@@ -54,6 +48,8 @@ export interface IOSSimulatorFrame {
 interface ScreenDimensions {
   widthPoints: number;
   heightPoints: number;
+  widthPixels: number;
+  heightPixels: number;
 }
 
 interface CommandResult {
@@ -75,6 +71,8 @@ interface SimctlListResponse {
 
 interface IdbDescribeResponse {
   screen_dimensions?: {
+    width?: unknown;
+    height?: unknown;
     width_points?: unknown;
     height_points?: unknown;
   };
@@ -179,101 +177,9 @@ function orientDimensions(
   return {
     widthPoints: screen.heightPoints,
     heightPoints: screen.widthPoints,
+    widthPixels: screen.heightPixels,
+    heightPixels: screen.widthPixels,
   };
-}
-
-const START_CODE = Buffer.from([0, 0, 0, 1]);
-
-type NalUnit = Buffer;
-
-function nalType(nal: NalUnit): number {
-  return nal[0] & 0x1f;
-}
-
-// idb video-stream の H.264 Annex B ストリームを逐次パースし、
-// アクセスユニット（=1フレーム）単位で組み立てる
-export class AnnexBStreamParser {
-  private buffer: Buffer = Buffer.alloc(0);
-  private pendingNals: NalUnit[] = [];
-  private sps: NalUnit | null = null;
-  private pps: NalUnit | null = null;
-  private emittedCodec: string | null = null;
-
-  constructor(
-    private readonly onConfig: (codec: string) => void,
-    private readonly onAccessUnit: (
-      accessUnit: IOSSimulatorVideoAccessUnit
-    ) => void
-  ) {}
-
-  push(chunk: Buffer): void {
-    this.buffer = this.buffer.length
-      ? Buffer.concat([this.buffer, chunk])
-      : chunk;
-
-    // 00 00 01（00 00 00 01 の末尾3バイトを含む）の位置を列挙する
-    const starts: number[] = [];
-    let index = 0;
-    while (true) {
-      const found = this.buffer.indexOf(START_CODE.subarray(1), index);
-      if (found === -1) break;
-      starts.push(found);
-      index = found + 3;
-    }
-
-    // 隣り合う start code の間を完全な NAL として処理し、
-    // 最後の start code 以降（終端未確定）はバッファに残す
-    for (let i = 0; i + 1 < starts.length; i++) {
-      let end = starts[i + 1];
-      if (this.buffer[end - 1] === 0) end -= 1; // 4バイト start code の先頭 0
-      this.processNal(this.buffer.subarray(starts[i] + 3, end));
-    }
-    if (starts.length > 0) {
-      this.buffer = this.buffer.subarray(starts[starts.length - 1]);
-    }
-    // Readable の data 区切りは NAL 境界とは限らない。無通信時間で末尾を
-    // 確定すると分割受信中の NAL を途中で配信するため、次の start code を待つ。
-  }
-
-  dispose(): void {
-    this.buffer = Buffer.alloc(0);
-    this.pendingNals = [];
-  }
-
-  private processNal(nal: NalUnit): void {
-    if (nal.length === 0) return;
-    const type = nalType(nal);
-    if (type === 7) {
-      this.sps = nal;
-      const codec = `avc1.${Buffer.from(nal.subarray(1, 4)).toString('hex')}`;
-      if (codec !== this.emittedCodec) {
-        this.emittedCodec = codec;
-        this.onConfig(codec);
-      }
-      return;
-    }
-    if (type === 8) {
-      this.pps = nal;
-      return;
-    }
-    if (type === 1 || type === 5) {
-      // VCL NAL でアクセスユニットが完結する（idb は 1フレーム=1スライス）
-      const key = type === 5;
-      const nals =
-        key && this.sps && this.pps
-          ? [this.sps, this.pps, ...this.pendingNals, nal]
-          : [...this.pendingNals, nal];
-      this.pendingNals = [];
-      const parts: Buffer[] = [];
-      for (const unit of nals) {
-        parts.push(START_CODE, unit);
-      }
-      this.onAccessUnit({ data: Buffer.concat(parts), key });
-      return;
-    }
-    // SEI / AUD などは次の VCL NAL と同じアクセスユニットに含める
-    this.pendingNals.push(nal);
-  }
 }
 
 export class IOSSimulatorService {
@@ -412,24 +318,24 @@ export class IOSSimulatorService {
     };
   }
 
-  // idb video-stream を起動し、H.264 アクセスユニット単位でコールバックする。
+  // idb の H.264 は動きの大きい場面で参照フレームが数秒間崩れるため、
+  // フレーム独立の BGRA ストリームを JPEG へ変換して中継する。
   // 注意: node の stdio パイプ（実体は socketpair）を stdout に渡すと idb が
   // 映像を書き出さない（ファイル/FIFO なら書く）ため、FIFO 経由で受信する。
-  startVideoStream(
+  startStream(
     udid: string,
     settings: IOSSimulatorStreamSettings,
-    handlers: IOSSimulatorVideoStreamHandlers
-  ): IOSSimulatorVideoStreamHandle {
+    handlers: IOSSimulatorStreamHandlers
+  ): IOSSimulatorStreamHandle {
     const normalized = normalizeStreamSettings(settings);
-    const parser = new AnnexBStreamParser(
-      handlers.onConfig,
-      handlers.onAccessUnit
-    );
     let child: ChildProcess | null = null;
     let reader: ReadStream | null = null;
     let fifoPath = '';
     let stopped = false;
     let companionRetryUsed = false;
+    let rawBuffer = Buffer.alloc(0);
+    let pendingFrame: Buffer | null = null;
+    let encoding = false;
 
     // FIFO の読み取り側 open がブロックしたまま残らないよう、
     // 書き込み側を一度開いてから閉じ、reader と FIFO を破棄する
@@ -450,12 +356,71 @@ export class IOSSimulatorService {
     const finishWithError = (error: Error): void => {
       if (stopped) return;
       stopped = true;
-      parser.dispose();
       handlers.onError(error);
       handlers.onExit();
     };
 
     const startAttempt = async (): Promise<void> => {
+      const screen = await this.getScreenDimensions(udid);
+      if (!screen) {
+        throw new Error('idbからシミュレータの解像度を取得できませんでした');
+      }
+      const width = Math.max(
+        1,
+        Math.floor(screen.widthPixels * normalized.scale)
+      );
+      const height = Math.max(
+        1,
+        Math.floor(screen.heightPixels * normalized.scale)
+      );
+      // idb の raw 行は 64 byte 境界（BGRA 16px単位）まで padding される。
+      const strideWidth = Math.ceil(width / 16) * 16;
+      const frameBytes = strideWidth * height * 4;
+      // JPEG 変換が追いつく範囲に抑え、遅延した古いフレームは溜めない。
+      const fps = Math.max(
+        1,
+        Math.min(
+          normalized.fps,
+          Math.floor(24_000_000 / (strideWidth * height))
+        )
+      );
+
+      const encodePendingFrame = async (): Promise<void> => {
+        if (encoding) return;
+        encoding = true;
+        try {
+          while (!stopped && pendingFrame) {
+            const raw = pendingFrame;
+            pendingFrame = null;
+            const image = await sharp(raw, {
+              raw: { width: strideWidth, height, channels: 4 },
+            })
+              .extract({ left: 0, top: 0, width, height })
+              // idb の出力は BGRA。JPEG 化前に RGB 順へ戻す。
+              .recomb([
+                [0, 0, 1],
+                [0, 1, 0],
+                [1, 0, 0],
+              ])
+              .jpeg({ quality: normalized.quality, mozjpeg: true })
+              .toBuffer();
+            if (stopped) return;
+            handlers.onFrame({
+              udid,
+              image,
+              mimeType: 'image/jpeg',
+              width,
+              height,
+              pointWidth: screen.widthPoints,
+              pointHeight: screen.heightPoints,
+              capturedAt: Date.now(),
+            });
+          }
+        } finally {
+          encoding = false;
+        }
+      };
+
       fifoPath = path.join(
         os.tmpdir(),
         `dokodemo-simulator-${randomUUID()}.fifo`
@@ -469,9 +434,8 @@ export class IOSSimulatorService {
       const command = [
         'exec idb video-stream',
         `--udid '${udid}'`,
-        "--format h264",
-        `--fps ${String(normalized.fps)}`,
-        `--compression-quality ${String(normalized.quality / 100)}`,
+        '--format rbga',
+        `--fps ${String(fps)}`,
         `--scale-factor ${String(normalized.scale)}`,
         `> '${currentFifo}'`,
       ].join(' ');
@@ -487,7 +451,23 @@ export class IOSSimulatorService {
       const currentReader = createReadStream(currentFifo);
       reader = currentReader;
       currentReader.on('data', (chunk) => {
-        if (!stopped) parser.push(chunk as Buffer);
+        if (stopped) return;
+        const nextChunk = chunk as Buffer;
+        rawBuffer = rawBuffer.length
+          ? Buffer.concat([rawBuffer, nextChunk])
+          : Buffer.from(nextChunk);
+        while (rawBuffer.length >= frameBytes) {
+          // 変換中に次が来たら最新フレームで上書きし、遅延を防ぐ。
+          pendingFrame = Buffer.from(rawBuffer.subarray(0, frameBytes));
+          rawBuffer = rawBuffer.subarray(frameBytes);
+        }
+        void encodePendingFrame().catch((error: unknown) => {
+          finishWithError(
+            error instanceof Error
+              ? error
+              : new Error('映像フレームのJPEG変換に失敗しました')
+          );
+        });
       });
       currentReader.on('error', (error) => {
         finishWithError(error);
@@ -504,6 +484,8 @@ export class IOSSimulatorService {
         // companion が死んで state が残っている場合は復旧して1回だけやり直す
         if (!companionRetryUsed && isCompanionConnectError(stderr)) {
           companionRetryUsed = true;
+          rawBuffer = Buffer.alloc(0);
+          pendingFrame = null;
           void releaseFifo(currentFifo, currentReader);
           void this.recoverCompanion(udid)
             .then(() => startAttempt())
@@ -517,7 +499,6 @@ export class IOSSimulatorService {
           return;
         }
         stopped = true;
-        parser.dispose();
         if (code !== 0) {
           handlers.onError(
             new Error(
@@ -543,7 +524,6 @@ export class IOSSimulatorService {
       stop: (): void => {
         if (stopped) return;
         stopped = true;
-        parser.dispose();
         child?.kill('SIGKILL');
         if (fifoPath) void releaseFifo(fifoPath, reader);
       },
@@ -635,12 +615,19 @@ export class IOSSimulatorService {
         udid
       );
       const response = parseJson<IdbDescribeResponse>(stdout, 'idb');
+      const widthPixels = response.screen_dimensions?.width;
+      const heightPixels = response.screen_dimensions?.height;
       const widthPoints = response.screen_dimensions?.width_points;
       const heightPoints = response.screen_dimensions?.height_points;
-      if (typeof widthPoints !== 'number' || typeof heightPoints !== 'number') {
+      if (
+        typeof widthPixels !== 'number' ||
+        typeof heightPixels !== 'number' ||
+        typeof widthPoints !== 'number' ||
+        typeof heightPoints !== 'number'
+      ) {
         return null;
       }
-      return { widthPoints, heightPoints };
+      return { widthPixels, heightPixels, widthPoints, heightPoints };
     } catch {
       return null;
     }
