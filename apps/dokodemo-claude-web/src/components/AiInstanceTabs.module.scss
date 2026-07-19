@@ -40,6 +40,11 @@
   white-space: nowrap;
   max-width: 9rem;
 
+  // 実行内容の要約サブテキストが付くタブは少し広げる（1 行のまま横に伸ばす）
+  &.hasSummary {
+    max-width: 19rem;
+  }
+
   &:hover:not(.active) {
     background-color: $gray-800;
     color: $gray-200;
@@ -63,6 +68,19 @@
 .label {
   @include truncate;
   max-width: 6rem;
+}
+
+// タブの AI が今何をしているかの要約（ラベル横のサブテキスト。全文は title で表示）
+.summary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: $gray-500;
+
+  .tab.active & {
+    color: $gray-400;
+  }
 }
 
 .menuBtn {

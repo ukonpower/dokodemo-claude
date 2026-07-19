@@ -91,6 +91,8 @@ interface ProjectViewProps {
 
   // AI CLI関連
   aiInstances: AiInstance[];
+  // instanceId → 実行内容の要約（タブのサブテキスト表示用）
+  aiActivitySummaries: Record<string, string>;
   activeInstance: AiInstance | undefined;
   primaryInstance: AiInstance | undefined;
   currentAiMessages: AiOutputLine[];
@@ -320,6 +322,7 @@ export function ProjectView({
   currentRepo,
   repoProcessStatuses,
   aiInstances,
+  aiActivitySummaries,
   activeInstance,
   primaryInstance,
   currentAiMessages,
@@ -693,6 +696,7 @@ export function ProjectView({
               <div className={s.cliTabsScroll}>
                 <AiInstanceTabs
                   instances={aiInstances}
+                  activitySummaries={aiActivitySummaries}
                   activeInstanceId={activeInstance?.instanceId ?? ''}
                   isConnected={isConnected}
                   onActivate={onActivateInstance}

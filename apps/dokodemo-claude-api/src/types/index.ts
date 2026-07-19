@@ -217,6 +217,14 @@ export interface ServerToClientEvents {
   'ai-instance-created': (data: { rid: string; instance: AiInstance }) => void;
   'ai-instance-closed': (data: { rid: string; instanceId: string }) => void;
   'ai-instance-updated': (data: { rid: string; instance: AiInstance }) => void;
+  // AI タブの実行内容要約（タブのサブテキスト表示用）
+  'ai-activity-summary': (data: {
+    rid: string;
+    instanceId: string;
+    provider: AiProvider;
+    summary: string;
+    timestamp: number;
+  }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;

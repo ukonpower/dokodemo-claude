@@ -60,6 +60,10 @@ import { registerFileRoutes } from './handlers/file-upload-handlers.js';
 import { PersistenceService } from './services/persistence-service.js';
 import { getCertificates } from './services/cert-service.js';
 import {
+  aiActivitySummaryService,
+  type AiActivitySummaryEvent,
+} from './services/ai-activity-summary-service.js';
+import {
   initWebPushService,
   getWebPushService,
 } from './services/web-push-service.js';
@@ -1040,6 +1044,26 @@ processManager.on('ai-output', (data) => {
     provider: data.provider,
     outputLine: data.outputLine,
   });
+
+  // タブ表示用の実行内容要約（間引きは service 側で行う）
+  aiActivitySummaryService.notifyOutput({
+    instanceId: data.instanceId,
+    repositoryPath: data.repositoryPath,
+    provider: data.provider,
+    content: data.outputLine.content,
+  });
+});
+
+// 実行内容の要約が生成されたらタブ表示用にクライアントへ配信
+aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  emitToParentScopedClients(data.repositoryPath, 'ai-activity-summary', {
+    rid,
+    instanceId: data.instanceId,
+    provider: data.provider,
+    summary: data.summary,
+    timestamp: data.timestamp,
+  });
 });
 
 processManager.on('ai-exit', (data) => {
@@ -1088,6 +1112,7 @@ processManager.on('ai-instance-updated', (data) => {
 
 processManager.on('ai-instance-closed', (data: { instanceId: string; repositoryPath: string }) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  aiActivitySummaryService.clearInstance(data.instanceId);
   io.emit('ai-instance-closed', { rid, instanceId: data.instanceId });
 });
 

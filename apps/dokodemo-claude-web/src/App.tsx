@@ -365,6 +365,7 @@ function App() {
       currentRepo={repository.currentRepo}
       repoProcessStatuses={repository.repoProcessStatuses}
       aiInstances={aiCli.aiInstances}
+      aiActivitySummaries={aiCli.aiActivitySummaries}
       activeInstance={aiCli.activeInstance}
       primaryInstance={aiCli.primaryInstance}
       currentAiMessages={aiCli.currentAiMessages}
