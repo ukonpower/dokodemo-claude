@@ -803,6 +803,12 @@ export class AISessionManager extends EventEmitter {
     options?: {
       initialSize?: { cols: number; rows: number };
       permissionMode?: PermissionMode;
+      /**
+       * true の場合、既存の会話セッションIDを破棄してから作り直す。
+       * これにより --resume での復元をやめ、新しい会話（--session-id）で
+       * 起動する（＝「クリアして作り直す」）。
+       */
+      fresh?: boolean;
     }
   ): Promise<{ instance: AiInstance; session: ActiveAiSession } | null> {
     const instance = this.instances.get(instanceId);
@@ -810,6 +816,17 @@ export class AISessionManager extends EventEmitter {
 
     await this.terminateAllSessions(instanceId);
     this.deleteOutputBuffers(instanceId);
+
+    if (options?.fresh) {
+      // 表示中 provider の会話識別子を破棄する。次の spawnSession が
+      // 新しい UUID を発行し、resume ではなく新規会話として起動する。
+      if (instance.provider === 'claude') {
+        instance.claudeSessionId = undefined;
+      } else if (instance.provider === 'codex') {
+        instance.codexSessionId = undefined;
+        instance.codexSessionFile = undefined;
+      }
+    }
 
     const session = this.spawnSession(instance, repositoryName, options ?? {});
     instance.sessionId = session.id;

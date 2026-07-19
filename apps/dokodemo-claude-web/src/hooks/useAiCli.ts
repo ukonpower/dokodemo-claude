@@ -52,7 +52,7 @@ export interface UseAiCliReturn {
   // プライマリ専用
   changePrimaryProvider: (provider: AiProvider) => void;
 
-  restartCli: () => void;
+  restartCli: (instanceId?: string, fresh?: boolean) => void;
   clearHistory: () => void;
   handleKeyInput: (key: string) => void;
   handleResize: (cols: number, rows: number) => void;
@@ -506,7 +506,8 @@ export function useAiCli(
 
   // instanceId 未指定時はアクティブインスタンスを再起動（各タブメニューからは
   // そのタブの instanceId を渡してタブ単位で再起動する）
-  const restartCli = useCallback((instanceId?: string) => {
+  // fresh=true のときは会話を破棄して新しいセッションで起動する
+  const restartCli = useCallback((instanceId?: string, fresh?: boolean) => {
     const targetId = instanceId ?? activeInstanceIdRef.current;
     if (!socket || !targetId) return;
     socket.emit('clear-ai-output', {
@@ -516,6 +517,7 @@ export function useAiCli(
       instanceId: targetId,
       initialSize: aiTerminalSizeRef.current || undefined,
       permissionMode: getPermissionModeSetting(),
+      fresh,
     });
   }, [socket]);
 

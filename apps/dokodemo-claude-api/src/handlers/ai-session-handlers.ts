@@ -299,7 +299,7 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
 
   // CLI 再起動（同一 instanceId、PTY だけ作り直し）
   socket.on('restart-ai-cli', async (data) => {
-    const { instanceId, initialSize, permissionMode } = data;
+    const { instanceId, initialSize, permissionMode, fresh } = data;
     const instance =
       processManager.aiSessionManager.getInstance(instanceId);
     if (!instance) return;
@@ -308,16 +308,20 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       const result = await processManager.restartInstance(instanceId, {
         initialSize,
         permissionMode,
+        fresh,
       });
       if (!result) return;
 
       const rid = resolveRid(instance.repositoryPath);
       const providerName =
         instance.provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      const actionLabel = fresh
+        ? `${providerName}を新しいセッションで起動しました`
+        : `${providerName}を再起動しました`;
 
       socket.emit('ai-restarted', {
         success: true,
-        message: `${providerName}を再起動しました`,
+        message: actionLabel,
         rid,
         instanceId,
         provider: instance.provider,
@@ -326,7 +330,7 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
 
       emitSystemMessage(
         socket,
-        `\n=== ${providerName}を再起動しました ===\n`,
+        `\n=== ${actionLabel} ===\n`,
         { rid, instanceId, provider: instance.provider }
       );
     } catch (error) {

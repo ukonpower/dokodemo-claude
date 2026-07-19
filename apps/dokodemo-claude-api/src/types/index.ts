@@ -708,6 +708,8 @@ export interface ClientToServerEvents {
     instanceId: string;
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
+    /** true の場合、会話を破棄して新しいセッションで起動する */
+    fresh?: boolean;
   }) => void;
 
   // ターミナル関連イベント
