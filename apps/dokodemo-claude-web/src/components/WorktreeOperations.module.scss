@@ -17,6 +17,34 @@
   gap: 2px;
 }
 
+// note 見出しの折りたたみトグル（クリックでメモ本体の表示を切替）
+.sectionToggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover .sectionLabel {
+    color: $gray-300;
+  }
+}
+
+.sectionChevron {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: $gray-500;
+  transition: transform $transition-fast $transition-easing;
+}
+
+// 折りたたみ中はシェブロンを右向きにする
+.sectionChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
 // 全worktreeの開発サーバー（メモの下に「ports」見出し付きで横並び）
 .devServers {
   display: flex;
