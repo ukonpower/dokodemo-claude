@@ -183,10 +183,6 @@ function orientDimensions(
 }
 
 const START_CODE = Buffer.from([0, 0, 0, 1]);
-// stdout の書き込みが途切れてからこの時間経てば、バッファ末尾を完全な NAL とみなす
-// （Annex B は次の start code が来ないと NAL 終端を確定できないため、
-//  dynamic fps で次フレームが来ない間、最後のフレームが未配信のまま残るのを防ぐ）
-const TAIL_FLUSH_DELAY_MS = 40;
 
 type NalUnit = Buffer;
 
@@ -202,7 +198,6 @@ export class AnnexBStreamParser {
   private sps: NalUnit | null = null;
   private pps: NalUnit | null = null;
   private emittedCodec: string | null = null;
-  private flushTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly onConfig: (codec: string) => void,
@@ -212,7 +207,6 @@ export class AnnexBStreamParser {
   ) {}
 
   push(chunk: Buffer): void {
-    this.clearFlushTimer();
     this.buffer = this.buffer.length
       ? Buffer.concat([this.buffer, chunk])
       : chunk;
@@ -237,32 +231,13 @@ export class AnnexBStreamParser {
     if (starts.length > 0) {
       this.buffer = this.buffer.subarray(starts[starts.length - 1]);
     }
-    // start code を含まない継続チャンクでもタイマーを張り直す
-    // （張り直さないと、複数チャンクに分かれた最終フレームが配信されない）
-    if (this.buffer.length > 0) {
-      this.flushTimer = setTimeout(() => {
-        this.flushTail();
-      }, TAIL_FLUSH_DELAY_MS);
-    }
+    // Readable の data 区切りは NAL 境界とは限らない。無通信時間で末尾を
+    // 確定すると分割受信中の NAL を途中で配信するため、次の start code を待つ。
   }
 
   dispose(): void {
-    this.clearFlushTimer();
     this.buffer = Buffer.alloc(0);
     this.pendingNals = [];
-  }
-
-  private flushTail(): void {
-    // バッファが start code から始まっていれば、中身を完全な NAL とみなす
-    if (
-      this.buffer.length > 4 &&
-      this.buffer[0] === 0 &&
-      this.buffer[1] === 0 &&
-      this.buffer[2] === 1
-    ) {
-      this.processNal(this.buffer.subarray(3));
-      this.buffer = Buffer.alloc(0);
-    }
   }
 
   private processNal(nal: NalUnit): void {
@@ -298,13 +273,6 @@ export class AnnexBStreamParser {
     }
     // SEI / AUD などは次の VCL NAL と同じアクセスユニットに含める
     this.pendingNals.push(nal);
-  }
-
-  private clearFlushTimer(): void {
-    if (this.flushTimer) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
   }
 }
 
