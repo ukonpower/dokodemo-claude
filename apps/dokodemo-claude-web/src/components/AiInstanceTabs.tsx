@@ -33,6 +33,8 @@ const ADD_MENU_ITEMS: { key: AiProvider | 'close'; label: string }[] = [
 
 interface AiInstanceTabsProps {
   instances: AiInstance[];
+  /** instanceId → 指示内容の要約（タブのサブテキスト表示用） */
+  activitySummaries: Record<string, string>;
   activeInstanceId: string;
   isConnected: boolean;
   onActivate: (instanceId: string) => void;
@@ -76,6 +78,7 @@ function getDisplayName(
  */
 function AiInstanceTabs({
   instances,
+  activitySummaries,
   activeInstanceId,
   isConnected,
   onActivate,
@@ -258,6 +261,7 @@ function AiInstanceTabs({
           const subs = subsByProvider.get(inst.provider) ?? [];
           const label = getDisplayName(inst, subs);
           const providerClass = inst.provider === 'claude' ? s.claude : s.codex;
+          const summary = activitySummaries[inst.instanceId];
           return (
             <SwiperSlide key={inst.instanceId} className={s.slideAuto}>
               <div
@@ -271,9 +275,12 @@ function AiInstanceTabs({
                   }
                 }}
                 className={`${s.tab} ${isActive ? s.active : ''} ${providerClass}`}
-                title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}`}
+                title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}${summary ? ` — ${summary}` : ''}`}
               >
-                <span className={s.label}>{label}</span>
+                <span className={s.tabTexts}>
+                  <span className={s.label}>{label}</span>
+                  {summary && <span className={s.summary}>{summary}</span>}
+                </span>
                 <button
                   ref={(el) => {
                     if (el) {

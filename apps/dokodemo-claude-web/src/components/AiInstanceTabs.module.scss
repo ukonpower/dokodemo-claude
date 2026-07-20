@@ -38,7 +38,7 @@
     background-color $transition-fast $transition-easing,
     border-color $transition-fast $transition-easing;
   white-space: nowrap;
-  max-width: 9rem;
+  max-width: 12rem;
 
   &:hover:not(.active) {
     background-color: $gray-800;
@@ -60,9 +60,34 @@
   }
 }
 
+// ラベル（上段）と要約（下段）の 2 行縦積み
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.25rem 0;
+}
+
 .label {
   @include truncate;
-  max-width: 6rem;
+  max-width: 10rem;
+}
+
+// タブの AI に何を頼んだかの要約（ラベル下のサブテキスト。全文は title で表示）
+.summary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  .tab.active & {
+    color: $gray-400;
+  }
 }
 
 .menuBtn {

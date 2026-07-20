@@ -1329,6 +1329,13 @@ export class PromptQueueManager extends EventEmitter {
   ): Promise<void> {
     if (!this.aiSessionAdapter) return;
 
+    // タブ表示用の指示内容要約に使う（server.ts が購読）
+    this.emit('prompt-queue-item-sent', {
+      repositoryPath: item.repositoryPath,
+      provider: item.provider,
+      prompt: item.prompt,
+    });
+
     const sendPromptWithEnter = (delay: number = 0) => {
       setTimeout(() => {
         const ok = this.aiSessionAdapter?.sendCommand(sessionId, item.prompt);
