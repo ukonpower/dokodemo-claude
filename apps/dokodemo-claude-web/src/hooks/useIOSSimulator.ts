@@ -42,10 +42,12 @@ export interface UseIOSSimulatorReturn {
   ) => void;
 }
 
+// quality はサーバ側が libjpeg-turbo（mozjpeg 比で同 quality だと約2割大きい）
+// でエンコードする前提の値。60 で従来の mozjpeg 70 と同程度のサイズになる
 const DEFAULT_SETTINGS: IOSSimulatorStreamSettings = {
   fps: 30,
   scale: 0.5,
-  quality: 70,
+  quality: 60,
 };
 
 // マウント中 = パネル表示中として扱う（表示側がマウントを制御する）

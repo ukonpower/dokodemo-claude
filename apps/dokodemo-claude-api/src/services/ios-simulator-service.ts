@@ -318,7 +318,8 @@ export class IOSSimulatorService {
     };
   }
 
-  // idb の H.264 は動きの大きい場面で参照フレームが数秒間崩れるため、
+  // idb の H.264 は動きの大きい場面で参照フレームが数秒間崩れ、
+  // mjpeg / minicap は companion(1.1.8) が出力ゼロのままストリームを閉じるため、
   // フレーム独立の BGRA ストリームを JPEG へ変換して中継する。
   // 注意: node の stdio パイプ（実体は socketpair）を stdout に渡すと idb が
   // 映像を書き出さない（ファイル/FIFO なら書く）ため、FIFO 経由で受信する。
@@ -333,8 +334,8 @@ export class IOSSimulatorService {
     let fifoPath = '';
     let stopped = false;
     let companionRetryUsed = false;
-    let rawBuffer = Buffer.alloc(0);
     let pendingFrame: Buffer | null = null;
+    let lastRawFrame: Buffer | null = null;
     let encoding = false;
 
     // FIFO の読み取り側 open がブロックしたまま残らないよう、
@@ -376,7 +377,8 @@ export class IOSSimulatorService {
       // idb の raw 行は 64 byte 境界（BGRA 16px単位）まで padding される。
       const strideWidth = Math.ceil(width / 16) * 16;
       const frameBytes = strideWidth * height * 4;
-      // JPEG 変換が追いつく範囲に抑え、遅延した古いフレームは溜めない。
+      // idb(Python)→FIFO の中継スループットが実測 約23Mピクセル/秒で頭打ちのため、
+      // それを超える fps を要求しても届かない。上限内に丸めて安定させる。
       const fps = Math.max(
         1,
         Math.min(
@@ -392,6 +394,10 @@ export class IOSSimulatorService {
           while (!stopped && pendingFrame) {
             const raw = pendingFrame;
             pendingFrame = null;
+            // 静止画面では同一内容のフレームが送られ続けるため、
+            // 変化のないフレームはスキップして通信量とCPUを抑える
+            if (lastRawFrame?.equals(raw)) continue;
+            lastRawFrame = raw;
             const image = await sharp(raw, {
               raw: { width: strideWidth, height, channels: 4 },
             })
@@ -402,7 +408,9 @@ export class IOSSimulatorService {
                 [0, 1, 0],
                 [1, 0, 0],
               ])
-              .jpeg({ quality: normalized.quality, mozjpeg: true })
+              // mozjpeg は実測 45ms/フレームで 30fps に追いつかず遅延の主因になる。
+              // libjpeg-turbo(約4.5ms) で低遅延を優先する（サイズ増は quality で調整）
+              .jpeg({ quality: normalized.quality })
               .toBuffer();
             if (stopped) return;
             handlers.onFrame({
@@ -435,6 +443,7 @@ export class IOSSimulatorService {
         'exec idb video-stream',
         `--udid '${udid}'`,
         '--format rbga',
+        // --fps 省略（dynamic fps）はフレームがほぼ来ないため必ず明示する
         `--fps ${String(fps)}`,
         `--scale-factor ${String(normalized.scale)}`,
         `> '${currentFifo}'`,
@@ -450,17 +459,37 @@ export class IOSSimulatorService {
       });
       const currentReader = createReadStream(currentFifo);
       reader = currentReader;
+      // チャンクごとの Buffer.concat はフレームあたり百数十MBのメモリコピーに
+      // なりイベントループを飽和させる（実測でフレーム配信が止まる）ため、
+      // 固定長バッファへ書き足して1フレームぶん貯まったら切り出す。
+      let frameFill = 0;
+      const frameFillBuffer = Buffer.allocUnsafe(frameBytes);
       currentReader.on('data', (chunk) => {
         if (stopped) return;
         const nextChunk = chunk as Buffer;
-        rawBuffer = rawBuffer.length
-          ? Buffer.concat([rawBuffer, nextChunk])
-          : Buffer.from(nextChunk);
-        while (rawBuffer.length >= frameBytes) {
-          // 変換中に次が来たら最新フレームで上書きし、遅延を防ぐ。
-          pendingFrame = Buffer.from(rawBuffer.subarray(0, frameBytes));
-          rawBuffer = rawBuffer.subarray(frameBytes);
+        let offset = 0;
+        let gotFrame = false;
+        while (offset < nextChunk.length) {
+          const copyBytes = Math.min(
+            nextChunk.length - offset,
+            frameBytes - frameFill
+          );
+          nextChunk.copy(
+            frameFillBuffer,
+            frameFill,
+            offset,
+            offset + copyBytes
+          );
+          frameFill += copyBytes;
+          offset += copyBytes;
+          if (frameFill === frameBytes) {
+            // 変換中に次が来たら最新フレームで上書きし、遅延を防ぐ。
+            pendingFrame = Buffer.from(frameFillBuffer);
+            frameFill = 0;
+            gotFrame = true;
+          }
         }
+        if (!gotFrame) return;
         void encodePendingFrame().catch((error: unknown) => {
           finishWithError(
             error instanceof Error
@@ -484,8 +513,8 @@ export class IOSSimulatorService {
         // companion が死んで state が残っている場合は復旧して1回だけやり直す
         if (!companionRetryUsed && isCompanionConnectError(stderr)) {
           companionRetryUsed = true;
-          rawBuffer = Buffer.alloc(0);
           pendingFrame = null;
+          lastRawFrame = null;
           void releaseFifo(currentFifo, currentReader);
           void this.recoverCompanion(udid)
             .then(() => startAttempt())

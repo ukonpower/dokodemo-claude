@@ -110,7 +110,8 @@ export function registerIOSSimulatorHandlers({ socket }: HandlerContext): void {
           {
             onFrame: (frame) => {
               if (streamToken !== token) return;
-              socket.emit('ios-simulator-frame', frame);
+              // 回線が細いときは古いフレームを捨てて遅延を溜めない
+              socket.volatile.emit('ios-simulator-frame', frame);
             },
             onError: (error) => {
               if (streamToken !== token) return;
