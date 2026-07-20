@@ -161,11 +161,6 @@ function SortableWorktreeTab({
         <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
           {wt.branch}
         </span>
-        {wt.memo && (
-          <span className={s.memoIndicator} aria-label="メモあり">
-            📝
-          </span>
-        )}
         {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
       </a>
 
