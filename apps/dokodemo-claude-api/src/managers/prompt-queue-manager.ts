@@ -101,6 +101,10 @@ export class PromptQueueManager extends EventEmitter {
   // itemId の一致だけでは前の周回の watchdog（stale）を弾けない。
   private sendGenerations: Map<string, number> = new Map();
 
+  // セッションへ最後に適用した /model の値（キー = queueKey）。
+  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になる。
+  private currentModels: Map<string, string> = new Map();
+
   constructor(
     private readonly persistenceService: PersistenceService,
     aiSessionAdapter?: QueueAiSessionAdapter
@@ -130,6 +134,13 @@ export class PromptQueueManager extends EventEmitter {
    */
   private getQueueKey(repositoryPath: string, provider: AiProvider): string {
     return `${provider}:${repositoryPath}`;
+  }
+
+  /**
+   * セッションへ最後に適用した /model の値を取得する（未送信なら undefined）。
+   */
+  getCurrentModel(repositoryPath: string, provider: AiProvider): string | undefined {
+    return this.currentModels.get(this.getQueueKey(repositoryPath, provider));
   }
 
   /**
@@ -1352,6 +1363,10 @@ export class PromptQueueManager extends EventEmitter {
 
       if (item.model) {
         const modelValue = item.model === 'OpusPlan' ? 'opusplan' : item.model;
+        this.currentModels.set(
+          this.getQueueKey(item.repositoryPath, item.provider),
+          item.model
+        );
         setTimeout(() => {
           this.aiSessionAdapter?.sendCommand(sessionId, `/model ${modelValue}`);
           setTimeout(() => {
@@ -1367,6 +1382,10 @@ export class PromptQueueManager extends EventEmitter {
       // 通常のプロンプト送信
       if (item.model) {
         const modelValue = item.model === 'OpusPlan' ? 'opusplan' : item.model;
+        this.currentModels.set(
+          this.getQueueKey(item.repositoryPath, item.provider),
+          item.model
+        );
         this.aiSessionAdapter.sendCommand(sessionId, `/model ${modelValue}`);
 
         setTimeout(() => {
