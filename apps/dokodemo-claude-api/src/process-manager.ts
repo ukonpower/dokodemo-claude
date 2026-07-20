@@ -522,6 +522,7 @@ export class ProcessManager extends EventEmitter {
     options?: {
       initialSize?: { cols: number; rows: number };
       permissionMode?: PermissionMode;
+      fresh?: boolean;
     }
   ): Promise<{ instance: AiInstance; session: ActiveAiSession } | null> {
     const instance = this.aiSessionManager.getInstance(instanceId);

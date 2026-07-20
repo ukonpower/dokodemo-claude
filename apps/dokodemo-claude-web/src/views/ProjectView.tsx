@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import type { Ref } from 'react';
 import { useMediaQuery } from '../hooks';
 import {
   LayoutDashboard,
@@ -59,6 +60,7 @@ import {
   IOSSimulatorPanelBoundary,
 } from '../components/IOSSimulatorPanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import type { AiInstanceTabsHandle } from '../components/AiInstanceTabs';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
@@ -114,6 +116,7 @@ interface ProjectViewProps {
   terminalFontSize: number;
 
   // タブ操作
+  aiInstanceTabsRef: Ref<AiInstanceTabsHandle>;
   onActivateInstance: (instanceId: string) => void;
   onCreateInstance: (provider: AiProvider) => void;
   onCloseInstance: (instanceId: string) => void;
@@ -133,7 +136,7 @@ interface ProjectViewProps {
   onSendMode: () => void;
   onChangeModel: (model: string) => void;
   onChangePrimaryProvider: (provider: AiProvider) => void;
-  onRestartCli: (instanceId?: string) => void;
+  onRestartCli: (instanceId?: string, fresh?: boolean) => void;
   onKeyInput: (key: string) => void;
   onResize: (cols: number, rows: number) => void;
 
@@ -341,6 +344,7 @@ export function ProjectView({
   currentAiMessages,
   isLoadingRepoData,
   terminalFontSize,
+  aiInstanceTabsRef,
   onActivateInstance,
   onCreateInstance,
   onCloseInstance,
@@ -727,6 +731,7 @@ export function ProjectView({
             <div className={s.cliTabBar}>
               <div className={s.cliTabsScroll}>
                 <AiInstanceTabs
+                  ref={aiInstanceTabsRef}
                   instances={aiInstances}
                   activeInstanceId={activeInstance?.instanceId ?? ''}
                   isConnected={isConnected}

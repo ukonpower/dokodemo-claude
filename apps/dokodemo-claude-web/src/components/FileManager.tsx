@@ -209,23 +209,17 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
     [onDelete]
   );
 
+  // fetch→blob だと巨大ファイルを全てメモリに載せるまで無反応になるため、
+  // Content-Disposition: attachment を返すURLへの直リンクでブラウザのネイティブダウンロードに任せる
   const handleDownload = useCallback(
-    async (file: UploadedFileInfo) => {
-      const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(file.filename)}`;
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = objectUrl;
-        link.download = file.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(objectUrl);
-      } catch {
-        window.open(url, '_blank');
-      }
+    (file: UploadedFileInfo) => {
+      const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(file.filename)}?download=1`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     },
     [rid]
   );

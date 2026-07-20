@@ -39,14 +39,22 @@ export const getFileHandler: RequestHandler = async (req, res) => {
     return;
   }
 
-  res.sendFile(filePath, (err: Error | undefined) => {
+  const onError = (err: Error | undefined) => {
     if (err && !res.headersSent) {
       res.status(404).json({
         success: false,
         message: 'ファイルが見つかりません',
       });
     }
-  });
+  };
+
+  // ?download=1 でブラウザにダウンロードとして扱わせる（Content-Disposition: attachment）
+  if (req.query.download !== undefined) {
+    res.download(filePath, filename, onError);
+    return;
+  }
+
+  res.sendFile(filePath, onError);
 };
 
 /**
