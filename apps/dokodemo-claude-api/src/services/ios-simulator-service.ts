@@ -34,6 +34,22 @@ export interface IOSSimulatorStreamHandle {
   stop: () => void;
 }
 
+export interface IOSSimulatorVideoAccessUnit {
+  data: Buffer;
+  key: boolean;
+}
+
+export interface IOSSimulatorVideoStreamHandlers {
+  onConfig: (codec: string) => void;
+  onAccessUnit: (accessUnit: IOSSimulatorVideoAccessUnit) => void;
+  onError: (error: Error) => void;
+  onExit: () => void;
+}
+
+export interface IOSSimulatorVideoStreamHandle {
+  stop: () => void;
+}
+
 export interface IOSSimulatorFrame {
   udid: string;
   image: Buffer;
@@ -182,8 +198,106 @@ function orientDimensions(
   };
 }
 
+const START_CODE = Buffer.from([0, 0, 0, 1]);
+
+type NalUnit = Buffer;
+
+function nalType(nal: NalUnit): number {
+  return nal[0] & 0x1f;
+}
+
+// H.264 Annex B ストリームを逐次パースし、
+// アクセスユニット（=1フレーム）単位で組み立てる。
+// インターフレームは参照フレームのため、1チャンクでも欠けると次の
+// キーフレームまで映像が崩れ続ける。欠落時は呼び出し側が
+// ストリーム再起動で回復する前提の設計。
+export class AnnexBStreamParser {
+  private buffer: Buffer = Buffer.alloc(0);
+  private pendingNals: NalUnit[] = [];
+  private sps: NalUnit | null = null;
+  private pps: NalUnit | null = null;
+  private emittedCodec: string | null = null;
+
+  constructor(
+    private readonly onConfig: (codec: string) => void,
+    private readonly onAccessUnit: (
+      accessUnit: IOSSimulatorVideoAccessUnit
+    ) => void
+  ) {}
+
+  push(chunk: Buffer): void {
+    this.buffer = this.buffer.length
+      ? Buffer.concat([this.buffer, chunk])
+      : chunk;
+
+    // 00 00 01（00 00 00 01 の末尾3バイトを含む）の位置を列挙する
+    const starts: number[] = [];
+    let index = 0;
+    while (true) {
+      const found = this.buffer.indexOf(START_CODE.subarray(1), index);
+      if (found === -1) break;
+      starts.push(found);
+      index = found + 3;
+    }
+
+    // 隣り合う start code の間を完全な NAL として処理し、
+    // 最後の start code 以降（終端未確定）はバッファに残す
+    for (let i = 0; i + 1 < starts.length; i++) {
+      let end = starts[i + 1];
+      if (this.buffer[end - 1] === 0) end -= 1; // 4バイト start code の先頭 0
+      this.processNal(this.buffer.subarray(starts[i] + 3, end));
+    }
+    if (starts.length > 0) {
+      this.buffer = this.buffer.subarray(starts[starts.length - 1]);
+    }
+    // Readable の data 区切りは NAL 境界とは限らない。無通信時間で末尾を
+    // 確定すると分割受信中の NAL を途中で配信するため、次の start code を待つ。
+  }
+
+  dispose(): void {
+    this.buffer = Buffer.alloc(0);
+    this.pendingNals = [];
+  }
+
+  private processNal(nal: NalUnit): void {
+    if (nal.length === 0) return;
+    const type = nalType(nal);
+    if (type === 7) {
+      this.sps = nal;
+      const codec = `avc1.${Buffer.from(nal.subarray(1, 4)).toString('hex')}`;
+      if (codec !== this.emittedCodec) {
+        this.emittedCodec = codec;
+        this.onConfig(codec);
+      }
+      return;
+    }
+    if (type === 8) {
+      this.pps = nal;
+      return;
+    }
+    if (type === 1 || type === 5) {
+      // VCL NAL でアクセスユニットが完結する（idb は 1フレーム=1スライス）
+      const key = type === 5;
+      const nals =
+        key && this.sps && this.pps
+          ? [this.sps, this.pps, ...this.pendingNals, nal]
+          : [...this.pendingNals, nal];
+      this.pendingNals = [];
+      const parts: Buffer[] = [];
+      for (const unit of nals) {
+        parts.push(START_CODE, unit);
+      }
+      this.onAccessUnit({ data: Buffer.concat(parts), key });
+      return;
+    }
+    // SEI / AUD などは次の VCL NAL と同じアクセスユニットに含める
+    this.pendingNals.push(nal);
+  }
+}
+
 export class IOSSimulatorService {
   private idbAvailablePromise: Promise<boolean> | null = null;
+  private ffmpegAvailablePromise: Promise<boolean> | null = null;
   private readonly screenDimensions = new Map<
     string,
     Promise<ScreenDimensions | null>
@@ -318,9 +432,308 @@ export class IOSSimulatorService {
     };
   }
 
-  // idb の H.264 は動きの大きい場面で参照フレームが数秒間崩れ、
-  // mjpeg / minicap は companion(1.1.8) が出力ゼロのままストリームを閉じるため、
-  // フレーム独立の BGRA ストリームを JPEG へ変換して中継する。
+  async isFfmpegAvailable(): Promise<boolean> {
+    if (!this.ffmpegAvailablePromise) {
+      this.ffmpegAvailablePromise = runCommand('ffmpeg', ['-version'], 5_000)
+        .then(() => true)
+        .catch(() => false);
+    }
+    return this.ffmpegAvailablePromise;
+  }
+
+  // WebCodecs 対応クライアント向けの主経路（JPEG 方式の約1/7以下の通信量・低遅延）。
+  // idb の BGRA ストリームを ffmpeg(libx264) で H.264 化し、
+  // アクセスユニット単位でコールバックする。
+  // 重要: idb 自身の --format h264 は使わない。companion(1.1.8) のエンコーダは
+  // 動きのある場面で参照矛盾のあるビットストリームを吐き（生キャプチャを
+  // ffmpeg でデコードしても崩れることを実測確認）、デコーダ側では直せない。
+  // libx264 は入力フレームが落ちても参照矛盾を起こさないため、
+  // 詰まったら入力段でドロップして遅延を溜めない設計にできる。
+  // 注意: node の stdio パイプ（実体は socketpair）を idb の stdout に渡すと
+  // 映像を書き出さない（ファイル/FIFO なら書く）ため、FIFO 経由で受信する。
+  startVideoStream(
+    udid: string,
+    settings: IOSSimulatorStreamSettings,
+    handlers: IOSSimulatorVideoStreamHandlers
+  ): IOSSimulatorVideoStreamHandle {
+    const normalized = normalizeStreamSettings(settings);
+    const parser = new AnnexBStreamParser(
+      handlers.onConfig,
+      handlers.onAccessUnit
+    );
+    let idbChild: ChildProcess | null = null;
+    let encoder: ChildProcess | null = null;
+    let reader: ReadStream | null = null;
+    let fifoPath = '';
+    let stopped = false;
+    let companionRetryUsed = false;
+
+    // FIFO の読み取り側 open がブロックしたまま残らないよう、
+    // 書き込み側を一度開いてから閉じ、reader と FIFO を破棄する
+    const releaseFifo = async (
+      fifo: string,
+      fifoReader: ReadStream | null
+    ): Promise<void> => {
+      try {
+        const fh = await fs.open(fifo, 'a');
+        await fh.close();
+      } catch {
+        // FIFO が既に無い場合などは無視
+      }
+      fifoReader?.destroy();
+      await fs.rm(fifo, { force: true });
+    };
+
+    const killChildren = (): void => {
+      idbChild?.kill('SIGKILL');
+      idbChild = null;
+      encoder?.kill('SIGKILL');
+      encoder = null;
+    };
+
+    const finishWithError = (error: Error): void => {
+      if (stopped) return;
+      stopped = true;
+      parser.dispose();
+      killChildren();
+      handlers.onError(error);
+      handlers.onExit();
+    };
+
+    const startAttempt = async (): Promise<void> => {
+      const screen = await this.getScreenDimensions(udid);
+      if (!screen) {
+        throw new Error('idbからシミュレータの解像度を取得できませんでした');
+      }
+      const width = Math.max(
+        1,
+        Math.floor(screen.widthPixels * normalized.scale)
+      );
+      const height = Math.max(
+        1,
+        Math.floor(screen.heightPixels * normalized.scale)
+      );
+      // idb の raw 行は 64 byte 境界（BGRA 16px単位）まで padding される。
+      const strideWidth = Math.ceil(width / 16) * 16;
+      const frameBytes = strideWidth * height * 4;
+      // idb(Python)→FIFO の中継スループットが実測 約23Mピクセル/秒で頭打ちのため、
+      // それを超える fps を要求しても届かない。上限内に丸めて安定させる。
+      const fps = Math.max(
+        1,
+        Math.min(
+          normalized.fps,
+          Math.floor(24_000_000 / (strideWidth * height))
+        )
+      );
+      // yuv420 は偶数寸法が必要（stride 部分の切り落としと同時に crop する）
+      const evenWidth = Math.max(2, width - (width % 2));
+      const evenHeight = Math.max(2, height - (height % 2));
+      // quality(35-95) を x264 の CRF(約31-19) へ換算する
+      const crf = Math.round(clamp(38 - normalized.quality / 5, 16, 32));
+      // 2秒ごとのキーフレームで、欠落しても recover なしで自己修復できるようにする
+      const gop = Math.max(2, fps * 2);
+
+      fifoPath = path.join(
+        os.tmpdir(),
+        `dokodemo-simulator-${randomUUID()}.fifo`
+      );
+      const currentFifo = fifoPath;
+      await runCommand('/usr/bin/mkfifo', [currentFifo]);
+      if (stopped) {
+        await fs.rm(currentFifo, { force: true });
+        return;
+      }
+
+      const command = [
+        'exec idb video-stream',
+        `--udid '${udid}'`,
+        '--format rbga',
+        // --fps 省略（dynamic fps）はフレームがほぼ来ないため必ず明示する
+        `--fps ${String(fps)}`,
+        `--scale-factor ${String(normalized.scale)}`,
+        `> '${currentFifo}'`,
+      ].join(' ');
+      const stderrChunks: Buffer[] = [];
+      idbChild = spawn('/bin/sh', ['-c', command], {
+        stdio: ['ignore', 'ignore', 'pipe'],
+        // PYTHONUNBUFFERED: idb(Python) の 8KB ブロックバッファを無効化して
+        // フレームを書き込み単位で即時配信させる
+        env: { ...process.env, PYTHONUNBUFFERED: '1' },
+        // サーバのグループkillに companion を巻き込まない
+        detached: true,
+      });
+      const currentIdbChild = idbChild;
+
+      const currentEncoder = spawn(
+        'ffmpeg',
+        [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-f',
+          'rawvideo',
+          '-pix_fmt',
+          'bgra',
+          '-s',
+          `${String(strideWidth)}x${String(height)}`,
+          '-r',
+          String(fps),
+          '-i',
+          '-',
+          '-vf',
+          `crop=${String(evenWidth)}:${String(evenHeight)}:0:0`,
+          '-pix_fmt',
+          'yuv420p',
+          '-c:v',
+          'libx264',
+          '-preset',
+          'ultrafast',
+          '-tune',
+          'zerolatency',
+          // zerolatency はスライス分割並列(sliced-threads)を有効にするが、
+          // パーサは 1フレーム=1スライス前提のため無効化する
+          '-x264-params',
+          'sliced-threads=0',
+          '-crf',
+          String(crf),
+          '-g',
+          String(gop),
+          '-f',
+          'h264',
+          '-',
+        ],
+        { stdio: ['pipe', 'pipe', 'pipe'] }
+      );
+      encoder = currentEncoder;
+      const encoderStderr: Buffer[] = [];
+      currentEncoder.stdout?.on('data', (chunk: Buffer) => {
+        if (!stopped) parser.push(chunk);
+      });
+      currentEncoder.stderr?.on('data', (chunk: Buffer) => {
+        encoderStderr.push(chunk);
+        while (encoderStderr.length > 20) encoderStderr.shift();
+      });
+      currentEncoder.on('error', finishWithError);
+      currentEncoder.on('close', (code) => {
+        if (stopped || encoder !== currentEncoder) return;
+        const stderr = Buffer.concat(encoderStderr).toString('utf8').trim();
+        finishWithError(
+          new Error(
+            stderr || `ffmpeg が終了コード ${String(code)} で失敗しました`
+          )
+        );
+      });
+      // 終了処理中の EPIPE でプロセスを落とさない
+      currentEncoder.stdin?.on('error', () => undefined);
+
+      // FIFO からフレームを切り出して ffmpeg へ流す。
+      // チャンクごとの Buffer.concat はイベントループを飽和させるため、
+      // 固定長バッファへ書き足して1フレームぶん貯まったら書き込む。
+      // エンコーダが詰まっている間のフレームは捨てる（遅延を溜めない）。
+      let frameFill = 0;
+      const frameFillBuffer = Buffer.allocUnsafe(frameBytes);
+      let encoderWritable = true;
+      currentEncoder.stdin?.on('drain', () => {
+        encoderWritable = true;
+      });
+      const currentReader = createReadStream(currentFifo);
+      reader = currentReader;
+      currentReader.on('data', (chunk) => {
+        if (stopped) return;
+        const nextChunk = chunk as Buffer;
+        let offset = 0;
+        while (offset < nextChunk.length) {
+          const copyBytes = Math.min(
+            nextChunk.length - offset,
+            frameBytes - frameFill
+          );
+          nextChunk.copy(
+            frameFillBuffer,
+            frameFill,
+            offset,
+            offset + copyBytes
+          );
+          frameFill += copyBytes;
+          offset += copyBytes;
+          if (frameFill === frameBytes) {
+            frameFill = 0;
+            const stdin = currentEncoder.stdin;
+            if (encoderWritable && stdin?.writable) {
+              encoderWritable = stdin.write(Buffer.from(frameFillBuffer));
+            }
+          }
+        }
+      });
+      currentReader.on('error', (error) => {
+        finishWithError(error);
+      });
+
+      currentIdbChild.stderr?.on('data', (chunk: Buffer) => {
+        // エラーメッセージ用に末尾だけ保持する
+        stderrChunks.push(chunk);
+        while (stderrChunks.length > 20) stderrChunks.shift();
+      });
+      currentIdbChild.on('error', finishWithError);
+      currentIdbChild.on('close', (code) => {
+        if (stopped || idbChild !== currentIdbChild) return;
+        const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
+        // companion が死んで state が残っている場合は復旧して1回だけやり直す
+        if (!companionRetryUsed && isCompanionConnectError(stderr)) {
+          companionRetryUsed = true;
+          parser.dispose();
+          encoder?.kill('SIGKILL');
+          encoder = null;
+          void releaseFifo(currentFifo, currentReader);
+          void this.recoverCompanion(udid)
+            .then(() => startAttempt())
+            .catch((error: unknown) => {
+              finishWithError(
+                error instanceof Error
+                  ? error
+                  : new Error('idb video-stream の再起動に失敗しました')
+              );
+            });
+          return;
+        }
+        stopped = true;
+        parser.dispose();
+        encoder?.kill('SIGKILL');
+        encoder = null;
+        if (code !== 0) {
+          handlers.onError(
+            new Error(
+              stderr ||
+                `idb video-stream が終了コード ${String(code)} で失敗しました`
+            )
+          );
+        }
+        handlers.onExit();
+        void releaseFifo(currentFifo, currentReader);
+      });
+    };
+
+    void startAttempt().catch((error: unknown) => {
+      finishWithError(
+        error instanceof Error
+          ? error
+          : new Error('idb video-stream の起動に失敗しました')
+      );
+    });
+
+    return {
+      stop: (): void => {
+        if (stopped) return;
+        stopped = true;
+        parser.dispose();
+        killChildren();
+        if (fifoPath) void releaseFifo(fifoPath, reader);
+      },
+    };
+  }
+
+  // WebCodecs 非対応クライアント・ffmpeg なし環境向けフォールバック。
+  // フレーム独立の BGRA→JPEG 中継のため欠落しても壊れない（通信量は多い）。
+  // mjpeg / minicap は companion(1.1.8) が出力ゼロのままストリームを閉じるため使えない。
   // 注意: node の stdio パイプ（実体は socketpair）を stdout に渡すと idb が
   // 映像を書き出さない（ファイル/FIFO なら書く）ため、FIFO 経由で受信する。
   startStream(

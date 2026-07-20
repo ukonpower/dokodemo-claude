@@ -47,7 +47,8 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
   const simulator = useIOSSimulator({ socket });
   const visibleFrame =
     simulator.frame?.udid === simulator.selectedUdid ? simulator.frame : null;
-  const hasScreen = Boolean(visibleFrame);
+  const showVideo = simulator.videoActive;
+  const hasScreen = showVideo ? simulator.hasVideoFrame : Boolean(visibleFrame);
   const canInteract = simulator.idbAvailable && hasScreen;
 
   const handlePointerDown = (event: PointerEvent<HTMLElement>): void => {
@@ -218,7 +219,19 @@ function IOSSimulatorBody({ socket }: IOSSimulatorBodyProps) {
         {simulator.selectedUdid && !hasScreen && (
           <p className={s.empty}>画面を取得しています…</p>
         )}
-        {visibleFrame && (
+        {/* H.264 ストリーム時は decoder が直接描画する canvas を表示する */}
+        <canvas
+          ref={simulator.videoCanvasRef}
+          aria-label="iOSシミュレータの画面"
+          className={`${s.screen} ${canInteract ? s.interactive : ''}`}
+          style={showVideo && hasScreen ? undefined : { display: 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={() => {
+            pointerStartRef.current = null;
+          }}
+        />
+        {!showVideo && visibleFrame && (
           <img
             src={simulator.frameUrl}
             alt="iOSシミュレータの画面"
