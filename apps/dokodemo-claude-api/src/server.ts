@@ -60,6 +60,10 @@ import { registerFileRoutes } from './handlers/file-upload-handlers.js';
 import { PersistenceService } from './services/persistence-service.js';
 import { getCertificates } from './services/cert-service.js';
 import {
+  aiActivitySummaryService,
+  type AiActivitySummaryEvent,
+} from './services/ai-activity-summary-service.js';
+import {
   initWebPushService,
   getWebPushService,
 } from './services/web-push-service.js';
@@ -500,10 +504,10 @@ const NOTIFICATION_EVENT_EMOJIS: Record<string, string> = {
 // AI Hook共通処理関数
 async function handleAiHookEvent(
   hookProvider: AiProvider,
-  body: { event?: string; metadata?: Record<string, unknown>; transcript_path?: string; cwd?: string; session_id?: string }
+  body: { event?: string; metadata?: Record<string, unknown>; transcript_path?: string; cwd?: string; session_id?: string; prompt?: string }
 ): Promise<void> {
   try {
-    const { event, metadata, transcript_path, cwd, session_id } = body;
+    const { event, metadata, transcript_path, cwd, session_id, prompt } = body;
 
     if (!event || typeof event !== 'string') return;
 
@@ -517,6 +521,8 @@ async function handleAiHookEvent(
     let instance = session_id
       ? processManager.aiSessionManager.getInstanceBySessionId(session_id)
       : undefined;
+    // session_id で厳密に特定できたか（cwd フォールバックと区別する）
+    const isDirectInstance = instance !== undefined;
     let repositoryPath: string | null = instance?.repositoryPath ?? null;
 
     // フォールバック: cwd からリポジトリルートを探索（インスタンス特定不可の hook）
@@ -547,6 +553,23 @@ async function handleAiHookEvent(
         instance.instanceId,
         event === 'Stop' ? 'completed' : 'running'
       );
+    }
+
+    // 直接入力を含む全プロンプトをタブ表示用の指示内容要約へ渡す。
+    // cwd フォールバックで引いた instance は除外する（Agent SDK 経由の
+    // 内部呼び出しや無関係セッションのプロンプトを誤って拾わないため）
+    if (
+      event === 'UserPromptSubmit' &&
+      typeof prompt === 'string' &&
+      instance &&
+      isDirectInstance
+    ) {
+      aiActivitySummaryService.notifyPrompt({
+        instanceId: instance.instanceId,
+        repositoryPath,
+        provider: hookProvider,
+        prompt,
+      });
     }
 
     const repositoryName = path.basename(repositoryPath);
@@ -1042,6 +1065,36 @@ processManager.on('ai-output', (data) => {
   });
 });
 
+// キューから AI へ送信されたユーザープロンプトをタブ表示用に要約する
+processManager.on(
+  'prompt-queue-item-sent',
+  (data: { repositoryPath: string; provider: AiProvider; prompt: string }) => {
+    // キューの送信先は常にプライマリインスタンス
+    const primary = processManager.aiSessionManager.getPrimaryInstance(
+      data.repositoryPath
+    );
+    if (!primary) return;
+    aiActivitySummaryService.notifyPrompt({
+      instanceId: primary.instanceId,
+      repositoryPath: data.repositoryPath,
+      provider: data.provider,
+      prompt: data.prompt,
+    });
+  }
+);
+
+// 指示内容の要約が生成されたらタブ表示用にクライアントへ配信
+aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
+  const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  emitToParentScopedClients(data.repositoryPath, 'ai-activity-summary', {
+    rid,
+    instanceId: data.instanceId,
+    provider: data.provider,
+    summary: data.summary,
+    timestamp: data.timestamp,
+  });
+});
+
 processManager.on('ai-exit', (data) => {
   const providerName =
     data.provider === 'claude' ? 'Claude Code CLI' : 'Codex CLI';
@@ -1088,6 +1141,7 @@ processManager.on('ai-instance-updated', (data) => {
 
 processManager.on('ai-instance-closed', (data: { instanceId: string; repositoryPath: string }) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
+  aiActivitySummaryService.clearInstance(data.instanceId);
   io.emit('ai-instance-closed', { rid, instanceId: data.instanceId });
 });
 

@@ -219,6 +219,14 @@ export interface CodeServer {
 
 
 // プロンプトループ関連の型定義（backend と手動同期）
+
+// 定期プランニング設定: N 周ごとに強いモデルで計画ターンを 1 回差し込む
+export interface PromptLoopPlanning {
+  everyN: number;
+  model: string;
+  prompt: string;
+}
+
 export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number;
@@ -231,6 +239,10 @@ export interface PromptLoopState {
   pendingJudge?: boolean;
   awaitingUserApproval?: boolean;
   lastJudgeReason?: string;
+  planning?: PromptLoopPlanning;
+  pendingPlanning?: boolean;
+  planningActive?: boolean;
+  modelRestorePending?: boolean;
 }
 
 // プロンプトキュー関連の型定義
@@ -406,6 +418,14 @@ export interface ServerToClientEvents {
   'ai-instance-created': (data: { rid: string; instance: AiInstance }) => void;
   'ai-instance-closed': (data: { rid: string; instanceId: string }) => void;
   'ai-instance-updated': (data: { rid: string; instance: AiInstance }) => void;
+  // AI タブの指示内容要約（タブのサブテキスト表示用）
+  'ai-activity-summary': (data: {
+    rid: string;
+    instanceId: string;
+    provider: AiProvider;
+    summary: string;
+    timestamp: number;
+  }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -861,6 +881,8 @@ export interface ClientToServerEvents {
     instanceId: string;
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
+    /** true の場合、会話を破棄して新しいセッションで起動する */
+    fresh?: boolean;
   }) => void;
 
   // ターミナル関連イベント
@@ -1041,6 +1063,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     };
   }) => void;
   'remove-from-prompt-queue': (data: {
@@ -1062,6 +1085,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     } | null;
   }) => void;
   'get-prompt-queue': (data: {

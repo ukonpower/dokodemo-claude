@@ -27,6 +27,8 @@ export interface UseAiCliReturn {
   primaryInstance: AiInstance | undefined;
   currentAiMessages: AiOutputLine[];
   aiTerminalSize: { cols: number; rows: number } | null;
+  // instanceId → 指示内容の要約（タブのサブテキスト表示用）
+  aiActivitySummaries: Record<string, string>;
 
   // タブ操作
   activateInstance: (instanceId: string) => void;
@@ -52,7 +54,7 @@ export interface UseAiCliReturn {
   // プライマリ専用
   changePrimaryProvider: (provider: AiProvider) => void;
 
-  restartCli: () => void;
+  restartCli: (instanceId?: string, fresh?: boolean) => void;
   clearHistory: () => void;
   handleKeyInput: (key: string) => void;
   handleResize: (cols: number, rows: number) => void;
@@ -167,6 +169,9 @@ export function useAiCli(
   const [messagesByInstance, setMessagesByInstance] = useState<
     Map<string, AiOutputLine[]>
   >(new Map());
+  const [aiActivitySummaries, setAiActivitySummaries] = useState<
+    Record<string, string>
+  >({});
 
   const [aiTerminalSize, setAiTerminalSize] = useState<{
     cols: number;
@@ -274,6 +279,12 @@ export function useAiCli(
         next.delete(data.instanceId);
         return next;
       });
+      setAiActivitySummaries((prev) => {
+        if (!(data.instanceId in prev)) return prev;
+        const next = { ...prev };
+        delete next[data.instanceId];
+        return next;
+      });
       setActiveInstanceId((prev) => {
         if (prev !== data.instanceId) return prev;
         // 閉じたタブがアクティブだった: プライマリへフォールバック
@@ -345,6 +356,18 @@ export function useAiCli(
       }
     };
 
+    const handleAiActivitySummary = (
+      data: Parameters<ServerToClientEvents['ai-activity-summary']>[0]
+    ) => {
+      const currentRid = getCurrentRid();
+      if (data.rid !== currentRid) return;
+      setAiActivitySummaries((prev) =>
+        prev[data.instanceId] === data.summary
+          ? prev
+          : { ...prev, [data.instanceId]: data.summary }
+      );
+    };
+
     const handleAiOutputCleared = (
       data: Parameters<ServerToClientEvents['ai-output-cleared']>[0]
     ) => {
@@ -366,6 +389,7 @@ export function useAiCli(
     socket.on('ai-session-created', handleAiSessionCreated);
     socket.on('ai-restarted', handleAiRestarted);
     socket.on('ai-output-cleared', handleAiOutputCleared);
+    socket.on('ai-activity-summary', handleAiActivitySummary);
 
     return () => {
       socket.off('ai-instances-list', handleInstancesList);
@@ -377,6 +401,7 @@ export function useAiCli(
       socket.off('ai-session-created', handleAiSessionCreated);
       socket.off('ai-restarted', handleAiRestarted);
       socket.off('ai-output-cleared', handleAiOutputCleared);
+      socket.off('ai-activity-summary', handleAiActivitySummary);
     };
   }, [socket, getCurrentRid]);
 
@@ -506,7 +531,8 @@ export function useAiCli(
 
   // instanceId 未指定時はアクティブインスタンスを再起動（各タブメニューからは
   // そのタブの instanceId を渡してタブ単位で再起動する）
-  const restartCli = useCallback((instanceId?: string) => {
+  // fresh=true のときは会話を破棄して新しいセッションで起動する
+  const restartCli = useCallback((instanceId?: string, fresh?: boolean) => {
     const targetId = instanceId ?? activeInstanceIdRef.current;
     if (!socket || !targetId) return;
     socket.emit('clear-ai-output', {
@@ -516,6 +542,7 @@ export function useAiCli(
       instanceId: targetId,
       initialSize: aiTerminalSizeRef.current || undefined,
       permissionMode: getPermissionModeSetting(),
+      fresh,
     });
   }, [socket]);
 
@@ -612,6 +639,7 @@ export function useAiCli(
     setAiInstances([]);
     setActiveInstanceId('');
     setMessagesByInstance(new Map());
+    setAiActivitySummaries({});
     pendingActivateCountRef.current = 0;
   }, []);
 
@@ -626,6 +654,7 @@ export function useAiCli(
     primaryInstance,
     currentAiMessages,
     aiTerminalSize,
+    aiActivitySummaries,
 
     activateInstance,
     createInstance,

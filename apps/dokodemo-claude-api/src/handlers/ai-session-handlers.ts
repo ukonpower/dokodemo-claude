@@ -2,7 +2,9 @@ import path from 'path';
 import type { HandlerContext, TypedServer, TypedSocket } from './types.js';
 import type { AiProvider, AiOutputLine } from '../types/index.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
+import { aiActivitySummaryService } from '../services/ai-activity-summary-service.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
+import type { AiInstance } from '../types/index.js';
 
 /**
  * リポジトリパスから rid を解決
@@ -33,6 +35,28 @@ function emitSystemMessage(
     provider: options.provider,
     outputLine,
   });
+}
+
+/**
+ * 保持済みの指示内容要約を送信（再接続・リポジトリ切替時の初期表示用）
+ */
+function emitStoredActivitySummaries(
+  socket: TypedSocket,
+  rid: string,
+  instances: AiInstance[]
+): void {
+  for (const inst of instances) {
+    const summary = aiActivitySummaryService.getSummary(inst.instanceId);
+    if (summary) {
+      socket.emit('ai-activity-summary', {
+        rid,
+        instanceId: inst.instanceId,
+        provider: inst.provider,
+        summary,
+        timestamp: Date.now(),
+      });
+    }
+  }
 }
 
 /**
@@ -97,6 +121,13 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       // 全クライアントへインスタンス一覧を broadcast
       broadcastInstancesList(io, processManager, repoPath);
 
+      // 保持済みの要約をこのクライアントへ送信（タブ初期表示用）
+      emitStoredActivitySummaries(
+        socket,
+        rid,
+        processManager.aiSessionManager.getInstancesByRepo(repoPath)
+      );
+
       // プライマリの出力履歴を送信
       try {
         const history = processManager.aiSessionManager.getOutputHistory(
@@ -153,6 +184,7 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       const instances =
         processManager.aiSessionManager.getInstancesByRepo(repoPath);
       socket.emit('ai-instances-list', { rid, instances });
+      emitStoredActivitySummaries(socket, rid, instances);
     } catch {
       // 存在しない rid
     }
@@ -299,7 +331,7 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
 
   // CLI 再起動（同一 instanceId、PTY だけ作り直し）
   socket.on('restart-ai-cli', async (data) => {
-    const { instanceId, initialSize, permissionMode } = data;
+    const { instanceId, initialSize, permissionMode, fresh } = data;
     const instance =
       processManager.aiSessionManager.getInstance(instanceId);
     if (!instance) return;
@@ -308,16 +340,20 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       const result = await processManager.restartInstance(instanceId, {
         initialSize,
         permissionMode,
+        fresh,
       });
       if (!result) return;
 
       const rid = resolveRid(instance.repositoryPath);
       const providerName =
         instance.provider === 'claude' ? 'Claude CLI' : 'Codex CLI';
+      const actionLabel = fresh
+        ? `${providerName}を新しいセッションで起動しました`
+        : `${providerName}を再起動しました`;
 
       socket.emit('ai-restarted', {
         success: true,
-        message: `${providerName}を再起動しました`,
+        message: actionLabel,
         rid,
         instanceId,
         provider: instance.provider,
@@ -326,7 +362,7 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
 
       emitSystemMessage(
         socket,
-        `\n=== ${providerName}を再起動しました ===\n`,
+        `\n=== ${actionLabel} ===\n`,
         { rid, instanceId, provider: instance.provider }
       );
     } catch (error) {

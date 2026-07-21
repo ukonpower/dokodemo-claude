@@ -217,6 +217,14 @@ export interface ServerToClientEvents {
   'ai-instance-created': (data: { rid: string; instance: AiInstance }) => void;
   'ai-instance-closed': (data: { rid: string; instanceId: string }) => void;
   'ai-instance-updated': (data: { rid: string; instance: AiInstance }) => void;
+  // AI タブの指示内容要約（タブのサブテキスト表示用）
+  'ai-activity-summary': (data: {
+    rid: string;
+    instanceId: string;
+    provider: AiProvider;
+    summary: string;
+    timestamp: number;
+  }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -708,6 +716,8 @@ export interface ClientToServerEvents {
     instanceId: string;
     initialSize?: { cols: number; rows: number };
     permissionMode?: PermissionMode;
+    /** true の場合、会話を破棄して新しいセッションで起動する */
+    fresh?: boolean;
   }) => void;
 
   // ターミナル関連イベント
@@ -912,6 +922,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     };
   }) => void;
   'remove-from-prompt-queue': (data: {
@@ -934,6 +945,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     } | null;
   }) => void;
   'get-prompt-queue': (data: {
@@ -1104,6 +1116,15 @@ export interface CodeServer {
 // プロンプトループ関連の型定義
 // キューに投入したプロンプトを Stop hook 着弾のたびに末尾へ再投入し、
 // 同じプロンプトを繰り返し実行する（自走）ためのアイテム内部状態
+
+// 定期プランニング設定: N 周ごとに強いモデルで計画プロンプトを 1 ターン差し込み、
+// 以降の周回の方向性を更新する（同一 CLI セッション内なので計画は文脈に残る）
+export interface PromptLoopPlanning {
+  everyN: number; // 何周ごとに実施（1以上）
+  model: string; // プランニングターンで使うモデル（例: 'claude-opus-4-8'）
+  prompt: string; // プランニングターンで送るプロンプト
+}
+
 export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number; // 何周ごとに判断（judge !== 'none' のとき有効、1以上）
@@ -1116,6 +1137,10 @@ export interface PromptLoopState {
   pendingJudge?: boolean; // この周の送信前に AI 判断が必要
   awaitingUserApproval?: boolean;
   lastJudgeReason?: string;
+  planning?: PromptLoopPlanning; // 定期プランニング設定
+  pendingPlanning?: boolean; // 次の送信はプランニングターン
+  planningActive?: boolean; // プランニングターン実行中
+  modelRestorePending?: boolean; // プランニング後、次の通常送信でモデルを default に戻す
 }
 
 // プロンプトキュー関連の型定義

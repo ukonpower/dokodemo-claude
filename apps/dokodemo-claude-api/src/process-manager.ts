@@ -7,6 +7,7 @@ import {
   AiInstance,
   PromptQueueItem,
   PromptQueueState,
+  PromptLoopPlanning,
   RepoProcessStatus,
   PermissionMode,
   AiExecutionStatus,
@@ -239,6 +240,9 @@ export class ProcessManager extends EventEmitter {
     );
     this.promptQueueManager.on('prompt-queue-processing-completed', (data) =>
       this.emit('prompt-queue-processing-completed', data)
+    );
+    this.promptQueueManager.on('prompt-queue-item-sent', (data) =>
+      this.emit('prompt-queue-item-sent', data)
     );
     this.promptQueueManager.on('prompt-loop-ended', (data) =>
       this.emit('prompt-loop-ended', data)
@@ -522,6 +526,7 @@ export class ProcessManager extends EventEmitter {
     options?: {
       initialSize?: { cols: number; rows: number };
       permissionMode?: PermissionMode;
+      fresh?: boolean;
     }
   ): Promise<{ instance: AiInstance; session: ActiveAiSession } | null> {
     const instance = this.aiSessionManager.getInstance(instanceId);
@@ -755,6 +760,7 @@ export class ProcessManager extends EventEmitter {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: PromptLoopPlanning;
     }
   ): Promise<PromptQueueItem> {
     const result = await this.promptQueueManager.addToQueue(
@@ -898,6 +904,7 @@ export class ProcessManager extends EventEmitter {
           judgeEveryN: number;
           intervalSec: number;
           judgeCriteria?: string;
+          planning?: PromptLoopPlanning;
         }
       | null
   ): Promise<boolean> {

@@ -246,6 +246,9 @@ prompt_broadcast({
 > `prompt_broadcast` の詳細パラメータ（`sendClearBefore` / `isAutoCommit` / `model` 等）と
 > `targets` の扱いは **`worktree-prompt` スキル**を参照。`targets` は必ず作成/一覧レスポンスの
 > rid(wtid) を逐語コピーすること（手で組むと `unmatchedTargets` に入り黙って送信対象から外れる）。
+> `model` を省略すると、作成側（呼び出し元）セッションで最後に適用されたモデルが自動継承される
+> （例えば作成側が Opus で動いていればワークツリー側も Opus で起動する）。特定モデルを使わせたい
+> ときだけ `model` を明示する。
 
 ##### AI 委譲か terminal 実行かの振り分け（重要）
 

@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import type { Ref } from 'react';
 import {
   LayoutDashboard,
   PanelRightClose,
@@ -54,6 +55,7 @@ import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
+import type { AiInstanceTabsHandle } from '../components/AiInstanceTabs';
 import DrawingCanvas from '../components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
@@ -91,6 +93,8 @@ interface ProjectViewProps {
 
   // AI CLI関連
   aiInstances: AiInstance[];
+  // instanceId → 指示内容の要約（タブのサブテキスト表示用）
+  aiActivitySummaries: Record<string, string>;
   activeInstance: AiInstance | undefined;
   primaryInstance: AiInstance | undefined;
   currentAiMessages: AiOutputLine[];
@@ -98,6 +102,7 @@ interface ProjectViewProps {
   terminalFontSize: number;
 
   // タブ操作
+  aiInstanceTabsRef: Ref<AiInstanceTabsHandle>;
   onActivateInstance: (instanceId: string) => void;
   onCreateInstance: (provider: AiProvider) => void;
   onCloseInstance: (instanceId: string) => void;
@@ -117,7 +122,7 @@ interface ProjectViewProps {
   onSendMode: () => void;
   onChangeModel: (model: string) => void;
   onChangePrimaryProvider: (provider: AiProvider) => void;
-  onRestartCli: (instanceId?: string) => void;
+  onRestartCli: (instanceId?: string, fresh?: boolean) => void;
   onKeyInput: (key: string) => void;
   onResize: (cols: number, rows: number) => void;
 
@@ -197,6 +202,7 @@ interface ProjectViewProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: { everyN: number; model: string; prompt: string };
     }
   ) => void;
   onRemoveFromQueue: (itemId: string) => void;
@@ -211,6 +217,7 @@ interface ProjectViewProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: { everyN: number; model: string; prompt: string };
     } | null
   ) => void;
   onPauseQueue: () => void;
@@ -320,11 +327,13 @@ export function ProjectView({
   currentRepo,
   repoProcessStatuses,
   aiInstances,
+  aiActivitySummaries,
   activeInstance,
   primaryInstance,
   currentAiMessages,
   isLoadingRepoData,
   terminalFontSize,
+  aiInstanceTabsRef,
   onActivateInstance,
   onCreateInstance,
   onCloseInstance,
@@ -567,6 +576,7 @@ export function ProjectView({
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        planning?: { everyN: number; model: string; prompt: string };
       }
     ) => {
       onAddToQueue(command, sendClearBefore, sendCommitAfter, model, loop);
@@ -692,7 +702,9 @@ export function ProjectView({
             <div className={s.cliTabBar}>
               <div className={s.cliTabsScroll}>
                 <AiInstanceTabs
+                  ref={aiInstanceTabsRef}
                   instances={aiInstances}
+                  activitySummaries={aiActivitySummaries}
                   activeInstanceId={activeInstance?.instanceId ?? ''}
                   isConnected={isConnected}
                   onActivate={onActivateInstance}

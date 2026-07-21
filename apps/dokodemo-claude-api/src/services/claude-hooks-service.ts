@@ -68,7 +68,8 @@ class AiHooksService {
   } {
     const hookUrl = this.getHookUrl(provider);
     const createHookCommand = (event: string): string => {
-      return `jq -nc --arg event "${event}" --arg cwd "$PWD" 'first(inputs) | {event: $event, transcript_path: .transcript_path, session_id: .session_id, cwd: $cwd}' | curl -k --connect-timeout 1 --max-time 3 -X POST ${hookUrl} -H 'Content-Type: application/json' -d @- || true`;
+      // prompt は UserPromptSubmit のみ stdin に載る（他イベントは null になるだけ）
+      return `jq -nc --arg event "${event}" --arg cwd "$PWD" 'first(inputs) | {event: $event, transcript_path: .transcript_path, session_id: .session_id, cwd: $cwd, prompt: .prompt}' | curl -k --connect-timeout 1 --max-time 3 -X POST ${hookUrl} -H 'Content-Type: application/json' -d @- || true`;
     };
 
     return {

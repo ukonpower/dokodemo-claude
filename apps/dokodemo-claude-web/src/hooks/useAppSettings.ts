@@ -23,6 +23,11 @@ export interface CommandSendSettings {
   loopJudgeEveryN?: number;
   loopIntervalMin?: number; // 分単位（0 = 即時）
   loopJudgeCriteria?: string; // AI 判断時の判定基準（終了条件）
+  // 定期プランニング（N 周ごとに強いモデルで計画ターンを 1 回差し込む）
+  loopPlanningEnabled?: boolean;
+  loopPlanningEveryN?: number;
+  loopPlanningModel?: string;
+  loopPlanningPrompt?: string;
 }
 
 /**

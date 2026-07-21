@@ -38,7 +38,7 @@
     background-color $transition-fast $transition-easing,
     border-color $transition-fast $transition-easing;
   white-space: nowrap;
-  max-width: 9rem;
+  max-width: 12rem;
 
   &:hover:not(.active) {
     background-color: $gray-800;
@@ -60,9 +60,34 @@
   }
 }
 
+// ラベル（上段）と要約（下段）の 2 行縦積み
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.25rem 0;
+}
+
 .label {
   @include truncate;
-  max-width: 6rem;
+  max-width: 10rem;
+}
+
+// タブの AI に何を頼んだかの要約（ラベル下のサブテキスト。全文は title で表示）
+.summary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  .tab.active & {
+    color: $gray-400;
+  }
 }
 
 .menuBtn {
@@ -157,6 +182,11 @@
     background-color: $gray-700;
   }
 
+  // 矢印キーで選択中の項目
+  &.highlight {
+    background-color: $gray-700;
+  }
+
   svg {
     width: 0.8rem;
     height: 0.8rem;
@@ -208,5 +238,18 @@
     &.codex {
       border-color: #38bdf8; // sky-400（タブと揃える）
     }
+  }
+}
+
+// キーボード操作対象のタブメニュー: フォーカス中の項目を明示する
+.kbdMenu {
+  .addMenuItem:focus {
+    background-color: $gray-700;
+    outline: none;
+  }
+
+  .providerSegmentItem:focus {
+    outline: 2px solid $gray-200;
+    outline-offset: -2px;
   }
 }

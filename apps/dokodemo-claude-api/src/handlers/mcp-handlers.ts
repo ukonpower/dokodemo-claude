@@ -157,7 +157,11 @@ const TOOL_DEFS = [
         },
         sendClearBefore: { type: 'boolean', description: '送信前に /clear を投入する場合 true' },
         isAutoCommit: { type: 'boolean', description: '自動コミットを行う場合 true' },
-        model: { type: 'string', description: '使用モデルの指定（任意）' },
+        model: {
+          type: 'string',
+          description:
+            '使用モデルの指定（任意）。省略時は呼び出し元セッション（rid のパス）で最後に適用されたモデルを自動継承する',
+        },
       },
       required: ['rid', 'provider', 'prompt'],
     },

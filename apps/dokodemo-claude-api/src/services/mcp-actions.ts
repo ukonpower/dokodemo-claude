@@ -314,6 +314,14 @@ export async function broadcastPrompt(
   const parentRepoPath = getMainRepoPath(resolved);
   const worktrees = await getWorktrees(parentRepoPath);
 
+  // model 省略時は、呼び出し元セッション（resolved = 正規化前の rid のパス）が
+  // 最後に適用したモデルを継承する。呼び出し元に記録が無ければ未指定のまま。
+  const inheritedModel = model
+    ? undefined
+    : processManager.promptQueueManager.getCurrentModel(resolved, provider);
+  const effectiveModel = model ?? inheritedModel;
+  const modelInherited = !model && !!inheritedModel;
+
   // 送信先 path を決定
   let targetPaths = worktrees
     .filter((w) => includeMain || !w.isMain)
@@ -338,7 +346,7 @@ export async function broadcastPrompt(
         prompt,
         sendClearBefore,
         isAutoCommit,
-        model
+        effectiveModel
       );
       results.push({
         path: p,
@@ -367,6 +375,8 @@ export async function broadcastPrompt(
     sent,
     results,
     unmatchedTargets,
+    model: effectiveModel ?? null,
+    modelInherited,
     ...(warning ? { warning } : {}),
   };
 }

@@ -11,7 +11,11 @@ import type { AiProvider } from '../types';
 import { useModelOptions } from '../hooks/useModelOptions';
 import { useOutsideClose } from '../hooks';
 import { resolveModelLabel } from '../utils/models';
-import LoopSettingsFields from './LoopSettingsFields';
+import LoopSettingsFields, {
+  DEFAULT_PLANNING_MODEL,
+  DEFAULT_PLANNING_EVERY_N,
+  DEFAULT_PLANNING_PROMPT,
+} from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
 import DrawingCanvas from './DrawingCanvas';
 import s from './CommandInput.module.scss';
@@ -101,6 +105,7 @@ interface TextInputProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: { everyN: number; model: string; prompt: string };
     }
   ) => void;
   /** 現在のプロバイダー */
@@ -130,6 +135,10 @@ interface TextInputProps {
     loopJudgeEveryN?: number;
     loopIntervalMin?: number;
     loopJudgeCriteria?: string;
+    loopPlanningEnabled?: boolean;
+    loopPlanningEveryN?: number;
+    loopPlanningModel?: string;
+    loopPlanningPrompt?: string;
   };
   /** 送信設定の更新ハンドラ */
   onSendSettingsChange?: (settings: {
@@ -146,6 +155,10 @@ interface TextInputProps {
     loopJudgeEveryN?: number;
     loopIntervalMin?: number;
     loopJudgeCriteria?: string;
+    loopPlanningEnabled?: boolean;
+    loopPlanningEveryN?: number;
+    loopPlanningModel?: string;
+    loopPlanningPrompt?: string;
   }) => void;
   /** クリップボードから画像をペーストした時のハンドラ（オプション）。成功時にパスを返す */
   onPasteFile?: (file: File) => Promise<string | undefined>;
@@ -312,6 +325,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
     const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
     const loopJudgeCriteria = sendSettings?.loopJudgeCriteria ?? '';
+    const loopPlanningEnabled = sendSettings?.loopPlanningEnabled ?? false;
+    const loopPlanningEveryN = Math.max(
+      1,
+      sendSettings?.loopPlanningEveryN ?? DEFAULT_PLANNING_EVERY_N
+    );
+    const loopPlanningModel =
+      sendSettings?.loopPlanningModel || DEFAULT_PLANNING_MODEL;
+    const loopPlanningPrompt = sendSettings?.loopPlanningPrompt ?? '';
     // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
@@ -350,7 +371,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         | 'loopJudge'
         | 'loopJudgeEveryN'
         | 'loopIntervalMin'
-        | 'loopJudgeCriteria',
+        | 'loopJudgeCriteria'
+        | 'loopPlanningEnabled'
+        | 'loopPlanningEveryN'
+        | 'loopPlanningModel'
+        | 'loopPlanningPrompt',
       value: boolean | string | number
     ) => {
       if (onSendSettingsChange && sendSettings) {
@@ -370,6 +395,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           loopJudgeEveryN: next.judgeEveryN,
           loopIntervalMin: Math.round(next.intervalSec / 60),
           loopJudgeCriteria: next.judgeCriteria,
+          loopPlanningEnabled: next.planningEnabled,
+          loopPlanningEveryN: next.planningEveryN,
+          loopPlanningModel: next.planningModel,
+          loopPlanningPrompt: next.planningPrompt,
         });
       }
     };
@@ -534,6 +563,15 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 judgeEveryN: loopJudgeEveryN,
                 intervalSec: loopIntervalMin * 60,
                 judgeCriteria: loopJudgeCriteria.trim() || undefined,
+                planning: loopPlanningEnabled
+                  ? {
+                      everyN: loopPlanningEveryN,
+                      model: loopPlanningModel,
+                      // 空欄ならデフォルトの計画プロンプトを使う
+                      prompt:
+                        loopPlanningPrompt.trim() || DEFAULT_PLANNING_PROMPT,
+                    }
+                  : undefined,
               }
             : undefined;
           onAddToQueue(
@@ -1925,21 +1963,25 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     </button>
                   </div>
 
-                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に） */}
+                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に。
+                      モデルチップと同じ「ラベル＋値＋シェブロン」の開閉ボタン形式 */}
                   <div className={`${s.optGroup} ${s.optGroupWide}`}>
                   <button
                     type="button"
                     onClick={() => setIsLoopExpanded(!isLoopExpanded)}
                     disabled={disabled}
-                    className={`${s.optionButton} ${loopEnabled ? s.active : ''}`}
+                    className={`${s.modelButton} ${loopEnabled ? s.active : ''}`}
                     title="ループ: 完了後に同じプロンプトを繰り返し送信"
                   >
                     <Repeat size={12} />
-                    {loopEnabled
-                      ? loopJudge === 'none'
-                        ? '無限'
-                        : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
-                      : 'ループ'}
+                    <span className={s.optLabel}>ループ</span>
+                    <span className={s.optValue}>
+                      {loopEnabled
+                        ? loopJudge === 'none'
+                          ? '無限'
+                          : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
+                        : 'オフ'}
+                    </span>
                     <svg
                       className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
                       fill="none"
@@ -1990,9 +2032,15 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   judgeEveryN: loopJudgeEveryN,
                   intervalSec: loopIntervalMin * 60,
                   judgeCriteria: loopJudgeCriteria,
+                  planningEnabled: loopPlanningEnabled,
+                  planningEveryN: loopPlanningEveryN,
+                  planningModel: loopPlanningModel,
+                  planningPrompt: loopPlanningPrompt,
                 }}
                 disabled={!loopEnabled}
                 onChange={handleLoopSettingsChange}
+                workModel={model}
+                onWorkModelChange={(v) => handleSettingChange('model', v)}
               />
             </div>
           </div>

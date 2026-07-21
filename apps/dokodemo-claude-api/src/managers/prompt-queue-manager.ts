@@ -9,6 +9,7 @@ import type {
   PromptQueueItem,
   PromptQueueState,
   PromptLoopState,
+  PromptLoopPlanning,
   AiProvider,
 } from '../types/index.js';
 import { PersistenceService } from '../services/persistence-service.js';
@@ -101,6 +102,10 @@ export class PromptQueueManager extends EventEmitter {
   // itemId の一致だけでは前の周回の watchdog（stale）を弾けない。
   private sendGenerations: Map<string, number> = new Map();
 
+  // セッションへ最後に適用した /model の値（キー = queueKey）。
+  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になる。
+  private currentModels: Map<string, string> = new Map();
+
   constructor(
     private readonly persistenceService: PersistenceService,
     aiSessionAdapter?: QueueAiSessionAdapter
@@ -130,6 +135,13 @@ export class PromptQueueManager extends EventEmitter {
    */
   private getQueueKey(repositoryPath: string, provider: AiProvider): string {
     return `${provider}:${repositoryPath}`;
+  }
+
+  /**
+   * セッションへ最後に適用した /model の値を取得する（未送信なら undefined）。
+   */
+  getCurrentModel(repositoryPath: string, provider: AiProvider): string | undefined {
+    return this.currentModels.get(this.getQueueKey(repositoryPath, provider));
   }
 
   /**
@@ -191,6 +203,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        planning?: PromptLoopPlanning;
       };
     }
   ): Promise<Result<PromptQueueItem, QueueError>> {
@@ -213,6 +226,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(options.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(options.loop.intervalSec)),
           judgeCriteria: options.loop.judgeCriteria?.trim() || undefined,
+          planning: this.normalizeLoopPlanning(options.loop.planning),
           iteration: 1,
           startedAt: now,
           startedAtCommit: this.getHeadCommit(repositoryPath),
@@ -321,6 +335,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        planning?: PromptLoopPlanning;
       } | null;
     }
   ): Promise<Result<boolean, QueueError>> {
@@ -370,6 +385,12 @@ export class PromptQueueManager extends EventEmitter {
           Math.floor(updates.loop.intervalSec)
         );
         item.loop.judgeCriteria = updates.loop.judgeCriteria?.trim() || undefined;
+        item.loop.planning = this.normalizeLoopPlanning(updates.loop.planning);
+        if (!item.loop.planning) {
+          // プランニング解除時は予約中のプランニングターンも取り消す
+          item.loop.pendingPlanning = undefined;
+          item.loop.planningActive = undefined;
+        }
       } else {
         // 新規ループ化。1 キュー 1 ループ制限をチェック
         const hasLoop = state.queue.some((i) => i.loop);
@@ -381,6 +402,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(updates.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(updates.loop.intervalSec)),
           judgeCriteria: updates.loop.judgeCriteria?.trim() || undefined,
+          planning: this.normalizeLoopPlanning(updates.loop.planning),
           iteration: 1,
           startedAt: Date.now(),
           startedAtCommit: this.getHeadCommit(repositoryPath),
@@ -473,6 +495,23 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     return Ok(undefined);
+  }
+
+  /**
+   * 定期プランニング設定の正規化。model / prompt が空なら「設定なし」として扱う。
+   */
+  private normalizeLoopPlanning(
+    planning?: PromptLoopPlanning
+  ): PromptLoopPlanning | undefined {
+    if (!planning) return undefined;
+    const model = planning.model?.trim();
+    const prompt = planning.prompt?.trim();
+    if (!model || !prompt) return undefined;
+    return {
+      everyN: Math.max(1, Math.floor(planning.everyN)),
+      model,
+      prompt,
+    };
   }
 
   private bumpSendGeneration(
@@ -604,6 +643,9 @@ export class PromptQueueManager extends EventEmitter {
 
     // ループアイテムの場合: 承認待ち / 判断中は強制送信できない。
     // インターバル待機中はタイマーとカウントダウンをクリアして即送信へ
+    let sendOverride:
+      | { prompt?: string; model?: string; skipClear?: boolean }
+      | undefined;
     if (item.loop) {
       if (item.loop.awaitingUserApproval) {
         return Err(
@@ -615,6 +657,22 @@ export class PromptQueueManager extends EventEmitter {
       }
       item.loop.nextSendAt = undefined;
       this.clearLoopTimer(repositoryPath, provider);
+
+      // processNextItem と同じ送信差し替え（プランニングターン / モデル復帰）
+      if (item.loop.pendingPlanning && item.loop.planning) {
+        item.loop.pendingPlanning = false;
+        item.loop.planningActive = true;
+        sendOverride = {
+          prompt: item.loop.planning.prompt,
+          model: item.loop.planning.model,
+          skipClear: true,
+        };
+      } else if (item.loop.modelRestorePending) {
+        item.loop.modelRestorePending = false;
+        if (!item.model) {
+          sendOverride = { model: 'default' };
+        }
+      }
     }
 
     // ステータスを processing に変更
@@ -648,7 +706,12 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
-      await this.sendItemCommands(session.id, item, session.coldStart);
+      await this.sendItemCommands(
+        session.id,
+        item,
+        session.coldStart,
+        sendOverride
+      );
 
       // processNextItem と同じく送信ウォッチドッグを仕掛ける
       this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
@@ -897,33 +960,59 @@ export class PromptQueueManager extends EventEmitter {
         // （周回ごとに completed を積まない）
         if (currentItem.loop) {
           const loop = currentItem.loop;
-          const completedIteration = loop.iteration;
-          loop.iteration += 1;
-          currentItem.status = 'pending';
-          const idx = state.queue.indexOf(currentItem);
-          if (idx !== -1) {
-            state.queue.splice(idx, 1);
-            state.queue.push(currentItem);
-          }
-          // 判断周か（完了した周番号で判定: judgeEveryN=3 なら 3,6,9 周完了後）
-          if (
-            loop.judge !== 'none' &&
-            completedIteration % loop.judgeEveryN === 0
-          ) {
-            if (loop.judge === 'ai') {
-              loop.pendingJudge = true;
-            } else {
-              loop.awaitingUserApproval = true;
-              this.emit('loop-approval-required', {
-                repositoryPath,
-                provider,
-                itemId: currentItem.id,
-                iteration: completedIteration,
-              });
+          if (loop.planningActive) {
+            // プランニングターン完了: 周回は数えず、判断・自動コミット等も挟まずに
+            // 即時で次の作業ターンへ戻る（計画は同一セッションの文脈に残っている）
+            loop.planningActive = false;
+            if (!currentItem.model) {
+              // アイテムにモデル指定が無い場合、セッションがプランニング用モデルの
+              // ままになるため、次の通常送信で /model default に戻す
+              loop.modelRestorePending = true;
             }
-          }
-          if (loop.intervalSec > 0) {
-            loop.nextSendAt = Date.now() + loop.intervalSec * 1000;
+            shouldAutoCommit = false;
+            shouldCodexReview = false;
+            currentItem.status = 'pending';
+            const idx = state.queue.indexOf(currentItem);
+            if (idx !== -1) {
+              state.queue.splice(idx, 1);
+              state.queue.push(currentItem);
+            }
+          } else {
+            const completedIteration = loop.iteration;
+            loop.iteration += 1;
+            currentItem.status = 'pending';
+            const idx = state.queue.indexOf(currentItem);
+            if (idx !== -1) {
+              state.queue.splice(idx, 1);
+              state.queue.push(currentItem);
+            }
+            // 判断周か（完了した周番号で判定: judgeEveryN=3 なら 3,6,9 周完了後）
+            if (
+              loop.judge !== 'none' &&
+              completedIteration % loop.judgeEveryN === 0
+            ) {
+              if (loop.judge === 'ai') {
+                loop.pendingJudge = true;
+              } else {
+                loop.awaitingUserApproval = true;
+                this.emit('loop-approval-required', {
+                  repositoryPath,
+                  provider,
+                  itemId: currentItem.id,
+                  iteration: completedIteration,
+                });
+              }
+            }
+            // プランニング周か（判断と重なった場合は 判断 → プランニング の順で消化）
+            if (
+              loop.planning &&
+              completedIteration % loop.planning.everyN === 0
+            ) {
+              loop.pendingPlanning = true;
+            }
+            if (loop.intervalSec > 0) {
+              loop.nextSendAt = Date.now() + loop.intervalSec * 1000;
+            }
           }
         }
       }
@@ -1088,6 +1177,12 @@ export class PromptQueueManager extends EventEmitter {
         );
         item.status = 'pending';
         item.loop.awaitingUserApproval = true;
+        // プランニングターンの送信に失敗していた場合は、承認後に再度
+        // プランニングターンから再開できるよう予約を立て直す
+        if (item.loop.planningActive) {
+          item.loop.planningActive = false;
+          item.loop.pendingPlanning = true;
+        }
         item.loop.lastJudgeReason =
           '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
         state.isProcessing = false;
@@ -1210,6 +1305,31 @@ export class PromptQueueManager extends EventEmitter {
       item.loop.nextSendAt = undefined;
     }
 
+    // ループアイテムの送信内容の差し替え
+    // - プランニングターン: 計画プロンプト + プランニング用モデルで 1 ターン送る
+    // - モデル復帰: プランニング直後の通常送信で /model default に戻す
+    //   （item.model があれば通常送信の /model で戻るため override 不要）
+    let sendOverride:
+      | { prompt?: string; model?: string; skipClear?: boolean }
+      | undefined;
+    if (item.loop) {
+      if (item.loop.pendingPlanning && item.loop.planning) {
+        item.loop.pendingPlanning = false;
+        item.loop.planningActive = true;
+        sendOverride = {
+          prompt: item.loop.planning.prompt,
+          model: item.loop.planning.model,
+          // 直前の作業ターンの文脈を踏まえて計画するため /clear は挟まない
+          skipClear: true,
+        };
+      } else if (item.loop.modelRestorePending) {
+        item.loop.modelRestorePending = false;
+        if (!item.model) {
+          sendOverride = { model: 'default' };
+        }
+      }
+    }
+
     item.status = 'processing';
     state.isProcessing = true;
     state.currentItemId = item.id;
@@ -1240,7 +1360,12 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
-      await this.sendItemCommands(session.id, item, session.coldStart);
+      await this.sendItemCommands(
+        session.id,
+        item,
+        session.coldStart,
+        sendOverride
+      );
 
       // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
@@ -1309,18 +1434,32 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * アイテムのコマンドを送信
+   * アイテムのコマンドを送信。
+   * override はプランニングターン等でアイテム本来の prompt / model / clear 設定を
+   * 差し替えて送るための一時指定（アイテム自体は変更しない）。
    */
   private async sendItemCommands(
     sessionId: string,
     item: PromptQueueItem,
-    coldStart = false
+    coldStart = false,
+    override?: { prompt?: string; model?: string; skipClear?: boolean }
   ): Promise<void> {
     if (!this.aiSessionAdapter) return;
 
+    const prompt = override?.prompt ?? item.prompt;
+    const model = override?.model ?? item.model;
+    const sendClearBefore = override?.skipClear ? false : item.sendClearBefore;
+
+    // タブ表示用の指示内容要約に使う（server.ts が購読）
+    this.emit('prompt-queue-item-sent', {
+      repositoryPath: item.repositoryPath,
+      provider: item.provider,
+      prompt: item.prompt,
+    });
+
     const sendPromptWithEnter = (delay: number = 0) => {
       setTimeout(() => {
-        const ok = this.aiSessionAdapter?.sendCommand(sessionId, item.prompt);
+        const ok = this.aiSessionAdapter?.sendCommand(sessionId, prompt);
         if (ok === false) {
           // PTY が死んでいる。watchdog (6s) を待たずに即時で失敗扱いにする
           void this.handleSendFailure(
@@ -1343,15 +1482,19 @@ export class PromptQueueManager extends EventEmitter {
     };
 
     // sendClearBeforeフラグがtrueの場合
-    if (item.sendClearBefore) {
+    if (sendClearBefore) {
       this.aiSessionAdapter.sendCommand(sessionId, '/clear');
 
       setTimeout(() => {
         this.aiSessionAdapter?.sendCommand(sessionId, '\r');
       }, 500);
 
-      if (item.model) {
-        const modelValue = item.model === 'OpusPlan' ? 'opusplan' : item.model;
+      if (model) {
+        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
+        this.currentModels.set(
+          this.getQueueKey(item.repositoryPath, item.provider),
+          model
+        );
         setTimeout(() => {
           this.aiSessionAdapter?.sendCommand(sessionId, `/model ${modelValue}`);
           setTimeout(() => {
@@ -1365,8 +1508,12 @@ export class PromptQueueManager extends EventEmitter {
       }
     } else {
       // 通常のプロンプト送信
-      if (item.model) {
-        const modelValue = item.model === 'OpusPlan' ? 'opusplan' : item.model;
+      if (model) {
+        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
+        this.currentModels.set(
+          this.getQueueKey(item.repositoryPath, item.provider),
+          model
+        );
         this.aiSessionAdapter.sendCommand(sessionId, `/model ${modelValue}`);
 
         setTimeout(() => {
@@ -1577,11 +1724,15 @@ export class PromptQueueManager extends EventEmitter {
         // - 過去の nextSendAt はクリア
         // - 再起動後の自動再開防止のため awaitingUserApproval = true を強制
         //   （pendingJudge は維持し、次の processNextItem で再判定）
+        // - プランニングターン実行中に落ちていた場合は予約に戻して再実行
         if (restored.loop) {
           restored.loop = {
             ...restored.loop,
             nextSendAt: undefined,
             awaitingUserApproval: true,
+            planningActive: undefined,
+            pendingPlanning:
+              restored.loop.pendingPlanning || restored.loop.planningActive,
           };
         }
         return restored;
