@@ -202,6 +202,7 @@ interface ProjectViewProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: { everyN: number; model: string; prompt: string };
     }
   ) => void;
   onRemoveFromQueue: (itemId: string) => void;
@@ -216,6 +217,7 @@ interface ProjectViewProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      planning?: { everyN: number; model: string; prompt: string };
     } | null
   ) => void;
   onPauseQueue: () => void;
@@ -574,6 +576,7 @@ export function ProjectView({
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        planning?: { everyN: number; model: string; prompt: string };
       }
     ) => {
       onAddToQueue(command, sendClearBefore, sendCommitAfter, model, loop);

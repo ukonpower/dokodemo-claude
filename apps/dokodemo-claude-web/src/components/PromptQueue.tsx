@@ -16,9 +16,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import type { PromptQueueItem } from '../types';
-import type { LoopEndInfo } from '../hooks/usePromptQueue';
+import type { LoopEndInfo, LoopSettings } from '../hooks/usePromptQueue';
 import SortableQueueItem from './SortableQueueItem';
 import type { EditLoopSettings } from './SortableQueueItem';
+import {
+  DEFAULT_PLANNING_MODEL,
+  DEFAULT_PLANNING_EVERY_N,
+  DEFAULT_PLANNING_PROMPT,
+} from './LoopSettingsFields';
 import LoopStatusBar from './LoopStatusBar';
 import s from './PromptQueue.module.scss';
 
@@ -34,7 +39,7 @@ interface PromptQueueProps {
     sendClearBefore: boolean,
     isAutoCommit: boolean,
     model?: string,
-    loop?: EditLoopSettings | null
+    loop?: LoopSettings | null
   ) => void;
   onReorder?: (reorderedQueue: PromptQueueItem[]) => void;
   onPause?: () => void;
@@ -102,6 +107,12 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
             judgeEveryN: item.loop.judgeEveryN,
             intervalSec: item.loop.intervalSec,
             judgeCriteria: item.loop.judgeCriteria ?? '',
+            planningEnabled: !!item.loop.planning,
+            planningEveryN:
+              item.loop.planning?.everyN ?? DEFAULT_PLANNING_EVERY_N,
+            planningModel:
+              item.loop.planning?.model ?? DEFAULT_PLANNING_MODEL,
+            planningPrompt: item.loop.planning?.prompt ?? '',
           }
         : null
     );
@@ -121,9 +132,23 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
       // 編集対象アイテムの元 loop 状態を確認して差分を判定
       const original = queue.find((i) => i.id === itemId);
       const hadLoop = !!original?.loop;
-      let loopUpdate: EditLoopSettings | null | undefined;
+      let loopUpdate: LoopSettings | null | undefined;
       if (editLoop) {
-        loopUpdate = editLoop;
+        // 編集用のフラットな値から送信用のループ設定へ変換
+        loopUpdate = {
+          judge: editLoop.judge,
+          judgeEveryN: editLoop.judgeEveryN,
+          intervalSec: editLoop.intervalSec,
+          judgeCriteria: editLoop.judgeCriteria,
+          planning: editLoop.planningEnabled
+            ? {
+                everyN: editLoop.planningEveryN,
+                model: editLoop.planningModel,
+                prompt:
+                  editLoop.planningPrompt.trim() || DEFAULT_PLANNING_PROMPT,
+              }
+            : undefined,
+        };
       } else if (hadLoop) {
         loopUpdate = null; // ループ解除
       } else {

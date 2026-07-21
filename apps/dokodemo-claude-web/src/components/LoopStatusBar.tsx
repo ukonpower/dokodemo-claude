@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Loader, Repeat } from 'lucide-react';
 import type { PromptQueueItem } from '../types';
+import { useModelOptions } from '../hooks/useModelOptions';
+import { resolveModelLabel } from '../utils/models';
 import s from './LoopStatusBar.module.scss';
 
 interface LoopStatusBarProps {
@@ -17,8 +19,9 @@ interface LoopStatusBarProps {
  * 表示状態は優先順に:
  * 1. 確認待ち（警告色 + 継続/終了ボタン）
  * 2. AI 判断中（スピナー）
- * 3. 待機中（カウントダウン + 今すぐ/停止）
- * 4. 実行中（周回数 + 停止）
+ * 3. プランニング中（スピナー + モデル名）
+ * 4. 待機中（カウントダウン + 今すぐ/停止）
+ * 5. 実行中（周回数 + 停止）
  */
 const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   loopItem,
@@ -29,6 +32,7 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
 }) => {
   const loop = loopItem.loop;
   const nextSendAt = loop?.nextSendAt;
+  const { options: modelOptions } = useModelOptions();
   const [now, setNow] = useState<number>(() => 0);
   // AI 判断理由の展開状態（モバイルでは hover が使えないためタップで切り替える）
   const [isReasonExpanded, setIsReasonExpanded] = useState(false);
@@ -55,8 +59,10 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
 
   // 状態判定（優先順）
   const isAwaitingApproval = !!loop.awaitingUserApproval;
+  const isPlanning =
+    !isAwaitingApproval && !isJudging && !!loop.planningActive;
   const isCountingDown =
-    !isAwaitingApproval && !isJudging && remainingSec > 0;
+    !isAwaitingApproval && !isJudging && !isPlanning && remainingSec > 0;
   // isRunning は上記いずれでもない場合
 
   return (
@@ -83,9 +89,18 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
                 AI 判断中 ({loop.iteration - 1}周目完了後)
               </span>
             </>
+          ) : isPlanning ? (
+            <>
+              <Loader size={12} className={s.spinIcon} />
+              <span className={s.text}>
+                プランニング中 (
+                {resolveModelLabel(loop.planning?.model, modelOptions)})
+              </span>
+            </>
           ) : isCountingDown ? (
             <span className={s.text}>
               {loop.iteration}周目 · 次回送信まで {remainingText}
+              {loop.pendingPlanning ? ' · 次はプランニング' : ''}
             </span>
           ) : (
             <span className={s.text}>
