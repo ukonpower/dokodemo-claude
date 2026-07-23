@@ -63,7 +63,8 @@ dokodemo-workspace/
 **frontend (`apps/dokodemo-claude-web/src/`)**
 - `utils/backend-url.ts` — `BACKEND_URL` 定義（dev/prod とも `window.location.origin`、frontend にポートをハードコードしない）
 - `vite-env.d.ts` — Vite import.meta.env の型定義（`DC_API_URL` 等）
-- `hooks/`, `components/` — React UI
+- `hooks/` — カスタムフック（Socket 通信・状態管理）
+- `components/` — React UI。機能別サブディレクトリ制: `ui/`（汎用部品）, `git/`, `worktree/`, `ai/`, `terminal/`, `files/`, `repo/`。新規コンポーネントは該当グループに置く（barrel index.ts は作らない）
 
 **ルート**
 - `apps/dokodemo-claude-web/vite.config.ts` — dev サーバ proxy（`/api`, `/hook`, `/socket.io` → `DC_API_PORT`）
