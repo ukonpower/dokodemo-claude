@@ -1060,7 +1060,8 @@ export interface ClientToServerEvents {
   }) => void;
 
   // 現在ブランチの同期状態（ahead/behind）取得・push
-  'get-branch-sync-status': (data: { rid: string }) => void;
+  // fetch: true で git fetch により remote-tracking ref を最新化してから計算する
+  'get-branch-sync-status': (data: { rid: string; fetch?: boolean }) => void;
   'push-branch': (data: { rid: string }) => void;
 
   // プロンプトキュー関連イベント

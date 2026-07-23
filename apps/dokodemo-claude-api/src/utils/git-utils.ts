@@ -297,6 +297,35 @@ export async function getBranchSyncStatus(repoPath: string): Promise<{
 }
 
 /**
+ * git fetch を実行して remote-tracking ref を最新化する。
+ * ahead/behind の再計算前に呼ぶことで、リモートとの実差分を反映できる。
+ * オフライン等で失敗しても throw せず false を返す（呼び出し側はローカル値で続行する）。
+ */
+export async function fetchRemote(repoPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const gitProcess = spawn('git', ['fetch', '--quiet'], {
+      cwd: repoPath,
+      env: cleanChildEnv(),
+    });
+
+    const timeout = setTimeout(() => {
+      gitProcess.kill();
+      resolve(false);
+    }, 30000);
+
+    gitProcess.on('exit', (code) => {
+      clearTimeout(timeout);
+      resolve(code === 0);
+    });
+
+    gitProcess.on('error', () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
+  });
+}
+
+/**
  * 現在ブランチを push する。upstream 未設定なら --set-upstream origin <branch> で publish する。
  *
  * onProgress を渡すと stdout/stderr のチャンクを逐次受け取れる
