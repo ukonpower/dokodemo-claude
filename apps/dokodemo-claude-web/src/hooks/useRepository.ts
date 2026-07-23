@@ -59,6 +59,7 @@ export interface UseRepositoryReturn {
 
   // 自身の更新
   pullSelf: () => void;
+  selfUpdateAvailable: boolean;
 
   // ローディング終了コールバック
   endLoadingOnOutput: () => void;
@@ -97,6 +98,9 @@ export function useRepository(
 
   // 削除確認
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // 自身のリモート更新（新リリース）有無
+  const [selfUpdateAvailable, setSelfUpdateAvailable] = useState(false);
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -238,6 +242,13 @@ export function useRepository(
       setIsSwitchingRepo(false);
     };
 
+    // 自身のリモート更新（新リリース）有無
+    const handleSelfUpdateStatus = (
+      data: Parameters<ServerToClientEvents['self-update-status']>[0]
+    ) => {
+      setSelfUpdateAvailable(data.updateAvailable);
+    };
+
     socket.on('id-mapping', handleIdMapping);
     socket.on('id-mapping-updated', handleIdMappingUpdated);
     socket.on('repos-list', handleReposList);
@@ -245,6 +256,7 @@ export function useRepository(
     socket.on('repo-processes-stopped', handleRepoProcessesStopped);
     socket.on('repo-deleted', handleRepoDeleted);
     socket.on('repo-switched', handleRepoSwitched);
+    socket.on('self-update-status', handleSelfUpdateStatus);
 
     return () => {
       socket.off('id-mapping', handleIdMapping);
@@ -254,6 +266,7 @@ export function useRepository(
       socket.off('repo-processes-stopped', handleRepoProcessesStopped);
       socket.off('repo-deleted', handleRepoDeleted);
       socket.off('repo-switched', handleRepoSwitched);
+      socket.off('self-update-status', handleSelfUpdateStatus);
     };
   }, [socket]);
 
@@ -377,6 +390,7 @@ export function useRepository(
     confirmStopProcesses,
     cancelStopProcesses,
     pullSelf,
+    selfUpdateAvailable,
     endLoadingOnOutput,
   };
 }

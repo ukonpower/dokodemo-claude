@@ -32,6 +32,7 @@ interface HomeViewProps {
   onStopProcesses: (rid: string) => void;
   onSwitchRepository: (path: string) => void;
   onPullSelf: () => void;
+  selfUpdateAvailable: boolean;
 
   // 設定関連
   appSettings: AppSettings;
@@ -64,6 +65,7 @@ export function HomeView({
   onStopProcesses,
   onSwitchRepository,
   onPullSelf,
+  selfUpdateAvailable,
   appSettings,
   showSettingsModal,
   setShowSettingsModal,
@@ -99,7 +101,11 @@ export function HomeView({
                 <button
                   onClick={onPullSelf}
                   className={s.updateButton}
-                  title="dokodemo-claude自身を最新版に更新 (git pull)"
+                  title={
+                    selfUpdateAvailable
+                      ? '新しいリリースがあります。クリックで最新版に更新 (git pull)'
+                      : 'dokodemo-claude自身を最新版に更新 (git pull)'
+                  }
                 >
                   <svg
                     className={s.updateIcon}
@@ -115,6 +121,7 @@ export function HomeView({
                     />
                   </svg>
                   <span>更新</span>
+                  {selfUpdateAvailable && <span className={s.updateBadge} />}
                 </button>
               </div>
               <div className={s.headerRight}>

@@ -67,6 +67,10 @@ import {
   initWebPushService,
   getWebPushService,
 } from './services/web-push-service.js';
+import {
+  initSelfUpdateChecker,
+  getSelfUpdateAvailable,
+} from './services/self-update-checker.js';
 
 const app = express();
 
@@ -1282,6 +1286,11 @@ processManager.on('terminal-ports', (data) => {
 
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
+  // 接続時に自身の更新有無（キャッシュ済み）を通知
+  socket.emit('self-update-status', {
+    updateAvailable: getSelfUpdateAvailable(),
+  });
+
   // イベントハンドラー登録を非同期で実行（接続応答を高速化）
   setImmediate(() => {
     registerAllHandlers(socket, {
@@ -1348,6 +1357,11 @@ async function startServer(): Promise<void> {
   } catch (error) {
     console.error('⚠️  code-serverの起動に失敗しました:', error);
   }
+
+  // 自身のリモート更新（新リリース）の定期チェックを開始
+  initSelfUpdateChecker(projectRoot, (updateAvailable) => {
+    io.emit('self-update-status', { updateAvailable });
+  });
 
   server.listen(PORT, HOST, () => {
     const protocol = isHttps ? 'https' : 'http';

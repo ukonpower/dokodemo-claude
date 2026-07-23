@@ -277,6 +277,7 @@ function App() {
         onStopProcesses={repository.showStopProcessConfirmDialog}
         onSwitchRepository={switchRepositoryFromList}
         onPullSelf={repository.pullSelf}
+        selfUpdateAvailable={repository.selfUpdateAvailable}
         appSettings={appSettings.appSettings}
         showSettingsModal={appSettings.showSettingsModal}
         setShowSettingsModal={appSettings.setShowSettingsModal}

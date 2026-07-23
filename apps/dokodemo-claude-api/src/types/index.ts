@@ -485,6 +485,9 @@ export interface ServerToClientEvents {
     output: string;
   }) => void;
 
+  // 自身のリモート更新（新リリース）有無の通知
+  'self-update-status': (data: { updateAvailable: boolean }) => void;
+
   // ブランチ pull 進行ログ（stdout/stderr のストリーミング配信）
   'branch-pull-progress': (data: {
     rid?: string;
