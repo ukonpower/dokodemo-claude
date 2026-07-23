@@ -7,6 +7,7 @@ import * as CodeServerManager from '../code-server.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
+import { checkSelfUpdate } from '../services/self-update-checker.js';
 
 // エディタの型定義
 type EditorType = 'vscode' | 'cursor' | 'code-server';
@@ -298,6 +299,9 @@ export function registerMiscHandlers(
             message,
             output: output || errorOutput,
           });
+
+          // pull 完了後に更新有無を再チェックし、バッジを消す
+          void checkSelfUpdate();
         } else {
           socket.emit('self-pulled', {
             success: false,

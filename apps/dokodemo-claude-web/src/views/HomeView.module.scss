@@ -97,6 +97,7 @@
 }
 
 .updateButton {
+  position: relative;
   padding: 0.5rem 0.5rem;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
@@ -128,6 +129,18 @@
 .updateIcon {
   height: 0.75rem;
   width: 0.75rem;
+}
+
+// 新リリースがあるときのアップデートマーク（ボタン右上のドット）
+.updateBadge {
+  position: absolute;
+  top: -0.1875rem;
+  right: -0.1875rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: $accent-green;
+  border: 1px solid $dark-bg-primary;
 }
 
 .headerRight {
