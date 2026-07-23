@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Link2, Bell, Package } from 'lucide-react';
+import { X, Link2, Bell, Package, Sparkles } from 'lucide-react';
 import type { Socket } from 'socket.io-client';
 import type { AiProvider } from '../types';
 import { useWebPush } from '../hooks/useWebPush';
@@ -86,6 +86,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [pluginState, setPluginState] = useState<PluginState>({
     installed: false, loading: false, message: null,
   });
+  // AIタブの指示内容要約の on/off（null = 未取得）
+  const [summaryEnabled, setSummaryEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!isOpen || !socket) return;
@@ -169,6 +171,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   }, [isOpen, socket]);
 
   useEffect(() => {
+    if (!isOpen || !socket) return;
+
+    socket.emit('get-ai-summary-settings');
+
+    const handleSummarySettings = (data: { enabled: boolean }) => {
+      setSummaryEnabled(data.enabled);
+    };
+
+    socket.on('ai-summary-settings', handleSummarySettings);
+
+    return () => {
+      socket.off('ai-summary-settings', handleSummarySettings);
+    };
+  }, [isOpen, socket]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -199,6 +217,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } else {
       socket.emit('add-dokodemo-hooks', { provider });
     }
+  };
+
+  const handleToggleSummary = () => {
+    if (!socket || summaryEnabled === null) return;
+    socket.emit('set-ai-summary-settings', { enabled: !summaryEnabled });
   };
 
   const handleTogglePlugin = () => {
@@ -462,6 +485,52 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
             {renderHooksRow('claude', 'Claude Code', '~/.claude/settings.json に hooks 設定を追加', claudeHooks)}
             {renderHooksRow('codex', 'Codex CLI', '~/.codex/hooks.json に hooks 設定を追加', codexHooks)}
+          </div>
+
+          {/* AIタブの指示内容要約 */}
+          <div className={s.section}>
+            <div className={s.sectionIconLabel}>
+              <Sparkles className={s.sectionIcon} />
+              <label className={s.sectionLabel}>
+                AIタブの指示内容要約
+              </label>
+            </div>
+
+            <p className={s.descriptionText}>
+              AIに送った指示から「そのセッションが何に取り組んでいるか」を生成してタブに表示します（haiku を使用）。
+            </p>
+
+            <div className={s.hooksRow}>
+              <div className={s.hooksRowHeader}>
+                <span className={s.hooksLabel}>要約の生成</span>
+                <div className={s.hooksStatusAndButton}>
+                  {summaryEnabled ? (
+                    <span className={s.statusActive}>
+                      <span className={`${s.statusDot} ${s.statusDotGreen}`}></span>
+                      有効
+                    </span>
+                  ) : (
+                    <span className={s.statusInactive}>
+                      <span className={`${s.statusDot} ${s.statusDotGray}`}></span>
+                      無効
+                    </span>
+                  )}
+                  <button
+                    onClick={handleToggleSummary}
+                    disabled={summaryEnabled === null}
+                    className={
+                      summaryEnabled === null
+                        ? s.buttonPrimarySmallDisabled
+                        : summaryEnabled
+                          ? s.buttonDangerSmall
+                          : s.buttonPrimarySmall
+                    }
+                  >
+                    {summaryEnabled ? '無効にする' : '有効にする'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Claude Code プラグイン */}

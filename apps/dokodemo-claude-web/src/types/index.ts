@@ -426,6 +426,8 @@ export interface ServerToClientEvents {
     summary: string;
     timestamp: number;
   }) => void;
+  // AI タブの指示内容要約の設定（現在値の通知）
+  'ai-summary-settings': (data: { enabled: boolean }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -1198,6 +1200,10 @@ export interface ClientToServerEvents {
   'check-hooks-status': (data: { port: number }) => void;
   'add-dokodemo-hooks': (data: { port: number }) => void;
   'remove-dokodemo-hooks': (data: { port: number }) => void;
+
+  // AI タブの指示内容要約の設定
+  'get-ai-summary-settings': () => void;
+  'set-ai-summary-settings': (data: { enabled: boolean }) => void;
 
   // Web Push通知関連イベント
   'get-vapid-public-key': () => void;
