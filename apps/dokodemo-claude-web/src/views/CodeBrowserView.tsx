@@ -4,23 +4,17 @@ import FileTree from '@/features/files/components/FileTree';
 import FileContentViewer from '@/features/files/components/FileContentViewer';
 import DiffSummary from '@/features/git/components/DiffSummary';
 import GitGraphView from './GitGraphView';
-import type { UseFileViewerReturn } from '@/features/files/hooks/useFileViewer';
-import type { UseGitDiffReturn } from '@/features/git/hooks/useGitDiff';
-import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import {
+  useGitDiffContext,
+  useGitGraphContext,
+} from '@/features/git/providers/GitProvider';
+import { useFileViewerContext } from '@/features/files/providers/FilesProvider';
 import s from './CodeBrowserView.module.scss';
 
 /** 左サイドバーの表示モード */
 export type CodeBrowserMode = 'changes' | 'tree' | 'graph';
-
-interface CodeBrowserViewProps {
-  fileViewer: UseFileViewerReturn;
-  gitDiff: UseGitDiffReturn;
-  gitGraph: UseGitGraphReturn;
-  repoName: string;
-  graphRepoName: string;
-  currentRepo: string;
-  rid: string;
-}
 
 const MODE_STORAGE_KEY = (repo: string) => `dokodemo-codebrowser-mode-${repo}`;
 
@@ -55,15 +49,29 @@ function readInitialMode(currentRepo: string): CodeBrowserMode {
  * 右ペインに選択したファイルの内容・差分・コミット差分を共通表示する。
  * AI/ターミナルのプロジェクトビューとは別ブラウザタブで開く。
  */
-export function CodeBrowserView({
-  fileViewer,
-  gitDiff,
-  gitGraph,
-  repoName,
-  graphRepoName,
-  currentRepo,
-  rid,
-}: CodeBrowserViewProps) {
+export function CodeBrowserView() {
+  const { repository } = useRepositoryContext();
+  const fileViewer = useFileViewerContext();
+  const gitDiff = useGitDiffContext();
+  const gitGraph = useGitGraphContext();
+
+  const { currentRepo } = repository;
+  const rid = repositoryIdMap.getRid(currentRepo) || '';
+
+  // リポジトリ表示名の導出（worktree の場合、グラフ側は「親リポ / ブランチ」で表示）
+  const repoInfo = repository.repositories.find(
+    (r) => r.path === currentRepo
+  );
+  const repoName = repoInfo?.name || '';
+  const graphRepoName =
+    repoInfo?.isWorktree &&
+    repoInfo?.parentRepoName &&
+    repoInfo?.worktreeBranch
+      ? `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`
+      : repoInfo?.name ||
+        currentRepo.split('/').filter(Boolean).pop() ||
+        '';
+
   const [mode, setMode] = useState<CodeBrowserMode>(() =>
     readInitialMode(currentRepo)
   );

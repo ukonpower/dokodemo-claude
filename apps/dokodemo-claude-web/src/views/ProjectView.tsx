@@ -1,41 +1,29 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import type { Ref } from 'react';
 import {
   LayoutDashboard,
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react';
-import type {
-  GitRepository,
-  GitBranch,
-  GitWorktree,
-  Terminal,
-  TerminalMessage,
-  TerminalOutputLine,
-  AiOutputLine,
-  AiInstance,
-  CommandShortcut,
-  DetectedPortInfo,
-  AiProvider,
-  EditorInfo,
-  EditorType,
-  PromptQueueItem,
-  UploadedFileInfo,
-  GitDiffSummary,
-  RepoProcessStatus,
-  CustomAiButton,
-  CustomAiButtonScope,
-  WorktreeSyncEntry,
-} from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
-import type { CommandSendSettings } from '@/app/hooks/useAppSettings';
-import type { LoopEndInfo } from '@/features/ai/hooks/usePromptQueue';
-import type {
-  WorktreeSyncConfigState,
-  WorktreeSyncCandidatesState,
-  PullState,
-  BranchSyncStatus,
-} from '@/features/worktree/hooks/useBranchWorktree';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useAiContext } from '@/features/ai/providers/AiProvider';
+import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
+import { useQueueContext } from '@/features/ai/providers/QueueProvider';
+import {
+  useGitDiffContext,
+  useGitGraphContext,
+} from '@/features/git/providers/GitProvider';
+import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
+import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
+import {
+  openFileViewerTab,
+  openDiffFileTab,
+  openWorkflowFileTab,
+} from '@/app/utils/open-views';
 
 import AiOutput, { AiOutputRef } from '@/features/ai/components/AiOutput';
 import TextInput, { TextInputRef } from '@/features/ai/components/CommandInput';
@@ -51,7 +39,6 @@ import WorktreeOperations from '@/features/worktree/components/WorktreeOperation
 import PromptQueue from '@/features/ai/components/PromptQueue';
 import SidePanel from '@/features/files/components/SidePanel';
 import AiInstanceTabs from '@/features/ai/components/AiInstanceTabs';
-import type { AiInstanceTabsHandle } from '@/features/ai/components/AiInstanceTabs';
 import DrawingCanvas from '@/features/ai/components/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
@@ -73,395 +60,222 @@ function getStoredSideColCollapsed(repo: string): boolean {
   }
 }
 
-interface ProjectViewProps {
+export function ProjectView() {
   // 接続状態
-  isConnected: boolean;
-  connectionAttempts: number;
-  isReconnecting: boolean;
+  const { isConnected, connectionAttempts, isReconnecting } =
+    useSocketContext();
 
   // リポジトリ関連（repositories はサーバー側でソート済み）
-  repositories: GitRepository[];
-  currentRepo: string;
-  repoProcessStatuses: RepoProcessStatus[];
-
-  // AI CLI関連
-  aiInstances: AiInstance[];
-  // instanceId → 指示内容の要約（タブのサブテキスト表示用）
-  aiActivitySummaries: Record<string, string>;
-  activeInstance: AiInstance | undefined;
-  primaryInstance: AiInstance | undefined;
-  currentAiMessages: AiOutputLine[];
-  isLoadingRepoData: boolean;
-  terminalFontSize: number;
-
-  // タブ操作
-  aiInstanceTabsRef: Ref<AiInstanceTabsHandle>;
-  onActivateInstance: (instanceId: string) => void;
-  onCreateInstance: (provider: AiProvider) => void;
-  onCloseInstance: (instanceId: string) => void;
-
-  // AIアクション（active instance に対する操作）
-  onSendCommand: (command: string) => void;
-  onSendArrowKey: (direction: 'up' | 'down' | 'left' | 'right') => void;
-  onSendAltT: () => void;
-  onSendInterrupt: () => void;
-  onSendEscape: () => void;
-  onSendSpace: () => void;
-  onSendClear: () => void;
-  onSendCommit: () => void;
-  onSendPreview: () => void;
-  onSendResume: () => void;
-  onSendUsage: () => void;
-  onSendMode: () => void;
-  onChangeModel: (model: string) => void;
-  onChangePrimaryProvider: (provider: AiProvider) => void;
-  onRestartCli: (instanceId?: string, fresh?: boolean) => void;
-  onKeyInput: (key: string) => void;
-  onResize: (cols: number, rows: number) => void;
-
-  // ターミナル関連
-  terminals: Terminal[];
-  activeTerminalId: string;
-  terminalMessages: TerminalMessage[];
-  terminalHistories: Map<string, TerminalOutputLine[]>;
-  isTerminalsLoaded: boolean;
-  shortcuts: CommandShortcut[];
-  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
-  onCreateTerminal: (cwd: string, name?: string) => void;
-  onCloseTerminal: (terminalId: string) => void;
-  onTerminalInput: (terminalId: string, input: string) => void;
-  onTerminalSignal: (terminalId: string, signal: string) => void;
-  onTerminalResize: (terminalId: string, cols: number, rows: number) => void;
-  onActiveTerminalChange: (terminalId: string) => void;
-  onCreateShortcut: (name: string, command: string) => void;
-  onDeleteShortcut: (shortcutId: string) => void;
-  onExecuteShortcut: (shortcutId: string, terminalId: string) => void;
-
-  // ブランチ・ワークツリー関連
-  branches: GitBranch[];
-  currentBranch: string;
-  worktrees: GitWorktree[];
-  parentRepoPath: string;
-  mergeError: {
-    message: string;
-    conflictFiles?: string[];
-    errorDetails?: string;
-  } | null;
-  worktreeCreateError: { message: string } | null;
-  worktreeCreateSuccessNonce: number;
-  onClearWorktreeCreateError: () => void;
-  isDeletingWorktree: boolean;
-  deletingWorktreePath: string | null;
-  onSwitchBranch: (branchName: string) => void;
-  onDeleteBranch: (branchName: string, deleteRemote?: boolean) => void;
-  onCreateBranch: (branchName: string, baseBranch?: string) => void;
-  onRefreshBranches: () => void;
-  onPullBranch: () => void;
-  pullState: PullState | null;
-  onClearPullState: () => void;
-  syncStatus: BranchSyncStatus | null;
-  isSyncStatusRefreshing: boolean;
-  onRefreshSyncStatus: () => void;
-  pushState: PullState | null;
-  onPushBranch: () => void;
-  onClearPushState: () => void;
-  onCreateWorktree: (
-    branchName: string,
-    baseBranch: string | undefined,
-    useExisting: boolean,
-    syncEntries: WorktreeSyncEntry[]
-  ) => void;
-  worktreeSyncConfig: WorktreeSyncConfigState | null;
-  onRequestWorktreeSyncConfig: () => void;
-  onSaveWorktreeSyncConfig: (entries: WorktreeSyncEntry[]) => void;
-  worktreeSyncCandidates: WorktreeSyncCandidatesState | null;
-  onRequestWorktreeSyncCandidates: (dirPath: string) => void;
-  onReorderWorktrees: (orderedBranchPaths: string[]) => void;
-  onDeleteWorktree: (worktreePath: string, deleteBranch?: boolean) => void;
-  onMergeWorktree: (worktreePath: string) => void;
-  onSaveWorktreeMemo: (worktreePath: string, memo: string) => void;
-  onClearMergeError: () => void;
-
-  // プロンプトキュー関連
-  promptQueue: PromptQueueItem[];
-  isQueueProcessing: boolean;
-  isQueuePaused: boolean;
-  currentQueueItemId?: string;
-  onAddToQueue: (
-    command: string,
-    sendClearBefore: boolean,
-    sendCommitAfter: boolean,
-    model?: string,
-    loop?: {
-      judge: 'ai' | 'user' | 'none';
-      judgeEveryN: number;
-      intervalSec: number;
-      judgeCriteria?: string;
-      planning?: { everyN: number; model: string; prompt: string };
-    }
-  ) => void;
-  onRemoveFromQueue: (itemId: string) => void;
-  onUpdateQueue: (
-    itemId: string,
-    prompt: string,
-    sendClearBefore: boolean,
-    isAutoCommit: boolean,
-    model?: string,
-    loop?: {
-      judge: 'ai' | 'user' | 'none';
-      judgeEveryN: number;
-      intervalSec: number;
-      judgeCriteria?: string;
-      planning?: { everyN: number; model: string; prompt: string };
-    } | null
-  ) => void;
-  onPauseQueue: () => void;
-  onResumeQueue: () => void;
-  onResetQueue: () => void;
-  onCancelCurrentItem: () => void;
-  onForceSend: (itemId: string) => void;
-  onReorderQueue: (reorderedQueue: PromptQueueItem[]) => void;
-  onRequeueItem: (itemId: string) => void;
-  onStopLoop: (itemId: string) => void;
-  onApproveLoop: (itemId: string, approved: boolean) => void;
-  loopEndInfo: LoopEndInfo | null;
-  onDismissLoopEnd: () => void;
-
-  // ファイル管理関連
-  files: UploadedFileInfo[];
-  isUploadingFile: boolean;
-  uploadProgress: number | null;
-  onCancelUpload: () => void;
-  onRefreshFiles: () => void;
-  onDeleteFile: (filename: string) => void;
-  onPasteFile: (file: File) => Promise<string | undefined>;
-
-  // Git差分関連
-  diffSummary: GitDiffSummary | null;
-  diffSummaryLoading: boolean;
-  diffSummaryError: string | null;
-  onRefreshDiffSummary: () => void;
-  onDiffFileClick: (filename: string) => void;
-
-  // npmスクリプト関連
-  npmScripts: Record<string, string>;
-  onExecuteNpmScript: (scriptName: string) => void;
-  onRefreshNpmScripts: () => void;
-
-  // エディタ関連
-  availableEditors: EditorInfo[];
-  showEditorMenu: boolean;
-  startingCodeServer: boolean;
-  showPopupBlockedModal: boolean;
-  blockedCodeServerUrl: string;
-  remoteUrl: string | null;
-  isLocalhost: boolean;
-  editorMenuRef: React.RefObject<HTMLDivElement | null>;
-  onOpenInEditor: (editor: EditorType) => void;
-  setShowEditorMenu: (show: boolean) => void;
-  setShowPopupBlockedModal: (show: boolean) => void;
-  onOpenBlockedUrl: () => void;
+  // リポジトリ切り替え（HomeView / RepositorySwitcher / WorktreeTabs 共通）。
+  // WorktreeTabs はクリック時に setLastWorktreeForParent を先に呼ぶため、
+  // ラッパー経由でも結果が変わらないことを担保している。
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const {
+    repositories,
+    currentRepo,
+    repoProcessStatuses,
+    isLoadingRepoData,
+    // リポジトリ操作
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    deleteRepository: onDeleteRepository,
+    // プロセス停止
+    showStopProcessConfirm,
+    stoppingProcesses,
+    stopProcessTargetRid,
+    confirmStopProcesses: onConfirmStopProcesses,
+    cancelStopProcesses: onCancelStopProcesses,
+  } = repository;
 
   // 設定関連
-  onOpenSettings: () => void;
-  sendSettings: CommandSendSettings;
-  onSendSettingsChange: React.Dispatch<React.SetStateAction<CommandSendSettings>>;
+  const {
+    terminalFontSize,
+    sendSettings,
+    setSendSettings: onSendSettingsChange,
+  } = useAppSettingsContext();
 
-  // リポジトリ操作
-  showDeleteConfirm: boolean;
-  setShowDeleteConfirm: (show: boolean) => void;
-  onDeleteRepository: (path: string, name: string) => void;
-
-  // プロセス停止
-  showStopProcessConfirm: boolean;
-  stoppingProcesses: boolean;
-  stopProcessTargetRid: string | null;
-  onConfirmStopProcesses: () => void;
-  onCancelStopProcesses: () => void;
+  // AI CLI関連
+  const {
+    aiCli,
+    customAiButtons: customAiButtonsApi,
+    aiInstanceTabsRef,
+  } = useAiContext();
+  const {
+    aiInstances,
+    // instanceId → 指示内容の要約（タブのサブテキスト表示用）
+    aiActivitySummaries,
+    activeInstance,
+    primaryInstance,
+    currentAiMessages,
+    // タブ操作
+    activateInstance: onActivateInstance,
+    createInstance: onCreateInstance,
+    closeInstance: onCloseInstance,
+    // AIアクション（active instance に対する操作）
+    sendCommand: onSendCommand,
+    sendArrowKey: onSendArrowKey,
+    sendAltT: onSendAltT,
+    sendInterrupt: onSendInterrupt,
+    sendEscape: onSendEscape,
+    sendSpace: onSendSpace,
+    sendClear: onSendClear,
+    sendCommit: onSendCommit,
+    sendPreview: onSendPreview,
+    sendResume: onSendResume,
+    sendUsage: onSendUsage,
+    sendMode: onSendMode,
+    changeModel: onChangeModel,
+    changePrimaryProvider: onChangePrimaryProvider,
+    restartCli: onRestartCli,
+    handleKeyInput: onKeyInput,
+    handleResize: onResize,
+  } = aiCli;
 
   // カスタム送信ボタン関連
-  customAiButtons: CustomAiButton[];
-  onCreateCustomAiButton: (
-    name: string,
-    command: string,
-    scope: CustomAiButtonScope,
-    repositoryPath?: string
-  ) => void;
-  onUpdateCustomAiButton: (
-    id: string,
-    name: string,
-    command: string,
-    scope: CustomAiButtonScope,
-    repositoryPath?: string
-  ) => void;
-  onDeleteCustomAiButton: (id: string) => void;
+  const {
+    buttons: customAiButtons,
+    createButton: onCreateCustomAiButton,
+    updateButton: onUpdateCustomAiButton,
+    deleteButton: onDeleteCustomAiButton,
+  } = customAiButtonsApi;
 
-  // ファイルビュワー
-  onOpenFileViewer: () => void;
-  onOpenWorkflowFile?: (path: string) => void;
+  // ターミナル関連
+  const { terminal, npm } = useTerminalContext();
+  const {
+    terminals,
+    terminalMessages,
+    terminalHistories,
+    isTerminalsLoaded,
+    shortcuts,
+    devServerPortsByRepo,
+    createTerminal: onCreateTerminal,
+    closeTerminal: onCloseTerminal,
+    sendInput: onTerminalInput,
+    sendSignal: onTerminalSignal,
+    resize: onTerminalResize,
+    setActiveTerminalId: onActiveTerminalChange,
+    createShortcut: onCreateShortcut,
+    deleteShortcut: onDeleteShortcut,
+    executeShortcut: onExecuteShortcut,
+  } = terminal;
 
-  // リポジトリ切り替え
-  onSwitchRepository: (path: string) => void;
+  // npmスクリプト関連
+  const {
+    npmScripts,
+    executeNpmScript: onExecuteNpmScript,
+    refreshNpmScripts: onRefreshNpmScripts,
+  } = npm;
 
-  // ダッシュボード切替
-  onOpenDashboard: () => void;
+  // ブランチ・ワークツリー関連
+  const branchWorktree = useWorktreeContext();
+  const {
+    branches,
+    currentBranch,
+    worktrees,
+    parentRepoPath,
+    mergeError,
+    worktreeCreateError,
+    worktreeCreateSuccessNonce,
+    clearWorktreeCreateError: onClearWorktreeCreateError,
+    isDeletingWorktree,
+    deletingWorktreePath,
+    switchBranch: onSwitchBranch,
+    deleteBranch: onDeleteBranch,
+    createBranch: onCreateBranch,
+    refreshBranches: onRefreshBranches,
+    pullBranch: onPullBranch,
+    pullState,
+    clearPullState: onClearPullState,
+    syncStatus,
+    isSyncStatusRefreshing,
+    refreshSyncStatus: onRefreshSyncStatus,
+    pushState,
+    pushBranch: onPushBranch,
+    clearPushState: onClearPushState,
+    createWorktree: onCreateWorktree,
+    reorderWorktrees: onReorderWorktrees,
+    worktreeSyncConfig,
+    requestWorktreeSyncConfig: onRequestWorktreeSyncConfig,
+    saveWorktreeSyncConfig: onSaveWorktreeSyncConfig,
+    worktreeSyncCandidates,
+    requestWorktreeSyncCandidates: onRequestWorktreeSyncCandidates,
+    deleteWorktree: onDeleteWorktree,
+    mergeWorktree: onMergeWorktree,
+    saveWorktreeMemo: onSaveWorktreeMemo,
+  } = branchWorktree;
+  const onClearMergeError = () => branchWorktree.setMergeError(null);
+
+  // プロンプトキュー関連
+  const {
+    promptQueue,
+    isQueueProcessing,
+    isQueuePaused,
+    currentItemId: currentQueueItemId,
+    addToQueue: onAddToQueue,
+    removeFromQueue: onRemoveFromQueue,
+    updateQueue: onUpdateQueue,
+    pauseQueue: onPauseQueue,
+    resumeQueue: onResumeQueue,
+    resetQueue: onResetQueue,
+    cancelCurrentItem: onCancelCurrentItem,
+    forceSend: onForceSend,
+    reorderQueue: onReorderQueue,
+    requeueItem: onRequeueItem,
+    stopLoop: onStopLoop,
+    approveLoopContinuation: onApproveLoop,
+    loopEndInfo,
+    dismissLoopEnd: onDismissLoopEnd,
+  } = useQueueContext();
+
+  // ファイル管理関連
+  const {
+    files,
+    isUploadingFile,
+    uploadProgress,
+    cancelUpload: onCancelUpload,
+    refreshFiles: onRefreshFiles,
+    deleteFile: onDeleteFile,
+    uploadFile: onPasteFile,
+  } = useFileManagerContext();
+
+  // Git差分関連
+  const {
+    diffSummary,
+    diffSummaryLoading,
+    diffSummaryError,
+    refreshDiffSummary: onRefreshDiffSummary,
+  } = useGitDiffContext();
+  // 統合コード/git ブラウザを変更モードで別タブに開き、該当ファイルの差分を右ペインに表示
+  const onDiffFileClick = openDiffFileTab;
+
+  // エディタ関連
+  const {
+    availableEditors,
+    showEditorMenu,
+    startingCodeServer,
+    showPopupBlockedModal,
+    blockedCodeServerUrl,
+    remoteUrl,
+    isLocalhost,
+    editorMenuRef,
+    openInEditor: onOpenInEditor,
+    setShowEditorMenu,
+    setShowPopupBlockedModal,
+    openBlockedUrl: onOpenBlockedUrl,
+  } = useEditorLauncherContext();
+
+  // 設定ページ・ダッシュボード切替
+  const { openSettings: onOpenSettings, setDashboardModeAndPersist } =
+    useNavigationContext();
+  const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
   // Git Graph 表示
-  onOpenGraphView: () => void;
-}
+  const { openGraphView: onOpenGraphView } = useGitGraphContext();
 
-export function ProjectView({
-  isConnected,
-  connectionAttempts,
-  isReconnecting,
-  repositories,
-  currentRepo,
-  repoProcessStatuses,
-  aiInstances,
-  aiActivitySummaries,
-  activeInstance,
-  primaryInstance,
-  currentAiMessages,
-  isLoadingRepoData,
-  terminalFontSize,
-  aiInstanceTabsRef,
-  onActivateInstance,
-  onCreateInstance,
-  onCloseInstance,
-  onSendCommand,
-  onSendArrowKey,
-  onSendAltT,
-  onSendInterrupt,
-  onSendEscape,
-  onSendSpace,
-  onSendClear,
-  onSendCommit,
-  onSendPreview,
-  onSendResume,
-  onSendUsage,
-  onSendMode,
-  onChangeModel,
-  onChangePrimaryProvider,
-  onRestartCli,
-  onKeyInput,
-  onResize,
-  terminals,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  activeTerminalId: _activeTerminalId,
-  terminalMessages,
-  terminalHistories,
-  isTerminalsLoaded,
-  shortcuts,
-  devServerPortsByRepo,
-  onCreateTerminal,
-  onCloseTerminal,
-  onTerminalInput,
-  onTerminalSignal,
-  onTerminalResize,
-  onActiveTerminalChange,
-  onCreateShortcut,
-  onDeleteShortcut,
-  onExecuteShortcut,
-  branches,
-  currentBranch,
-  worktrees,
-  parentRepoPath,
-  mergeError,
-  worktreeCreateError,
-  worktreeCreateSuccessNonce,
-  onClearWorktreeCreateError,
-  isDeletingWorktree,
-  deletingWorktreePath,
-  onSwitchBranch,
-  onDeleteBranch,
-  onCreateBranch,
-  onRefreshBranches,
-  onPullBranch,
-  pullState,
-  onClearPullState,
-  syncStatus,
-  isSyncStatusRefreshing,
-  onRefreshSyncStatus,
-  pushState,
-  onPushBranch,
-  onClearPushState,
-  onCreateWorktree,
-  onReorderWorktrees,
-  worktreeSyncConfig,
-  onRequestWorktreeSyncConfig,
-  onSaveWorktreeSyncConfig,
-  worktreeSyncCandidates,
-  onRequestWorktreeSyncCandidates,
-  onDeleteWorktree,
-  onMergeWorktree,
-  onSaveWorktreeMemo,
-  onClearMergeError,
-  promptQueue,
-  isQueueProcessing,
-  isQueuePaused,
-  currentQueueItemId,
-  onAddToQueue,
-  onRemoveFromQueue,
-  onUpdateQueue,
-  onPauseQueue,
-  onResumeQueue,
-  onResetQueue,
-  onCancelCurrentItem,
-  onForceSend,
-  onReorderQueue,
-  onRequeueItem,
-  onStopLoop,
-  onApproveLoop,
-  loopEndInfo,
-  onDismissLoopEnd,
-  files,
-  isUploadingFile,
-  uploadProgress,
-  onCancelUpload,
-  onRefreshFiles,
-  onDeleteFile,
-  onPasteFile,
-  diffSummary,
-  diffSummaryLoading,
-  diffSummaryError,
-  onRefreshDiffSummary,
-  onDiffFileClick,
-  npmScripts,
-  onExecuteNpmScript,
-  onRefreshNpmScripts,
-  availableEditors,
-  showEditorMenu,
-  startingCodeServer,
-  showPopupBlockedModal,
-  blockedCodeServerUrl,
-  remoteUrl,
-  isLocalhost,
-  editorMenuRef,
-  onOpenInEditor,
-  setShowEditorMenu,
-  setShowPopupBlockedModal,
-  onOpenBlockedUrl,
-  onOpenSettings,
-  sendSettings,
-  onSendSettingsChange,
-  showDeleteConfirm,
-  setShowDeleteConfirm,
-  onDeleteRepository,
-  showStopProcessConfirm,
-  stoppingProcesses,
-  stopProcessTargetRid,
-  onConfirmStopProcesses,
-  onCancelStopProcesses,
-  customAiButtons,
-  onCreateCustomAiButton,
-  onUpdateCustomAiButton,
-  onDeleteCustomAiButton,
-  onOpenFileViewer,
-  onOpenWorkflowFile,
-  onSwitchRepository,
-  onOpenDashboard,
-  onOpenGraphView,
-}: ProjectViewProps) {
+  // ファイルビュワー
+  const onOpenFileViewer = openFileViewerTab;
+  const onOpenWorkflowFile = openWorkflowFileTab;
   // Refs
   const textInputRef = useRef<TextInputRef>(null);
   const aiOutputRef = useRef<AiOutputRef>(null);

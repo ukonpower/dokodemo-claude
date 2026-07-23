@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Monitor, Sparkles, Bell, Link2 } from 'lucide-react';
-import type { Socket } from 'socket.io-client';
-import type {
-  AiProvider,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '@/types';
-import type { AppSettings, FontSizePreset, PermissionMode } from '@/app/utils/app-settings';
+import type { AiProvider } from '@/types';
+import type { FontSizePreset, PermissionMode } from '@/app/utils/app-settings';
 import { useWebPush } from '@/app/hooks/useWebPush';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import s from './SettingsView.module.scss';
 
 type SectionId = 'appearance' | 'ai' | 'notification' | 'integration';
@@ -48,21 +47,16 @@ interface PluginState {
   message: { type: 'success' | 'error'; text: string } | null;
 }
 
-interface SettingsViewProps {
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-  settings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
-  currentRepo: string;
-  onBack: () => void;
-}
+export function SettingsView() {
+  const { socket } = useSocketContext();
+  const {
+    appSettings: settings,
+    handleSettingsChange: onSettingsChange,
+  } = useAppSettingsContext();
+  const { repository } = useRepositoryContext();
+  const { currentRepo } = repository;
+  const { closeSettings: onBack } = useNavigationContext();
 
-export function SettingsView({
-  socket,
-  settings,
-  onSettingsChange,
-  currentRepo,
-  onBack,
-}: SettingsViewProps) {
   const webPush = useWebPush(socket, true, currentRepo);
 
   const [claudeHooks, setClaudeHooks] = useState<HooksProviderState>({

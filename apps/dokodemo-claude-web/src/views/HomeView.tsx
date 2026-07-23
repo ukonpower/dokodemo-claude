@@ -1,65 +1,43 @@
-import type { GitRepository, RepoProcessStatus } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
 
 import RepositoryManager from '@/features/repo/components/RepositoryManager';
 import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import s from './HomeView.module.scss';
 
-interface HomeViewProps {
+export function HomeView() {
   // 接続状態
-  isConnected: boolean;
-  connectionAttempts: number;
-  isReconnecting: boolean;
+  const { isConnected, connectionAttempts, isReconnecting } =
+    useSocketContext();
 
   // リポジトリ関連（repositories はサーバー側でソート済み）
-  repositories: GitRepository[];
-  currentRepo: string;
-  repoProcessStatuses: RepoProcessStatus[];
-
-  // リポジトリアクション
-  onCloneRepository: (url: string, name: string) => void;
-  onCreateRepository: (name: string) => void;
-  onStopProcesses: (rid: string) => void;
-  onSwitchRepository: (path: string) => void;
-  onPullSelf: () => void;
-  selfUpdateAvailable: boolean;
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const {
+    repositories,
+    currentRepo,
+    repoProcessStatuses,
+    // リポジトリアクション
+    cloneRepository: onCloneRepository,
+    createRepository: onCreateRepository,
+    showStopProcessConfirmDialog: onStopProcesses,
+    pullSelf: onPullSelf,
+    selfUpdateAvailable,
+    // ローディング状態
+    isSwitchingRepo,
+    // プロセス停止確認ダイアログ
+    showStopProcessConfirm,
+    stoppingProcesses,
+    stopProcessTargetRid,
+    confirmStopProcesses: onConfirmStopProcesses,
+    cancelStopProcesses: onCancelStopProcesses,
+  } = repository;
 
   // 設定ページへの遷移
-  onOpenSettings: () => void;
+  const { openSettings: onOpenSettings } = useNavigationContext();
 
-  // ローディング状態
-  isSwitchingRepo: boolean;
-
-  // プロセス停止確認ダイアログ
-  showStopProcessConfirm: boolean;
-  stoppingProcesses: boolean;
-  stopProcessTargetRid: string | null;
-  onConfirmStopProcesses: () => void;
-  onCancelStopProcesses: () => void;
-
-}
-
-export function HomeView({
-  isConnected,
-  connectionAttempts,
-  isReconnecting,
-  repositories,
-  currentRepo,
-  repoProcessStatuses,
-  onCloneRepository,
-  onCreateRepository,
-  onStopProcesses,
-  onSwitchRepository,
-  onPullSelf,
-  selfUpdateAvailable,
-  onOpenSettings,
-  isSwitchingRepo,
-  showStopProcessConfirm,
-  stoppingProcesses,
-  stopProcessTargetRid,
-  onConfirmStopProcesses,
-  onCancelStopProcesses,
-}: HomeViewProps) {
   const useHttps = import.meta.env.DC_USE_HTTPS !== 'false';
   // 同一オリジン (dev: Vite proxy / prod: Express 統合配信) で配信
   const certDownloadUrl = '/api/cert';
