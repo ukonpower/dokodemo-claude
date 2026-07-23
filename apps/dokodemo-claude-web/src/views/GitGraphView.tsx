@@ -9,14 +9,14 @@ import {
 } from 'lucide-react';
 import type { UseGitGraphReturn } from '../hooks';
 import type { GitGraphRef } from '../types';
-import GitGraphTable from '../components/GitGraphTable';
-import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
-import GitGraphBranchDropdown from '../components/GitGraphBranchDropdown';
-import GitGraphFindWidget from '../components/GitGraphFindWidget';
+import GitGraphTable from '../components/git/GitGraphTable';
+import GitGraphCommitDetail from '../components/git/GitGraphCommitDetail';
+import GitGraphBranchDropdown from '../components/git/GitGraphBranchDropdown';
+import GitGraphFindWidget from '../components/git/GitGraphFindWidget';
 import GitGraphContextMenu, {
   type GitGraphMenuItem,
-} from '../components/GitGraphContextMenu';
-import GitGraphActionDialog from '../components/GitGraphActionDialog';
+} from '../components/git/GitGraphContextMenu';
+import GitGraphActionDialog from '../components/git/GitGraphActionDialog';
 import s from './GitGraphView.module.scss';
 
 /** checkout / merge 確認ダイアログの内容（種別ごとの discriminated union） */

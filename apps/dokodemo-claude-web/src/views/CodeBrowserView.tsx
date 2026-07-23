@@ -1,8 +1,8 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { ArrowLeft, GitCompare, FolderTree, GitFork } from 'lucide-react';
-import FileTree from '../components/FileTree';
-import FileContentViewer from '../components/FileContentViewer';
-import DiffSummary from '../components/DiffSummary';
+import FileTree from '../components/files/FileTree';
+import FileContentViewer from '../components/files/FileContentViewer';
+import DiffSummary from '../components/git/DiffSummary';
 import GitGraphView from './GitGraphView';
 import type { UseFileViewerReturn } from '../hooks/useFileViewer';
 import type { UseGitDiffReturn } from '../hooks/useGitDiff';

@@ -28,14 +28,14 @@ import type {
 } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
-import RepoHeader from '../components/RepoHeader';
-import RepositorySwitcher from '../components/RepositorySwitcher';
-import WorktreeDashboardCard from '../components/WorktreeDashboardCard';
-import TextInput from '../components/CommandInput';
+import RepoHeader from '../components/repo/RepoHeader';
+import RepositorySwitcher from '../components/repo/RepositorySwitcher';
+import WorktreeDashboardCard from '../components/worktree/WorktreeDashboardCard';
+import TextInput from '../components/ai/CommandInput';
 import DashboardSidebar, {
   DashboardSidebarHandle,
-} from '../components/DashboardSidebar';
-import DashboardFilterModal from '../components/DashboardFilterModal';
+} from '../components/worktree/DashboardSidebar';
+import DashboardFilterModal from '../components/worktree/DashboardFilterModal';
 import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
 

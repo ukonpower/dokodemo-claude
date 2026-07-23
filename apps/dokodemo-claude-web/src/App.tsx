@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { AiInstanceTabsHandle } from './components/AiInstanceTabs';
+import type { AiInstanceTabsHandle } from './components/ai/AiInstanceTabs';
 import type {
   AiOutputLine,
   ServerToClientEvents,
@@ -39,8 +39,8 @@ import {
   SettingsView,
 } from './views';
 
-import ProjectSwitcherModal from './components/ProjectSwitcherModal';
-import CommandPaletteModal from './components/CommandPaletteModal';
+import ProjectSwitcherModal from './components/repo/ProjectSwitcherModal';
+import CommandPaletteModal from './components/ui/CommandPaletteModal';
 import { buildCommands, type CommandPaletteCommand } from './commands';
 import { Socket } from 'socket.io-client';
 
