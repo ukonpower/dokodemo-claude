@@ -258,15 +258,13 @@ export function SettingsView({
   const renderHooksRow = (
     provider: AiProvider,
     label: string,
-    scope: string,
+    hint: string,
     state: HooksProviderState
   ) => (
     <div className={s.row} key={provider}>
       <div className={s.rowInfo}>
-        <div className={s.rowLabelLine}>
-          <span className={s.rowLabel}>{label}</span>
-          <code className={s.scopeTag}>{scope}</code>
-        </div>
+        <span className={s.rowLabel}>{label}</span>
+        <p className={s.rowDesc}>{hint}</p>
         {state.message && (
           <p className={state.message.type === 'success' ? s.messageSuccess : s.messageError}>
             {state.message.text}
@@ -324,10 +322,7 @@ export function SettingsView({
               <div className={s.card}>
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <div className={s.rowLabelLine}>
-                      <span className={s.rowLabel}>フォントサイズ</span>
-                      <code className={s.scopeTag}>このブラウザ</code>
-                    </div>
+                    <span className={s.rowLabel}>フォントサイズ</span>
                     <p className={s.rowDesc}>
                       ターミナルとCLI出力の文字サイズ
                     </p>
@@ -369,10 +364,7 @@ export function SettingsView({
               <div className={s.card}>
                 <div className={s.rowStack}>
                   <div className={s.rowInfo}>
-                    <div className={s.rowLabelLine}>
-                      <span className={s.rowLabel}>パーミッションモード</span>
-                      <code className={s.scopeTag}>このブラウザ</code>
-                    </div>
+                    <span className={s.rowLabel}>パーミッションモード</span>
                     <p className={s.rowDesc}>
                       Claude CLI セッション起動時の権限確認の扱い。変更は次回セッション作成時に反映されます
                     </p>
@@ -407,10 +399,7 @@ export function SettingsView({
 
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <div className={s.rowLabelLine}>
-                      <span className={s.rowLabel}>AIタブの指示内容要約</span>
-                      <code className={s.scopeTag}>サーバー共通</code>
-                    </div>
+                    <span className={s.rowLabel}>AIタブの指示内容要約</span>
                     <p className={s.rowDesc}>
                       AIに送った指示から「そのセッションが何に取り組んでいるか」を生成してタブに表示します（haiku を使用）
                     </p>
@@ -441,10 +430,7 @@ export function SettingsView({
               <div className={s.card}>
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <div className={s.rowLabelLine}>
-                      <span className={s.rowLabel}>Web Push通知</span>
-                      <code className={s.scopeTag}>このブラウザ</code>
-                    </div>
+                    <span className={s.rowLabel}>Web Push通知</span>
                     <p className={s.rowDesc}>
                       処理完了時や質問待ち状態になったときにブラウザ通知を送信します
                     </p>
@@ -532,8 +518,8 @@ export function SettingsView({
                     プロンプトキューの自動処理とWeb Push通知を有効化します。処理完了時に次のキューアイテムを自動実行できます
                   </p>
                 </div>
-                {renderHooksRow('claude', 'Claude Code', '~/.claude/settings.json', claudeHooks)}
-                {renderHooksRow('codex', 'Codex CLI', '~/.codex/hooks.json', codexHooks)}
+                {renderHooksRow('claude', 'Claude Code', '~/.claude/settings.json に hooks 設定を追加', claudeHooks)}
+                {renderHooksRow('codex', 'Codex CLI', '~/.codex/hooks.json に hooks 設定を追加', codexHooks)}
 
                 <div className={s.groupHeader}>
                   <span className={s.groupTitle}>Claude Code プラグイン</span>
@@ -543,10 +529,7 @@ export function SettingsView({
                 </div>
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <div className={s.rowLabelLine}>
-                      <span className={s.rowLabel}>dokodemo-claude-tools</span>
-                      <code className={s.scopeTag}>~/.claude</code>
-                    </div>
+                    <span className={s.rowLabel}>dokodemo-claude-tools</span>
                     {pluginState.message && (
                       <p
                         className={
