@@ -179,7 +179,6 @@ export function useSocketBootstrap(options: UseSocketBootstrapOptions): void {
         socket.emit('get-files', { rid: data.rid });
         socket.emit('get-git-diff-summary', { rid: data.rid });
         socket.emit('get-repos-process-status');
-        // @ts-expect-error get-remote-url is not in ClientToServerEvents
         socket.emit('get-remote-url', { rid: data.rid });
       }
     };

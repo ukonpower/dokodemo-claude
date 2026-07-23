@@ -1,12 +1,13 @@
+import type { PermissionMode } from '@/types';
+
 /**
  * フォントサイズプリセット
  */
 export type FontSizePreset = 'small' | 'medium' | 'large';
 
-/**
- * パーミッションモード
- */
-export type PermissionMode = 'disabled' | 'auto' | 'dangerous';
+// パーミッションモードの定義は shared-types（settings.d.ts）へ移動。
+// 既存の import 元互換のため re-export する
+export type { PermissionMode };
 
 /**
  * アプリケーション設定

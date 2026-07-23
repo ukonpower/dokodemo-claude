@@ -92,7 +92,7 @@ export function useEditorLauncher(
 
     // リモートURL受信
     const handleRemoteUrl = (
-      data: { success: boolean; remoteUrl?: string }
+      data: Parameters<ServerToClientEvents['remote-url']>[0]
     ) => {
       if (data.success && data.remoteUrl) {
         setRemoteUrl(data.remoteUrl);
@@ -135,18 +135,14 @@ export function useEditorLauncher(
     };
 
     socket.on('available-editors', handleAvailableEditors);
-    // @ts-expect-error remote-url is not in ServerToClientEvents
     socket.on('remote-url', handleRemoteUrl);
     socket.on('editor-opened', handleEditorOpened);
-    // @ts-expect-error code-server-url is not in ServerToClientEvents
     socket.on('code-server-url', handleCodeServerUrl);
 
     return () => {
       socket.off('available-editors', handleAvailableEditors);
-      // @ts-expect-error remote-url is not in ServerToClientEvents
       socket.off('remote-url', handleRemoteUrl);
       socket.off('editor-opened', handleEditorOpened);
-      // @ts-expect-error code-server-url is not in ServerToClientEvents
       socket.off('code-server-url', handleCodeServerUrl);
     };
   }, [socket]);

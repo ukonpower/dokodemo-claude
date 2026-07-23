@@ -17,7 +17,10 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@dokodemo-workspace/shared-types": [
+        "../../libs/shared-types/src/index.d.ts"
+      ]
     }
   },
   "include": ["src"],
