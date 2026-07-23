@@ -36,7 +36,6 @@ import DashboardSidebar, {
   DashboardSidebarHandle,
 } from '../components/DashboardSidebar';
 import DashboardFilterModal from '../components/DashboardFilterModal';
-import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
 
@@ -51,8 +50,7 @@ interface DashboardViewProps {
   currentRepo: string;
   repositories: GitRepository[];
   repoProcessStatuses: RepoProcessStatus[];
-  appSettings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
+  onOpenSettings: () => void;
   onPasteFile?: (file: File) => Promise<string | undefined>;
   isUploadingFile: boolean;
   uploadProgress?: number | null;
@@ -177,8 +175,7 @@ export function DashboardView({
   currentRepo,
   repositories,
   repoProcessStatuses,
-  appSettings,
-  onSettingsChange,
+  onOpenSettings,
   onPasteFile,
   isUploadingFile,
   uploadProgress,
@@ -221,9 +218,6 @@ export function DashboardView({
 
   // 一斉送信トースト
   const [toast, setToast] = useState<string | null>(null);
-
-  // 設定モーダル
-  const [showSettings, setShowSettings] = useState(false);
 
   // 一斉送信バー専用の送信設定（worktree カード群とは独立）
   const [broadcastSendSettings, setBroadcastSendSettings] =
@@ -477,7 +471,7 @@ export function DashboardView({
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
         onOpenGraphView={onOpenGraphView}
-        onOpenSettings={() => setShowSettings(true)}
+        onOpenSettings={onOpenSettings}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}
         availableEditors={availableEditors}
@@ -675,15 +669,6 @@ export function DashboardView({
         visibleRids={visibleRids}
         onToggleVisible={handleToggleVisible}
         onSetAllVisible={handleSetAllVisible}
-      />
-
-      <SettingsModal
-        isOpen={showSettings}
-        settings={appSettings}
-        onClose={() => setShowSettings(false)}
-        onSettingsChange={onSettingsChange}
-        socket={socket}
-        currentRepo={currentRepo}
       />
 
       <RepositorySwitcher

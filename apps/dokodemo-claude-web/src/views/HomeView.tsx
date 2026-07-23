@@ -1,21 +1,11 @@
-import { Socket } from 'socket.io-client';
-import type {
-  GitRepository,
-  RepoProcessStatus,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '../types';
+import type { GitRepository, RepoProcessStatus } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 
 import RepositoryManager from '../components/RepositoryManager';
 import RepositorySwitcher from '../components/RepositorySwitcher';
-import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import s from './HomeView.module.scss';
 
 interface HomeViewProps {
-  // Socket
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-
   // 接続状態
   isConnected: boolean;
   connectionAttempts: number;
@@ -34,11 +24,8 @@ interface HomeViewProps {
   onPullSelf: () => void;
   selfUpdateAvailable: boolean;
 
-  // 設定関連
-  appSettings: AppSettings;
-  showSettingsModal: boolean;
-  setShowSettingsModal: (show: boolean) => void;
-  onSettingsChange: (settings: AppSettings) => void;
+  // 設定ページへの遷移
+  onOpenSettings: () => void;
 
   // ローディング状態
   isSwitchingRepo: boolean;
@@ -53,7 +40,6 @@ interface HomeViewProps {
 }
 
 export function HomeView({
-  socket,
   isConnected,
   connectionAttempts,
   isReconnecting,
@@ -66,10 +52,7 @@ export function HomeView({
   onSwitchRepository,
   onPullSelf,
   selfUpdateAvailable,
-  appSettings,
-  showSettingsModal,
-  setShowSettingsModal,
-  onSettingsChange,
+  onOpenSettings,
   isSwitchingRepo,
   showStopProcessConfirm,
   stoppingProcesses,
@@ -127,7 +110,7 @@ export function HomeView({
               <div className={s.headerRight}>
                 {/* 設定ボタン */}
                 <button
-                  onClick={() => setShowSettingsModal(true)}
+                  onClick={onOpenSettings}
                   className={s.iconButton}
                   title="設定"
                 >
@@ -418,15 +401,6 @@ export function HomeView({
         </div>
       )}
 
-      {/* 設定モーダル */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        settings={appSettings}
-        onClose={() => setShowSettingsModal(false)}
-        onSettingsChange={onSettingsChange}
-        socket={socket}
-        currentRepo={currentRepo}
-      />
     </div>
   );
 }
