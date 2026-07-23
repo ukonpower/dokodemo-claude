@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
-import type { GitRepository, RepoProcessStatus } from '@/types';
+import type { GitRepository } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import AddRepositoryModal from './AddRepositoryModal';
 import ProjectAiStatusBadge from '@/features/ai/components/ProjectAiStatusBadge';
@@ -18,28 +20,22 @@ function getDisplayName(repo: GitRepository): string {
   return repo.name;
 }
 
-interface RepositoryManagerProps {
-  // repositories はサーバー側で「最近開いた順」にソート済み
-  repositories: GitRepository[];
-  currentRepo: string;
-  repoProcessStatuses: RepoProcessStatus[];
-  onCloneRepository: (url: string, name: string) => void;
-  onCreateRepository: (name: string) => void;
-  onStopProcesses: (rid: string) => void;
-  onSwitchRepository: (path: string) => void;
-  isConnected: boolean;
-}
+const RepositoryManager: React.FC = () => {
+  // 接続状態
+  const { isConnected } = useSocketContext();
 
-const RepositoryManager: React.FC<RepositoryManagerProps> = ({
-  repositories,
-  currentRepo,
-  repoProcessStatuses,
-  onCloneRepository,
-  onCreateRepository,
-  onStopProcesses,
-  onSwitchRepository,
-  isConnected,
-}) => {
+  // リポジトリ関連（repositories はサーバー側で「最近開いた順」にソート済み）
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const {
+    repositories,
+    currentRepo,
+    repoProcessStatuses,
+    cloneRepository: onCloneRepository,
+    createRepository: onCreateRepository,
+    showStopProcessConfirmDialog: onStopProcesses,
+  } = repository;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);

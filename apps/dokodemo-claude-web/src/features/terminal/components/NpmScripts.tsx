@@ -1,21 +1,25 @@
 import React, { useEffect } from 'react';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
 import s from './NpmScripts.module.scss';
 
-interface NpmScriptsProps {
-  repositoryPath: string;
-  scripts: Record<string, string>;
-  isConnected: boolean;
-  onExecuteScript: (scriptName: string) => void;
-  onRefreshScripts: () => void;
-}
+const NpmScripts: React.FC = () => {
+  // 接続状態
+  const { isConnected } = useSocketContext();
 
-const NpmScripts: React.FC<NpmScriptsProps> = ({
-  repositoryPath,
-  scripts,
-  isConnected,
-  onExecuteScript,
-  onRefreshScripts,
-}) => {
+  // リポジトリ関連
+  const { repository } = useRepositoryContext();
+  const { currentRepo: repositoryPath } = repository;
+
+  // npmスクリプト関連
+  const { npm } = useTerminalContext();
+  const {
+    npmScripts: scripts,
+    executeNpmScript: onExecuteScript,
+    refreshNpmScripts: onRefreshScripts,
+  } = npm;
+
   useEffect(() => {
     // リポジトリが変更されたときにスクリプトを取得
     if (repositoryPath && isConnected) {

@@ -13,16 +13,10 @@ export function HomeView() {
     useSocketContext();
 
   // リポジトリ関連（repositories はサーバー側でソート済み）
-  const { repository, switchRepositoryFromList: onSwitchRepository } =
-    useRepositoryContext();
+  const { repository } = useRepositoryContext();
   const {
     repositories,
-    currentRepo,
-    repoProcessStatuses,
     // リポジトリアクション
-    cloneRepository: onCloneRepository,
-    createRepository: onCreateRepository,
-    showStopProcessConfirmDialog: onStopProcesses,
     pullSelf: onPullSelf,
     selfUpdateAvailable,
     // ローディング状態
@@ -183,16 +177,7 @@ export function HomeView() {
 
             <div className={s.repoManagerCard}>
               <div className={s.repoManagerInner}>
-                <RepositoryManager
-                  repositories={repositories}
-                  currentRepo={currentRepo}
-                  repoProcessStatuses={repoProcessStatuses}
-                  onCloneRepository={onCloneRepository}
-                  onCreateRepository={onCreateRepository}
-                  onStopProcesses={onStopProcesses}
-                  onSwitchRepository={onSwitchRepository}
-                  isConnected={isConnected}
-                />
+                <RepositoryManager />
               </div>
             </div>
           </div>
@@ -237,12 +222,7 @@ export function HomeView() {
         )}
 
         {/* リポジトリ切り替えメニュー（画面下部固定） */}
-        <RepositorySwitcher
-          repositories={repositories}
-          currentRepo={currentRepo}
-          repoProcessStatuses={repoProcessStatuses}
-          onSwitchRepository={onSwitchRepository}
-        />
+        <RepositorySwitcher />
       </div>
 
       {/* プロセス停止確認ダイアログ */}

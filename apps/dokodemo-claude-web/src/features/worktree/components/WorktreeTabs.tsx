@@ -19,16 +19,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type {
-  GitWorktree,
-  GitWorktreePrInfo,
-  GitBranch,
-  WorktreeSyncEntry,
-} from '@/types';
-import type {
-  WorktreeSyncConfigState,
-  WorktreeSyncCandidatesState,
-} from '@/features/worktree/hooks/useBranchWorktree';
+import type { GitWorktree, GitWorktreePrInfo } from '@/types';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { setLastWorktreeForParent } from '@/shared/utils/last-tab-storage';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
@@ -184,57 +178,30 @@ function SortableWorktreeTab({
 }
 
 interface WorktreeTabsProps {
-  worktrees: GitWorktree[];
-  currentWorktreePath: string;
-  parentRepoPath: string;
-  onCreateWorktree: (
-    branchName: string,
-    baseBranch: string | undefined,
-    useExisting: boolean,
-    syncEntries: WorktreeSyncEntry[]
-  ) => void;
-  onReorderWorktrees: (orderedBranchPaths: string[]) => void;
-  onDeleteWorktree: (worktreePath: string, deleteBranch: boolean) => void;
-  onMergeWorktree: (worktreePath: string) => void;
-  onSwitchRepository: (path: string) => void;
-  isConnected: boolean;
-  branches: GitBranch[];
-  onRefreshBranches: () => void;
-  isDeletingWorktree?: boolean;
   compact?: boolean;
-  syncConfig: WorktreeSyncConfigState | null;
-  onRequestSyncConfig: () => void;
-  onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
-  syncCandidates: WorktreeSyncCandidatesState | null;
-  onRequestSyncCandidates: (dirPath: string) => void;
-  worktreeCreateError: { message: string } | null;
-  worktreeCreateSuccessNonce: number;
-  onClearWorktreeCreateError: () => void;
 }
 
-function WorktreeTabs({
-  worktrees,
-  currentWorktreePath,
-  parentRepoPath,
-  onCreateWorktree,
-  onReorderWorktrees,
-  onDeleteWorktree,
-  onMergeWorktree,
-  onSwitchRepository,
-  isConnected,
-  branches,
-  onRefreshBranches,
-  isDeletingWorktree = false,
-  compact = false,
-  syncConfig,
-  onRequestSyncConfig,
-  onSaveSyncConfig,
-  syncCandidates,
-  onRequestSyncCandidates,
-  worktreeCreateError,
-  worktreeCreateSuccessNonce,
-  onClearWorktreeCreateError,
-}: WorktreeTabsProps) {
+function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
+  // 接続状態
+  const { isConnected } = useSocketContext();
+
+  // 現在開いているワークツリーのパス
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const { currentRepo: currentWorktreePath } = repository;
+
+  // ブランチ・ワークツリー関連
+  const {
+    worktrees,
+    parentRepoPath,
+    reorderWorktrees: onReorderWorktrees,
+    deleteWorktree: onDeleteWorktree,
+    mergeWorktree: onMergeWorktree,
+    isDeletingWorktree,
+    worktreeCreateSuccessNonce,
+    clearWorktreeCreateError: onClearWorktreeCreateError,
+  } = useWorktreeContext();
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -384,20 +351,10 @@ function WorktreeTabs({
 
         {showCreateModal && (
           <WorktreeCreateModal
-            parentRepoPath={parentRepoPath}
-            branches={branches}
-            onRefreshBranches={onRefreshBranches}
-            syncConfig={syncConfig}
-            onRequestSyncConfig={onRequestSyncConfig}
-            onSaveSyncConfig={onSaveSyncConfig}
-            syncCandidates={syncCandidates}
-            onRequestSyncCandidates={onRequestSyncCandidates}
-            worktreeCreateError={worktreeCreateError}
             onClose={() => {
               setShowCreateModal(false);
               onClearWorktreeCreateError();
             }}
-            onCreate={onCreateWorktree}
           />
         )}
       </div>
@@ -593,20 +550,10 @@ function WorktreeTabs({
       {/* 作成モーダル */}
       {showCreateModal && (
         <WorktreeCreateModal
-          parentRepoPath={parentRepoPath}
-          branches={branches}
-          onRefreshBranches={onRefreshBranches}
-          syncConfig={syncConfig}
-          onRequestSyncConfig={onRequestSyncConfig}
-          onSaveSyncConfig={onSaveSyncConfig}
-          syncCandidates={syncCandidates}
-          onRequestSyncCandidates={onRequestSyncCandidates}
-          worktreeCreateError={worktreeCreateError}
           onClose={() => {
             setShowCreateModal(false);
             onClearWorktreeCreateError();
           }}
-          onCreate={onCreateWorktree}
         />
       )}
 

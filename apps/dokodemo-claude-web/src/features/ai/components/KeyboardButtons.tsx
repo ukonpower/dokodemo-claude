@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { CustomAiButton, CustomAiButtonScope } from '@/types';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useAiContext } from '@/features/ai/providers/AiProvider';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
@@ -10,43 +13,10 @@ import s from './KeyboardButtons.module.scss';
 const DESKTOP_MEDIA_QUERY = '(min-width: 860px)';
 
 interface KeyboardButtonsProps {
-  disabled?: boolean;
-  onSendArrowKey?: (direction: 'up' | 'down' | 'left' | 'right') => void;
+  /** Enter ボタン押下時の動作（入力欄の submit など、呼び出し元が決める） */
   onSendEnter: () => void;
-  onSendInterrupt?: () => void;
-  onSendEscape?: () => void;
-  onSendSpace?: () => void;
-  onClearAi?: () => void;
-  onSendResume?: () => void;
-  onSendUsage?: () => void;
-  onSendPreview?: () => void;
-  onSendMode?: () => void;
-  onSendAltT?: () => void;
-  onChangeModel?: (model: string) => void;
-  onSendCommit?: () => void;
-  currentProvider?: string;
-  providerInfo?: {
-    clearTitle: string;
-  };
-
-  // カスタム送信ボタン
-  currentRepositoryPath?: string;
-  customButtons: CustomAiButton[];
+  /** カスタムボタンのコマンド送信（送信後スクロールなど、呼び出し元が決める） */
   onExecuteCustomButton: (command: string) => void;
-  onCreateCustomButton: (
-    name: string,
-    command: string,
-    scope: CustomAiButtonScope,
-    repositoryPath?: string
-  ) => void;
-  onUpdateCustomButton: (
-    id: string,
-    name: string,
-    command: string,
-    scope: CustomAiButtonScope,
-    repositoryPath?: string
-  ) => void;
-  onDeleteCustomButton: (id: string) => void;
 }
 
 type DialogState =
@@ -210,29 +180,45 @@ function CustomButtonDialog({
 }
 
 export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
-  disabled = false,
-  onSendArrowKey,
   onSendEnter,
-  onSendInterrupt,
-  onSendEscape,
-  onSendSpace,
-  onClearAi,
-  onSendResume,
-  onSendUsage,
-  onSendPreview,
-  onSendMode,
-  onSendAltT,
-  onChangeModel,
-  onSendCommit,
-  currentProvider = 'claude',
-  providerInfo,
-  currentRepositoryPath,
-  customButtons,
   onExecuteCustomButton,
-  onCreateCustomButton,
-  onUpdateCustomButton,
-  onDeleteCustomButton,
 }) => {
+  // 接続状態
+  const { isConnected } = useSocketContext();
+
+  // リポジトリ関連
+  const { repository } = useRepositoryContext();
+  const { currentRepo: currentRepositoryPath } = repository;
+
+  // AI CLI関連（active instance に対する操作）
+  const { aiCli, customAiButtons: customAiButtonsApi } = useAiContext();
+  const {
+    activeInstance,
+    sendArrowKey: onSendArrowKey,
+    sendAltT: onSendAltT,
+    sendInterrupt: onSendInterrupt,
+    sendEscape: onSendEscape,
+    sendSpace: onSendSpace,
+    sendClear: onClearAi,
+    sendCommit: onSendCommit,
+    sendPreview: onSendPreview,
+    sendResume: onSendResume,
+    sendUsage: onSendUsage,
+    sendMode: onSendMode,
+    changeModel: onChangeModel,
+  } = aiCli;
+  const currentProvider = activeInstance?.provider ?? 'claude';
+  const disabled = !isConnected || !currentRepositoryPath || !activeInstance;
+  const providerInfo = { clearTitle: 'CLI をクリア (/clear)' };
+
+  // カスタム送信ボタン関連
+  const {
+    buttons: customButtons,
+    createButton: onCreateCustomButton,
+    updateButton: onUpdateCustomButton,
+    deleteButton: onDeleteCustomButton,
+  } = customAiButtonsApi;
+
   const [showModelMenu, setShowModelMenu] = useState(false);
   const modelWrapperRef = useRef<HTMLDivElement | null>(null);
   const closeModelMenu = useCallback(() => setShowModelMenu(false), []);
@@ -496,20 +482,14 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         /* モバイル/タブレット: 左=矢印キー+Enter、右=セッションコマンド */
         <div className={s.mainRow}>
           <div className={s.arrowGroup}>
-            {(onSendEscape || onSendSpace) && (
-              <div className={s.escColumn}>
-                {onSendEscape && (
-                  <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
-                    ESC
-                  </button>
-                )}
-                {onSendSpace && (
-                  <button type="button" onClick={onSendSpace} disabled={disabled} className={s.spaceButton} title="スペース送信">
-                    Space
-                  </button>
-                )}
-              </div>
-            )}
+            <div className={s.escColumn}>
+              <button type="button" onClick={onSendEscape} disabled={disabled} className={s.escButton} title="エスケープキー (ESC)">
+                ESC
+              </button>
+              <button type="button" onClick={onSendSpace} disabled={disabled} className={s.spaceButton} title="スペース送信">
+                Space
+              </button>
+            </div>
             {onSendArrowKey && (
               <div className={s.arrowGrid}>
                 <div></div>

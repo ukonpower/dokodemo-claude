@@ -1,53 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import type {
-  Terminal,
-  TerminalMessage,
-  TerminalOutputLine,
-  CommandShortcut,
-} from '@/types';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
 import TerminalComponent from './Terminal';
 import s from './TerminalManager.module.scss';
 
-interface TerminalManagerProps {
-  terminals: Terminal[];
-  messages: TerminalMessage[];
-  histories: Map<string, TerminalOutputLine[]>;
-  shortcuts: CommandShortcut[];
-  currentRepo: string;
-  isConnected: boolean;
-  isTerminalsLoaded: boolean;
-  onCreateTerminal: (cwd: string, name?: string) => void;
-  onTerminalInput: (terminalId: string, input: string) => void;
-  onTerminalSignal: (terminalId: string, signal: string) => void;
-  onTerminalResize: (terminalId: string, cols: number, rows: number) => void;
-  onCloseTerminal: (terminalId: string) => void;
-  onCreateShortcut: (name: string, command: string) => void;
-  onDeleteShortcut: (shortcutId: string) => void;
-  onExecuteShortcut: (shortcutId: string, terminalId: string) => void;
-  onActiveTerminalChange?: (terminalId: string) => void;
-  /** カスタムフォントサイズ */
-  fontSize?: number;
-}
+const TerminalManager: React.FC = () => {
+  // 接続状態
+  const { isConnected } = useSocketContext();
 
-const TerminalManager: React.FC<TerminalManagerProps> = ({
-  terminals,
-  messages,
-  histories,
-  shortcuts,
-  currentRepo,
-  isConnected,
-  // isTerminalsLoaded は使用されていないため受け取らない
-  onCreateTerminal,
-  onTerminalInput,
-  onTerminalSignal,
-  onTerminalResize,
-  onCloseTerminal,
-  onCreateShortcut,
-  onDeleteShortcut,
-  onExecuteShortcut,
-  onActiveTerminalChange,
-  fontSize,
-}) => {
+  // リポジトリ関連
+  const { repository } = useRepositoryContext();
+  const { currentRepo } = repository;
+
+  // 設定関連（カスタムフォントサイズ）
+  const { terminalFontSize: fontSize } = useAppSettingsContext();
+
+  // ターミナル関連
+  const { terminal } = useTerminalContext();
+  const {
+    terminals,
+    terminalMessages: messages,
+    terminalHistories: histories,
+    shortcuts,
+    createTerminal: onCreateTerminal,
+    closeTerminal: onCloseTerminal,
+    sendInput: onTerminalInput,
+    sendSignal: onTerminalSignal,
+    resize: onTerminalResize,
+    setActiveTerminalId: onActiveTerminalChange,
+    createShortcut: onCreateShortcut,
+    deleteShortcut: onDeleteShortcut,
+    executeShortcut: onExecuteShortcut,
+  } = terminal;
+
   const [activeTerminalId, setActiveTerminalId] = useState<string>('');
   const [showCreateShortcut, setShowCreateShortcut] = useState(false);
   const [shortcutName, setShortcutName] = useState('');

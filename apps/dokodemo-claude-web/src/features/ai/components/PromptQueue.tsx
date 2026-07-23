@@ -16,7 +16,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import type { PromptQueueItem } from '@/types';
-import type { LoopEndInfo, LoopSettings } from '@/features/ai/hooks/usePromptQueue';
+import type { LoopSettings } from '@/features/ai/hooks/usePromptQueue';
+import { useQueueContext } from '@/features/ai/providers/QueueProvider';
 import SortableQueueItem from './SortableQueueItem';
 import type { EditLoopSettings } from './SortableQueueItem';
 import {
@@ -27,52 +28,28 @@ import {
 import LoopStatusBar from './LoopStatusBar';
 import s from './PromptQueue.module.scss';
 
-interface PromptQueueProps {
-  queue: PromptQueueItem[];
-  isProcessing: boolean;
-  isPaused: boolean;
-  currentItemId?: string;
-  onRemove?: (itemId: string) => void;
-  onUpdate?: (
-    itemId: string,
-    prompt: string,
-    sendClearBefore: boolean,
-    isAutoCommit: boolean,
-    model?: string,
-    loop?: LoopSettings | null
-  ) => void;
-  onReorder?: (reorderedQueue: PromptQueueItem[]) => void;
-  onPause?: () => void;
-  onResume?: () => void;
-  onForceSend?: (itemId: string) => void;
-  onRequeue?: (itemId: string) => void;
-  onReset?: () => void;
-  onCancelCurrentItem?: () => void;
-  onStopLoop?: (itemId: string) => void;
-  onApproveLoop?: (itemId: string, approved: boolean) => void;
-  loopEndInfo?: LoopEndInfo | null;
-  onDismissLoopEnd?: () => void;
-}
+const PromptQueue: React.FC = () => {
+  // プロンプトキュー関連
+  const {
+    promptQueue: queue,
+    isQueueProcessing: isProcessing,
+    isQueuePaused: isPaused,
+    currentItemId,
+    removeFromQueue: onRemove,
+    updateQueue: onUpdate,
+    reorderQueue: onReorder,
+    pauseQueue: onPause,
+    resumeQueue: onResume,
+    resetQueue: onReset,
+    cancelCurrentItem: onCancelCurrentItem,
+    forceSend: onForceSend,
+    requeueItem: onRequeue,
+    stopLoop: onStopLoop,
+    approveLoopContinuation: onApproveLoop,
+    loopEndInfo,
+    dismissLoopEnd: onDismissLoopEnd,
+  } = useQueueContext();
 
-const PromptQueue: React.FC<PromptQueueProps> = ({
-  queue,
-  isProcessing,
-  isPaused,
-  currentItemId,
-  onRemove,
-  onUpdate,
-  onReorder,
-  onPause,
-  onResume,
-  onReset,
-  onCancelCurrentItem,
-  onForceSend,
-  onRequeue,
-  onStopLoop,
-  onApproveLoop,
-  loopEndInfo,
-  onDismissLoopEnd,
-}) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [editSendClearBefore, setEditSendClearBefore] = useState(false);
@@ -298,7 +275,7 @@ const PromptQueue: React.FC<PromptQueueProps> = ({
       </DndContext>
 
       {/* フッター: 処理状態 + 操作ボタン */}
-      {(isProcessing || isPaused || (queue.length > 0 && onReset)) && (
+      {(isProcessing || isPaused || queue.length > 0) && (
         <div className={s.footer}>
           <div className={s.footerLeft}>
             {isProcessing && (

@@ -3,17 +3,10 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Mousewheel } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
-import type { GitRepository, RepoProcessStatus } from '@/types';
+import type { GitRepository } from '@/types';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import ProjectAiStatusBadge from '@/features/ai/components/ProjectAiStatusBadge';
 import s from './RepositorySwitcher.module.scss';
-
-interface RepositorySwitcherProps {
-  // repositories はサーバー側で「最近開いた順」にソート済み
-  repositories: GitRepository[];
-  currentRepo: string;
-  repoProcessStatuses?: RepoProcessStatus[];
-  onSwitchRepository: (path: string) => void;
-}
 
 /**
  * リポジトリの表示名を取得
@@ -26,12 +19,12 @@ function getDisplayName(repo: GitRepository): string {
   return repo.name;
 }
 
-const RepositorySwitcher: React.FC<RepositorySwitcherProps> = ({
-  repositories,
-  currentRepo,
-  repoProcessStatuses = [],
-  onSwitchRepository,
-}) => {
+const RepositorySwitcher: React.FC = () => {
+  // repositories はサーバー側で「最近開いた順」にソート済み
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const { repositories, currentRepo, repoProcessStatuses } = repository;
+
   // リポジトリがない場合は表示しない
   if (repositories.length === 0) {
     return null;

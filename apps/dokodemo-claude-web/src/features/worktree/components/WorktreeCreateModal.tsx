@@ -8,34 +8,15 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import type {
-  GitBranch,
   WorktreeSyncEntry,
   WorktreeSyncMode,
 } from '@/types';
-import type {
-  WorktreeSyncConfigState,
-  WorktreeSyncCandidatesState,
-} from '@/features/worktree/hooks/useBranchWorktree';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './WorktreeCreateModal.module.scss';
 
 interface WorktreeCreateModalProps {
-  parentRepoPath: string;
-  branches: GitBranch[];
-  onRefreshBranches: () => void;
-  syncConfig: WorktreeSyncConfigState | null;
-  onRequestSyncConfig: () => void;
-  onSaveSyncConfig: (entries: WorktreeSyncEntry[]) => void;
-  syncCandidates: WorktreeSyncCandidatesState | null;
-  onRequestSyncCandidates: (dirPath: string) => void;
-  worktreeCreateError: { message: string } | null;
   onClose: () => void;
-  onCreate: (
-    branchName: string,
-    baseBranch: string | undefined,
-    useExisting: boolean,
-    syncEntries: WorktreeSyncEntry[]
-  ) => void;
 }
 
 // 入力中のパスを「ディレクトリ部分」と「フィルタ部分」に分割
@@ -49,19 +30,21 @@ function splitPath(input: string): { dirPath: string; filter: string } {
   };
 }
 
-function WorktreeCreateModal({
-  parentRepoPath,
-  branches,
-  onRefreshBranches,
-  syncConfig,
-  onRequestSyncConfig,
-  onSaveSyncConfig,
-  syncCandidates,
-  onRequestSyncCandidates,
-  worktreeCreateError,
-  onClose,
-  onCreate,
-}: WorktreeCreateModalProps) {
+function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
+  // ブランチ・ワークツリー関連
+  const {
+    parentRepoPath,
+    branches,
+    refreshBranches: onRefreshBranches,
+    worktreeSyncConfig: syncConfig,
+    requestWorktreeSyncConfig: onRequestSyncConfig,
+    saveWorktreeSyncConfig: onSaveSyncConfig,
+    worktreeSyncCandidates: syncCandidates,
+    requestWorktreeSyncCandidates: onRequestSyncCandidates,
+    worktreeCreateError,
+    createWorktree: onCreate,
+  } = useWorktreeContext();
+
   const [branchName, setBranchName] = useState('');
   const [baseBranch, setBaseBranch] = useState('');
   const [useExistingBranch, setUseExistingBranch] = useState(false);

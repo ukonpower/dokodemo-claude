@@ -8,7 +8,10 @@ import {
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
-import type { AiProvider, AiOutputLine } from '@/types';
+import type { AiOutputLine } from '@/types';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useAiContext } from '@/features/ai/providers/AiProvider';
 import TerminalOut from '@/shared/components/TerminalOut';
 import { getProviderInfo } from '@/features/ai/utils/ai-provider-info';
 import s from './AiOutput.module.scss';
@@ -40,13 +43,6 @@ const filterTerminalResponses = (content: string): string => {
 };
 
 interface AiOutputProps {
-  messages: AiOutputLine[];
-  currentProvider?: AiProvider;
-  isLoading?: boolean;
-  onKeyInput?: (key: string) => void;
-  onResize?: (cols: number, rows: number) => void;
-  /** カスタムフォントサイズ */
-  fontSize?: number;
   /** ターミナル上にファイルがドロップされた際のコールバック */
   onFileDrop?: (files: File[]) => void;
   /** 全画面表示中かどうか */
@@ -71,18 +67,29 @@ export interface AiOutputRef {
 const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
   (
     {
-      messages,
-      currentProvider = 'claude',
-      isLoading = false,
-      onKeyInput,
-      onResize,
-      fontSize,
       onFileDrop,
       isFullscreen = false,
       onToggleFullscreen,
     },
     ref
   ) => {
+    // リポジトリ読み込み状態
+    const { repository } = useRepositoryContext();
+    const { isLoadingRepoData: isLoading } = repository;
+
+    // AI CLI関連（active instance の出力・キー入力・リサイズ）
+    const { aiCli } = useAiContext();
+    const {
+      currentAiMessages: messages,
+      activeInstance,
+      handleKeyInput: onKeyInput,
+      handleResize: onResize,
+    } = aiCli;
+    const currentProvider = activeInstance?.provider ?? 'claude';
+
+    // 設定関連（カスタムフォントサイズ）
+    const { terminalFontSize: fontSize } = useAppSettingsContext();
+
     // XTerm.js インスタンスとアドオンの参照
     const xtermInstance = useRef<Terminal | null>(null);
     const fitAddon = useRef<FitAddon | null>(null);

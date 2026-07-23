@@ -18,13 +18,9 @@ import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useWorktreeDashboard } from '@/features/worktree/hooks/useWorktreeDashboard';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
-import { useAiContext } from '@/features/ai/providers/AiProvider';
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
-import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
-import { useGitGraphContext } from '@/features/git/providers/GitProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
-import { openFileViewerTab } from '@/app/utils/open-views';
 import RepoHeader from '@/features/repo/components/RepoHeader';
 import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import WorktreeDashboardCard from '@/features/worktree/components/WorktreeDashboardCard';
@@ -128,13 +124,10 @@ function readSidebarOpen(): boolean {
  * 上部の入力欄からは選択中の WT へ一斉に送信できる。
  */
 export function DashboardView() {
-  const { socket, isConnected, isReconnecting, connectionAttempts } =
-    useSocketContext();
+  const { socket, isConnected } = useSocketContext();
   const { repository, switchRepositoryFromList: onSwitchRepository } =
     useRepositoryContext();
-  const { currentRepo, repositories, repoProcessStatuses } = repository;
-  const { aiCli } = useAiContext();
-  const { primaryInstance } = aiCli;
+  const { currentRepo, repoProcessStatuses } = repository;
   const branchWorktree = useWorktreeContext();
   const { worktrees, parentRepoPath } = branchWorktree;
   const fileManager = useFileManagerContext();
@@ -144,8 +137,7 @@ export function DashboardView() {
     uploadProgress,
     cancelUpload: onCancelUpload,
   } = fileManager;
-  const { openSettings: onOpenSettings, setDashboardModeAndPersist } =
-    useNavigationContext();
+  const { setDashboardModeAndPersist } = useNavigationContext();
 
   // ダッシュボードを閉じて通常表示（プロジェクトビュー）へ戻る
   const onSwitchToProjectView = () => setDashboardModeAndPersist(false);
@@ -154,23 +146,6 @@ export function DashboardView() {
     setDashboardModeAndPersist(false);
     onSwitchRepository(path);
   };
-
-  // RepoHeader 用
-  const onOpenFileViewer = openFileViewerTab;
-  /** Git Graph（コミットグラフ）全画面ビューを開く */
-  const gitGraph = useGitGraphContext();
-  const onOpenGraphView = gitGraph.openGraphView;
-  const editorLauncher = useEditorLauncherContext();
-  const {
-    startingCodeServer,
-    isLocalhost,
-    availableEditors,
-    showEditorMenu,
-    setShowEditorMenu,
-    editorMenuRef,
-    openInEditor: onOpenInEditor,
-    remoteUrl,
-  } = editorLauncher;
 
   // 列数（auto / 1-4 列）
   const [columns, setColumns] = useState<'auto' | 1 | 2 | 3 | 4>(() =>
@@ -440,25 +415,7 @@ export function DashboardView() {
 
   return (
     <div className={s.root}>
-      <RepoHeader
-        isConnected={isConnected}
-        isReconnecting={isReconnecting}
-        connectionAttempts={connectionAttempts}
-        primaryInstance={primaryInstance}
-        repositories={repositories}
-        currentRepo={currentRepo}
-        onOpenFileViewer={onOpenFileViewer}
-        onOpenGraphView={onOpenGraphView}
-        onOpenSettings={onOpenSettings}
-        startingCodeServer={startingCodeServer}
-        isLocalhost={isLocalhost}
-        availableEditors={availableEditors}
-        showEditorMenu={showEditorMenu}
-        setShowEditorMenu={setShowEditorMenu}
-        editorMenuRef={editorMenuRef}
-        onOpenInEditor={onOpenInEditor}
-        remoteUrl={remoteUrl}
-      />
+      <RepoHeader />
 
       <div className={s.toolbar}>
         <div className={s.toolbarLeft}>
@@ -649,12 +606,7 @@ export function DashboardView() {
         onSetAllVisible={handleSetAllVisible}
       />
 
-      <RepositorySwitcher
-        repositories={repositories}
-        currentRepo={currentRepo}
-        repoProcessStatuses={repoProcessStatuses}
-        onSwitchRepository={onSwitchRepository}
-      />
+      <RepositorySwitcher />
     </div>
   );
 }

@@ -20,6 +20,8 @@ import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { AiInstance, AiProvider } from '@/types';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useAiContext } from '@/features/ai/providers/AiProvider';
 import { getProviderShortName } from '@/features/ai/utils/ai-provider-info';
 import { PopupMenu } from '@/shared/components/PopupMenu';
 import s from './AiInstanceTabs.module.scss';
@@ -30,24 +32,6 @@ const ADD_MENU_ITEMS: { key: AiProvider | 'close'; label: string }[] = [
   { key: 'codex', label: 'Codex' },
   { key: 'close', label: '閉じる' },
 ];
-
-interface AiInstanceTabsProps {
-  instances: AiInstance[];
-  /** instanceId → 指示内容の要約（タブのサブテキスト表示用） */
-  activitySummaries: Record<string, string>;
-  activeInstanceId: string;
-  isConnected: boolean;
-  onActivate: (instanceId: string) => void;
-  onCreate: (provider: AiProvider) => void;
-  onClose: (instanceId: string) => void;
-  /** プライマリインスタンスのプロバイダー切替 */
-  onChangePrimaryProvider: (provider: AiProvider) => void;
-  /**
-   * インスタンスの AI CLI セッションを再起動する。
-   * fresh=true で会話を破棄して新しいセッションとして起動する。
-   */
-  onRestart: (instanceId: string, fresh?: boolean) => void;
-}
 
 /** 親からメニューを開くための命令的ハンドル（Shift+→ の右端追加 / Shift+↓ のタブメニュー） */
 export interface AiInstanceTabsHandle {
@@ -76,17 +60,30 @@ function getDisplayName(
 /**
  * AI インスタンスのタブ列
  */
-function AiInstanceTabs({
-  instances,
-  activitySummaries,
-  activeInstanceId,
-  isConnected,
-  onActivate,
-  onCreate,
-  onClose,
-  onChangePrimaryProvider,
-  onRestart,
-}: AiInstanceTabsProps, ref: ForwardedRef<AiInstanceTabsHandle>) {
+function AiInstanceTabs(
+  _props: object,
+  ref: ForwardedRef<AiInstanceTabsHandle>
+) {
+  // 接続状態
+  const { isConnected } = useSocketContext();
+
+  // AI CLI関連
+  const { aiCli } = useAiContext();
+  const {
+    aiInstances: instances,
+    // instanceId → 指示内容の要約（タブのサブテキスト表示用）
+    aiActivitySummaries: activitySummaries,
+    activeInstance,
+    activateInstance: onActivate,
+    createInstance: onCreate,
+    closeInstance: onClose,
+    // プライマリインスタンスのプロバイダー切替
+    changePrimaryProvider: onChangePrimaryProvider,
+    // インスタンスの AI CLI セッションを再起動する（fresh=true で会話を破棄）
+    restartCli: onRestart,
+  } = aiCli;
+  const activeInstanceId = activeInstance?.instanceId ?? '';
+
   const [showAddMenu, setShowAddMenu] = useState(false);
   // 追加メニューでハイライト中の項目（矢印キー操作用）
   const [addMenuIndex, setAddMenuIndex] = useState(0);

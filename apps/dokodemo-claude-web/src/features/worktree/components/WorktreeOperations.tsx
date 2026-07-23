@@ -1,20 +1,10 @@
 import { useState, useRef } from 'react';
-import type { DetectedPortInfo, GitWorktree } from '@/types';
+import type { DetectedPortInfo } from '@/types';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import MarkdownViewer from '@/shared/components/MarkdownViewer';
 import s from './WorktreeOperations.module.scss';
-
-interface WorktreeOperationsProps {
-  currentWorktree: GitWorktree | undefined;
-  onSaveMemo: (worktreePath: string, memo: string) => void;
-  mergeError: {
-    message: string;
-    conflictFiles?: string[];
-    errorDetails?: string;
-  } | null;
-  onClearMergeError: () => void;
-  // repositoryPath ごとの開発サーバーポート（今開いているワークツリーの分を表示する）
-  devServerPortsByRepo: Map<string, DetectedPortInfo[]>;
-}
 
 /**
  * 今開いているワークツリーで検出された開発サーバーを「ports」見出し付きで横並び表示する。
@@ -164,13 +154,30 @@ function WorktreeMemoEditor({
   );
 }
 
-function WorktreeOperations({
-  currentWorktree,
-  onSaveMemo,
-  mergeError,
-  onClearMergeError,
-  devServerPortsByRepo,
-}: WorktreeOperationsProps) {
+function WorktreeOperations() {
+  // リポジトリ関連
+  const { repository } = useRepositoryContext();
+  const { currentRepo } = repository;
+
+  // ブランチ・ワークツリー関連
+  const branchWorktree = useWorktreeContext();
+  const {
+    worktrees,
+    mergeError,
+    saveWorktreeMemo: onSaveMemo,
+  } = branchWorktree;
+  const onClearMergeError = () => branchWorktree.setMergeError(null);
+
+  // repositoryPath ごとの開発サーバーポート（今開いているワークツリーの分を表示する）
+  const { terminal } = useTerminalContext();
+  const { devServerPortsByRepo } = terminal;
+
+  // 今開いているワークツリー
+  const normalizedCurrentRepo = currentRepo.replace(/\/+$/, '');
+  const currentWorktree = worktrees.find(
+    (w) => w.path.replace(/\/+$/, '') === normalizedCurrentRepo
+  );
+
   // メモは worktree（非メイン）でのみ編集可能
   const showMemo = !!currentWorktree && !currentWorktree.isMain;
   // メモの折りたたみ状態（note ラベルのクリックで切替。ワークツリーを跨いでも維持）

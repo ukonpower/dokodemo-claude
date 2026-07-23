@@ -1,51 +1,37 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, CloudUpload, RefreshCw } from 'lucide-react';
-import type { GitBranch, GitWorktree } from '@/types';
-import type { PullState, BranchSyncStatus } from '@/features/worktree/hooks/useBranchWorktree';
+import type { GitBranch } from '@/types';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
-interface BranchSelectorProps {
-  branches: GitBranch[];
-  currentBranch: string;
-  onSwitchBranch: (branchName: string) => void;
-  onDeleteBranch?: (branchName: string, deleteRemote: boolean) => void;
-  onCreateBranch: (branchName: string, baseBranch?: string) => void;
-  onRefreshBranches: () => void;
-  onPullBranch: () => void;
-  pullState: PullState | null;
-  onClearPullState: () => void;
-  syncStatus: BranchSyncStatus | null;
-  isSyncStatusRefreshing: boolean;
-  onRefreshSyncStatus: () => void;
-  pushState: PullState | null;
-  onPushBranch: () => void;
-  onClearPushState: () => void;
-  worktrees?: GitWorktree[];
-  isConnected: boolean;
-}
+function BranchSelector() {
+  // 接続状態
+  const { isConnected } = useSocketContext();
 
-function BranchSelector({
-  branches,
-  currentBranch,
-  onSwitchBranch,
-  onDeleteBranch,
-  onCreateBranch,
-  onRefreshBranches,
-  onPullBranch,
-  pullState,
-  onClearPullState,
-  syncStatus,
-  isSyncStatusRefreshing,
-  onRefreshSyncStatus,
-  pushState,
-  onPushBranch,
-  onClearPushState,
-  worktrees = [],
-  isConnected,
-}: BranchSelectorProps) {
+  // ブランチ・ワークツリー関連
+  const {
+    branches,
+    currentBranch,
+    switchBranch: onSwitchBranch,
+    deleteBranch: onDeleteBranch,
+    createBranch: onCreateBranch,
+    refreshBranches: onRefreshBranches,
+    pullBranch: onPullBranch,
+    pullState,
+    clearPullState: onClearPullState,
+    syncStatus,
+    isSyncStatusRefreshing,
+    refreshSyncStatus: onRefreshSyncStatus,
+    pushState,
+    pushBranch: onPushBranch,
+    clearPushState: onClearPushState,
+    worktrees,
+  } = useWorktreeContext();
+
   const isPulling = pullState?.status === 'running';
   const isPushing = pushState?.status === 'running';
   const pullLogRef = useRef<HTMLPreElement>(null);
@@ -523,7 +509,7 @@ function BranchSelector({
                             </svg>
                           )}
                         </button>
-                        {onDeleteBranch && canDeleteBranch(branch) && (
+                        {canDeleteBranch(branch) && (
                           <button
                             onClick={(e) => handleDeleteClick(e, branch.name)}
                             className={s.deleteButton}

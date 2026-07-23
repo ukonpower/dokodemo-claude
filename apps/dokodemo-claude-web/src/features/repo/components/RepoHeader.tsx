@@ -1,41 +1,19 @@
-import { useState, type RefObject } from 'react';
+import { useState } from 'react';
 import {
   ChevronDown,
   ExternalLink,
   FolderOpen,
   GitFork,
 } from 'lucide-react';
-import type { AiInstance, EditorInfo, EditorType, GitRepository } from '@/types';
+import type { EditorInfo, GitRepository } from '@/types';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useAiContext } from '@/features/ai/providers/AiProvider';
+import { useGitGraphContext } from '@/features/git/providers/GitProvider';
+import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
+import { openFileViewerTab } from '@/app/utils/open-views';
 import s from './RepoHeader.module.scss';
-
-interface RepoHeaderProps {
-  // 接続状態
-  isConnected: boolean;
-  isReconnecting: boolean;
-  connectionAttempts: number;
-  primaryInstance?: AiInstance;
-
-  // リポジトリ
-  repositories: GitRepository[];
-  currentRepo: string;
-
-  // ツールボタン
-  onOpenFileViewer: () => void;
-  onOpenGraphView: () => void;
-  onOpenSettings: () => void;
-  startingCodeServer: boolean;
-
-  // エディタ起動
-  isLocalhost: boolean;
-  availableEditors: EditorInfo[];
-  showEditorMenu: boolean;
-  setShowEditorMenu: (show: boolean) => void;
-  editorMenuRef: RefObject<HTMLDivElement | null>;
-  onOpenInEditor: (id: EditorType) => void;
-
-  // GitHub
-  remoteUrl: string | null;
-}
 
 function getRepoTitle(
   repositories: GitRepository[],
@@ -59,25 +37,36 @@ function getRepoTitle(
  * ProjectView / DashboardView 共通のヘッダー。
  * 戻る・リポジトリ名（パスコピー）・GitHub・ツールボタン群・設定・接続状態を表示する。
  */
-export function RepoHeader({
-  isConnected,
-  isReconnecting,
-  connectionAttempts,
-  primaryInstance,
-  repositories,
-  currentRepo,
-  onOpenFileViewer,
-  onOpenGraphView,
-  onOpenSettings,
-  startingCodeServer,
-  isLocalhost,
-  availableEditors,
-  showEditorMenu,
-  setShowEditorMenu,
-  editorMenuRef,
-  onOpenInEditor,
-  remoteUrl,
-}: RepoHeaderProps) {
+export function RepoHeader() {
+  // 接続状態
+  const { isConnected, isReconnecting, connectionAttempts } =
+    useSocketContext();
+
+  // リポジトリ
+  const { repository } = useRepositoryContext();
+  const { repositories, currentRepo } = repository;
+
+  // AI CLI（セッション ID 表示用）
+  const { aiCli } = useAiContext();
+  const { primaryInstance } = aiCli;
+
+  // ツールボタン
+  const onOpenFileViewer = openFileViewerTab;
+  const { openGraphView: onOpenGraphView } = useGitGraphContext();
+  const { openSettings: onOpenSettings } = useNavigationContext();
+
+  // エディタ起動
+  const {
+    startingCodeServer,
+    isLocalhost,
+    availableEditors,
+    showEditorMenu,
+    setShowEditorMenu,
+    editorMenuRef,
+    openInEditor: onOpenInEditor,
+    remoteUrl,
+  } = useEditorLauncherContext();
+
   const [copiedPath, setCopiedPath] = useState(false);
 
   // メインボタンは code-server を直接起動する。

@@ -1,8 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
+import { useGitDiffContext } from '@/features/git/providers/GitProvider';
+import { openDiffFileTab } from '@/app/utils/open-views';
 import s from './SidePanel.module.scss';
-import type { UploadedFileInfo, GitDiffSummary } from '@/types';
 import FileManager from './FileManager';
 import DiffSummary from '@/features/git/components/DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
@@ -25,18 +29,8 @@ const LG_MEDIA_QUERY = '(min-width: 860px)';
 const SECTION_IDS: SectionId[] = ['preview', 'files', 'md', 'git'];
 
 interface SidePanelProps {
-  currentRepo: string;
-  rid: string;
-  files: UploadedFileInfo[];
-  onRefreshFiles: () => void;
-  onDeleteFile: (filename: string) => void;
   /** 画像に赤入れする（Lightbox 経由。未指定なら非表示） */
   onAnnotateImage?: (imageUrl: string) => void;
-  diffSummary: GitDiffSummary | null;
-  diffSummaryLoading: boolean;
-  diffSummaryError: string | null;
-  onRefreshDiffSummary: () => void;
-  onDiffFileClick: (filename: string) => void;
 }
 
 function getStoredTab(repo: string): SectionId {
@@ -62,7 +56,27 @@ interface SectionDef {
 }
 
 const SidePanel: React.FC<SidePanelProps> = (props) => {
-  const { currentRepo, files } = props;
+  // リポジトリ関連
+  const { repository } = useRepositoryContext();
+  const { currentRepo } = repository;
+  const rid = repositoryIdMap.getRid(currentRepo) ?? '';
+
+  // ファイル管理関連
+  const {
+    files,
+    refreshFiles: onRefreshFiles,
+    deleteFile: onDeleteFile,
+  } = useFileManagerContext();
+
+  // Git差分関連
+  const {
+    diffSummary,
+    diffSummaryLoading,
+    diffSummaryError,
+    refreshDiffSummary: onRefreshDiffSummary,
+  } = useGitDiffContext();
+  // 統合コード/git ブラウザを変更モードで別タブに開き、該当ファイルの差分を右ペインに表示
+  const onDiffFileClick = openDiffFileTab;
 
   const userFiles = useMemo(
     () =>
@@ -128,19 +142,19 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
 
   const sendBody = (
     <FileManager
-      rid={props.rid}
+      rid={rid}
       files={userFiles}
-      onRefresh={props.onRefreshFiles}
-      onDelete={props.onDeleteFile}
+      onRefresh={onRefreshFiles}
+      onDelete={onDeleteFile}
       onAnnotate={props.onAnnotateImage}
     />
   );
   const receiveBody = (
     <FileManager
-      rid={props.rid}
+      rid={rid}
       files={previewFiles}
-      onRefresh={props.onRefreshFiles}
-      onDelete={props.onDeleteFile}
+      onRefresh={onRefreshFiles}
+      onDelete={onDeleteFile}
       readOnly
       emptyMessage="Claude がアップロードした画像がここに表示されます"
       onAnnotate={props.onAnnotateImage}
@@ -149,12 +163,12 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   const diffBody = (
     <div className={s.gitSection}>
       <DiffSummary
-        rid={props.rid}
-        summary={props.diffSummary}
-        isLoading={props.diffSummaryLoading}
-        error={props.diffSummaryError}
-        onRefresh={props.onRefreshDiffSummary}
-        onFileClick={props.onDiffFileClick}
+        rid={rid}
+        summary={diffSummary}
+        isLoading={diffSummaryLoading}
+        error={diffSummaryError}
+        onRefresh={onRefreshDiffSummary}
+        onFileClick={onDiffFileClick}
       />
     </div>
   );
@@ -184,20 +198,20 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
       count: markdownFiles.length,
       body: (
         <MarkdownPanel
-          rid={props.rid}
+          rid={rid}
           files={markdownFiles}
-          onDelete={props.onDeleteFile}
+          onDelete={onDeleteFile}
         />
       ),
       fullscreenBody: (
-        <MarkdownFullscreen rid={props.rid} files={markdownFiles} />
+        <MarkdownFullscreen rid={rid} files={markdownFiles} />
       ),
     },
     {
       id: 'git',
       label: 'diff',
       icon: <GitBranch size={ICON_SIZE} />,
-      count: props.diffSummary ? props.diffSummary.files.length : 0,
+      count: diffSummary ? diffSummary.files.length : 0,
       body: diffBody,
       fullscreenBody: diffBody,
     },

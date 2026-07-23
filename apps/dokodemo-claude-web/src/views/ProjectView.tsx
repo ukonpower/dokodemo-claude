@@ -12,18 +12,10 @@ import { useAiContext } from '@/features/ai/providers/AiProvider';
 import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useQueueContext } from '@/features/ai/providers/QueueProvider';
-import {
-  useGitDiffContext,
-  useGitGraphContext,
-} from '@/features/git/providers/GitProvider';
 import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
 import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
-import {
-  openFileViewerTab,
-  openDiffFileTab,
-  openWorkflowFileTab,
-} from '@/app/utils/open-views';
+import { openWorkflowFileTab } from '@/app/utils/open-views';
 
 import AiOutput, { AiOutputRef } from '@/features/ai/components/AiOutput';
 import TextInput, { TextInputRef } from '@/features/ai/components/CommandInput';
@@ -62,20 +54,13 @@ function getStoredSideColCollapsed(repo: string): boolean {
 
 export function ProjectView() {
   // 接続状態
-  const { isConnected, connectionAttempts, isReconnecting } =
-    useSocketContext();
+  const { isConnected } = useSocketContext();
 
   // リポジトリ関連（repositories はサーバー側でソート済み）
-  // リポジトリ切り替え（HomeView / RepositorySwitcher / WorktreeTabs 共通）。
-  // WorktreeTabs はクリック時に setLastWorktreeForParent を先に呼ぶため、
-  // ラッパー経由でも結果が変わらないことを担保している。
-  const { repository, switchRepositoryFromList: onSwitchRepository } =
-    useRepositoryContext();
+  const { repository } = useRepositoryContext();
   const {
     repositories,
     currentRepo,
-    repoProcessStatuses,
-    isLoadingRepoData,
     // リポジトリ操作
     showDeleteConfirm,
     setShowDeleteConfirm,
@@ -89,192 +74,53 @@ export function ProjectView() {
   } = repository;
 
   // 設定関連
-  const {
-    terminalFontSize,
-    sendSettings,
-    setSendSettings: onSendSettingsChange,
-  } = useAppSettingsContext();
+  const { sendSettings, setSendSettings: onSendSettingsChange } =
+    useAppSettingsContext();
 
   // AI CLI関連
+  const { aiCli, aiInstanceTabsRef } = useAiContext();
   const {
-    aiCli,
-    customAiButtons: customAiButtonsApi,
-    aiInstanceTabsRef,
-  } = useAiContext();
-  const {
-    aiInstances,
-    // instanceId → 指示内容の要約（タブのサブテキスト表示用）
-    aiActivitySummaries,
     activeInstance,
-    primaryInstance,
-    currentAiMessages,
-    // タブ操作
-    activateInstance: onActivateInstance,
-    createInstance: onCreateInstance,
-    closeInstance: onCloseInstance,
     // AIアクション（active instance に対する操作）
     sendCommand: onSendCommand,
-    sendArrowKey: onSendArrowKey,
-    sendAltT: onSendAltT,
-    sendInterrupt: onSendInterrupt,
     sendEscape: onSendEscape,
-    sendSpace: onSendSpace,
-    sendClear: onSendClear,
-    sendCommit: onSendCommit,
-    sendPreview: onSendPreview,
-    sendResume: onSendResume,
-    sendUsage: onSendUsage,
-    sendMode: onSendMode,
-    changeModel: onChangeModel,
-    changePrimaryProvider: onChangePrimaryProvider,
-    restartCli: onRestartCli,
-    handleKeyInput: onKeyInput,
-    handleResize: onResize,
   } = aiCli;
 
-  // カスタム送信ボタン関連
-  const {
-    buttons: customAiButtons,
-    createButton: onCreateCustomAiButton,
-    updateButton: onUpdateCustomAiButton,
-    deleteButton: onDeleteCustomAiButton,
-  } = customAiButtonsApi;
+  // ターミナル関連（ターミナル数はセクションの高さ切替に使用）
+  const { terminal } = useTerminalContext();
+  const { terminals } = terminal;
 
-  // ターミナル関連
-  const { terminal, npm } = useTerminalContext();
-  const {
-    terminals,
-    terminalMessages,
-    terminalHistories,
-    isTerminalsLoaded,
-    shortcuts,
-    devServerPortsByRepo,
-    createTerminal: onCreateTerminal,
-    closeTerminal: onCloseTerminal,
-    sendInput: onTerminalInput,
-    sendSignal: onTerminalSignal,
-    resize: onTerminalResize,
-    setActiveTerminalId: onActiveTerminalChange,
-    createShortcut: onCreateShortcut,
-    deleteShortcut: onDeleteShortcut,
-    executeShortcut: onExecuteShortcut,
-  } = terminal;
+  // ブランチ・ワークツリー関連（削除中オーバーレイ表示用）
+  const { isDeletingWorktree, deletingWorktreePath } = useWorktreeContext();
 
-  // npmスクリプト関連
-  const {
-    npmScripts,
-    executeNpmScript: onExecuteNpmScript,
-    refreshNpmScripts: onRefreshNpmScripts,
-  } = npm;
-
-  // ブランチ・ワークツリー関連
-  const branchWorktree = useWorktreeContext();
-  const {
-    branches,
-    currentBranch,
-    worktrees,
-    parentRepoPath,
-    mergeError,
-    worktreeCreateError,
-    worktreeCreateSuccessNonce,
-    clearWorktreeCreateError: onClearWorktreeCreateError,
-    isDeletingWorktree,
-    deletingWorktreePath,
-    switchBranch: onSwitchBranch,
-    deleteBranch: onDeleteBranch,
-    createBranch: onCreateBranch,
-    refreshBranches: onRefreshBranches,
-    pullBranch: onPullBranch,
-    pullState,
-    clearPullState: onClearPullState,
-    syncStatus,
-    isSyncStatusRefreshing,
-    refreshSyncStatus: onRefreshSyncStatus,
-    pushState,
-    pushBranch: onPushBranch,
-    clearPushState: onClearPushState,
-    createWorktree: onCreateWorktree,
-    reorderWorktrees: onReorderWorktrees,
-    worktreeSyncConfig,
-    requestWorktreeSyncConfig: onRequestWorktreeSyncConfig,
-    saveWorktreeSyncConfig: onSaveWorktreeSyncConfig,
-    worktreeSyncCandidates,
-    requestWorktreeSyncCandidates: onRequestWorktreeSyncCandidates,
-    deleteWorktree: onDeleteWorktree,
-    mergeWorktree: onMergeWorktree,
-    saveWorktreeMemo: onSaveWorktreeMemo,
-  } = branchWorktree;
-  const onClearMergeError = () => branchWorktree.setMergeError(null);
-
-  // プロンプトキュー関連
+  // プロンプトキュー関連（キューの有無はキューリストの表示切替に使用）
   const {
     promptQueue,
-    isQueueProcessing,
-    isQueuePaused,
-    currentItemId: currentQueueItemId,
     addToQueue: onAddToQueue,
-    removeFromQueue: onRemoveFromQueue,
-    updateQueue: onUpdateQueue,
-    pauseQueue: onPauseQueue,
-    resumeQueue: onResumeQueue,
-    resetQueue: onResetQueue,
-    cancelCurrentItem: onCancelCurrentItem,
-    forceSend: onForceSend,
-    reorderQueue: onReorderQueue,
-    requeueItem: onRequeueItem,
-    stopLoop: onStopLoop,
-    approveLoopContinuation: onApproveLoop,
     loopEndInfo,
-    dismissLoopEnd: onDismissLoopEnd,
   } = useQueueContext();
 
   // ファイル管理関連
   const {
-    files,
     isUploadingFile,
     uploadProgress,
     cancelUpload: onCancelUpload,
-    refreshFiles: onRefreshFiles,
-    deleteFile: onDeleteFile,
     uploadFile: onPasteFile,
   } = useFileManagerContext();
 
-  // Git差分関連
+  // エディタ関連（ポップアップブロックモーダル用）
   const {
-    diffSummary,
-    diffSummaryLoading,
-    diffSummaryError,
-    refreshDiffSummary: onRefreshDiffSummary,
-  } = useGitDiffContext();
-  // 統合コード/git ブラウザを変更モードで別タブに開き、該当ファイルの差分を右ペインに表示
-  const onDiffFileClick = openDiffFileTab;
-
-  // エディタ関連
-  const {
-    availableEditors,
-    showEditorMenu,
-    startingCodeServer,
     showPopupBlockedModal,
     blockedCodeServerUrl,
-    remoteUrl,
-    isLocalhost,
-    editorMenuRef,
-    openInEditor: onOpenInEditor,
-    setShowEditorMenu,
     setShowPopupBlockedModal,
     openBlockedUrl: onOpenBlockedUrl,
   } = useEditorLauncherContext();
 
-  // 設定ページ・ダッシュボード切替
-  const { openSettings: onOpenSettings, setDashboardModeAndPersist } =
-    useNavigationContext();
+  // ダッシュボード切替
+  const { setDashboardModeAndPersist } = useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
-  // Git Graph 表示
-  const { openGraphView: onOpenGraphView } = useGitGraphContext();
-
-  // ファイルビュワー
-  const onOpenFileViewer = openFileViewerTab;
+  // ワークフローファイルを別タブで開く
   const onOpenWorkflowFile = openWorkflowFileTab;
   // Refs
   const textInputRef = useRef<TextInputRef>(null);
@@ -394,25 +240,7 @@ export function ProjectView() {
   return (
     <div className={s.root}>
       {/* ヘッダー */}
-      <RepoHeader
-        isConnected={isConnected}
-        isReconnecting={isReconnecting}
-        connectionAttempts={connectionAttempts}
-        primaryInstance={primaryInstance}
-        repositories={repositories}
-        currentRepo={currentRepo}
-        onOpenFileViewer={onOpenFileViewer}
-        onOpenGraphView={onOpenGraphView}
-        onOpenSettings={onOpenSettings}
-        startingCodeServer={startingCodeServer}
-        isLocalhost={isLocalhost}
-        availableEditors={availableEditors}
-        showEditorMenu={showEditorMenu}
-        setShowEditorMenu={setShowEditorMenu}
-        editorMenuRef={editorMenuRef}
-        onOpenInEditor={onOpenInEditor}
-        remoteUrl={remoteUrl}
-      />
+      <RepoHeader />
 
       {/* メインコンテンツ */}
       <main className={s.main}>
@@ -422,53 +250,13 @@ export function ProjectView() {
           <div className={s.branchBar}>
             {/* ブランチセレクター */}
             <div className={s.branchSelectorWrap}>
-              <BranchSelector
-                branches={branches}
-                currentBranch={currentBranch}
-                onSwitchBranch={onSwitchBranch}
-                onDeleteBranch={onDeleteBranch}
-                onCreateBranch={onCreateBranch}
-                onRefreshBranches={onRefreshBranches}
-                onPullBranch={onPullBranch}
-                pullState={pullState}
-                onClearPullState={onClearPullState}
-                syncStatus={syncStatus}
-                isSyncStatusRefreshing={isSyncStatusRefreshing}
-                onRefreshSyncStatus={onRefreshSyncStatus}
-                pushState={pushState}
-                onPushBranch={onPushBranch}
-                onClearPushState={onClearPushState}
-                worktrees={worktrees}
-                isConnected={isConnected}
-              />
+              <BranchSelector />
             </div>
             {/* ワークツリータブ */}
             {currentRepo && (
               <>
                 <div className={s.branchDivider} />
-                <WorktreeTabs
-                  worktrees={worktrees}
-                  currentWorktreePath={currentRepo}
-                  parentRepoPath={parentRepoPath}
-                  onCreateWorktree={onCreateWorktree}
-                  onReorderWorktrees={onReorderWorktrees}
-                  onDeleteWorktree={onDeleteWorktree}
-                  onMergeWorktree={onMergeWorktree}
-                  onSwitchRepository={onSwitchRepository}
-                  isConnected={isConnected}
-                  branches={branches}
-                  onRefreshBranches={onRefreshBranches}
-                  isDeletingWorktree={isDeletingWorktree}
-                  compact={true}
-                  syncConfig={worktreeSyncConfig}
-                  onRequestSyncConfig={onRequestWorktreeSyncConfig}
-                  onSaveSyncConfig={onSaveWorktreeSyncConfig}
-                  syncCandidates={worktreeSyncCandidates}
-                  onRequestSyncCandidates={onRequestWorktreeSyncCandidates}
-                  worktreeCreateError={worktreeCreateError}
-                  worktreeCreateSuccessNonce={worktreeCreateSuccessNonce}
-                  onClearWorktreeCreateError={onClearWorktreeCreateError}
-                />
+                <WorktreeTabs compact={true} />
                 <button
                   type="button"
                   onClick={onOpenDashboard}
@@ -487,38 +275,13 @@ export function ProjectView() {
           </div>
 
           {/* ワークツリー操作セクション（メモ＋全worktreeの開発サーバー一覧） */}
-          {(() => {
-            const normalizedCurrentRepo = currentRepo.replace(/\/+$/, '');
-            const matchedWorktree = worktrees.find(
-              (w) => w.path.replace(/\/+$/, '') === normalizedCurrentRepo
-            );
-            return (
-              <WorktreeOperations
-                currentWorktree={matchedWorktree}
-                onSaveMemo={onSaveWorktreeMemo}
-                mergeError={mergeError}
-                onClearMergeError={onClearMergeError}
-                devServerPortsByRepo={devServerPortsByRepo}
-              />
-            );
-          })()}
+          <WorktreeOperations />
 
           {/* AI CLI セクション */}
           <section className={s.cliSection}>
             <div className={s.cliTabBar}>
               <div className={s.cliTabsScroll}>
-                <AiInstanceTabs
-                  ref={aiInstanceTabsRef}
-                  instances={aiInstances}
-                  activitySummaries={aiActivitySummaries}
-                  activeInstanceId={activeInstance?.instanceId ?? ''}
-                  isConnected={isConnected}
-                  onActivate={onActivateInstance}
-                  onCreate={onCreateInstance}
-                  onClose={onCloseInstance}
-                  onChangePrimaryProvider={onChangePrimaryProvider}
-                  onRestart={onRestartCli}
-                />
+                <AiInstanceTabs ref={aiInstanceTabsRef} />
               </div>
               {/* 全画面切替と右列パネルの折りたたみトグル */}
               <div className={s.cliTabActions}>
@@ -553,12 +316,6 @@ export function ProjectView() {
                     <AiOutput
                       ref={aiOutputRef}
                       key={activeInstance?.instanceId ?? 'no-instance'}
-                      messages={currentAiMessages}
-                      currentProvider={activeInstance?.provider ?? 'claude'}
-                      isLoading={isLoadingRepoData}
-                      onKeyInput={onKeyInput}
-                      onResize={onResize}
-                      fontSize={terminalFontSize}
                       onFileDrop={handleAiTerminalFileDrop}
                       isFullscreen={isCliFullscreen}
                       onToggleFullscreen={handleToggleCliFullscreen}
@@ -590,30 +347,8 @@ export function ProjectView() {
                   {/* キーボードボタン（入力欄の下・メイン列内） */}
                   <div className={s.keyboardArea}>
                     <KeyboardButtons
-                      disabled={!isConnected || !currentRepo || !activeInstance}
-                      onSendArrowKey={onSendArrowKey}
                       onSendEnter={() => textInputRef.current?.submit()}
-                      onSendInterrupt={onSendInterrupt}
-                      onSendEscape={onSendEscape}
-                      onSendSpace={onSendSpace}
-                      onClearAi={onSendClear}
-                      onSendResume={onSendResume}
-                      onSendUsage={onSendUsage}
-                      onSendPreview={onSendPreview}
-                      onSendMode={onSendMode}
-                      onSendAltT={onSendAltT}
-                      onChangeModel={onChangeModel}
-                      onSendCommit={onSendCommit}
-                      currentProvider={activeInstance?.provider ?? 'claude'}
-                      providerInfo={{
-                        clearTitle: 'CLI をクリア (/clear)',
-                      }}
-                      currentRepositoryPath={currentRepo}
-                      customButtons={customAiButtons}
                       onExecuteCustomButton={handleSendCommand}
-                      onCreateCustomButton={onCreateCustomAiButton}
-                      onUpdateCustomButton={onUpdateCustomAiButton}
-                      onDeleteCustomButton={onDeleteCustomAiButton}
                     />
                   </div>
 
@@ -621,25 +356,7 @@ export function ProjectView() {
                   {activeInstance?.isPrimary &&
                     (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.desktopQueue}>
-                      <PromptQueue
-                        queue={promptQueue}
-                        isProcessing={isQueueProcessing}
-                        isPaused={isQueuePaused}
-                        currentItemId={currentQueueItemId}
-                        onRemove={onRemoveFromQueue}
-                        onUpdate={onUpdateQueue}
-                        onReorder={onReorderQueue}
-                        onPause={onPauseQueue}
-                        onResume={onResumeQueue}
-                        onReset={onResetQueue}
-                        onCancelCurrentItem={onCancelCurrentItem}
-                        onForceSend={onForceSend}
-                        onRequeue={onRequeueItem}
-                        onStopLoop={onStopLoop}
-                        onApproveLoop={onApproveLoop}
-                        loopEndInfo={loopEndInfo}
-                        onDismissLoopEnd={onDismissLoopEnd}
-                      />
+                      <PromptQueue />
                     </div>
                   )}
 
@@ -647,25 +364,7 @@ export function ProjectView() {
                   {activeInstance?.isPrimary &&
                     (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.mobileQueue}>
-                      <PromptQueue
-                        queue={promptQueue}
-                        isProcessing={isQueueProcessing}
-                        isPaused={isQueuePaused}
-                        currentItemId={currentQueueItemId}
-                        onRemove={onRemoveFromQueue}
-                        onUpdate={onUpdateQueue}
-                        onReorder={onReorderQueue}
-                        onPause={onPauseQueue}
-                        onResume={onResumeQueue}
-                        onReset={onResetQueue}
-                        onCancelCurrentItem={onCancelCurrentItem}
-                        onForceSend={onForceSend}
-                        onRequeue={onRequeueItem}
-                        onStopLoop={onStopLoop}
-                        onApproveLoop={onApproveLoop}
-                        loopEndInfo={loopEndInfo}
-                        onDismissLoopEnd={onDismissLoopEnd}
-                      />
+                      <PromptQueue />
                     </div>
                   )}
                 </div>
@@ -675,19 +374,7 @@ export function ProjectView() {
                   className={`${s.sideCol} ${isSideColCollapsed ? s.sideColCollapsed : ''}`}
                 >
                   {currentRepo && currentRid && (
-                    <SidePanel
-                      currentRepo={currentRepo}
-                      rid={currentRid}
-                      files={files}
-                      onRefreshFiles={onRefreshFiles}
-                      onDeleteFile={onDeleteFile}
-                      diffSummary={diffSummary}
-                      diffSummaryLoading={diffSummaryLoading}
-                      diffSummaryError={diffSummaryError}
-                      onRefreshDiffSummary={onRefreshDiffSummary}
-                      onDiffFileClick={onDiffFileClick}
-                      onAnnotateImage={handleAnnotateImage}
-                    />
+                    <SidePanel onAnnotateImage={handleAnnotateImage} />
                   )}
                 </div>
               </div>
@@ -715,25 +402,7 @@ export function ProjectView() {
               </h2>
             </div>
             <div className={s.terminalBody}>
-              <TerminalManager
-                terminals={terminals}
-                messages={terminalMessages}
-                histories={terminalHistories}
-                shortcuts={shortcuts}
-                currentRepo={currentRepo}
-                isConnected={isConnected}
-                isTerminalsLoaded={isTerminalsLoaded}
-                onCreateTerminal={onCreateTerminal}
-                onTerminalInput={onTerminalInput}
-                onTerminalSignal={onTerminalSignal}
-                onTerminalResize={onTerminalResize}
-                onCloseTerminal={onCloseTerminal}
-                onCreateShortcut={onCreateShortcut}
-                onDeleteShortcut={onDeleteShortcut}
-                onExecuteShortcut={onExecuteShortcut}
-                onActiveTerminalChange={onActiveTerminalChange}
-                fontSize={terminalFontSize}
-              />
+              <TerminalManager />
             </div>
           </section>
         </div>
@@ -741,13 +410,7 @@ export function ProjectView() {
         {/* 下部セクション */}
         <div className={s.bottomGrid}>
           <section className={s.bottomSection}>
-            <NpmScripts
-              repositoryPath={currentRepo}
-              scripts={npmScripts}
-              isConnected={isConnected}
-              onExecuteScript={onExecuteNpmScript}
-              onRefreshScripts={onRefreshNpmScripts}
-            />
+            <NpmScripts />
           </section>
         </div>
 
@@ -1015,12 +678,7 @@ export function ProjectView() {
       />
 
       {/* リポジトリ切り替えメニュー */}
-      <RepositorySwitcher
-        repositories={repositories}
-        currentRepo={currentRepo}
-        repoProcessStatuses={repoProcessStatuses}
-        onSwitchRepository={onSwitchRepository}
-      />
+      <RepositorySwitcher />
 
       {/* ワークツリー削除中オーバーレイ */}
       {isDeletingWorktree && (
