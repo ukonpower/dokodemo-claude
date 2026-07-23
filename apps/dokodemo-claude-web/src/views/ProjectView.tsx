@@ -160,6 +160,8 @@ interface ProjectViewProps {
   pullState: PullState | null;
   onClearPullState: () => void;
   syncStatus: BranchSyncStatus | null;
+  isSyncStatusRefreshing: boolean;
+  onRefreshSyncStatus: () => void;
   pushState: PullState | null;
   onPushBranch: () => void;
   onClearPushState: () => void;
@@ -378,6 +380,8 @@ export function ProjectView({
   pullState,
   onClearPullState,
   syncStatus,
+  isSyncStatusRefreshing,
+  onRefreshSyncStatus,
   pushState,
   onPushBranch,
   onClearPushState,
@@ -615,6 +619,8 @@ export function ProjectView({
                 pullState={pullState}
                 onClearPullState={onClearPullState}
                 syncStatus={syncStatus}
+                isSyncStatusRefreshing={isSyncStatusRefreshing}
+                onRefreshSyncStatus={onRefreshSyncStatus}
                 pushState={pushState}
                 onPushBranch={onPushBranch}
                 onClearPushState={onClearPushState}

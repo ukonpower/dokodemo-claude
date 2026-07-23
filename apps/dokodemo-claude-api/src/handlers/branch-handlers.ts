@@ -13,6 +13,7 @@ import {
   createBranch,
   pullBranch,
   getBranchSyncStatus,
+  fetchRemote,
   pushBranch,
 } from '../utils/git-utils.js';
 import { getWorktreePrsByBranch } from '../utils/gh-utils.js';
@@ -609,13 +610,18 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
     }
   });
 
-  // 現在ブランチの ahead/behind と upstream を取得（fetch はしない）
+  // 現在ブランチの ahead/behind と upstream を取得
+  // fetch: true のとき git fetch で remote-tracking ref を最新化してから計算する
+  // （手動リフレッシュ・タブ復帰時用。fetch 失敗時はローカル値で応答する）
   socket.on('get-branch-sync-status', async (data) => {
-    const { rid } = data;
+    const { rid, fetch: withFetch } = data;
     const repositoryPath = resolveRepositoryPath({ rid });
     if (!repositoryPath) return;
 
     try {
+      if (withFetch) {
+        await fetchRemote(repositoryPath);
+      }
       const status = await getBranchSyncStatus(repositoryPath);
       socket.emit('branch-sync-status', { rid, ...status });
     } catch {

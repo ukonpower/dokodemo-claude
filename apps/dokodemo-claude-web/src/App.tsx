@@ -465,6 +465,8 @@ function App() {
       pullState={branchWorktree.pullState}
       onClearPullState={branchWorktree.clearPullState}
       syncStatus={branchWorktree.syncStatus}
+      isSyncStatusRefreshing={branchWorktree.isSyncStatusRefreshing}
+      onRefreshSyncStatus={branchWorktree.refreshSyncStatus}
       pushState={branchWorktree.pushState}
       onPushBranch={branchWorktree.pushBranch}
       onClearPushState={branchWorktree.clearPushState}

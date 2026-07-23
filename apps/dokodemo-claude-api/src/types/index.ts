@@ -907,8 +907,9 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
   }) => void;
 
-  // 現在ブランチの ahead/behind 状態を取得（fetch はしない）
-  'get-branch-sync-status': (data: { rid: string }) => void;
+  // 現在ブランチの ahead/behind 状態を取得
+  // fetch: true で git fetch により remote-tracking ref を最新化してから計算する
+  'get-branch-sync-status': (data: { rid: string; fetch?: boolean }) => void;
 
   // 現在ブランチの push
   'push-branch': (data: { rid: string }) => void;
