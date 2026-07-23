@@ -1145,6 +1145,52 @@ export class AISessionManager extends EventEmitter {
         return instance;
       }
     }
+    return this.resolveInstanceByLiveSessionState(sessionId);
+  }
+
+  /**
+   * claudeSessionId との突き合わせに失敗した session_id を、稼働中 claude
+   * PTY の実セッションIDと照合して instance を解決する。
+   *
+   * CLI 内で /clear や /resume が実行されると claude の実セッションIDは
+   * その場で変わるが、dokodemo 側の claudeSessionId は spawn 時に発行した
+   * ままなので永久に乖離する（＝以後そのタブの hook が instance に紐づかず、
+   * 直接入力の要約やサブインスタンスのステータス更新が捨てられ続ける）。
+   * claude は自プロセスの現在の実セッションIDを ~/.claude/sessions/<pid>.json
+   * に書き出しており、PTY の pid はここで管理しているため、これを読めば
+   * 「どのタブの claude が今この session_id で動いているか」を特定できる。
+   * 一致したら claudeSessionId を現在の ID へ追従更新する（以後の hook は
+   * 厳密一致で解決でき、再起動時の --resume も現在の会話を復元する）。
+   */
+  private resolveInstanceByLiveSessionState(
+    sessionId: string
+  ): AiInstance | undefined {
+    for (const session of this.activeSessions.values()) {
+      if (session.provider !== 'claude' || !session.isActive) continue;
+      const statePath = path.join(
+        os.homedir(),
+        '.claude',
+        'sessions',
+        `${session.pid}.json`
+      );
+      try {
+        const state = JSON.parse(fs.readFileSync(statePath, 'utf-8')) as {
+          sessionId?: string;
+        };
+        if (state.sessionId !== sessionId) continue;
+      } catch {
+        // ファイル未生成・読み取り不能（旧バージョン CLI 等）は照合不能として飛ばす
+        continue;
+      }
+      const instance = this.instances.get(session.instanceId);
+      if (!instance) continue;
+      console.log(
+        `[AISessionManager] claude セッションIDの乖離を検知したため追従: ` +
+          `${instance.instanceId} ${instance.claudeSessionId} → ${sessionId}`
+      );
+      instance.claudeSessionId = sessionId;
+      return instance;
+    }
     return undefined;
   }
 
