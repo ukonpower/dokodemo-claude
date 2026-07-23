@@ -27,16 +27,16 @@ import type {
   ClientToServerEvents,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
-import { useWorktreeDashboard } from '@/hooks/useWorktreeDashboard';
-import RepoHeader from '@/components/repo/RepoHeader';
-import RepositorySwitcher from '@/components/repo/RepositorySwitcher';
-import WorktreeDashboardCard from '@/components/worktree/WorktreeDashboardCard';
-import TextInput from '@/components/ai/CommandInput';
+import { useWorktreeDashboard } from '@/features/worktree/hooks/useWorktreeDashboard';
+import RepoHeader from '@/features/repo/components/RepoHeader';
+import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
+import WorktreeDashboardCard from '@/features/worktree/components/WorktreeDashboardCard';
+import TextInput from '@/features/ai/components/CommandInput';
 import DashboardSidebar, {
   DashboardSidebarHandle,
-} from '@/components/worktree/DashboardSidebar';
-import DashboardFilterModal from '@/components/worktree/DashboardFilterModal';
-import { useScopedSendSettings } from '@/hooks/useScopedSendSettings';
+} from '@/features/worktree/components/DashboardSidebar';
+import DashboardFilterModal from '@/features/worktree/components/DashboardFilterModal';
+import { useScopedSendSettings } from '@/features/ai/hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
 
 interface DashboardViewProps {

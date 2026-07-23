@@ -1,8 +1,8 @@
 import type { GitRepository, RepoProcessStatus } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 
-import RepositoryManager from '@/components/repo/RepositoryManager';
-import RepositorySwitcher from '@/components/repo/RepositorySwitcher';
+import RepositoryManager from '@/features/repo/components/RepositoryManager';
+import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import s from './HomeView.module.scss';
 
 interface HomeViewProps {

@@ -1,12 +1,12 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { ArrowLeft, GitCompare, FolderTree, GitFork } from 'lucide-react';
-import FileTree from '@/components/files/FileTree';
-import FileContentViewer from '@/components/files/FileContentViewer';
-import DiffSummary from '@/components/git/DiffSummary';
+import FileTree from '@/features/files/components/FileTree';
+import FileContentViewer from '@/features/files/components/FileContentViewer';
+import DiffSummary from '@/features/git/components/DiffSummary';
 import GitGraphView from './GitGraphView';
-import type { UseFileViewerReturn } from '@/hooks/useFileViewer';
-import type { UseGitDiffReturn } from '@/hooks/useGitDiff';
-import type { UseGitGraphReturn } from '@/hooks/useGitGraph';
+import type { UseFileViewerReturn } from '@/features/files/hooks/useFileViewer';
+import type { UseGitDiffReturn } from '@/features/git/hooks/useGitDiff';
+import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
 import s from './CodeBrowserView.module.scss';
 
 /** 左サイドバーの表示モード */

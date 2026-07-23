@@ -7,16 +7,16 @@ import {
   GitMerge,
   GitCommitHorizontal,
 } from 'lucide-react';
-import type { UseGitGraphReturn } from '@/hooks/useGitGraph';
+import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
 import type { GitGraphRef } from '@/types';
-import GitGraphTable from '@/components/git/GitGraphTable';
-import GitGraphCommitDetail from '@/components/git/GitGraphCommitDetail';
-import GitGraphBranchDropdown from '@/components/git/GitGraphBranchDropdown';
-import GitGraphFindWidget from '@/components/git/GitGraphFindWidget';
+import GitGraphTable from '@/features/git/components/GitGraphTable';
+import GitGraphCommitDetail from '@/features/git/components/GitGraphCommitDetail';
+import GitGraphBranchDropdown from '@/features/git/components/GitGraphBranchDropdown';
+import GitGraphFindWidget from '@/features/git/components/GitGraphFindWidget';
 import GitGraphContextMenu, {
   type GitGraphMenuItem,
-} from '@/components/git/GitGraphContextMenu';
-import GitGraphActionDialog from '@/components/git/GitGraphActionDialog';
+} from '@/features/git/components/GitGraphContextMenu';
+import GitGraphActionDialog from '@/features/git/components/GitGraphActionDialog';
 import s from './GitGraphView.module.scss';
 
 /** checkout / merge 確認ダイアログの内容（種別ごとの discriminated union） */
