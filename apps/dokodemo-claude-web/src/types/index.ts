@@ -1,4 +1,4 @@
-import type { PermissionMode } from '../components/SettingsModal';
+import type { PermissionMode } from '../utils/app-settings';
 
 // AI プロバイダーの型定義
 export type AiProvider = 'claude' | 'codex';
@@ -821,11 +821,20 @@ export interface ServerToClientEvents {
   'file-changed': (data: { rid: string; path: string; type: 'change' | 'rename' }) => void;
 
   // Claude Code Hooks設定関連イベント
-  'hooks-status': (data: { configured: boolean; port: number }) => void;
+  'hooks-status': (data: { configured: boolean; provider: AiProvider }) => void;
   'hooks-updated': (data: {
     success: boolean;
     message: string;
     configured: boolean;
+    provider: AiProvider;
+  }) => void;
+
+  // Claude Code プラグイン関連イベント
+  'plugin-status': (data: { installed: boolean }) => void;
+  'plugin-updated': (data: {
+    success: boolean;
+    message: string;
+    installed: boolean;
   }) => void;
 
   // Web Push通知関連イベント
@@ -1197,9 +1206,14 @@ export interface ClientToServerEvents {
   'stop-file-watch': (data: { rid: string }) => void;
 
   // Claude Code Hooks設定関連イベント
-  'check-hooks-status': (data: { port: number }) => void;
-  'add-dokodemo-hooks': (data: { port: number }) => void;
-  'remove-dokodemo-hooks': (data: { port: number }) => void;
+  'check-hooks-status': (data: { provider: AiProvider }) => void;
+  'add-dokodemo-hooks': (data: { provider: AiProvider }) => void;
+  'remove-dokodemo-hooks': (data: { provider: AiProvider }) => void;
+
+  // Claude Code プラグイン関連イベント
+  'check-plugin-status': () => void;
+  'install-plugin': () => void;
+  'uninstall-plugin': () => void;
 
   // AI タブの指示内容要約の設定
   'get-ai-summary-settings': () => void;
