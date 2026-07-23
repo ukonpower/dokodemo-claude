@@ -21,6 +21,9 @@ export interface UseViewRoutingOptions {
 export interface UseViewRoutingReturn {
   dashboardMode: boolean;
   setDashboardModeAndPersist: (next: boolean) => void;
+  settingsMode: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 /**
@@ -48,6 +51,12 @@ export function useViewRouting(
     }
   });
 
+  // 設定ページの表示状態（URL に ?view=settings が付いていれば初期表示）
+  // ダッシュボードと違い永続化はしない（設定は一時的な遷移先のため）
+  const [settingsMode, setSettingsMode] = useState<boolean>(
+    () => initialViewFromUrl === 'settings'
+  );
+
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
   useEffect(() => {
@@ -67,6 +76,14 @@ export function useViewRouting(
         repository.switchRepository(repoFromUrl, { skipPushState: true });
         return;
       }
+
+      if (viewFromUrl === 'settings') {
+        setSettingsMode(true);
+        return;
+      }
+
+      // settings 以外へ遷移する場合は設定ページを閉じる
+      setSettingsMode(false);
 
       if (viewFromUrl === 'graph') {
         setDashboardMode(false);
@@ -137,5 +154,32 @@ export function useViewRouting(
     window.history.pushState({}, '', url.toString());
   }, []);
 
-  return { dashboardMode, setDashboardModeAndPersist };
+  // 設定ページを開く（URL に ?view=settings を積む）
+  const openSettings = useCallback(() => {
+    setSettingsMode(true);
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'settings');
+    window.history.pushState({}, '', url.toString());
+  }, []);
+
+  // 設定ページを閉じて元のビューへ戻る
+  // （ダッシュボード表示中だった場合は ?view=dashboard を復元する）
+  const closeSettings = useCallback(() => {
+    setSettingsMode(false);
+    const url = new URL(window.location.href);
+    if (dashboardMode) {
+      url.searchParams.set('view', 'dashboard');
+    } else if (url.searchParams.get('view') === 'settings') {
+      url.searchParams.delete('view');
+    }
+    window.history.pushState({}, '', url.toString());
+  }, [dashboardMode]);
+
+  return {
+    dashboardMode,
+    setDashboardModeAndPersist,
+    settingsMode,
+    openSettings,
+    closeSettings,
+  };
 }

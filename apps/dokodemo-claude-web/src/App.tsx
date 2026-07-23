@@ -36,6 +36,7 @@ import {
   ProjectView,
   CodeBrowserView,
   DashboardView,
+  SettingsView,
 } from './views';
 
 import ProjectSwitcherModal from './components/ProjectSwitcherModal';
@@ -150,8 +151,14 @@ function App() {
     switchRepository: repository.switchRepository,
   });
 
-  // ビュールーティング（dashboardMode の管理 + popstate 対応）
-  const { dashboardMode, setDashboardModeAndPersist } = useViewRouting({
+  // ビュールーティング（dashboardMode / settingsMode の管理 + popstate 対応）
+  const {
+    dashboardMode,
+    setDashboardModeAndPersist,
+    settingsMode,
+    openSettings,
+    closeSettings,
+  } = useViewRouting({
     initialRepo,
     initialViewFromUrl,
     repository,
@@ -260,12 +267,27 @@ function App() {
     </>
   );
 
+  // 設定ページ（リポジトリ未選択でも表示できるため最優先で分岐）
+  if (settingsMode) {
+    return (
+      <>
+      <SettingsView
+        socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
+        settings={appSettings.appSettings}
+        onSettingsChange={appSettings.handleSettingsChange}
+        currentRepo={repository.currentRepo}
+        onBack={closeSettings}
+      />
+      {overlays}
+      </>
+    );
+  }
+
   // リポジトリが選択されていない場合はホーム画面
   if (!repository.currentRepo) {
     return (
       <>
       <HomeView
-        socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
         isConnected={isConnected}
         connectionAttempts={connectionAttempts}
         isReconnecting={isReconnecting}
@@ -277,10 +299,8 @@ function App() {
         onStopProcesses={repository.showStopProcessConfirmDialog}
         onSwitchRepository={switchRepositoryFromList}
         onPullSelf={repository.pullSelf}
-        appSettings={appSettings.appSettings}
-        showSettingsModal={appSettings.showSettingsModal}
-        setShowSettingsModal={appSettings.setShowSettingsModal}
-        onSettingsChange={appSettings.handleSettingsChange}
+        selfUpdateAvailable={repository.selfUpdateAvailable}
+        onOpenSettings={openSettings}
         isSwitchingRepo={repository.isSwitchingRepo}
         showStopProcessConfirm={repository.showStopProcessConfirm}
         stoppingProcesses={repository.stoppingProcesses}
@@ -338,8 +358,7 @@ function App() {
         currentRepo={repository.currentRepo}
         repositories={repository.repositories}
         repoProcessStatuses={repository.repoProcessStatuses}
-        appSettings={appSettings.appSettings}
-        onSettingsChange={appSettings.handleSettingsChange}
+        onOpenSettings={openSettings}
         onPasteFile={fileManager.uploadFile}
         isUploadingFile={fileManager.isUploadingFile}
         uploadProgress={fileManager.uploadProgress}
@@ -374,7 +393,6 @@ function App() {
   return (
     <>
     <ProjectView
-      socket={socket as Socket<ServerToClientEvents, ClientToServerEvents>}
       isConnected={isConnected}
       connectionAttempts={connectionAttempts}
       isReconnecting={isReconnecting}
@@ -447,6 +465,8 @@ function App() {
       pullState={branchWorktree.pullState}
       onClearPullState={branchWorktree.clearPullState}
       syncStatus={branchWorktree.syncStatus}
+      isSyncStatusRefreshing={branchWorktree.isSyncStatusRefreshing}
+      onRefreshSyncStatus={branchWorktree.refreshSyncStatus}
       pushState={branchWorktree.pushState}
       onPushBranch={branchWorktree.pushBranch}
       onClearPushState={branchWorktree.clearPushState}
@@ -522,10 +542,7 @@ function App() {
       setShowPopupBlockedModal={editorLauncher.setShowPopupBlockedModal}
       onOpenBlockedUrl={editorLauncher.openBlockedUrl}
       // 設定関連
-      appSettings={appSettings.appSettings}
-      showSettingsModal={appSettings.showSettingsModal}
-      setShowSettingsModal={appSettings.setShowSettingsModal}
-      onSettingsChange={appSettings.handleSettingsChange}
+      onOpenSettings={openSettings}
       sendSettings={appSettings.sendSettings}
       onSendSettingsChange={appSettings.setSendSettings}
       // リポジトリ操作

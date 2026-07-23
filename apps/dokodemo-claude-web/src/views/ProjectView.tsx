@@ -5,7 +5,6 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react';
-import { Socket } from 'socket.io-client';
 import type {
   GitRepository,
   GitBranch,
@@ -23,8 +22,6 @@ import type {
   PromptQueueItem,
   UploadedFileInfo,
   GitDiffSummary,
-  ServerToClientEvents,
-  ClientToServerEvents,
   RepoProcessStatus,
   CustomAiButton,
   CustomAiButtonScope,
@@ -51,7 +48,6 @@ import RepoHeader from '../components/RepoHeader';
 import RepositorySwitcher from '../components/RepositorySwitcher';
 import WorktreeTabs from '../components/WorktreeTabs';
 import WorktreeOperations from '../components/WorktreeOperations';
-import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import PromptQueue from '../components/PromptQueue';
 import SidePanel from '../components/SidePanel';
 import AiInstanceTabs from '../components/AiInstanceTabs';
@@ -78,9 +74,6 @@ function getStoredSideColCollapsed(repo: string): boolean {
 }
 
 interface ProjectViewProps {
-  // Socket
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-
   // 接続状態
   isConnected: boolean;
   connectionAttempts: number;
@@ -167,6 +160,8 @@ interface ProjectViewProps {
   pullState: PullState | null;
   onClearPullState: () => void;
   syncStatus: BranchSyncStatus | null;
+  isSyncStatusRefreshing: boolean;
+  onRefreshSyncStatus: () => void;
   pushState: PullState | null;
   onPushBranch: () => void;
   onClearPushState: () => void;
@@ -268,10 +263,7 @@ interface ProjectViewProps {
   onOpenBlockedUrl: () => void;
 
   // 設定関連
-  appSettings: AppSettings;
-  showSettingsModal: boolean;
-  setShowSettingsModal: (show: boolean) => void;
-  onSettingsChange: (settings: AppSettings) => void;
+  onOpenSettings: () => void;
   sendSettings: CommandSendSettings;
   onSendSettingsChange: React.Dispatch<React.SetStateAction<CommandSendSettings>>;
 
@@ -319,7 +311,6 @@ interface ProjectViewProps {
 }
 
 export function ProjectView({
-  socket,
   isConnected,
   connectionAttempts,
   isReconnecting,
@@ -389,6 +380,8 @@ export function ProjectView({
   pullState,
   onClearPullState,
   syncStatus,
+  isSyncStatusRefreshing,
+  onRefreshSyncStatus,
   pushState,
   onPushBranch,
   onClearPushState,
@@ -448,10 +441,7 @@ export function ProjectView({
   setShowEditorMenu,
   setShowPopupBlockedModal,
   onOpenBlockedUrl,
-  appSettings,
-  showSettingsModal,
-  setShowSettingsModal,
-  onSettingsChange,
+  onOpenSettings,
   sendSettings,
   onSendSettingsChange,
   showDeleteConfirm,
@@ -599,7 +589,7 @@ export function ProjectView({
         currentRepo={currentRepo}
         onOpenFileViewer={onOpenFileViewer}
         onOpenGraphView={onOpenGraphView}
-        onOpenSettings={() => setShowSettingsModal(true)}
+        onOpenSettings={onOpenSettings}
         startingCodeServer={startingCodeServer}
         isLocalhost={isLocalhost}
         availableEditors={availableEditors}
@@ -629,6 +619,8 @@ export function ProjectView({
                 pullState={pullState}
                 onClearPullState={onClearPullState}
                 syncStatus={syncStatus}
+                isSyncStatusRefreshing={isSyncStatusRefreshing}
+                onRefreshSyncStatus={onRefreshSyncStatus}
                 pushState={pushState}
                 onPushBranch={onPushBranch}
                 onClearPushState={onClearPushState}
@@ -1206,16 +1198,6 @@ export function ProjectView({
         url={blockedCodeServerUrl}
         onClose={() => setShowPopupBlockedModal(false)}
         onOpenInNewTab={onOpenBlockedUrl}
-      />
-
-      {/* 設定モーダル */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        settings={appSettings}
-        onClose={() => setShowSettingsModal(false)}
-        onSettingsChange={onSettingsChange}
-        socket={socket}
-        currentRepo={currentRepo}
       />
 
       {/* リポジトリ切り替えメニュー */}

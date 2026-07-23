@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, CloudUpload } from 'lucide-react';
+import { ArrowDown, ArrowUp, CloudUpload, RefreshCw } from 'lucide-react';
 import type { GitBranch, GitWorktree } from '../types';
 import type { PullState, BranchSyncStatus } from '../hooks/useBranchWorktree';
 import { useOutsideClose } from '../hooks';
@@ -18,6 +18,8 @@ interface BranchSelectorProps {
   pullState: PullState | null;
   onClearPullState: () => void;
   syncStatus: BranchSyncStatus | null;
+  isSyncStatusRefreshing: boolean;
+  onRefreshSyncStatus: () => void;
   pushState: PullState | null;
   onPushBranch: () => void;
   onClearPushState: () => void;
@@ -36,6 +38,8 @@ function BranchSelector({
   pullState,
   onClearPullState,
   syncStatus,
+  isSyncStatusRefreshing,
+  onRefreshSyncStatus,
   pushState,
   onPushBranch,
   onClearPushState,
@@ -339,6 +343,21 @@ function BranchSelector({
               <span>{syncStatus.ahead}</span>
             </>
           )}
+        </button>
+      )}
+      {syncStatus && (
+        <button
+          onClick={onRefreshSyncStatus}
+          disabled={!isConnected || isSyncStatusRefreshing}
+          className={s.syncRefreshButton}
+          title="リモートと比較して ahead/behind を更新"
+          aria-label="ahead/behind を更新"
+        >
+          <RefreshCw
+            className={`${s.syncIcon} ${
+              isSyncStatusRefreshing ? s.syncIconSpinning : ''
+            }`}
+          />
         </button>
       )}
 

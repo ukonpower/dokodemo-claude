@@ -71,6 +71,12 @@ export interface BranchSyncStatus {
 // sync status のポーリング間隔（判断済み事項どおり 30 秒）
 const SYNC_STATUS_POLL_INTERVAL_MS = 30000;
 
+// フォーカス復帰時の fetch 付き更新の抑制間隔（連続発火防止）
+const SYNC_STATUS_REFRESH_MIN_INTERVAL_MS = 5000;
+
+// fetch 付き更新の応答が来ない場合にスピナーを解除するタイムアウト
+const SYNC_STATUS_REFRESH_TIMEOUT_MS = 40000;
+
 /**
  * useBranchWorktree フックの戻り値
  */
@@ -97,6 +103,8 @@ export interface UseBranchWorktreeReturn {
 
   // 現在ブランチの同期状態（ahead/behind。null は未取得）
   syncStatus: BranchSyncStatus | null;
+  // fetch 付きの同期状態更新が実行中かどうか
+  isSyncStatusRefreshing: boolean;
   // push 状態（実行中・成功・失敗 + 進行ログ。pullState と同形式）
   pushState: PullState | null;
 
@@ -107,6 +115,8 @@ export interface UseBranchWorktreeReturn {
   refreshBranches: () => void;
   pullBranch: () => void;
   pushBranch: () => void;
+  // fetch を伴って ahead/behind を再取得する（手動リフレッシュ用）
+  refreshSyncStatus: () => void;
 
   // ワークツリーアクション
   createWorktree: (
@@ -183,6 +193,10 @@ export function useBranchWorktree(
 
   // 現在ブランチの同期状態（ahead/behind）
   const [syncStatus, setSyncStatus] = useState<BranchSyncStatus | null>(null);
+  // fetch 付き更新の実行中フラグ（リフレッシュボタンのスピナー用）
+  const [isSyncStatusRefreshing, setIsSyncStatusRefreshing] = useState(false);
+  // fetch 付き更新の直近実行時刻（フォーカス復帰時の連続発火抑制用）
+  const lastSyncRefreshAtRef = useRef(0);
   // push 状態（running / success / error + 進行ログ）
   const [pushState, setPushState] = useState<PullState | null>(null);
 
@@ -223,6 +237,28 @@ export function useBranchWorktree(
     socket.emit('get-branch-sync-status', { rid });
   }, [socket]);
 
+  // fetch を伴って ahead/behind を再取得する。
+  // remote-tracking ref が最新化されるため、リモート側の変化も数字に反映される。
+  const refreshSyncStatus = useCallback(() => {
+    if (!socket || !socket.connected) return;
+    const repoPath = currentRepoRef.current;
+    if (!repoPath) return;
+    const rid = repositoryIdMap.getRid(repoPath);
+    if (!rid) return;
+    lastSyncRefreshAtRef.current = Date.now();
+    setIsSyncStatusRefreshing(true);
+    socket.emit('get-branch-sync-status', { rid, fetch: true });
+  }, [socket]);
+
+  // fetch 付き更新の応答が来ないままの場合はスピナーを解除する
+  useEffect(() => {
+    if (!isSyncStatusRefreshing) return;
+    const timer = setTimeout(() => {
+      setIsSyncStatusRefreshing(false);
+    }, SYNC_STATUS_REFRESH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isSyncStatusRefreshing]);
+
   // 30秒間隔ポーリング（socket 接続中かつタブがアクティブなときのみ）
   useEffect(() => {
     if (!socket) return;
@@ -233,6 +269,28 @@ export function useBranchWorktree(
     }, SYNC_STATUS_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [socket, requestSyncStatus]);
+
+  // タブ/ウィンドウにフォーカスが戻ったとき fetch 付きで再取得する。
+  // visibilitychange と focus は同時に発火しうるため、直近実行からの経過時間で抑制する。
+  useEffect(() => {
+    if (!socket) return;
+    const handleFocusRefresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (
+        Date.now() - lastSyncRefreshAtRef.current <
+        SYNC_STATUS_REFRESH_MIN_INTERVAL_MS
+      ) {
+        return;
+      }
+      refreshSyncStatus();
+    };
+    window.addEventListener('focus', handleFocusRefresh);
+    document.addEventListener('visibilitychange', handleFocusRefresh);
+    return () => {
+      window.removeEventListener('focus', handleFocusRefresh);
+      document.removeEventListener('visibilitychange', handleFocusRefresh);
+    };
+  }, [socket, refreshSyncStatus]);
 
   // Socketイベントリスナー
   useEffect(() => {
@@ -431,6 +489,8 @@ export function useBranchWorktree(
         ahead: data.ahead,
         behind: data.behind,
       });
+      // fetch 付き更新の応答もこのイベントで返るためスピナーを解除する
+      setIsSyncStatusRefreshing(false);
     };
 
     // ブランチ push 開始
@@ -785,6 +845,7 @@ export function useBranchWorktree(
     setParentRepoPath('');
     setPullState(null);
     setSyncStatus(null);
+    setIsSyncStatusRefreshing(false);
     setPushState(null);
     setWorktreeCreateError(null);
     setWorktreeSyncConfig(null);
@@ -803,6 +864,7 @@ export function useBranchWorktree(
     deletingWorktreePath,
     pullState,
     syncStatus,
+    isSyncStatusRefreshing,
     pushState,
     switchBranch,
     deleteBranch,
@@ -810,6 +872,7 @@ export function useBranchWorktree(
     refreshBranches,
     pullBranch,
     pushBranch,
+    refreshSyncStatus,
     createWorktree,
     deleteWorktree,
     mergeWorktree,

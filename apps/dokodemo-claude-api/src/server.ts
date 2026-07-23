@@ -67,6 +67,10 @@ import {
   initWebPushService,
   getWebPushService,
 } from './services/web-push-service.js';
+import {
+  initSelfUpdateChecker,
+  getSelfUpdateAvailable,
+} from './services/self-update-checker.js';
 
 const app = express();
 
@@ -216,6 +220,11 @@ setWorktreeSortOrderManager(processManager.worktreeSortOrderManager);
 setWorktreeMemoManager(processManager.worktreeMemoManager);
 
 const persistenceService = new PersistenceService(PROCESSES_DIR);
+
+// AI タブの指示内容要約サービスの初期化（保存済みの on/off 設定を読み込む）
+aiActivitySummaryService.init(persistenceService).catch((err) => {
+  console.error('指示内容要約サービスの初期化に失敗:', err);
+});
 
 // Web Push通知サービスの初期化
 const webPushService = initWebPushService(persistenceService);
@@ -1065,24 +1074,6 @@ processManager.on('ai-output', (data) => {
   });
 });
 
-// キューから AI へ送信されたユーザープロンプトをタブ表示用に要約する
-processManager.on(
-  'prompt-queue-item-sent',
-  (data: { repositoryPath: string; provider: AiProvider; prompt: string }) => {
-    // キューの送信先は常にプライマリインスタンス
-    const primary = processManager.aiSessionManager.getPrimaryInstance(
-      data.repositoryPath
-    );
-    if (!primary) return;
-    aiActivitySummaryService.notifyPrompt({
-      instanceId: primary.instanceId,
-      repositoryPath: data.repositoryPath,
-      provider: data.provider,
-      prompt: data.prompt,
-    });
-  }
-);
-
 // 指示内容の要約が生成されたらタブ表示用にクライアントへ配信
 aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
@@ -1282,6 +1273,11 @@ processManager.on('terminal-ports', (data) => {
 
 // Socket.IOイベントハンドラ
 io.on('connection', (socket) => {
+  // 接続時に自身の更新有無（キャッシュ済み）を通知
+  socket.emit('self-update-status', {
+    updateAvailable: getSelfUpdateAvailable(),
+  });
+
   // イベントハンドラー登録を非同期で実行（接続応答を高速化）
   setImmediate(() => {
     registerAllHandlers(socket, {
@@ -1348,6 +1344,11 @@ async function startServer(): Promise<void> {
   } catch (error) {
     console.error('⚠️  code-serverの起動に失敗しました:', error);
   }
+
+  // 自身のリモート更新（新リリース）の定期チェックを開始
+  initSelfUpdateChecker(projectRoot, (updateAvailable) => {
+    io.emit('self-update-status', { updateAvailable });
+  });
 
   server.listen(PORT, HOST, () => {
     const protocol = isHttps ? 'https' : 'http';

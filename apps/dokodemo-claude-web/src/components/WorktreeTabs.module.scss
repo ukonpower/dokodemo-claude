@@ -250,13 +250,6 @@
   white-space: nowrap;
 }
 
-.memoIndicator {
-  margin-left: 0.25rem;
-  font-size: 0.7em;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
 // PR バッジ：PR 番号 + 状態色ドット
 .prBadge {
   display: inline-flex;

@@ -95,6 +95,38 @@
   height: 0.75rem;
 }
 
+// ahead/behind を fetch 付きで再取得するリフレッシュボタン
+.syncRefreshButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-500;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-100;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncIconSpinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .syncPopover {
   position: fixed;
   min-width: 11rem;

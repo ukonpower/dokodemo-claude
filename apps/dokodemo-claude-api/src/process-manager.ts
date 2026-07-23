@@ -241,9 +241,6 @@ export class ProcessManager extends EventEmitter {
     this.promptQueueManager.on('prompt-queue-processing-completed', (data) =>
       this.emit('prompt-queue-processing-completed', data)
     );
-    this.promptQueueManager.on('prompt-queue-item-sent', (data) =>
-      this.emit('prompt-queue-item-sent', data)
-    );
     this.promptQueueManager.on('prompt-loop-ended', (data) =>
       this.emit('prompt-loop-ended', data)
     );

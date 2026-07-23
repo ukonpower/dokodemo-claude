@@ -225,6 +225,8 @@ export interface ServerToClientEvents {
     summary: string;
     timestamp: number;
   }) => void;
+  // AI タブの指示内容要約の設定（現在値の通知）
+  'ai-summary-settings': (data: { enabled: boolean }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -484,6 +486,9 @@ export interface ServerToClientEvents {
     message: string;
     output: string;
   }) => void;
+
+  // 自身のリモート更新（新リリース）有無の通知
+  'self-update-status': (data: { updateAvailable: boolean }) => void;
 
   // ブランチ pull 進行ログ（stdout/stderr のストリーミング配信）
   'branch-pull-progress': (data: {
@@ -902,8 +907,9 @@ export interface ClientToServerEvents {
     repositoryPath?: string;
   }) => void;
 
-  // 現在ブランチの ahead/behind 状態を取得（fetch はしない）
-  'get-branch-sync-status': (data: { rid: string }) => void;
+  // 現在ブランチの ahead/behind 状態を取得
+  // fetch: true で git fetch により remote-tracking ref を最新化してから計算する
+  'get-branch-sync-status': (data: { rid: string; fetch?: boolean }) => void;
 
   // 現在ブランチの push
   'push-branch': (data: { rid: string }) => void;
@@ -1049,6 +1055,10 @@ export interface ClientToServerEvents {
   'check-hooks-status': (data: { provider: AiProvider }) => void;
   'add-dokodemo-hooks': (data: { provider: AiProvider }) => void;
   'remove-dokodemo-hooks': (data: { provider: AiProvider }) => void;
+
+  // AI タブの指示内容要約の設定
+  'get-ai-summary-settings': () => void;
+  'set-ai-summary-settings': (data: { enabled: boolean }) => void;
 
   // Claude Code プラグイン関連イベント
   'check-plugin-status': () => void;

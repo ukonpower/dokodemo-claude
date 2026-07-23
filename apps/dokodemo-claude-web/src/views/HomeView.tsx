@@ -1,21 +1,11 @@
-import { Socket } from 'socket.io-client';
-import type {
-  GitRepository,
-  RepoProcessStatus,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '../types';
+import type { GitRepository, RepoProcessStatus } from '../types';
 import { repositoryIdMap } from '../utils/repository-id-map';
 
 import RepositoryManager from '../components/RepositoryManager';
 import RepositorySwitcher from '../components/RepositorySwitcher';
-import SettingsModal, { AppSettings } from '../components/SettingsModal';
 import s from './HomeView.module.scss';
 
 interface HomeViewProps {
-  // Socket
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-
   // 接続状態
   isConnected: boolean;
   connectionAttempts: number;
@@ -32,12 +22,10 @@ interface HomeViewProps {
   onStopProcesses: (rid: string) => void;
   onSwitchRepository: (path: string) => void;
   onPullSelf: () => void;
+  selfUpdateAvailable: boolean;
 
-  // 設定関連
-  appSettings: AppSettings;
-  showSettingsModal: boolean;
-  setShowSettingsModal: (show: boolean) => void;
-  onSettingsChange: (settings: AppSettings) => void;
+  // 設定ページへの遷移
+  onOpenSettings: () => void;
 
   // ローディング状態
   isSwitchingRepo: boolean;
@@ -52,7 +40,6 @@ interface HomeViewProps {
 }
 
 export function HomeView({
-  socket,
   isConnected,
   connectionAttempts,
   isReconnecting,
@@ -64,10 +51,8 @@ export function HomeView({
   onStopProcesses,
   onSwitchRepository,
   onPullSelf,
-  appSettings,
-  showSettingsModal,
-  setShowSettingsModal,
-  onSettingsChange,
+  selfUpdateAvailable,
+  onOpenSettings,
   isSwitchingRepo,
   showStopProcessConfirm,
   stoppingProcesses,
@@ -99,7 +84,11 @@ export function HomeView({
                 <button
                   onClick={onPullSelf}
                   className={s.updateButton}
-                  title="dokodemo-claude自身を最新版に更新 (git pull)"
+                  title={
+                    selfUpdateAvailable
+                      ? '新しいリリースがあります。クリックで最新版に更新 (git pull)'
+                      : 'dokodemo-claude自身を最新版に更新 (git pull)'
+                  }
                 >
                   <svg
                     className={s.updateIcon}
@@ -115,12 +104,13 @@ export function HomeView({
                     />
                   </svg>
                   <span>更新</span>
+                  {selfUpdateAvailable && <span className={s.updateBadge} />}
                 </button>
               </div>
               <div className={s.headerRight}>
                 {/* 設定ボタン */}
                 <button
-                  onClick={() => setShowSettingsModal(true)}
+                  onClick={onOpenSettings}
                   className={s.iconButton}
                   title="設定"
                 >
@@ -411,15 +401,6 @@ export function HomeView({
         </div>
       )}
 
-      {/* 設定モーダル */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        settings={appSettings}
-        onClose={() => setShowSettingsModal(false)}
-        onSettingsChange={onSettingsChange}
-        socket={socket}
-        currentRepo={currentRepo}
-      />
     </div>
   );
 }
