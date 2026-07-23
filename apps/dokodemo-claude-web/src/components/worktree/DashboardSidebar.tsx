@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useOutsideClose } from '@/hooks';
+import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -12,7 +12,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import type { GitWorktree } from '@/types';
-import MarkdownViewer from '@/components/files/MarkdownViewer';
+import MarkdownViewer from '@/shared/components/MarkdownViewer';
 import s from './DashboardSidebar.module.scss';
 
 interface MemoPopover {

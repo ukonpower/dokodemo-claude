@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
 import type { UploadedFileInfo } from '@/types';
-import { BACKEND_URL } from '@/utils/backend-url';
-import MarkdownViewer from './MarkdownViewer';
-import EmptyState from '@/components/ui/EmptyState';
+import { BACKEND_URL } from '@/shared/utils/backend-url';
+import MarkdownViewer from '@/shared/components/MarkdownViewer';
+import EmptyState from '@/shared/components/EmptyState';
 import s from './MarkdownFullscreen.module.scss';
 
 interface MarkdownFullscreenProps {

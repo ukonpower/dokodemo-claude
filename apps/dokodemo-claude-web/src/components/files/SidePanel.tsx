@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
-import { useMediaQuery } from '@/hooks';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import s from './SidePanel.module.scss';
 import type { UploadedFileInfo, GitDiffSummary } from '@/types';
 import FileManager from './FileManager';
 import DiffSummary from '@/components/git/DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
-import SectionFullscreen from '@/components/ui/SectionFullscreen';
+import SectionFullscreen from '@/shared/components/SectionFullscreen';
 import MarkdownFullscreen from './MarkdownFullscreen';
 
 

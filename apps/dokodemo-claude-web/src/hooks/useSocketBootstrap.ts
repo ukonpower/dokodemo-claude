@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import type { AiProvider, ServerToClientEvents, ClientToServerEvents } from '@/types';
 import type { AppSettings } from '@/utils/app-settings';
-import { repositoryIdMap } from '@/utils/repository-id-map';
-import { pruneStaleLastWorktreeRefs } from '@/utils/last-tab-storage';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { pruneStaleLastWorktreeRefs } from '@/shared/utils/last-tab-storage';
 
 /**
  * useSocketBootstrap フックのオプション

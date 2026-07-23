@@ -27,7 +27,7 @@ import type {
   CustomAiButtonScope,
   WorktreeSyncEntry,
 } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import type { CommandSendSettings } from '@/hooks/useAppSettings';
 import type { LoopEndInfo } from '@/hooks/usePromptQueue';
 import type {
@@ -43,7 +43,7 @@ import { KeyboardButtons } from '@/components/ai/KeyboardButtons';
 import TerminalManager from '@/components/terminal/TerminalManager';
 import BranchSelector from '@/components/git/BranchSelector';
 import NpmScripts from '@/components/terminal/NpmScripts';
-import { PopupBlockedModal } from '@/components/ui/PopupBlockedModal';
+import { PopupBlockedModal } from '@/shared/components/PopupBlockedModal';
 import RepoHeader from '@/components/repo/RepoHeader';
 import RepositorySwitcher from '@/components/repo/RepositorySwitcher';
 import WorktreeTabs from '@/components/worktree/WorktreeTabs';

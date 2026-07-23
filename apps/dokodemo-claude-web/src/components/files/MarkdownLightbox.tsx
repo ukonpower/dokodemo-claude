@@ -9,9 +9,9 @@ import {
   Eye,
 } from 'lucide-react';
 import type { UploadedFileInfo } from '@/types';
-import { BACKEND_URL } from '@/utils/backend-url';
-import MarkdownViewer from './MarkdownViewer';
-import { useOverlayClose } from '@/hooks/useOverlayClose';
+import { BACKEND_URL } from '@/shared/utils/backend-url';
+import MarkdownViewer from '@/shared/components/MarkdownViewer';
+import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './MarkdownLightbox.module.scss';
 
 interface MarkdownLightboxProps {

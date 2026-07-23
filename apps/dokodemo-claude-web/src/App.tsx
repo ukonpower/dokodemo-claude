@@ -5,30 +5,28 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
 } from './types';
-import { repositoryIdMap } from './utils/repository-id-map';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 
 // フック
-import {
-  useSocket,
-  useAppSettings,
-  useRepository,
-  useAiCli,
-  useTerminal,
-  useBranchWorktree,
-  usePromptQueue,
-  useGitDiff,
-  useGitGraph,
-  useFileManager,
-  useEditorLauncher,
-  useFileViewer,
-  useCustomAiButtons,
-  useNpmScripts,
-  useSocketBootstrap,
-  useRepositorySwitchFromList,
-  useViewRouting,
-  useDocumentTitle,
-  useAppHotkeys,
-} from './hooks';
+import { useSocket } from './hooks/useSocket';
+import { useAppSettings } from './hooks/useAppSettings';
+import { useRepository } from './hooks/useRepository';
+import { useAiCli } from './hooks/useAiCli';
+import { useTerminal } from './hooks/useTerminal';
+import { useBranchWorktree } from './hooks/useBranchWorktree';
+import { usePromptQueue } from './hooks/usePromptQueue';
+import { useGitDiff } from './hooks/useGitDiff';
+import { useGitGraph } from './hooks/useGitGraph';
+import { useFileManager } from './hooks/useFileManager';
+import { useEditorLauncher } from './hooks/useEditorLauncher';
+import { useFileViewer } from './hooks/useFileViewer';
+import { useCustomAiButtons } from './hooks/useCustomAiButtons';
+import { useNpmScripts } from './hooks/useNpmScripts';
+import { useSocketBootstrap } from './hooks/useSocketBootstrap';
+import { useRepositorySwitchFromList } from './hooks/useRepositorySwitchFromList';
+import { useViewRouting } from './hooks/useViewRouting';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { useAppHotkeys } from './hooks/useAppHotkeys';
 
 // ビュー
 import {
@@ -40,7 +38,7 @@ import {
 } from './views';
 
 import ProjectSwitcherModal from './components/repo/ProjectSwitcherModal';
-import CommandPaletteModal from './components/ui/CommandPaletteModal';
+import CommandPaletteModal from '@/shared/components/CommandPaletteModal';
 import { buildCommands, type CommandPaletteCommand } from './commands';
 import { Socket } from 'socket.io-client';
 

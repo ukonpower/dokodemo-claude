@@ -1,8 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { GitBranch } from 'lucide-react';
 import type { GitDiffFile, GitDiffSummary } from '@/types';
-import EmptyState from '@/components/ui/EmptyState';
-import { FileIcon, splitFilePath } from '@/utils/file-icon';
+import EmptyState from '@/shared/components/EmptyState';
+import { FileIcon, splitFilePath } from '@/shared/utils/file-icon';
 import s from './DiffSummary.module.scss';
 
 interface DiffSummaryProps {

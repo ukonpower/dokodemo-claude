@@ -19,12 +19,12 @@ import {
 } from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '@/types';
-import { BACKEND_URL } from '@/utils/backend-url';
-import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import ImageLightbox from '@/components/ui/ImageLightbox';
-import type { LightboxItem } from '@/components/ui/ImageLightbox';
+import { BACKEND_URL } from '@/shared/utils/backend-url';
+import { useCopyToClipboard } from '@/shared/hooks/useCopyToClipboard';
+import ImageLightbox from '@/shared/components/ImageLightbox';
+import type { LightboxItem } from '@/shared/components/ImageLightbox';
 import MarkdownLightbox from './MarkdownLightbox';
-import EmptyState from '@/components/ui/EmptyState';
+import EmptyState from '@/shared/components/EmptyState';
 import s from './FileManager.module.scss';
 
 interface FileManagerProps {

@@ -6,7 +6,7 @@ import type {
   GitDiffDetail,
 } from '@/types';
 import { formatGraphDate } from '@/utils/git-graph-layout';
-import { FileIcon, splitFilePath } from '@/utils/file-icon';
+import { FileIcon, splitFilePath } from '@/shared/utils/file-icon';
 import DiffLines from './DiffLines';
 import { UNCOMMITTED_HASH } from './GitGraphSvg';
 import s from './GitGraphCommitDetail.module.scss';

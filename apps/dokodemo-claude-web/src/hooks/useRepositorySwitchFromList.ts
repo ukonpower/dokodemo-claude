@@ -4,7 +4,7 @@ import type { ServerToClientEvents, ClientToServerEvents } from '@/types';
 import {
   getLastWorktreeForParent,
   setLastWorktreeForParent,
-} from '@/utils/last-tab-storage';
+} from '@/shared/utils/last-tab-storage';
 
 /**
  * リポジトリ一覧（HomeView / RepositorySwitcher）からのクリック時に、

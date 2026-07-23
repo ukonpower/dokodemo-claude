@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { FolderGit2 } from 'lucide-react';
 import type { GitGraphData, GitGraphRef } from '@/types';
-import { useLongPress, useMediaQuery, type LongPressPoint } from '@/hooks';
+import { useLongPress, type LongPressPoint } from '@/shared/hooks/useLongPress';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import {
   computeGraphLayout,
   formatGraphDate,

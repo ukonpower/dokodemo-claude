@@ -21,7 +21,7 @@ import 'swiper/css';
 import 'swiper/css/free-mode';
 import type { AiInstance, AiProvider } from '@/types';
 import { getProviderShortName } from '@/utils/ai-provider-info';
-import { PopupMenu } from '@/components/ui/PopupMenu';
+import { PopupMenu } from '@/shared/components/PopupMenu';
 import s from './AiInstanceTabs.module.scss';
 
 // 追加メニューの項目（矢印キーで選択）。'close' はメニューを閉じるだけ

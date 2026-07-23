@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import '@/utils/prism-languages';
+import '@/shared/utils/prism-languages';
 import s from './MarkdownViewer.module.scss';
 
 const LANGUAGE_FALLBACK: Record<string, string> = {

@@ -9,7 +9,7 @@ import React, {
 import { Repeat, FileText, ImagePlus } from 'lucide-react';
 import type { AiProvider } from '@/types';
 import { useModelOptions } from '@/hooks/useModelOptions';
-import { useOutsideClose } from '@/hooks';
+import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/utils/models';
 import LoopSettingsFields, {
   DEFAULT_PLANNING_MODEL,

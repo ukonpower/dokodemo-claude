@@ -6,8 +6,8 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
 } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
-import { useOutsideClose } from './useOutsideClose';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 
 /**
  * useEditorLauncher フックの戻り値

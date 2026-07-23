@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText } from 'lucide-react';
 import type { UploadedFileInfo } from '@/types';
 import MarkdownLightbox from './MarkdownLightbox';
-import EmptyState from '@/components/ui/EmptyState';
+import EmptyState from '@/shared/components/EmptyState';
 import s from './MarkdownPanel.module.scss';
 
 interface MarkdownPanelProps {

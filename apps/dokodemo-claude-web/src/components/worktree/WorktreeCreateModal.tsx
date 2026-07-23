@@ -16,7 +16,7 @@ import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
 } from '@/hooks/useBranchWorktree';
-import { useOverlayClose } from '@/hooks/useOverlayClose';
+import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './WorktreeCreateModal.module.scss';
 
 interface WorktreeCreateModalProps {

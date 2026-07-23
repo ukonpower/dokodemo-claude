@@ -7,7 +7,7 @@ import {
   GitMerge,
   GitCommitHorizontal,
 } from 'lucide-react';
-import type { UseGitGraphReturn } from '@/hooks';
+import type { UseGitGraphReturn } from '@/hooks/useGitGraph';
 import type { GitGraphRef } from '@/types';
 import GitGraphTable from '@/components/git/GitGraphTable';
 import GitGraphCommitDetail from '@/components/git/GitGraphCommitDetail';

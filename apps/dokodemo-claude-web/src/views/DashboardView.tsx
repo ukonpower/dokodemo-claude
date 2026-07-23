@@ -26,7 +26,7 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
 } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useWorktreeDashboard } from '@/hooks/useWorktreeDashboard';
 import RepoHeader from '@/components/repo/RepoHeader';
 import RepositorySwitcher from '@/components/repo/RepositorySwitcher';

@@ -13,9 +13,9 @@ import {
   MessageSquare,
   StickyNote,
 } from 'lucide-react';
-import TerminalOut from '@/components/terminal/TerminalOut';
+import TerminalOut from '@/shared/components/TerminalOut';
 import TextInput from '@/components/ai/CommandInput';
-import MarkdownViewer from '@/components/files/MarkdownViewer';
+import MarkdownViewer from '@/shared/components/MarkdownViewer';
 import type {
   AiOutputLine,
   AiProvider,

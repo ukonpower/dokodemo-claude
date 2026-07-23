@@ -6,8 +6,8 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
 } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
-import { BACKEND_URL } from '@/utils/backend-url';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { BACKEND_URL } from '@/shared/utils/backend-url';
 
 export interface UseFileManagerReturn {
   files: UploadedFileInfo[];

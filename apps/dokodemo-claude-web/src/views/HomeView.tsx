@@ -1,5 +1,5 @@
 import type { GitRepository, RepoProcessStatus } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 
 import RepositoryManager from '@/components/repo/RepositoryManager';
 import RepositorySwitcher from '@/components/repo/RepositorySwitcher';

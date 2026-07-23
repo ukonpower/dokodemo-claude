@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, CloudUpload, RefreshCw } from 'lucide-react';
 import type { GitBranch, GitWorktree } from '@/types';
 import type { PullState, BranchSyncStatus } from '@/hooks/useBranchWorktree';
-import { useOutsideClose } from '@/hooks';
+import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 

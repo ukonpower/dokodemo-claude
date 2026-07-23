@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import { ArrowLeft, FileText, AlertTriangle, Maximize2, Minimize2, WrapText } from 'lucide-react';
 import type { FileContent, GitDiffDetail } from '@/types';
-import { BACKEND_URL } from '@/utils/backend-url';
-import '@/utils/prism-languages';
-import MarkdownViewer from './MarkdownViewer';
+import { BACKEND_URL } from '@/shared/utils/backend-url';
+import '@/shared/utils/prism-languages';
+import MarkdownViewer from '@/shared/components/MarkdownViewer';
 import DiffLines from '@/components/git/DiffLines';
 import s from './FileContentViewer.module.scss';
 

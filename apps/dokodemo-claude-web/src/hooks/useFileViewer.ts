@@ -7,7 +7,7 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
 } from '@/types';
-import { repositoryIdMap } from '@/utils/repository-id-map';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 
 /**
  * useFileViewer フックの戻り値

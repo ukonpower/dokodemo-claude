@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Eye, EyeOff, StickyNote, X } from 'lucide-react';
 import type { GitWorktree } from '@/types';
-import { useOverlayClose } from '@/hooks/useOverlayClose';
+import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './DashboardFilterModal.module.scss';
 
 interface DashboardFilterModalProps {

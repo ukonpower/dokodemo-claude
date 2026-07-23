@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '@/types';
 import { useModelOptions } from '@/hooks/useModelOptions';
-import { useOutsideClose } from '@/hooks';
+import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import LoopSettingsFields, {
   DEFAULT_PLANNING_MODEL,
   DEFAULT_PLANNING_EVERY_N,

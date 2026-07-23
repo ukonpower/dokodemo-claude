@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { GitBranch } from '@/types';
-import { useOverlayClose } from '@/hooks/useOverlayClose';
+import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './BranchCreateModal.module.scss';
 
 interface BranchCreateModalProps {
