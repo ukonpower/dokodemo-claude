@@ -26,33 +26,33 @@ import type {
   CustomAiButton,
   CustomAiButtonScope,
   WorktreeSyncEntry,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
-import type { CommandSendSettings } from '../hooks/useAppSettings';
-import type { LoopEndInfo } from '../hooks/usePromptQueue';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
+import type { CommandSendSettings } from '@/hooks/useAppSettings';
+import type { LoopEndInfo } from '@/hooks/usePromptQueue';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
   PullState,
   BranchSyncStatus,
-} from '../hooks/useBranchWorktree';
+} from '@/hooks/useBranchWorktree';
 
-import AiOutput, { AiOutputRef } from '../components/ai/AiOutput';
-import TextInput, { TextInputRef } from '../components/ai/CommandInput';
-import { KeyboardButtons } from '../components/ai/KeyboardButtons';
-import TerminalManager from '../components/terminal/TerminalManager';
-import BranchSelector from '../components/git/BranchSelector';
-import NpmScripts from '../components/terminal/NpmScripts';
-import { PopupBlockedModal } from '../components/ui/PopupBlockedModal';
-import RepoHeader from '../components/repo/RepoHeader';
-import RepositorySwitcher from '../components/repo/RepositorySwitcher';
-import WorktreeTabs from '../components/worktree/WorktreeTabs';
-import WorktreeOperations from '../components/worktree/WorktreeOperations';
-import PromptQueue from '../components/ai/PromptQueue';
-import SidePanel from '../components/files/SidePanel';
-import AiInstanceTabs from '../components/ai/AiInstanceTabs';
-import type { AiInstanceTabsHandle } from '../components/ai/AiInstanceTabs';
-import DrawingCanvas from '../components/ai/DrawingCanvas';
+import AiOutput, { AiOutputRef } from '@/components/ai/AiOutput';
+import TextInput, { TextInputRef } from '@/components/ai/CommandInput';
+import { KeyboardButtons } from '@/components/ai/KeyboardButtons';
+import TerminalManager from '@/components/terminal/TerminalManager';
+import BranchSelector from '@/components/git/BranchSelector';
+import NpmScripts from '@/components/terminal/NpmScripts';
+import { PopupBlockedModal } from '@/components/ui/PopupBlockedModal';
+import RepoHeader from '@/components/repo/RepoHeader';
+import RepositorySwitcher from '@/components/repo/RepositorySwitcher';
+import WorktreeTabs from '@/components/worktree/WorktreeTabs';
+import WorktreeOperations from '@/components/worktree/WorktreeOperations';
+import PromptQueue from '@/components/ai/PromptQueue';
+import SidePanel from '@/components/files/SidePanel';
+import AiInstanceTabs from '@/components/ai/AiInstanceTabs';
+import type { AiInstanceTabsHandle } from '@/components/ai/AiInstanceTabs';
+import DrawingCanvas from '@/components/ai/DrawingCanvas';
 import s from './ProjectView.module.scss';
 
 // SidePanel（右列：送信/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。

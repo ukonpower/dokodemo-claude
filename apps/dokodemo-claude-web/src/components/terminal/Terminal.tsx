@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown, Maximize2, X } from 'lucide-react';
-import type { Terminal, TerminalMessage, TerminalOutputLine } from '../../types';
+import type { Terminal, TerminalMessage, TerminalOutputLine } from '@/types';
 import TerminalOut from './TerminalOut';
 import s from './Terminal.module.scss';
 

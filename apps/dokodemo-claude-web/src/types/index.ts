@@ -1,4 +1,4 @@
-import type { PermissionMode } from '../utils/app-settings';
+import type { PermissionMode } from '@/utils/app-settings';
 
 // AI プロバイダーの型定義
 export type AiProvider = 'claude' | 'codex';

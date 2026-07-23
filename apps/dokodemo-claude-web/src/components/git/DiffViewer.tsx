@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { GitDiffDetail } from '../../types';
+import type { GitDiffDetail } from '@/types';
 import DiffLines from './DiffLines';
 import s from './DiffViewer.module.scss';
 

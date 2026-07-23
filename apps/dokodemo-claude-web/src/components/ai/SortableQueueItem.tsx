@@ -2,9 +2,9 @@ import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { Repeat, X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { PromptQueueItem } from '../../types';
-import { useModelOptions } from '../../hooks/useModelOptions';
-import { useOutsideClose } from '../../hooks';
+import type { PromptQueueItem } from '@/types';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { useOutsideClose } from '@/hooks';
 import LoopSettingsFields, {
   DEFAULT_PLANNING_MODEL,
   DEFAULT_PLANNING_EVERY_N,

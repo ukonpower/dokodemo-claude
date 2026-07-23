@@ -8,9 +8,9 @@ import {
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { ArrowDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
-import type { AiProvider, AiOutputLine } from '../../types';
-import TerminalOut from '../terminal/TerminalOut';
-import { getProviderInfo } from '../../utils/ai-provider-info';
+import type { AiProvider, AiOutputLine } from '@/types';
+import TerminalOut from '@/components/terminal/TerminalOut';
+import { getProviderInfo } from '@/utils/ai-provider-info';
 import s from './AiOutput.module.scss';
 
 /**

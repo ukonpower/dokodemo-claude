@@ -4,7 +4,7 @@ import type {
   TerminalMessage,
   TerminalOutputLine,
   CommandShortcut,
-} from '../../types';
+} from '@/types';
 import TerminalComponent from './Terminal';
 import s from './TerminalManager.module.scss';
 

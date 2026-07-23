@@ -9,13 +9,13 @@ import type {
   CommandType,
   CommandConfig,
   PermissionMode,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 import {
   getLastAiTab,
   setLastAiTab,
   type SavedAiTab,
-} from '../utils/last-tab-storage';
+} from '@/utils/last-tab-storage';
 
 /**
  * useAiCli フックの戻り値

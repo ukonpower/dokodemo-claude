@@ -1,4 +1,4 @@
-import type { AiProvider } from '../types';
+import type { AiProvider } from '@/types';
 
 /**
  * AIプロバイダーの表示情報

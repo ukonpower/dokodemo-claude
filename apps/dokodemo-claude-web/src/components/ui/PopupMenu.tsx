@@ -8,7 +8,7 @@
  */
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useOutsideClose } from '../../hooks';
+import { useOutsideClose } from '@/hooks';
 import s from './PopupMenu.module.scss';
 
 interface PopupMenuProps {

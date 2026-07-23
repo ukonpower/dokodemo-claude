@@ -5,7 +5,7 @@ import type {
   CustomAiButtonScope,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
+} from '@/types';
 
 export interface UseCustomAiButtonsReturn {
   // 全ボタン（グローバル + 全リポジトリ固有）

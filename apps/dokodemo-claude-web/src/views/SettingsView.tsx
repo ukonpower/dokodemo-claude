@@ -5,9 +5,9 @@ import type {
   AiProvider,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import type { AppSettings, FontSizePreset, PermissionMode } from '../utils/app-settings';
-import { useWebPush } from '../hooks/useWebPush';
+} from '@/types';
+import type { AppSettings, FontSizePreset, PermissionMode } from '@/utils/app-settings';
+import { useWebPush } from '@/hooks/useWebPush';
 import s from './SettingsView.module.scss';
 
 type SectionId = 'appearance' | 'ai' | 'notification' | 'integration';

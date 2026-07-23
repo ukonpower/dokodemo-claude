@@ -1,4 +1,4 @@
-import type { AiProvider } from '../../types';
+import type { AiProvider } from '@/types';
 
 interface AiProviderLogoProps {
   provider: AiProvider;

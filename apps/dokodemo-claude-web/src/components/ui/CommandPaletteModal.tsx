@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import { fuzzyMatch } from '../../utils/fuzzy-match';
-import type { CommandPaletteCommand } from '../../commands/types';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import { fuzzyMatch } from '@/utils/fuzzy-match';
+import type { CommandPaletteCommand } from '@/commands/types';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './CommandPaletteModal.module.scss';
 
 interface CommandPaletteModalProps {

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import type { DetectedPortInfo, GitWorktree } from '../../types';
-import MarkdownViewer from '../files/MarkdownViewer';
+import type { DetectedPortInfo, GitWorktree } from '@/types';
+import MarkdownViewer from '@/components/files/MarkdownViewer';
 import s from './WorktreeOperations.module.scss';
 
 interface WorktreeOperationsProps {

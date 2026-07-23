@@ -15,8 +15,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import type { PromptQueueItem } from '../../types';
-import type { LoopEndInfo, LoopSettings } from '../../hooks/usePromptQueue';
+import type { PromptQueueItem } from '@/types';
+import type { LoopEndInfo, LoopSettings } from '@/hooks/usePromptQueue';
 import SortableQueueItem from './SortableQueueItem';
 import type { EditLoopSettings } from './SortableQueueItem';
 import {

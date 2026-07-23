@@ -3,8 +3,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Mousewheel } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
-import type { GitRepository, RepoProcessStatus } from '../../types';
-import ProjectAiStatusBadge from '../ai/ProjectAiStatusBadge';
+import type { GitRepository, RepoProcessStatus } from '@/types';
+import ProjectAiStatusBadge from '@/components/ai/ProjectAiStatusBadge';
 import s from './RepositorySwitcher.module.scss';
 
 interface RepositorySwitcherProps {

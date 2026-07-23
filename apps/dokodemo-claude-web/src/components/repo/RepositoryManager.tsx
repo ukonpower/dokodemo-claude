@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
-import type { GitRepository, RepoProcessStatus } from '../../types';
-import { repositoryIdMap } from '../../utils/repository-id-map';
-import { useOutsideClose } from '../../hooks';
+import type { GitRepository, RepoProcessStatus } from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
+import { useOutsideClose } from '@/hooks';
 import AddRepositoryModal from './AddRepositoryModal';
-import ProjectAiStatusBadge from '../ai/ProjectAiStatusBadge';
+import ProjectAiStatusBadge from '@/components/ai/ProjectAiStatusBadge';
 import s from './RepositoryManager.module.scss';
 
 /**

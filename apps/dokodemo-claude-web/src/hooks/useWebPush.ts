@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
-import type { ServerToClientEvents, ClientToServerEvents } from '../types';
+import type { ServerToClientEvents, ClientToServerEvents } from '@/types';
 
 /**
  * useWebPush フックの戻り値

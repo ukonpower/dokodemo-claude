@@ -1,11 +1,11 @@
 import React from 'react';
-import type { GraphLayout } from '../../utils/git-graph-layout';
+import type { GraphLayout } from '@/utils/git-graph-layout';
 import {
   GRAPH_COLORS,
   UNCOMMITTED_COLOR,
   ROW_HEIGHT,
   LANE_WIDTH,
-} from '../../utils/git-graph-layout';
+} from '@/utils/git-graph-layout';
 
 /** レイアウト入力に合成する Uncommitted 仮想コミットの hash */
 export const UNCOMMITTED_HASH = '*';

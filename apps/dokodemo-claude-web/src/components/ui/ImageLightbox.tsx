@@ -9,7 +9,7 @@ import {
   Download,
   Pencil,
 } from 'lucide-react';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './ImageLightbox.module.scss';
 
 export interface LightboxItem {

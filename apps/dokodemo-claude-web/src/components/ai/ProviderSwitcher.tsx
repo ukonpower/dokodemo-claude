@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
-import type { AiProvider } from '../../types';
-import { getProviderShortName } from '../../utils/ai-provider-info';
+import type { AiProvider } from '@/types';
+import { getProviderShortName } from '@/utils/ai-provider-info';
 import s from './ProviderSwitcher.module.scss';
 
 interface ProviderSwitcherProps {

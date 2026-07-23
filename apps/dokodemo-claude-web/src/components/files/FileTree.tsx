@@ -5,7 +5,7 @@ import {
   FolderOpen,
   File,
 } from 'lucide-react';
-import type { FileTreeEntry } from '../../types';
+import type { FileTreeEntry } from '@/types';
 import s from './FileTree.module.scss';
 
 interface FileTreeProps {

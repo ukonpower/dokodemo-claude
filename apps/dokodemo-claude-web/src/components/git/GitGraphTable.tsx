@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 import { FolderGit2 } from 'lucide-react';
-import type { GitGraphData, GitGraphRef } from '../../types';
-import { useLongPress, useMediaQuery, type LongPressPoint } from '../../hooks';
+import type { GitGraphData, GitGraphRef } from '@/types';
+import { useLongPress, useMediaQuery, type LongPressPoint } from '@/hooks';
 import {
   computeGraphLayout,
   formatGraphDate,
   ROW_HEIGHT,
   LANE_WIDTH,
   type GraphInputCommit,
-} from '../../utils/git-graph-layout';
+} from '@/utils/git-graph-layout';
 import GitGraphSvg, { UNCOMMITTED_HASH } from './GitGraphSvg';
 import s from './GitGraphTable.module.scss';
 

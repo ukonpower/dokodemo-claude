@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { useModelOptions } from '../../hooks/useModelOptions';
+import { useModelOptions } from '@/hooks/useModelOptions';
 import s from './LoopSettingsFields.module.scss';
 
 // ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準・定期プランニング）

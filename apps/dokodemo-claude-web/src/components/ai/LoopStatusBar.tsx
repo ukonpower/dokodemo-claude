@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Loader, Repeat } from 'lucide-react';
-import type { PromptQueueItem } from '../../types';
-import { useModelOptions } from '../../hooks/useModelOptions';
-import { resolveModelLabel } from '../../utils/models';
+import type { PromptQueueItem } from '@/types';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { resolveModelLabel } from '@/utils/models';
 import s from './LoopStatusBar.module.scss';
 
 interface LoopStatusBarProps {

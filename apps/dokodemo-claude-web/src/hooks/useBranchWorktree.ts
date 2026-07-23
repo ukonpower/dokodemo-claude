@@ -8,12 +8,12 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
   WorktreeSyncEntry,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 import {
   getLastWorktreeForParent,
   setLastWorktreeForParent,
-} from '../utils/last-tab-storage';
+} from '@/utils/last-tab-storage';
 
 /**
  * worktree 作成時のファイル同期設定（リポジトリ単位の保存値）

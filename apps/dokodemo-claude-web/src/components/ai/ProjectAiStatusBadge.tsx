@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { Check, Loader } from 'lucide-react';
-import type { AiProvider, RepoDisplayAiStatus } from '../../types';
-import { getProviderShortName } from '../../utils/ai-provider-info';
+import type { AiProvider, RepoDisplayAiStatus } from '@/types';
+import { getProviderShortName } from '@/utils/ai-provider-info';
 import s from './ProjectAiStatusBadge.module.scss';
 
 interface ProjectAiStatusBadgeProps {

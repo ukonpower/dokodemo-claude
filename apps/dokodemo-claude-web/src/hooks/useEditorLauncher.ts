@@ -5,8 +5,8 @@ import type {
   EditorType,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 import { useOutsideClose } from './useOutsideClose';
 
 /**

@@ -8,8 +8,8 @@ import type {
   GitWorktree,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 
 const MAX_MESSAGES = 5000;
 

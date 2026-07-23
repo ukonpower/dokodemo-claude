@@ -5,7 +5,7 @@ import {
   FolderOpen,
   GitFork,
 } from 'lucide-react';
-import type { AiInstance, EditorInfo, EditorType, GitRepository } from '../../types';
+import type { AiInstance, EditorInfo, EditorType, GitRepository } from '@/types';
 import s from './RepoHeader.module.scss';
 
 interface RepoHeaderProps {

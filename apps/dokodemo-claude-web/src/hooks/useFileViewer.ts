@@ -6,8 +6,8 @@ import type {
   GitDiffDetail,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 
 /**
  * useFileViewer フックの戻り値

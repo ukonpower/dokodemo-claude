@@ -1,9 +1,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import type { GitRepository, RepoProcessStatus } from '../../types';
-import { fuzzyMatch } from '../../utils/fuzzy-match';
-import ProjectAiStatusBadge from '../ai/ProjectAiStatusBadge';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import type { GitRepository, RepoProcessStatus } from '@/types';
+import { fuzzyMatch } from '@/utils/fuzzy-match';
+import ProjectAiStatusBadge from '@/components/ai/ProjectAiStatusBadge';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './ProjectSwitcherModal.module.scss';
 
 interface ProjectSwitcherModalProps {

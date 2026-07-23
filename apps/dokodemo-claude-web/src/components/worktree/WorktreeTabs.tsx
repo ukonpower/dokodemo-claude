@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useOutsideClose } from '../../hooks';
+import { useOutsideClose } from '@/hooks';
 import {
   DndContext,
   closestCenter,
@@ -24,12 +24,12 @@ import type {
   GitWorktreePrInfo,
   GitBranch,
   WorktreeSyncEntry,
-} from '../../types';
+} from '@/types';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
-} from '../../hooks/useBranchWorktree';
-import { setLastWorktreeForParent } from '../../utils/last-tab-storage';
+} from '@/hooks/useBranchWorktree';
+import { setLastWorktreeForParent } from '@/utils/last-tab-storage';
 import WorktreeCreateModal from './WorktreeCreateModal';
 import s from './WorktreeTabs.module.scss';
 

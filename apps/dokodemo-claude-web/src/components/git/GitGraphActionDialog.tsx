@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './GitGraphActionDialog.module.scss';
 
 export interface GitGraphDialogCheckbox {

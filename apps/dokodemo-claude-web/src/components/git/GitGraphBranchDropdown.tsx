@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { GitBranch, ChevronDown } from 'lucide-react';
-import { useOutsideClose } from '../../hooks';
+import { useOutsideClose } from '@/hooks';
 import s from './GitGraphBranchDropdown.module.scss';
 
 interface GitGraphBranchDropdownProps {

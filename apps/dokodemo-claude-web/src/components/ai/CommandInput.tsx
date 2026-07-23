@@ -7,10 +7,10 @@ import React, {
   useCallback,
 } from 'react';
 import { Repeat, FileText, ImagePlus } from 'lucide-react';
-import type { AiProvider } from '../../types';
-import { useModelOptions } from '../../hooks/useModelOptions';
-import { useOutsideClose } from '../../hooks';
-import { resolveModelLabel } from '../../utils/models';
+import type { AiProvider } from '@/types';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { useOutsideClose } from '@/hooks';
+import { resolveModelLabel } from '@/utils/models';
 import LoopSettingsFields, {
   DEFAULT_PLANNING_MODEL,
   DEFAULT_PLANNING_EVERY_N,

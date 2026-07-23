@@ -19,9 +19,9 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
-import type { AiInstance, AiProvider } from '../../types';
-import { getProviderShortName } from '../../utils/ai-provider-info';
-import { PopupMenu } from '../ui/PopupMenu';
+import type { AiInstance, AiProvider } from '@/types';
+import { getProviderShortName } from '@/utils/ai-provider-info';
+import { PopupMenu } from '@/components/ui/PopupMenu';
 import s from './AiInstanceTabs.module.scss';
 
 // 追加メニューの項目（矢印キーで選択）。'close' はメニューを閉じるだけ

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, GitBranch, FolderPlus } from 'lucide-react';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './AddRepositoryModal.module.scss';
 
 interface AddRepositoryModalProps {

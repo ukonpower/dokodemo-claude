@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { UseGitGraphReturn } from '../hooks';
+import type { UseGitGraphReturn } from '@/hooks';
 
 // コマンドパレットに表示する1コマンド。
 // children を持つコマンドは実行せずサブメニューへ遷移する（run は無視される）

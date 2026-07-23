@@ -37,6 +37,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     envPrefix: 'DC_',
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, 'src'),
+      },
+    },
     css: {
       preprocessorOptions: {
         scss: {

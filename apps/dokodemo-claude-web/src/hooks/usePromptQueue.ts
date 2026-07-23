@@ -5,8 +5,8 @@ import type {
   PromptQueueItem,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 
 export interface LoopSettings {
   judge: 'ai' | 'user' | 'none';

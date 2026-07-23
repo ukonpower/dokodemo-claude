@@ -25,18 +25,18 @@ import type {
   RepoProcessStatus,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
-import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
-import RepoHeader from '../components/repo/RepoHeader';
-import RepositorySwitcher from '../components/repo/RepositorySwitcher';
-import WorktreeDashboardCard from '../components/worktree/WorktreeDashboardCard';
-import TextInput from '../components/ai/CommandInput';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
+import { useWorktreeDashboard } from '@/hooks/useWorktreeDashboard';
+import RepoHeader from '@/components/repo/RepoHeader';
+import RepositorySwitcher from '@/components/repo/RepositorySwitcher';
+import WorktreeDashboardCard from '@/components/worktree/WorktreeDashboardCard';
+import TextInput from '@/components/ai/CommandInput';
 import DashboardSidebar, {
   DashboardSidebarHandle,
-} from '../components/worktree/DashboardSidebar';
-import DashboardFilterModal from '../components/worktree/DashboardFilterModal';
-import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
+} from '@/components/worktree/DashboardSidebar';
+import DashboardFilterModal from '@/components/worktree/DashboardFilterModal';
+import { useScopedSendSettings } from '@/hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
 
 interface DashboardViewProps {

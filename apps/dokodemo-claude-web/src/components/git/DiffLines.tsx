@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Highlight, themes } from 'prism-react-renderer';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { detectDiffLanguage } from '../../utils/diff-language';
-import '../../utils/prism-languages';
+import { detectDiffLanguage } from '@/utils/diff-language';
+import '@/utils/prism-languages';
 import s from './DiffLines.module.scss';
 
 interface DiffCell {

@@ -8,8 +8,8 @@ import type {
   DetectedPortInfo,
   ServerToClientEvents,
   ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 
 // メッセージクリーンアップ設定
 // xterm.jsが独自にscrollbackバッファを管理するため、毎回のsliceは不要

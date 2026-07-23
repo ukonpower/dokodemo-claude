@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { CustomAiButton, CustomAiButtonScope } from '../../types';
-import { useModelOptions } from '../../hooks/useModelOptions';
-import { useMediaQuery, useOutsideClose } from '../../hooks';
+import type { CustomAiButton, CustomAiButtonScope } from '@/types';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { useMediaQuery, useOutsideClose } from '@/hooks';
 import s from './KeyboardButtons.module.scss';
 
 // lg 以上（2カラムレイアウト＝物理キーボードのある PC 環境の目安）。

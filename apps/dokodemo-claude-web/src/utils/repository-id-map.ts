@@ -1,4 +1,4 @@
-import { IdMappingData } from '../types';
+import { IdMappingData } from '@/types';
 
 /**
  * フロントエンド側でリポジトリパスとIDの相互変換を管理するクラス

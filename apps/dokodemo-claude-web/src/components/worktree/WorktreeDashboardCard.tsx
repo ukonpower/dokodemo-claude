@@ -13,15 +13,15 @@ import {
   MessageSquare,
   StickyNote,
 } from 'lucide-react';
-import TerminalOut from '../terminal/TerminalOut';
-import TextInput from '../ai/CommandInput';
-import MarkdownViewer from '../files/MarkdownViewer';
+import TerminalOut from '@/components/terminal/TerminalOut';
+import TextInput from '@/components/ai/CommandInput';
+import MarkdownViewer from '@/components/files/MarkdownViewer';
 import type {
   AiOutputLine,
   AiProvider,
   GitWorktree,
-} from '../../types';
-import { useScopedSendSettings } from '../../hooks/useScopedSendSettings';
+} from '@/types';
+import { useScopedSendSettings } from '@/hooks/useScopedSendSettings';
 import s from './WorktreeDashboardCard.module.scss';
 
 function getInputExpandedStorageKey(worktreePath: string): string {

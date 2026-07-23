@@ -6,8 +6,8 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
   PermissionMode,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
+} from '@/types';
+import { repositoryIdMap } from '@/utils/repository-id-map';
 
 /**
  * localStorage から permissionMode 設定を取得

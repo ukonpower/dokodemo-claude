@@ -3,7 +3,7 @@ import {
   AppSettings,
   DEFAULT_SETTINGS,
   getFontSizeFromPreset,
-} from '../utils/app-settings';
+} from '@/utils/app-settings';
 
 /**
  * コマンド入力設定の型

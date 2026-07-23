@@ -11,12 +11,12 @@ import type {
   GitBranch,
   WorktreeSyncEntry,
   WorktreeSyncMode,
-} from '../../types';
+} from '@/types';
 import type {
   WorktreeSyncConfigState,
   WorktreeSyncCandidatesState,
-} from '../../hooks/useBranchWorktree';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+} from '@/hooks/useBranchWorktree';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './WorktreeCreateModal.module.scss';
 
 interface WorktreeCreateModalProps {

@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import { ArrowLeft, FileText, AlertTriangle, Maximize2, Minimize2, WrapText } from 'lucide-react';
-import type { FileContent, GitDiffDetail } from '../../types';
-import { BACKEND_URL } from '../../utils/backend-url';
-import '../../utils/prism-languages';
+import type { FileContent, GitDiffDetail } from '@/types';
+import { BACKEND_URL } from '@/utils/backend-url';
+import '@/utils/prism-languages';
 import MarkdownViewer from './MarkdownViewer';
-import DiffLines from '../git/DiffLines';
+import DiffLines from '@/components/git/DiffLines';
 import s from './FileContentViewer.module.scss';
 
 const LANGUAGE_FALLBACK: Record<string, string> = {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BUILTIN_MODEL_OPTIONS, type ModelOption } from '../utils/models';
+import { BUILTIN_MODEL_OPTIONS, type ModelOption } from '@/utils/models';
 import { useCustomModels } from './useCustomModels';
 
 export interface UseModelOptionsReturn {

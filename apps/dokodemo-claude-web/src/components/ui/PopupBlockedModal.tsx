@@ -1,5 +1,5 @@
 import React from 'react';
-import { useOverlayClose } from '../../hooks/useOverlayClose';
+import { useOverlayClose } from '@/hooks/useOverlayClose';
 import s from './PopupBlockedModal.module.scss';
 
 interface PopupBlockedModalProps {

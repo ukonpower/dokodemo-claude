@@ -10,7 +10,7 @@
  *   安定キーで再特定する
  */
 
-import type { AiProvider } from '../types';
+import type { AiProvider } from '@/types';
 
 const LAST_WORKTREE_KEY = 'last-worktree-for-parent';
 
