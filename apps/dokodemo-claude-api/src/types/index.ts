@@ -225,6 +225,8 @@ export interface ServerToClientEvents {
     summary: string;
     timestamp: number;
   }) => void;
+  // AI タブの指示内容要約の設定（現在値の通知）
+  'ai-summary-settings': (data: { enabled: boolean }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -1052,6 +1054,10 @@ export interface ClientToServerEvents {
   'check-hooks-status': (data: { provider: AiProvider }) => void;
   'add-dokodemo-hooks': (data: { provider: AiProvider }) => void;
   'remove-dokodemo-hooks': (data: { provider: AiProvider }) => void;
+
+  // AI タブの指示内容要約の設定
+  'get-ai-summary-settings': () => void;
+  'set-ai-summary-settings': (data: { enabled: boolean }) => void;
 
   // Claude Code プラグイン関連イベント
   'check-plugin-status': () => void;

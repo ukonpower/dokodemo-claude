@@ -391,8 +391,26 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
     processManager.resizeInstance(instanceId, cols, rows);
   });
 
+  // AI タブの指示内容要約の on/off 設定
+  socket.on('get-ai-summary-settings', () => {
+    socket.emit('ai-summary-settings', {
+      enabled: aiActivitySummaryService.isEnabled(),
+    });
+  });
+
+  socket.on('set-ai-summary-settings', async (data) => {
+    try {
+      await aiActivitySummaryService.setEnabled(data.enabled);
+    } catch (error) {
+      console.error('指示内容要約設定の保存に失敗:', error);
+    }
+    // 設定は全クライアント共通なので broadcast する
+    io.emit('ai-summary-settings', {
+      enabled: aiActivitySummaryService.isEnabled(),
+    });
+  });
+
   // ai-output イベントを socket emit に変換（ai-session-manager → process-manager → ここ）
   // 注: server.ts 側で emit を一括で行うので、ここでは何もしない（既存パターンとの整合性のため）
-  void io;
   void path;
 }

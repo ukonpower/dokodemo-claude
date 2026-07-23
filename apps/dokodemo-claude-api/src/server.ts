@@ -221,6 +221,11 @@ setWorktreeMemoManager(processManager.worktreeMemoManager);
 
 const persistenceService = new PersistenceService(PROCESSES_DIR);
 
+// AI タブの指示内容要約サービスの初期化（保存済みの on/off 設定を読み込む）
+aiActivitySummaryService.init(persistenceService).catch((err) => {
+  console.error('指示内容要約サービスの初期化に失敗:', err);
+});
+
 // Web Push通知サービスの初期化
 const webPushService = initWebPushService(persistenceService);
 webPushService.initialize().catch((err) => {
@@ -1068,24 +1073,6 @@ processManager.on('ai-output', (data) => {
     outputLine: data.outputLine,
   });
 });
-
-// キューから AI へ送信されたユーザープロンプトをタブ表示用に要約する
-processManager.on(
-  'prompt-queue-item-sent',
-  (data: { repositoryPath: string; provider: AiProvider; prompt: string }) => {
-    // キューの送信先は常にプライマリインスタンス
-    const primary = processManager.aiSessionManager.getPrimaryInstance(
-      data.repositoryPath
-    );
-    if (!primary) return;
-    aiActivitySummaryService.notifyPrompt({
-      instanceId: primary.instanceId,
-      repositoryPath: data.repositoryPath,
-      provider: data.provider,
-      prompt: data.prompt,
-    });
-  }
-);
 
 // 指示内容の要約が生成されたらタブ表示用にクライアントへ配信
 aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
