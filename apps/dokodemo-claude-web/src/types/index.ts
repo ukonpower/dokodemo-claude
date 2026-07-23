@@ -181,6 +181,30 @@ export interface EditorInfo {
   available: boolean;
 }
 
+export interface IOSSimulatorDevice {
+  udid: string;
+  name: string;
+  runtime: string;
+  deviceTypeIdentifier: string;
+}
+
+export interface IOSSimulatorFrame {
+  udid: string;
+  image: ArrayBuffer;
+  mimeType: 'image/jpeg';
+  width: number;
+  height: number;
+  pointWidth?: number;
+  pointHeight?: number;
+  capturedAt: number;
+}
+
+export interface IOSSimulatorStreamSettings {
+  fps: number;
+  scale: number;
+  quality: number;
+}
+
 // コマンドショートカット関連の型定義
 export interface CommandShortcut {
   id: string;
@@ -385,6 +409,35 @@ export interface UploadedFileInfo {
 }
 
 export interface ServerToClientEvents {
+  'ios-simulator-devices': (data: {
+    devices: IOSSimulatorDevice[];
+    idbAvailable: boolean;
+  }) => void;
+  'ios-simulator-frame': (data: IOSSimulatorFrame) => void;
+  // H.264 ストリーム（idb video-stream）。codec は WebCodecs 用の 'avc1.xxxxxx'
+  'ios-simulator-video-config': (data: {
+    udid: string;
+    codec: string;
+  }) => void;
+  // data は Annex B 形式の1アクセスユニット（=1フレーム）。
+  // seq は欠落検知用の連番（ストリーム開始ごとに0から）
+  'ios-simulator-video-chunk': (data: {
+    udid: string;
+    data: ArrayBuffer;
+    key: boolean;
+    seq: number;
+    timestamp: number;
+  }) => void;
+  'ios-simulator-status': (data: {
+    state: 'idle' | 'streaming' | 'view-only' | 'error';
+    udid?: string;
+    message?: string;
+  }) => void;
+  'ios-simulator-error': (data: {
+    scope: 'list' | 'stream' | 'interaction';
+    message: string;
+  }) => void;
+
   // IDマッピング関連イベント
   'id-mapping': (data: IdMappingData) => void;
   'id-mapping-updated': (data: IdMappingData) => void;
@@ -831,6 +884,41 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  'ios-simulator-list-devices': () => void;
+  'ios-simulator-start-stream': (data: {
+    udid: string;
+    settings: IOSSimulatorStreamSettings;
+    // クライアントが WebCodecs (VideoDecoder) を使えるか。
+    // true かつ idb ありなら H.264 ストリーム、それ以外は JPEG フレーム配信
+    supportsVideo: boolean;
+  }) => void;
+  // チャンク欠落・デコードエラー時の回復要求。サーバはストリームを再起動し、
+  // 直後に SPS+PPS+キーフレームが届くことで復旧する
+  'ios-simulator-video-recover': () => void;
+  'ios-simulator-stop-stream': () => void;
+  'ios-simulator-refresh': (data: {
+    udid: string;
+    settings: IOSSimulatorStreamSettings;
+  }) => void;
+  // frameWidth/frameHeight は表示中フレームのピクセル寸法（向き判定に使用）
+  'ios-simulator-tap': (data: {
+    udid: string;
+    x: number;
+    y: number;
+    frameWidth: number;
+    frameHeight: number;
+  }) => void;
+  'ios-simulator-swipe': (data: {
+    udid: string;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    durationMs: number;
+    frameWidth: number;
+    frameHeight: number;
+  }) => void;
+
   'clone-repo': (data: { url: string; name: string }) => void;
   'create-repo': (data: { name: string }) => void;
   'stop-repo-processes': (data: { rid: string }) => void;

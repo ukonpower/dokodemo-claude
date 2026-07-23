@@ -22,6 +22,7 @@ import { registerFileViewerHandlers } from './file-viewer-handlers.js';
 import { registerWebPushHandlers } from './web-push-handlers.js';
 import { registerCustomAiButtonHandlers } from './custom-ai-button-handlers.js';
 import { registerWorktreeSyncHandlers } from './worktree-sync-handlers.js';
+import { registerIOSSimulatorHandlers } from './ios-simulator-handlers.js';
 import { emitIdMappingTo } from './id-mapping-helpers.js';
 
 export type { HandlerContext, TypedSocket, TypedServer } from './types.js';
@@ -99,6 +100,7 @@ export function registerAllHandlers(
   registerWebPushHandlers(ctx);
   registerCustomAiButtonHandlers(ctx);
   registerWorktreeSyncHandlers(ctx);
+  registerIOSSimulatorHandlers(ctx);
 
   // 切断時のクリーンアップ
   socket.on('disconnect', () => {
