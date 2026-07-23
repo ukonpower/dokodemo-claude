@@ -12,6 +12,7 @@ import type {
   WorktreeSyncMode,
 } from '@/types';
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
+import { useBranchesContext } from '@/features/git/providers/BranchesProvider';
 import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
 import s from './WorktreeCreateModal.module.scss';
 
@@ -31,11 +32,12 @@ function splitPath(input: string): { dirPath: string; filter: string } {
 }
 
 function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
-  // ブランチ・ワークツリー関連
+  // ブランチ関連
+  const { branches, refreshBranches: onRefreshBranches } = useBranchesContext();
+
+  // ワークツリー関連
   const {
     parentRepoPath,
-    branches,
-    refreshBranches: onRefreshBranches,
     worktreeSyncConfig: syncConfig,
     requestWorktreeSyncConfig: onRequestSyncConfig,
     saveWorktreeSyncConfig: onSaveSyncConfig,

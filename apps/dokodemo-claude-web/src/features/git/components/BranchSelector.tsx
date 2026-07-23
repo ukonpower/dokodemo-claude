@@ -1,18 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, CloudUpload, RefreshCw } from 'lucide-react';
-import type { GitBranch } from '@/types';
+import type { GitBranch, GitWorktree } from '@/types';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { useSocketContext } from '@/app/providers/SocketProvider';
-import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
+import { useBranchesContext } from '@/features/git/providers/BranchesProvider';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
-function BranchSelector() {
+interface BranchSelectorProps {
+  // ワークツリーで使用中のブランチ判定用（git→worktree 依存を避けるため親から受け取る）
+  worktrees: GitWorktree[];
+}
+
+function BranchSelector({ worktrees }: BranchSelectorProps) {
   // 接続状態
   const { isConnected } = useSocketContext();
 
-  // ブランチ・ワークツリー関連
+  // ブランチ関連
   const {
     branches,
     currentBranch,
@@ -29,8 +34,7 @@ function BranchSelector() {
     pushState,
     pushBranch: onPushBranch,
     clearPushState: onClearPushState,
-    worktrees,
-  } = useWorktreeContext();
+  } = useBranchesContext();
 
   const isPulling = pullState?.status === 'running';
   const isPushing = pushState?.status === 'running';

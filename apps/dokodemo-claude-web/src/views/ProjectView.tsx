@@ -90,8 +90,9 @@ export function ProjectView() {
   const { terminal } = useTerminalContext();
   const { terminals } = terminal;
 
-  // ブランチ・ワークツリー関連（削除中オーバーレイ表示用）
-  const { isDeletingWorktree, deletingWorktreePath } = useWorktreeContext();
+  // ワークツリー関連（削除中オーバーレイ表示・BranchSelector への受け渡し用）
+  const { isDeletingWorktree, deletingWorktreePath, worktrees } =
+    useWorktreeContext();
 
   // プロンプトキュー関連（キューの有無はキューリストの表示切替に使用）
   const {
@@ -250,7 +251,7 @@ export function ProjectView() {
           <div className={s.branchBar}>
             {/* ブランチセレクター */}
             <div className={s.branchSelectorWrap}>
-              <BranchSelector />
+              <BranchSelector worktrees={worktrees} />
             </div>
             {/* ワークツリータブ */}
             {currentRepo && (
