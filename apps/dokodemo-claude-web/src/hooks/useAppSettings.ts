@@ -3,7 +3,7 @@ import {
   AppSettings,
   DEFAULT_SETTINGS,
   getFontSizeFromPreset,
-} from '../components/SettingsModal';
+} from '../utils/app-settings';
 
 /**
  * コマンド入力設定の型
@@ -37,8 +37,6 @@ export interface UseAppSettingsReturn {
   // アプリケーション設定
   appSettings: AppSettings;
   setAppSettings: (settings: AppSettings) => void;
-  showSettingsModal: boolean;
-  setShowSettingsModal: (show: boolean) => void;
   handleSettingsChange: (newSettings: AppSettings) => void;
 
   // フォントサイズ
@@ -99,8 +97,6 @@ export function useAppSettings(currentRepo: string): UseAppSettingsReturn {
     return DEFAULT_SETTINGS;
   });
 
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-
   // 設定変更時にlocalStorageに保存
   const handleSettingsChange = useCallback((newSettings: AppSettings) => {
     setAppSettings(newSettings);
@@ -158,8 +154,6 @@ export function useAppSettings(currentRepo: string): UseAppSettingsReturn {
   return {
     appSettings,
     setAppSettings,
-    showSettingsModal,
-    setShowSettingsModal,
     handleSettingsChange,
     terminalFontSize,
     isLargeScreen,
