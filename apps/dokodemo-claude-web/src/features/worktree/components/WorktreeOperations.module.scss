@@ -89,6 +89,7 @@
   position: relative;
   padding: $space-xs $space-sm;
   // 編集ボタンとテキストの重なりを避けるため右側に余白を確保
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 重なる編集ボタン分のクリアランス（スケール外のレイアウト級） */
   padding-right: 2.25rem;
   font-size: $font-size-sm;
   color: $gray-300;

@@ -359,6 +359,7 @@
 .cliInputWrapper {
   margin-top: $space-lg;
   flex-shrink: 0;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- フォーカスリングの見切れ防止に左右 1px 確保（トークン化不要な微調整） */
   padding: 0 1px;
 
   // SP時は AI出力との間隔を詰めて操作系の縦余白も削減

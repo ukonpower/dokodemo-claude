@@ -123,6 +123,7 @@
   transition: transform $transition-fast $transition-easing;
 
   @include sm-up {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- ライトボックスの左右クリアランス（スケール外のレイアウト級余白） */
     padding: 0 64px;
   }
 }

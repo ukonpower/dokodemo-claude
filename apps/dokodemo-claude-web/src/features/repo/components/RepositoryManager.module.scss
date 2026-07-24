@@ -45,7 +45,7 @@
 
 .searchInput {
   width: 100%;
-  padding: $space-xs $space-sm $space-xs 2rem;
+  padding: $space-xs $space-sm $space-xs $space-2xl;
   border: 1px solid $dark-border-light;
   background-color: $dark-bg-secondary;
   color: $dark-text-primary;
@@ -133,6 +133,7 @@
   padding: $space-3xl 0;
 
   @include sm-up {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 空状態の縦センタリング余白（スケール外のレイアウト級） */
     padding: 4rem 0;
   }
 }

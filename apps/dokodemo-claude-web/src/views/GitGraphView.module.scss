@@ -86,6 +86,7 @@
 .content {
   flex: 1;
   overflow: auto;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- グラフ下端のスクロール余白（スケール外のレイアウト級） */
   padding: $space-2xs 0 40px;
 }
 
@@ -100,6 +101,7 @@
 }
 
 .centerMessage {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 中央メッセージの上下余白（スケール外のレイアウト級） */
   padding: 40px $space-sm;
   text-align: center;
   color: $dark-text-muted;

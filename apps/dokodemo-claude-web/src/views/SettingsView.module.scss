@@ -35,14 +35,17 @@
 .layout {
   display: grid;
   grid-template-columns: 11.5rem minmax(0, 1fr);
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- ナビと本文の列間隔（スケール外のレイアウト級） */
   gap: 2.5rem;
   max-width: 64rem;
   margin: 0 auto;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 設定画面の下端スクロール余白（スケール外のレイアウト級） */
   padding: $space-xl $space-xl 5rem;
 
   @include lg-down {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- モバイル時の下端スクロール余白（スケール外のレイアウト級） */
     padding: 0 $space-lg 4rem;
   }
 }
@@ -64,6 +67,7 @@
     flex-direction: row;
     overflow-x: auto;
     gap: $space-2xs;
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 親パディングを打ち消し画面端まで横スクロールさせる負マージン */
     margin: 0 -1rem;
     padding: $space-sm $space-lg;
     background-color: $dark-bg-primary;
@@ -121,6 +125,7 @@
   scroll-margin-top: $space-lg;
 
   & + & {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- セクション間の区切り余白（スケール外のレイアウト級） */
     margin-top: 2.5rem;
   }
 
@@ -128,6 +133,7 @@
     scroll-margin-top: 3.25rem;
 
     &:first-of-type {
+      /* stylelint-disable-next-line declaration-property-value-disallowed-list -- モバイル時の先頭セクション上余白（スケール外のレイアウト級） */
       margin-top: 1.25rem;
     }
 

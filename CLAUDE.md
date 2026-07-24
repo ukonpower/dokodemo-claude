@@ -172,7 +172,7 @@ npx nx type-check dokodemo-claude-api
 
 1. **型チェック**: `npm run type-check`
 2. **リントチェック**: `npm run lint`
-3. **総合チェック**: `npm run check-all`（一括実行）
+3. **総合チェック**: `npm run check-all`（一括実行。lint + stylelint（SCSS のトークン準拠検査） + type-check）
 
 ### Claude Code 使用時の推奨フロー
 
