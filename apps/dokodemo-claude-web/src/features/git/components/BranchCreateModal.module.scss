@@ -1,52 +1,6 @@
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  @include flex-center;
-  z-index: 50;
-}
-
-.modalContent {
-  background-color: $gray-800;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  border: 1px solid $dark-border-light;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 28rem;
-}
-
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.modalTitle {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  font-weight: 600;
-  color: white;
-}
-
-.closeButton {
-  color: $gray-400;
-  transition: color $transition-fast $transition-easing;
-
-  &:hover {
-    color: $gray-200;
-  }
-}
-
-.closeIcon {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 .formFields {
   & > * + * {
-    margin-top: 1rem;
+    margin-top: $space-lg;
   }
 }
 
@@ -58,16 +12,16 @@
   display: block;
   font-size: $font-size-sm;
   color: $gray-300;
-  margin-bottom: 0.25rem;
+  margin-bottom: $space-2xs;
 }
 
 .requiredMark {
-  color: #f87171;
+  color: $color-error;
 }
 
 .selectInput {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: $space-sm $space-md;
   background-color: $gray-900;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
@@ -76,14 +30,14 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $blue-500;
-    border-color: $blue-500;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+    border-color: $dark-border-focus;
   }
 }
 
 .textInput {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: $space-sm $space-md;
   background-color: $gray-900;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
@@ -96,57 +50,13 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $blue-500;
-    border-color: $blue-500;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+    border-color: $dark-border-focus;
   }
 }
 
 .fieldHint {
-  margin-top: 0.25rem;
+  margin-top: $space-2xs;
   font-size: $font-size-xs;
   color: $gray-500;
-}
-
-.modalFooter {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
-
-  & > * + * {
-    margin-left: 0.75rem;
-  }
-}
-
-.cancelButton {
-  padding: 0.5rem 1rem;
-  font-size: $font-size-sm;
-  color: $gray-300;
-  transition: color $transition-fast $transition-easing;
-
-  &:hover {
-    color: white;
-  }
-}
-
-.createButton {
-  padding: 0.5rem 1rem;
-  font-size: $font-size-sm;
-  background-color: #2563eb;
-  color: white;
-  border-radius: $radius-md;
-  transition: background-color $transition-fast $transition-easing;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px $gray-800, 0 0 0 4px $blue-500;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }

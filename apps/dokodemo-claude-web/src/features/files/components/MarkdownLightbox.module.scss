@@ -11,15 +11,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: $space-md $space-lg;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
-  gap: 12px;
+  gap: $space-md;
 }
 
 .headerLeft {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $space-3xs;
   min-width: 0;
   flex: 1;
 }
@@ -27,7 +27,7 @@
 .headerTitle {
   color: white;
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   @include truncate;
 
   @include sm-up {
@@ -69,10 +69,10 @@
 .body {
   flex: 1;
   overflow: auto;
-  padding: 16px;
+  padding: $space-lg;
 
   @include sm-up {
-    padding: 24px 32px;
+    padding: $space-xl $space-2xl;
   }
 }
 
@@ -82,7 +82,7 @@
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: $space-lg $space-lg;
 }
 
 .rawContent {
@@ -100,30 +100,30 @@
   color: $gray-400;
   font-size: $font-size-sm;
   text-align: center;
-  padding: 32px 0;
+  padding: $space-2xl 0;
 }
 
 .errorText {
-  color: #f87171;
+  color: $color-error;
 }
 
 .actionBar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 16px;
+  gap: $space-sm;
+  padding: $space-md $space-lg;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .copyButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   height: 34px;
-  padding: 0 14px;
+  padding: 0 $space-md;
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   letter-spacing: 0.01em;
   border-radius: $radius-full;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -150,9 +150,9 @@
 }
 
 .copyButtonCopied {
-  background-color: rgba($accent-green, 0.2);
-  color: $accent-green;
-  border-color: rgba($accent-green, 0.5);
+  background-color: rgba($color-success, 0.2);
+  color: $color-success;
+  border-color: rgba($color-success, 0.5);
 }
 
 .iconButton {
@@ -187,8 +187,8 @@
   border-color: rgba(255, 255, 255, 0.14);
 
   &:hover {
-    background-color: rgba($accent-red, 0.18);
-    border-color: rgba($accent-red, 0.5);
-    color: #fca5a5;
+    background-color: rgba($color-error, 0.18);
+    border-color: rgba($color-error, 0.5);
+    color: $red-300;
   }
 }

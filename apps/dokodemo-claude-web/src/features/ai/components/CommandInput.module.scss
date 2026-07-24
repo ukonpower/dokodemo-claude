@@ -1,14 +1,12 @@
-@use "sass:color";
-
 .root {
   // SP ではターミナルへ縦幅を譲るため要素間の余白を詰める
   & > * + * {
-    margin-top: 0.25rem;
+    margin-top: $space-2xs;
   }
 
   @include sm-up {
     & > * + * {
-      margin-top: 0.375rem; // space-y-1.5
+      margin-top: $space-xs; // space-y-1.5
     }
   }
 }
@@ -16,20 +14,20 @@
 .workflowRow {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: $space-2xs;
 
   // PC ではスキル行とファイルリンクを 1 行に並べる
   @include lg-up {
     flex-direction: row;
     align-items: center;
-    gap: 0.5rem;
+    gap: $space-sm;
   }
 }
 
 .workflowControls {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: $space-2xs;
 
   @include lg-up {
     display: inline-flex;
@@ -40,7 +38,7 @@
 .skillRow {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
   min-width: 0;
 }
 
@@ -52,7 +50,7 @@
   min-width: 0;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  padding: 0.125rem;
+  padding: $space-3xs;
   border: 1px solid $dark-border;
   overflow-x: auto;
 
@@ -63,12 +61,12 @@
 
 .skillButton {
   flex: 1;
-  padding: 0.375rem 0.25rem;
+  padding: $space-xs $space-2xs;
   white-space: nowrap;
   border-radius: $radius-md;
   font-size: $font-size-xs;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
   text-align: center;
@@ -81,7 +79,7 @@
   }
 
   @include sm-up {
-    padding: 0.125rem 0.5rem;
+    padding: $space-3xs $space-sm;
   }
 
   &.active {
@@ -103,7 +101,7 @@
   width: 1px;
   height: 1rem;
   background-color: $dark-border-light;
-  margin: 0 0.125rem;
+  margin: 0 $space-3xs;
 }
 
 // Worktree ボタンをワークフローパイプラインとは別枠のピルとして独立配置
@@ -113,7 +111,7 @@
   flex-shrink: 0;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  padding: 0.125rem;
+  padding: $space-3xs;
   border: 1px solid $dark-border;
 }
 
@@ -125,8 +123,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  padding-left: 0.125rem;
+  gap: $space-2xs;
+  padding-left: $space-3xs;
 }
 
 .autoTargetGroup {
@@ -134,23 +132,23 @@
   align-items: center;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  padding: 0.125rem;
+  padding: $space-3xs;
   border: 1px solid $dark-border;
 }
 
 .autoTargetLabel {
-  font-size: 10px;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
-  padding: 0 0.375rem;
+  padding: 0 $space-xs;
   user-select: none;
 }
 
 .autoTargetButton {
-  padding: 0.25rem 0.5rem;
+  padding: $space-2xs $space-sm;
   border-radius: $radius-md;
   font-size: $font-size-xs;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
   background: none;
@@ -158,7 +156,7 @@
   cursor: pointer;
 
   @include sm-up {
-    padding: 0.125rem 0.375rem;
+    padding: $space-3xs $space-xs;
   }
 
   &.active {
@@ -179,19 +177,19 @@
 .autoCheckButton {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
   border-radius: $radius-lg;
   font-size: $font-size-xs;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
   background: none;
   cursor: pointer;
 
   @include sm-up {
-    padding: 0.125rem 0.375rem;
+    padding: $space-3xs $space-xs;
   }
 
   &.active {
@@ -219,11 +217,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: $font-size-2xs;
+
+  svg {
+    width: 0.625rem;
+    height: 0.625rem;
+  }
 
   &.checked {
-    background-color: $accent-blue;
-    border-color: $accent-blue;
+    background-color: $accent;
+    border-color: $accent;
     color: white;
   }
 
@@ -236,7 +239,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.375rem;
+  gap: $space-xs;
 
   // PC ではスキル行の右側へ寄せて同一行に配置
   @include lg-up {
@@ -247,10 +250,10 @@
 .fileLink {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.375rem;
+  gap: $space-2xs;
+  padding: $space-3xs $space-xs;
   border-radius: $radius;
-  font-size: 11px;
+  font-size: $font-size-xs;
   font-family: $font-mono;
   color: $dark-text-muted;
   background: none;
@@ -278,7 +281,7 @@
 .formWrapper {
   display: flex;
   align-items: stretch;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .textareaWrapper {
@@ -291,14 +294,14 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.125rem;
+  gap: $space-3xs;
   flex-shrink: 0;
 }
 
 .textarea {
   display: block;
   width: 100%;
-  padding: 0.625rem 0.75rem;
+  padding: $space-sm $space-md;
   border: 1px solid $dark-border-light;
   background-color: $dark-bg-secondary;
   color: $dark-text-primary;
@@ -308,11 +311,11 @@
   font-size: $font-size-sm;
   line-height: 1.5;
   // SP は 2 行分に抑えてターミナルへ縦幅を譲る（入力に応じて自動で伸びる）
-  min-height: calc($font-size-sm * 1.5 * 2 + 0.625rem * 2 + 2px);
+  min-height: calc($font-size-sm * 1.5 * 2 + $space-sm * 2 + 2px);
   max-height: 300px;
 
   @include sm-up {
-    min-height: calc($font-size-sm * 1.5 * 3 + 0.625rem * 2 + 2px);
+    min-height: calc($font-size-sm * 1.5 * 3 + $space-sm * 2 + 2px);
   }
   overflow-y: auto;
   transition: all $transition-fast $transition-easing;
@@ -323,8 +326,8 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
-    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
   }
 
   &:hover {
@@ -332,9 +335,9 @@
   }
 
   &.dragOver {
-    border-color: $accent-blue;
-    box-shadow: 0 0 0 1px $accent-blue;
-    background-color: rgba($accent-blue, 0.05);
+    border-color: $accent;
+    box-shadow: 0 0 0 1px $accent;
+    background-color: rgba($accent, 0.05);
   }
 }
 
@@ -352,7 +355,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.5rem;
+  gap: $space-sm;
   width: min(20rem, 80%);
   color: $dark-text-secondary;
 }
@@ -360,7 +363,7 @@
 .uploadHeaderRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $space-sm;
 }
 
 .uploadProgressBar {
@@ -374,14 +377,14 @@
 .uploadProgressFill {
   height: 100%;
   border-radius: $radius-full;
-  background-color: $blue-500;
+  background-color: $accent;
   transition: width 0.2s ease;
 }
 
 .uploadCancelButton {
   margin-left: auto;
   flex-shrink: 0;
-  padding: 0.125rem 0.5rem;
+  padding: $space-3xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1.25rem;
   color: $dark-text-secondary;
@@ -414,14 +417,6 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-.spinnerCircle {
-  opacity: 0.25;
-}
-
-.spinnerPath {
-  opacity: 0.75;
 }
 
 .uploadText {
@@ -468,16 +463,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem;
+  gap: $space-2xs;
   padding: 0;
-  margin-top: 0.125rem;
+  margin-top: $space-3xs;
 }
 
 .toolbarLeft,
 .toolbarRight {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
+  gap: $space-3xs;
 }
 
 .mobileOnly {
@@ -567,18 +562,18 @@
 
 // 鉛筆ボタンへ画像をドラッグ中のハイライト
 .sketchDragOver {
-  color: $accent-blue;
-  border-color: $accent-blue;
+  color: $accent;
+  border-color: $accent;
   background-color: $dark-bg-hover;
 }
 
 .sketchMenu {
   position: fixed;
   width: 11rem;
-  padding: 0.25rem;
+  padding: $space-2xs;
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: $space-3xs;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius;
@@ -589,9 +584,9 @@
 .sketchMenuItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $space-sm;
   width: 100%;
-  padding: 0.5rem;
+  padding: $space-sm;
   border-radius: $radius;
   // SP はタップ主体なので一回り大きく、sm-up 以上では従来の xs に戻す
   font-size: $font-size-sm;
@@ -620,7 +615,7 @@
 .sendSection {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: $space-xs;
 }
 
 // 上ライン: インデント（左）＋アップロード・送信（右寄せ）
@@ -628,7 +623,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.375rem;
+  gap: $space-xs;
 }
 
 // 上ライン右側: アップロード＋送信をまとめて右に寄せる
@@ -636,7 +631,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
 }
 
 .sendOptionsBar {
@@ -646,7 +641,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.375rem;
+  gap: $space-xs;
 }
 
 // 修飾グループの下段グリッド。
@@ -655,7 +650,7 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.375rem;
+  gap: $space-xs;
 
   // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
   @include lg-up {
@@ -675,11 +670,11 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 0.125rem;
+  gap: $space-3xs;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border;
   border-radius: $radius;
-  padding: 0.125rem;
+  padding: $space-3xs;
 }
 
 .modeButton {
@@ -689,12 +684,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
   border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   white-space: nowrap;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
@@ -704,8 +699,8 @@
 
   @include sm-down {
     min-height: 32px;
-    padding-left: 0.375rem;
-    padding-right: 0.375rem;
+    padding-left: $space-xs;
+    padding-right: $space-xs;
   }
 
   &.active {
@@ -731,8 +726,8 @@
 // ボタン内の説明ラベル（前 / 後 / モデル）
 .optLabel {
   flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 400;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
   opacity: 0.6;
 }
 
@@ -759,7 +754,7 @@
   transition: background-color $transition-normal $transition-easing;
 
   &.on {
-    background-color: $accent-blue;
+    background-color: $accent;
   }
 
   &.off {
@@ -798,8 +793,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
   border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -812,12 +807,12 @@
 
   @include sm-down {
     min-height: 32px;
-    padding-left: 0.375rem;
-    padding-right: 0.375rem;
+    padding-left: $space-xs;
+    padding-right: $space-xs;
   }
 
   &.active {
-    background-color: $accent-blue;
+    background-color: $accent;
     color: white;
   }
 
@@ -842,8 +837,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
   border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -856,8 +851,8 @@
 
   @include sm-down {
     min-height: 32px;
-    padding-left: 0.375rem;
-    padding-right: 0.375rem;
+    padding-left: $space-xs;
+    padding-right: $space-xs;
   }
 
   &.active {
@@ -909,7 +904,7 @@
 .modelOption {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0.375rem 0.5rem;
+  padding: $space-xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1rem;
   text-align: left;
@@ -922,7 +917,7 @@
   cursor: pointer;
 
   &.selected {
-    background-color: $accent-blue;
+    background-color: $accent;
     color: white;
   }
 
@@ -950,7 +945,7 @@
   transition: opacity $transition-fast $transition-easing, color $transition-fast $transition-easing;
 
   &:hover {
-    color: $accent-red;
+    color: $color-error;
   }
 
   svg {
@@ -961,12 +956,12 @@
 
 .modelDropdownSeparator {
   border-top: 1px solid $dark-border-light;
-  margin: 0.25rem 0;
+  margin: $space-2xs 0;
 }
 
 .modelAddTrigger {
   width: 100%;
-  padding: 0.375rem 0.5rem;
+  padding: $space-xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1rem;
   text-align: left;
@@ -985,13 +980,13 @@
 .modelAddForm {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  padding: 0.5rem;
+  gap: $space-xs;
+  padding: $space-sm;
 }
 
 .modelAddInput {
   width: 100%;
-  padding: 0.25rem 0.375rem;
+  padding: $space-2xs $space-xs;
   font-size: $font-size-xs;
   color: $dark-text-primary;
   background-color: $dark-bg-tertiary;
@@ -1000,18 +995,18 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }
 
 .modelAddActions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.375rem;
+  gap: $space-xs;
 }
 
 .modelAddCancel {
-  padding: 0.25rem 0.5rem;
+  padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   color: $dark-text-muted;
   background: none;
@@ -1024,10 +1019,10 @@
 }
 
 .modelAddSubmit {
-  padding: 0.25rem 0.5rem;
+  padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   color: white;
-  background-color: $accent-blue;
+  background-color: $accent;
   border: none;
   border-radius: $radius;
   cursor: pointer;
@@ -1044,20 +1039,20 @@
   align-items: center;
   justify-content: center;
   min-height: 2.25rem;
-  padding: 0 1rem;
-  background-color: $accent-blue;
-  border: 1px solid $accent-blue;
+  padding: 0 $space-lg;
+  background-color: $accent;
+  border: 1px solid $accent;
   border-radius: $radius-md;
   font-size: $font-size-sm;
   line-height: 1rem;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: white;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
 
   &:hover {
-    background-color: color.adjust($accent-blue, $lightness: -10%);
+    background-color: $accent-hover;
   }
 
   &:disabled {
@@ -1067,7 +1062,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px $accent-blue;
+    box-shadow: 0 0 0 2px $accent;
   }
 }
 
@@ -1076,7 +1071,7 @@
   height: 0.875rem;
 
   @include sm-up {
-    margin-right: 0.25rem;
+    margin-right: $space-2xs;
   }
 }
 
@@ -1120,10 +1115,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: $space-sm;
   width: 100%;
   min-height: 40px;
-  padding: 0.5rem 0.75rem 0.25rem;
+  padding: $space-sm $space-md $space-2xs;
   background: none;
   border: none;
   cursor: pointer;
@@ -1133,19 +1128,19 @@
 .loopToggleText {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
   font-size: $font-size-xs;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
 }
 
 .loopAccordionHint {
-  padding: 0 0.75rem 0.5rem;
-  font-size: 10px;
+  padding: 0 $space-md $space-sm;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
 }
 
 .loopAccordionBody {
-  padding: 0.5rem 0.75rem 0.75rem;
+  padding: $space-sm $space-md $space-md;
   border-top: 1px solid $dark-border-light;
 }

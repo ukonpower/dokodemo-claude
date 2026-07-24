@@ -44,7 +44,7 @@ const GitGraphFindWidget: React.FC<GitGraphFindWidgetProps> = ({
 
   return (
     <div className={s.widget}>
-      <Search size={13} className={s.searchIcon} />
+      <Search size={14} className={s.searchIcon} />
       <input
         ref={inputRef}
         className={s.input}

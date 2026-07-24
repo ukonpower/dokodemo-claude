@@ -3,7 +3,7 @@
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   box-shadow: $shadow-lg;
-  padding: 0.2rem 0;
+  padding: $space-3xs 0;
   z-index: 9999;
   min-width: 7.5rem;
 }

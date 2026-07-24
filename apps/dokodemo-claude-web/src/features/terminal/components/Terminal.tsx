@@ -428,7 +428,7 @@ const TerminalComponent: React.FC<TerminalProps> = ({
               className={s.fullscreenCloseButton}
               title="全画面を閉じる (ESC)"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
           {/* 全画面ターミナル */}

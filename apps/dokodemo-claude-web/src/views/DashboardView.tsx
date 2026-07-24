@@ -14,6 +14,7 @@ import {
   Square,
 } from 'lucide-react';
 import type { AiProvider, GitWorktree } from '@/types';
+import IconButton from '@/shared/components/IconButton';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useWorktreeDashboard } from '@/features/worktree/hooks/useWorktreeDashboard';
 import { useSocketContext } from '@/app/providers/SocketProvider';
@@ -486,15 +487,13 @@ export function DashboardView() {
           </label>
         </div>
         <div className={s.toolbarRight}>
-          <button
-            type="button"
+          <IconButton
+            label="再読み込み"
             onClick={() => dashboard.refresh()}
             disabled={!isConnected}
-            className="btn-icon"
-            title="再読み込み"
           >
-            <RefreshCw size={16} />
-          </button>
+            <RefreshCw />
+          </IconButton>
         </div>
       </div>
 

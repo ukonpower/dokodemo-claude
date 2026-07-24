@@ -5,20 +5,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: rgba(black, 0.45);
 }
 
 .dialog {
   width: min(440px, calc(100vw - 32px));
-  padding: 16px;
+  padding: $space-lg;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: $radius-lg;
+  box-shadow: 0 10px 30px rgba(black, 0.5);
 }
 
 .message {
-  font-size: 13px;
+  font-size: $font-size-sm;
   line-height: 1.6;
   color: $dark-text-primary;
   word-break: break-all;
@@ -28,23 +28,23 @@
 .inputRow {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 12px;
+  gap: $space-2xs;
+  margin-top: $space-md;
 }
 
 .inputLabel {
-  font-size: 11px;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
 }
 
 .textInput {
   height: 28px;
-  padding: 0 8px;
+  padding: 0 $space-sm;
   border: 1px solid $dark-border;
-  border-radius: 4px;
+  border-radius: $radius;
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
-  font-size: 12px;
+  font-size: $font-size-xs;
 
   &:focus {
     outline: none;
@@ -55,15 +55,15 @@
 .checkboxes {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: $space-xs;
+  margin-top: $space-md;
 }
 
 .checkboxRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: $space-xs;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   cursor: pointer;
 
@@ -76,25 +76,25 @@
 .commandPreview {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 14px;
+  gap: $space-2xs;
+  margin-top: $space-md;
 }
 
 .commandLabel {
-  font-size: 11px;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
 }
 
 .commandCode {
   display: block;
-  padding: 8px 10px;
+  padding: $space-sm;
   border: 1px solid $dark-border;
   border-left: 3px solid $color-warning;
-  border-radius: 4px;
+  border-radius: $radius;
   background-color: $dark-bg-primary;
   color: $dark-text-primary;
   font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
-  font-size: 12px;
+  font-size: $font-size-xs;
   line-height: 1.5;
   word-break: break-all;
   white-space: pre-wrap;
@@ -103,42 +103,6 @@
 .buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.confirmButton {
-  height: 28px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 4px;
-  background-color: #2563eb;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background-color: #1d4ed8;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-}
-
-.cancelButton {
-  height: 28px;
-  padding: 0 14px;
-  border: 1px solid $dark-border;
-  border-radius: 4px;
-  background-color: $dark-bg-tertiary;
-  color: $dark-text-secondary;
-  font-size: 12px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-  }
+  gap: $space-sm;
+  margin-top: $space-lg;
 }

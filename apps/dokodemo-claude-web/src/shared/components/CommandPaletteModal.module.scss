@@ -6,7 +6,7 @@
   align-items: flex-start;
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.55);
-  padding: 8vh 1rem 1rem;
+  padding: 8vh $space-lg $space-lg;
 }
 
 .modal {
@@ -26,8 +26,8 @@
 .inputRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.85rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   background-color: $dark-bg-tertiary;
   border-bottom: 1px solid $dark-border;
 }
@@ -39,10 +39,10 @@
 
 .breadcrumb {
   flex-shrink: 0;
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
   color: $dark-text-secondary;
-  padding: 0.1rem 0.45rem;
+  padding: $space-3xs $space-sm;
   border-radius: $radius-sm;
   background-color: $dark-bg-tertiary;
   white-space: nowrap;
@@ -56,7 +56,7 @@
   outline: none;
   color: $dark-text-primary;
   font-size: $font-size-sm;
-  padding: 0.2rem 0;
+  padding: $space-2xs 0;
 
   &::placeholder {
     color: $dark-text-muted;
@@ -64,7 +64,7 @@
 }
 
 .hint {
-  font-size: 0.65rem;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
   flex-shrink: 0;
   white-space: nowrap;
@@ -78,12 +78,12 @@
   flex: 1;
   list-style: none;
   margin: 0;
-  padding: 0.25rem 0;
+  padding: $space-2xs 0;
   overflow-y: auto;
 }
 
 .empty {
-  padding: 1.2rem 1rem;
+  padding: $space-lg;
   text-align: center;
   color: $dark-text-muted;
   font-size: $font-size-xs;
@@ -92,8 +92,8 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0.85rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   cursor: pointer;
   color: $dark-text-primary;
   font-size: $font-size-sm;
@@ -116,7 +116,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: $space-3xs;
 }
 
 .itemLabel {
@@ -125,7 +125,7 @@
 }
 
 .itemDescription {
-  font-size: 0.65rem;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
   @include truncate;
   min-width: 0;
@@ -133,16 +133,16 @@
 
 .itemMatch {
   background: transparent;
-  color: $blue-500;
-  font-weight: 700;
+  color: $dark-text-primary;
+  font-weight: $font-weight-bold;
 }
 
 .itemCategory {
-  font-size: 0.6rem;
-  padding: 0.05rem 0.4rem;
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-xs;
   border-radius: $radius-sm;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   flex-shrink: 0;
 }

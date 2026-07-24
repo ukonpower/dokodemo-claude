@@ -17,7 +17,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: $font-size-xs;
   position: relative;
   z-index: 1;
   table-layout: fixed;
@@ -39,15 +39,16 @@
 
 .selected {
   background-color: $dark-bg-hover;
-  box-shadow: inset 2px 0 0 #4ade80;
+  // 選択中コミット行のマーカー（選択表現はニュートラルに寄せる）
+  box-shadow: inset 2px 0 0 $accent;
 }
 
 .match {
-  background-color: rgba(251, 191, 36, 0.12);
+  background-color: rgba($amber-400, 0.12);
 }
 
 .currentMatch {
-  background-color: rgba(251, 191, 36, 0.28);
+  background-color: rgba($amber-400, 0.28);
 }
 
 .graphCell {
@@ -63,7 +64,7 @@
 .hashCol {
   height: 24px;
   line-height: 24px;
-  padding: 0 8px;
+  padding: 0 $space-sm;
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -81,18 +82,18 @@
 
 .chips {
   display: inline-flex;
-  gap: 4px;
-  margin-right: 6px;
+  gap: $space-2xs;
+  margin-right: $space-xs;
   vertical-align: middle;
 }
 
 .chip {
   display: inline-block;
-  padding: 0 6px;
+  padding: 0 $space-xs;
   height: 16px;
   line-height: 15px;
-  border-radius: 8px;
-  font-size: 10px;
+  border-radius: $radius-lg;
+  font-size: $font-size-2xs;
   border: 1px solid transparent;
   box-sizing: border-box;
   // ダブルクリック checkout 時のテキスト選択を抑止
@@ -104,43 +105,46 @@
   vertical-align: middle;
 }
 
+// ブランチ参照ラベルの色分類（HEAD=緑 / branch・remote=青 / tag=amber /
+// worktree=ニュートラル）はグラフ凡例と対をなす分類のため hue を維持し、
+// 値はプリミティブトークンへ寄せる。
 .chipHead {
-  background-color: rgba(74, 222, 128, 0.18);
-  border-color: #4ade80;
-  color: #4ade80;
-  font-weight: 600;
+  background-color: rgba($green-400, 0.18);
+  border-color: $green-400;
+  color: $green-400;
+  font-weight: $font-weight-semibold;
 }
 
 .chipBranch {
-  background-color: rgba(96, 165, 250, 0.12);
-  border-color: #3b6aa0;
-  color: #9cc4f5;
+  background-color: rgba($blue-400, 0.12);
+  border-color: rgba($blue-400, 0.5);
+  color: $blue-300;
 }
 
 .chipRemote {
-  background-color: rgba(96, 165, 250, 0.08);
-  border-color: #2a4a6a;
-  color: #6b9bd0;
+  background-color: rgba($blue-400, 0.08);
+  border-color: rgba($blue-400, 0.3);
+  color: $blue-400;
 }
 
 .chipTag {
-  background-color: rgba(251, 191, 36, 0.15);
-  border-color: #b8860b;
-  color: #fbbf24;
+  background-color: rgba($amber-400, 0.15);
+  border-color: rgba($amber-500, 0.5);
+  color: $amber-400;
 }
 
 // 他の worktree がチェックアウト中のブランチ。破線ボーダー + アイコンで
 // 「別の作業場で使用中」を控えめに示す（通常ブランチより一段淡いトーン）。
 .chipWorktree {
-  background-color: rgba(148, 163, 184, 0.06);
-  border-color: #3a4453;
+  background-color: rgba($gray-400, 0.06);
+  border-color: $gray-700;
   border-style: dashed;
-  color: #8a94a6;
+  color: $gray-400;
 }
 
 .chipIcon {
   vertical-align: -1px;
-  margin-right: 3px;
+  margin-right: $space-3xs;
 }
 
 .message {

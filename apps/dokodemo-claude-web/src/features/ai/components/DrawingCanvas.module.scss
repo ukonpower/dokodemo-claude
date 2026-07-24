@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 10001;
-  background-color: rgba(10, 10, 12, 0.96);
+  background-color: rgba($dark-bg-primary, 0.96);
   display: flex;
   flex-direction: column;
 }
@@ -12,14 +12,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: $space-md;
+  padding: $space-sm $space-md;
 }
 
 .title {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(white, 0.85);
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   letter-spacing: 0.02em;
 }
 
@@ -29,34 +29,35 @@
   height: 36px;
   color: white;
   border-radius: $radius-full;
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background-color: rgba(white, 0.1);
+  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: rgba(white, 0.22);
   }
 }
 
+// 完了ボタン: 主アクションはモノトーンのグレー primary に統一
 .completeButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   height: 36px;
-  padding: 0 16px;
+  padding: 0 $space-lg;
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   border-radius: $radius-full;
-  color: #052e16;
-  background-color: $accent-green;
+  color: white;
+  background-color: $accent;
   border: none;
   cursor: pointer;
   transition: opacity $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
-    opacity: 0.88;
+    background-color: $accent-hover;
   }
 
   &:active {
@@ -90,7 +91,7 @@
 
 .canvas {
   display: block;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(white, 0.14);
   pointer-events: none;
 }
 
@@ -100,21 +101,21 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 10px 18px;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  gap: $space-sm $space-lg;
+  padding: $space-md $space-lg calc(#{$space-md} + env(safe-area-inset-bottom));
 }
 
 .colorGroup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $space-sm;
 }
 
 .colorSwatch {
   width: 28px;
   height: 28px;
   border-radius: $radius-full;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(white, 0.25);
   cursor: pointer;
   padding: 0;
   transition: transform $transition-fast $transition-easing,
@@ -128,7 +129,7 @@
 
 .colorSwatchActive {
   border-color: white;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(white, 0.25);
   transform: scale(1.12);
 
   &:active {
@@ -139,7 +140,7 @@
 .toolGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-sm;
 }
 
 .toolButton {
@@ -147,15 +148,15 @@
   width: 40px;
   height: 40px;
   border-radius: $radius-full;
-  color: rgba(255, 255, 255, 0.85);
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(white, 0.85);
+  background-color: rgba(white, 0.1);
+  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: rgba(white, 0.22);
     color: white;
   }
 

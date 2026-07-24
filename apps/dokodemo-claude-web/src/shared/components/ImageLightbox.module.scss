@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(black, 0.9);
   display: flex;
   flex-direction: column;
 }
@@ -12,45 +12,45 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+  padding: $space-md $space-lg;
+  background: linear-gradient(180deg, rgba(black, 0.75) 0%, rgba(black, 0) 100%);
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: $space-md;
 }
 
 .counter {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(white, 0.85);
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   letter-spacing: 0.02em;
-  padding: 6px 10px;
+  padding: $space-xs $space-sm;
   border-radius: $radius-full;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(white, 0.08);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(white, 0.12);
 }
 
 .closeButton {
   @include flex-center;
   width: 36px;
   height: 36px;
-  color: white;
+  color: $dark-text-primary;
   border-radius: $radius-full;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(white, 0.1);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
     border-color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.32);
+    background-color: rgba(white, 0.22);
+    border-color: rgba(white, 0.32);
   }
 
   &:active {
@@ -71,20 +71,20 @@
 .navButton {
   position: absolute;
   z-index: 10;
-  padding: 8px;
-  color: white;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 9999px;
+  padding: $space-sm;
+  color: $dark-text-primary;
+  background-color: rgba(black, 0.5);
+  border-radius: $radius-full;
   transition: background-color $transition-fast $transition-easing;
   border: none;
   cursor: pointer;
 
   @include sm-up {
-    padding: 12px;
+    padding: $space-md;
   }
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(black, 0.7);
   }
 }
 
@@ -119,10 +119,11 @@
 .imageWrapper {
   max-width: 100%;
   max-height: 100%;
-  padding: 0 48px;
+  padding: 0 $space-3xl;
   transition: transform $transition-fast $transition-easing;
 
   @include sm-up {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- ライトボックスの左右クリアランス（スケール外のレイアウト級余白） */
     padding: 0 64px;
   }
 }
@@ -139,13 +140,13 @@
 
 // === メタデータパネル ===
 .metaPanel {
-  padding: 8px 16px;
-  background-color: rgba(0, 0, 0, 0.5);
+  padding: $space-sm $space-lg;
+  background-color: rgba(black, 0.5);
 }
 
 .metaTitle {
-  color: white;
-  font-weight: 500;
+  color: $dark-text-primary;
+  font-weight: $font-weight-medium;
   font-size: $font-size-sm;
 
   @include sm-up {
@@ -156,7 +157,7 @@
 .metaDescription {
   color: $gray-300;
   font-size: $font-size-xs;
-  margin-top: 4px;
+  margin-top: $space-2xs;
 
   @include sm-up {
     font-size: $font-size-sm;
@@ -166,16 +167,16 @@
 .labelList {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: $space-xs;
+  margin-top: $space-xs;
 }
 
 .labelTag {
   font-size: $font-size-xs;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background-color: #7c3aed;
-  color: #e9d5ff;
+  padding: $space-3xs $space-sm;
+  border-radius: $radius-full;
+  background-color: $purple-600;
+  color: $purple-200;
 }
 
 // === アクションバー ===
@@ -183,22 +184,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 14px 16px;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 100%);
+  gap: $space-sm;
+  padding: $space-md $space-lg;
+  background: linear-gradient(0deg, rgba(black, 0.65) 0%, rgba(black, 0) 100%);
 }
 
 .copyPathButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   height: 34px;
-  padding: 0 14px;
+  padding: 0 $space-md;
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   letter-spacing: 0.01em;
   border-radius: $radius-full;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
     border-color $transition-fast $transition-easing,
@@ -211,20 +212,20 @@
 }
 
 .copyPathDefault {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(white, 0.1);
+  color: rgba(white, 0.95);
   backdrop-filter: blur(6px);
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.32);
+    background-color: rgba(white, 0.2);
+    border-color: rgba(white, 0.32);
   }
 }
 
 .copyPathCopied {
-  background-color: rgba($accent-green, 0.2);
-  color: $accent-green;
-  border-color: rgba($accent-green, 0.5);
+  background-color: rgba($color-success, 0.2);
+  color: $color-success;
+  border-color: rgba($color-success, 0.5);
 }
 
 .downloadButton {
@@ -232,9 +233,9 @@
   width: 34px;
   height: 34px;
   border-radius: $radius-full;
-  color: rgba(255, 255, 255, 0.85);
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(white, 0.85);
+  background-color: rgba(white, 0.1);
+  border: 1px solid rgba(white, 0.18);
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
@@ -243,9 +244,9 @@
     transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.32);
-    color: white;
+    background-color: rgba(white, 0.22);
+    border-color: rgba(white, 0.32);
+    color: $dark-text-primary;
   }
 
   &:active {
@@ -258,9 +259,9 @@
   width: 34px;
   height: 34px;
   border-radius: $radius-full;
-  color: rgba(255, 255, 255, 0.7);
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(white, 0.7);
+  background-color: rgba(white, 0.06);
+  border: 1px solid rgba(white, 0.14);
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
@@ -269,9 +270,9 @@
     transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba($accent-red, 0.18);
-    border-color: rgba($accent-red, 0.5);
-    color: #fca5a5;
+    background-color: rgba($color-error, 0.18);
+    border-color: rgba($color-error, 0.5);
+    color: $red-300;
   }
 
   &:active {

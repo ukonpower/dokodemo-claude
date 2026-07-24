@@ -22,7 +22,7 @@ function getTabKey(repo: string): string {
   return repo ? `${TAB_KEY_PREFIX}-${repo}` : TAB_KEY_PREFIX;
 }
 
-const ICON_SIZE = 13;
+const ICON_SIZE = 14;
 // lg 以上（右列配置）ではセクション縦積み表示、lg 未満ではタブ切替表示
 const LG_MEDIA_QUERY = '(min-width: 860px)';
 
@@ -292,7 +292,7 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
             aria-label="別ウィンドウで開く"
             title="別ウィンドウで開く"
           >
-            <ExternalLink size={13} strokeWidth={2} />
+            <ExternalLink size={14} strokeWidth={2} />
           </button>
         </div>
         <div className={s.tabContent}>{activeSection.body}</div>

@@ -6,14 +6,14 @@
 .trigger {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: $space-2xs;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 $space-sm;
   border: 1px solid $dark-border;
-  border-radius: 4px;
+  border-radius: $radius;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  font-size: 12px;
+  font-size: $font-size-xs;
   cursor: pointer;
 
   &:hover {
@@ -38,16 +38,16 @@
   max-width: 320px;
   max-height: 320px;
   overflow-y: auto;
-  padding: 4px;
+  padding: $space-2xs;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
-  border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-radius: $radius-md;
+  box-shadow: 0 6px 20px rgba(black, 0.4);
 }
 
 .groupLabel {
-  padding: 6px 8px 2px;
-  font-size: 10px;
+  padding: $space-xs $space-sm $space-3xs;
+  font-size: $font-size-2xs;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: $dark-text-muted;
@@ -56,12 +56,12 @@
 .item {
   display: block;
   width: 100%;
-  padding: 5px 8px;
+  padding: $space-2xs $space-sm;
   border: none;
-  border-radius: 4px;
+  border-radius: $radius;
   background: transparent;
   text-align: left;
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   cursor: pointer;
   overflow: hidden;
@@ -79,5 +79,6 @@
 
 .itemActive {
   background-color: $dark-bg-hover;
-  box-shadow: inset 2px 0 0 #4ade80;
+  // 現在チェックアウト中ブランチの状態マーカー（緑はステータス表示として維持）
+  box-shadow: inset 2px 0 0 $green-400;
 }

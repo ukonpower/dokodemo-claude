@@ -104,7 +104,7 @@ function RefChip({
       }
     >
       {r.worktree && (
-        <FolderGit2 size={10} className={s.chipIcon} aria-hidden="true" />
+        <FolderGit2 size={12} className={s.chipIcon} aria-hidden="true" />
       )}
       {r.name}
     </span>
@@ -196,7 +196,7 @@ const GitGraphTable: React.FC<GitGraphTableProps> = ({
         <colgroup>
           <col style={{ width: graphColWidth }} />
           <col />
-          {showDateCol && <col style={{ width: 130 }} />}
+          {showDateCol && <col style={{ width: 150 }} />}
           {showAuthorCol && <col style={{ width: 120 }} />}
           <col style={{ width: 76 }} />
         </colgroup>

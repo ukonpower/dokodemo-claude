@@ -9,10 +9,10 @@
 
 .header {
   background-color: $dark-bg-tertiary;
-  padding: 0.5rem 0.5rem;
+  padding: $space-sm $space-sm;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: $space-sm;
   border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
@@ -27,7 +27,7 @@
   min-width: 0;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 }
 
@@ -38,16 +38,15 @@
   flex-shrink: 0;
 
   &.active {
-    background-color: $accent-green;
+    background-color: $color-success;
   }
 
   &.exited {
-    background-color: $accent-red;
+    background-color: $color-error;
   }
 
   &.other {
-    // dark-accent-orange - using a fallback
-    background-color: #f97316;
+    background-color: $color-warning;
   }
 }
 
@@ -86,7 +85,7 @@
   align-items: center;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 }
 
@@ -124,7 +123,7 @@
 
 .keyboardControls {
   background-color: $dark-bg-tertiary;
-  padding: 0.75rem;
+  padding: $space-md;
   border-top: 1px solid $dark-border;
   flex-shrink: 0;
   display: flex;
@@ -134,19 +133,19 @@
 .controlsInner {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: $space-lg;
 }
 
 .arrowGroup {
   display: flex;
   align-items: flex-end;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .arrowGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .arrowKey {
@@ -180,7 +179,7 @@
   border-radius: $radius-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   touch-action: manipulation;
   box-shadow: $shadow-lg;
@@ -202,12 +201,12 @@
 .rightGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .rightTopRow {
   display: flex;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .funcKey {
@@ -232,10 +231,10 @@
   }
 
   &.escKey {
-    border-color: $accent-red;
+    border-color: $color-error;
 
     &:hover {
-      border-color: $accent-red;
+      border-color: $color-error;
     }
   }
 }
@@ -264,12 +263,12 @@
 
 .inputArea {
   background-color: $dark-bg-tertiary;
-  padding: 0.5rem 0.5rem;
+  padding: $space-sm $space-sm;
   border-top: 1px solid $dark-border;
   flex-shrink: 0;
 
   @include sm-up {
-    padding: 0.5rem 0.75rem;
+    padding: $space-sm $space-md;
   }
 }
 
@@ -277,7 +276,7 @@
   display: flex;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 }
 
@@ -285,7 +284,7 @@
   flex: 1 1 0%;
   background-color: $dark-bg-secondary;
   color: white;
-  padding: 0.25rem 0.5rem;
+  padding: $space-2xs $space-sm;
   border-radius: $radius-lg;
   border: 1px solid $dark-border-light;
   font-size: $font-size-xs;
@@ -294,7 +293,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
   }
 
   &:hover {
@@ -303,8 +302,8 @@
 }
 
 .submitButton {
-  padding: 0.25rem 0.75rem;
-  background-color: $accent-blue;
+  padding: $space-2xs $space-md;
+  background-color: $accent;
   color: white;
   border-radius: $radius-lg;
   border: none;
@@ -315,7 +314,7 @@
   box-shadow: $shadow-sm;
 
   &:hover {
-    background-color: color.adjust($accent-blue, $lightness: -10%);
+    background-color: color.adjust($accent, $lightness: -10%);
   }
 }
 
@@ -331,7 +330,7 @@
 }
 
 .fullscreenHeader {
-  padding: 0.75rem 1rem;
+  padding: $space-md $space-lg;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
   @include flex-between;
@@ -342,7 +341,7 @@
   align-items: center;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 }
 
@@ -388,7 +387,7 @@
 .fullscreenScrollButton {
   @include flex-center;
   height: 2.25rem;
-  padding: 0 0.75rem;
+  padding: 0 $space-md;
   background-color: $dark-bg-secondary;
   border: 1px solid $gray-500;
   border-radius: $radius-lg;
@@ -400,7 +399,7 @@
   box-shadow: $shadow-md;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
-  gap: 0.25rem;
+  gap: $space-2xs;
 
   &:hover {
     background-color: $dark-bg-hover;

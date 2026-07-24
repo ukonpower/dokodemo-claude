@@ -47,9 +47,9 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: $space-xs;
   height: 2rem;
-  padding: 0 0.5rem 0 0.35rem;
+  padding: 0 $space-sm 0 $space-xs;
   background-color: $dark-bg-tertiary;
   cursor: pointer;
   color: $gray-400;
@@ -67,7 +67,7 @@
 // lg のセクション見出し（開閉しない静的ラベル）
 .headerStatic {
   cursor: default;
-  padding-left: 0.6rem;
+  padding-left: $space-sm;
   color: $gray-200;
 
   &:hover {
@@ -84,15 +84,15 @@
 
 .headerLabel {
   font-size: $font-size-xs;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   font-family: $font-sans;
   line-height: 1;
   white-space: nowrap;
 }
 
 .headerSub {
-  font-size: 0.625rem;
-  font-weight: 500;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
   color: $gray-500;
   font-family: $font-sans;
   line-height: 1;
@@ -103,14 +103,14 @@
 }
 
 .count {
-  font-size: 0.625rem;
-  font-weight: 600;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
   color: $gray-300;
   background-color: $gray-800;
   border-radius: $radius-full;
   min-width: 1.1rem;
   height: 1.1rem;
-  padding: 0 0.35rem;
+  padding: 0 $space-xs;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -140,16 +140,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: $space-2xs;
   height: 2.5rem;
-  padding: 0 0.5rem;
+  padding: 0 $space-sm;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
   color: $gray-400;
   font-family: $font-sans;
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing,

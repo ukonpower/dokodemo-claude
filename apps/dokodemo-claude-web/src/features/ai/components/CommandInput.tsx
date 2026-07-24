@@ -6,7 +6,22 @@ import React, {
   forwardRef,
   useCallback,
 } from 'react';
-import { Repeat, FileText, ImagePlus } from 'lucide-react';
+import {
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ChevronsLeft,
+  ChevronsRight,
+  FileText,
+  ImagePlus,
+  Loader,
+  Menu,
+  Paperclip,
+  Pencil,
+  Repeat,
+  X,
+} from 'lucide-react';
 import type { AiProvider } from '@/types';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
@@ -1266,19 +1281,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           title="アウトデント (Shift+Tab)"
           aria-label="アウトデント"
         >
-          <svg
-            className={s.historyIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M11 19l-7-7 7-7M20 19l-7-7 7-7"
-            />
-          </svg>
+          <ChevronsLeft className={s.historyIcon} />
         </button>
         <button
           type="button"
@@ -1289,19 +1292,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           title="インデント (Tab)"
           aria-label="インデント"
         >
-          <svg
-            className={s.historyIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 5l7 7-7 7M13 5l7 7-7 7"
-            />
-          </svg>
+          <ChevronsRight className={s.historyIcon} />
         </button>
       </>
     );
@@ -1335,19 +1326,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             title="スケッチを描いて添付（写真をドロップで加筆）"
             aria-label="スケッチを描いて添付"
           >
-            <svg
-              className={s.uploadIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-              />
-            </svg>
+            <Pencil className={s.uploadIcon} />
           </button>
           {isSketchMenuOpen && (
             <div
@@ -1385,19 +1364,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           title="ファイルをアップロード（末尾にパスを追加）"
           aria-label="ファイルをアップロード"
         >
-          <svg
-            className={s.uploadIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-            />
-          </svg>
+          <Paperclip className={s.uploadIcon} />
         </button>
       </>
     ) : null;
@@ -1498,7 +1465,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   title="Plan後にCodex Reviewを実行"
                 >
                   <span className={`${s.checkIcon} ${sendSettings?.autoReview ? s.checked : ''}`}>
-                    {sendSettings?.autoReview && '✓'}
+                    {sendSettings?.autoReview && <Check strokeWidth={3} />}
                   </span>
                   Review
                 </button>
@@ -1510,7 +1477,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   title="各ステップ前に /clear を実行"
                 >
                   <span className={`${s.checkIcon} ${sendSettings?.autoClear ? s.checked : ''}`}>
-                    {sendSettings?.autoClear && '✓'}
+                    {sendSettings?.autoClear && <Check strokeWidth={3} />}
                   </span>
                   /clear
                 </button>
@@ -1530,9 +1497,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 className={s.fileLink}
                 title={`${skill.label.toLowerCase()}.md を開く`}
               >
-                <svg className={s.fileLinkIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FileText className={s.fileLinkIcon} />
                 {skill.label.toLowerCase()}.md
               </button>
             ))}
@@ -1564,26 +1529,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               <div className={s.uploadOverlay}>
                 <div className={s.uploadContent}>
                   <div className={s.uploadHeaderRow}>
-                    <svg
-                      className={s.spinner}
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className={s.spinnerCircle}
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className={s.spinnerPath}
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader className={s.spinner} aria-hidden />
                     <span className={s.uploadText}>
                       ファイルをアップロード中...
                       {uploadProgress !== null && ` ${uploadProgress}%`}
@@ -1618,19 +1564,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 className={s.clearInputButton}
                 title="入力内容をクリア"
               >
-                <svg
-                  className={s.clearInputIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X className={s.clearInputIcon} />
               </button>
             )}
           </div>
@@ -1644,9 +1578,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               title="前の履歴"
               aria-label="前の履歴"
             >
-              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
+              <ChevronUp className={s.historyNavIcon} />
             </button>
             <button
               type="button"
@@ -1656,9 +1588,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               title="次の履歴"
               aria-label="次の履歴"
             >
-              <svg className={s.historyNavIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className={s.historyNavIcon} />
             </button>
           </div>
         </form>
@@ -1678,19 +1608,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 className={s.submitButton}
                 title="送信 (Ctrl+Enter)"
               >
-                <svg
-                  className={s.submitIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                  />
-                </svg>
+                <ArrowUp className={s.submitIcon} />
                 <span className={s.submitText}>送信</span>
               </button>
             </div>
@@ -1716,19 +1634,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       : '送信 (Ctrl+Enter)'
                   }
                 >
-                  <svg
-                    className={s.submitIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 10l7-7m0 0l7 7m-7-7v18"
-                    />
-                  </svg>
+                  <ArrowUp className={s.submitIcon} />
                   <span className={s.submitText}>
                     {addToQueue ? '追加' : '送信'}
                   </span>
@@ -1760,19 +1666,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   className={`${s.modeButton} ${addToQueue ? s.active : ''}`}
                   title="キュー: 送信予約リストに追加（clear / commit / ループ等の設定が使える）"
                 >
-                  <svg
-                    className={s.queueIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
+                  <Menu className={s.queueIcon} />
                   キュー
                 </button>
               </div>
@@ -1797,19 +1691,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       <span className={s.optValue}>
                         {resolveModelLabel(model, modelOptions)}
                       </span>
-                      <svg
+                      <ChevronDown
                         className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
+                      />
                     </button>
 
                     {isModelDropdownOpen && (
@@ -1848,18 +1732,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                                 title="このカスタムモデルを削除"
                                 aria-label="カスタムモデルを削除"
                               >
-                                <svg
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
+                                <X />
                               </button>
                             )}
                           </div>
@@ -1982,19 +1855,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                           : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
                         : 'オフ'}
                     </span>
-                    <svg
+                    <ChevronDown
                       className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    />
                   </button>
                   </div>
                 </div>
@@ -2012,7 +1875,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               className={s.loopToggleRow}
             >
               <span className={s.loopToggleText}>
-                <Repeat size={13} />
+                <Repeat size={14} />
                 ループ送信
               </span>
               <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>

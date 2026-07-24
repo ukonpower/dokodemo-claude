@@ -16,6 +16,7 @@ import {
   Download,
   Inbox,
   Upload,
+  Play,
 } from 'lucide-react';
 import * as tus from 'tus-js-client';
 import type { UploadedFileInfo } from '@/types';
@@ -382,9 +383,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
                   />
                   <div className={s.videoOverlay}>
                     <div className={s.playButton}>
-                      <svg className={s.playIcon} fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
+                      <Play size={16} fill="currentColor" className={s.playIcon} />
                     </div>
                   </div>
                 </>

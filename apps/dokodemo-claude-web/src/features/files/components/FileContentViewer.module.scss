@@ -17,12 +17,12 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: $space-md;
+  padding: $space-lg;
 }
 
 .errorIcon {
-  color: $accent-red;
+  color: $color-error;
 }
 
 .errorText {
@@ -34,7 +34,7 @@
 .backLink {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: $space-2xs;
   color: $dark-text-muted;
   font-size: $font-size-sm;
 
@@ -49,7 +49,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 0.5rem;
+  gap: $space-sm;
   color: $dark-text-muted;
 }
 
@@ -60,15 +60,15 @@
 .fileHeader {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
 
 .backButton {
-  padding: 0.25rem;
+  padding: $space-2xs;
   color: $dark-text-muted;
 
   &:hover {
@@ -79,22 +79,22 @@
 .headerFilename {
   font-size: $font-size-sm;
   color: $dark-text-primary;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   @include truncate;
 }
 
 .tabGroup {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
-  margin-left: 0.5rem;
+  gap: $space-3xs;
+  margin-left: $space-sm;
   background-color: $dark-bg-primary;
   border-radius: $radius;
-  padding: 0.125rem;
+  padding: $space-3xs;
 }
 
 .tabButton {
-  padding: 0.125rem 0.5rem;
+  padding: $space-3xs $space-sm;
   font-size: $font-size-xs;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
@@ -116,13 +116,13 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $space-sm;
   margin-left: auto;
   flex-shrink: 0;
 }
 
 .wrapButton {
-  padding: 0.25rem;
+  padding: $space-2xs;
   transition: color $transition-fast $transition-easing;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .fullscreenButton {
-  padding: 0.25rem;
+  padding: $space-2xs;
   color: $dark-text-muted;
   transition: color $transition-fast $transition-easing;
 
@@ -151,12 +151,12 @@
 .truncatedWarning {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  background-color: rgba(#f97316, 0.1);
+  gap: $space-sm;
+  padding: $space-xs $space-md;
+  background-color: $color-warning-bg;
   border-bottom: 1px solid $dark-border;
   font-size: $font-size-xs;
-  color: #f97316;
+  color: $color-warning;
 }
 
 .contentArea {
@@ -167,7 +167,7 @@
 .mediaPreview {
   @include flex-center;
   height: 100%;
-  padding: 1rem;
+  padding: $space-lg;
   background-color: $dark-bg-primary;
 }
 

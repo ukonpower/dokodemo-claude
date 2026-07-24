@@ -133,7 +133,7 @@ export default function FileContentViewer({
             onClick={onBack}
             className={s.backButton}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
         )}
         <span className={s.headerFilename}>

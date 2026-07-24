@@ -202,7 +202,7 @@ export function CodeBrowserView() {
           onClick={() => changeMode(id)}
           title={label}
         >
-          <Icon size={15} />
+          <Icon size={14} />
           <span className={s.modeTabLabel}>{label}</span>
         </button>
       ))}

@@ -6,7 +6,7 @@
   align-items: flex-end;
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.55);
-  padding: 1rem;
+  padding: $space-lg;
 
   @include md-up {
     align-items: center;
@@ -29,21 +29,21 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.8rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
 }
 
 .title {
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   flex: 1;
 }
 
 .count {
-  font-size: 0.7rem;
+  font-size: $font-size-xs;
   color: $dark-text-muted;
 }
 
@@ -66,17 +66,17 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.8rem;
+  gap: $space-xs;
+  padding: $space-sm $space-md;
   border-bottom: 1px solid $dark-border;
 }
 
 .actionButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.72rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border: 1px solid $dark-border;
@@ -94,19 +94,19 @@
   flex: 1;
   list-style: none;
   margin: 0;
-  padding: 0.3rem 0;
+  padding: $space-2xs 0;
   overflow-y: auto;
 }
 
 .empty {
-  padding: 1.2rem 0.6rem;
+  padding: $space-lg $space-sm;
   text-align: center;
   color: $dark-text-muted;
   font-size: $font-size-xs;
 }
 
 .item {
-  padding: 0.35rem 0.8rem;
+  padding: $space-xs $space-md;
 
   &:hover {
     background-color: $dark-bg-hover;
@@ -116,7 +116,7 @@
 .itemLabel {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $space-sm;
   cursor: pointer;
   min-width: 0;
 }
@@ -124,29 +124,29 @@
 .itemCheck {
   width: 16px;
   height: 16px;
-  accent-color: $blue-500;
+  accent-color: $accent;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .itemBranch {
   flex: 1;
-  font-size: 0.8rem;
+  font-size: $font-size-sm;
   color: $dark-text-primary;
   @include truncate;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: $space-2xs;
   min-width: 0;
 }
 
 .mainTag {
-  font-size: 0.6rem;
-  padding: 0.02rem 0.25rem;
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-2xs;
   border-radius: $radius-sm;
   background-color: $dark-bg-hover;
   color: $dark-text-secondary;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
 }
 
 .memoIcon {

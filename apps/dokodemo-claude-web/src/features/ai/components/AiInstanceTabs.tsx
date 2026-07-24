@@ -257,7 +257,6 @@ function AiInstanceTabs(
           const isActive = inst.instanceId === activeInstanceId;
           const subs = subsByProvider.get(inst.provider) ?? [];
           const label = getDisplayName(inst, subs);
-          const providerClass = inst.provider === 'claude' ? s.claude : s.codex;
           const summary = activitySummaries[inst.instanceId];
           return (
             <SwiperSlide key={inst.instanceId} className={s.slideAuto}>
@@ -271,7 +270,7 @@ function AiInstanceTabs(
                     onActivate(inst.instanceId);
                   }
                 }}
-                className={`${s.tab} ${isActive ? s.active : ''} ${providerClass}`}
+                className={`${s.tab} ${isActive ? s.active : ''}`}
                 title={`${getProviderShortName(inst.provider)}${inst.isPrimary ? ' (プライマリ)' : ''}${summary ? ` — ${summary}` : ''}`}
               >
                 <span className={s.tabTexts}>
@@ -370,7 +369,7 @@ function AiInstanceTabs(
                           onChangePrimaryProvider('claude');
                         }
                       }}
-                      className={`${s.providerSegmentItem} ${s.claude} ${
+                      className={`${s.providerSegmentItem} ${
                         inst.provider === 'claude' ? s.active : ''
                       }`}
                       aria-pressed={inst.provider === 'claude'}
@@ -385,7 +384,7 @@ function AiInstanceTabs(
                           onChangePrimaryProvider('codex');
                         }
                       }}
-                      className={`${s.providerSegmentItem} ${s.codex} ${
+                      className={`${s.providerSegmentItem} ${
                         inst.provider === 'codex' ? s.active : ''
                       }`}
                       aria-pressed={inst.provider === 'codex'}

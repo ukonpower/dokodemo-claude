@@ -4,8 +4,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 24px 16px;
+  gap: $space-sm;
+  padding: $space-xl $space-lg;
   min-height: 100%;
   text-align: center;
 }
@@ -17,23 +17,23 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.03);
-  border: 1px solid #2d2e32;
-  color: #4b5563;
-  margin-bottom: 2px;
+  background-color: rgba(white, 0.03);
+  border: 1px solid $dark-border-light;
+  color: $dark-text-muted;
+  margin-bottom: $space-3xs;
 }
 
 .message {
-  font-size: 12px;
-  font-weight: 500;
-  color: #9ca3af;
-  font-family: Inter, sans-serif;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $gray-400;
+  font-family: $font-sans;
   line-height: 1.4;
 }
 
 .hint {
-  font-size: 10px;
-  color: #6b7280;
-  font-family: Inter, sans-serif;
+  font-size: $font-size-2xs;
+  color: $gray-500;
+  font-family: $font-sans;
   line-height: 1.4;
 }

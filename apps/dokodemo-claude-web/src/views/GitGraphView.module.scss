@@ -20,22 +20,22 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-sm;
   height: 40px;
-  padding: 0 10px;
+  padding: 0 $space-sm;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
 
 .title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
 }
 
 .repoName {
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,7 +63,7 @@
   width: 28px;
   height: 28px;
   border: 1px solid $dark-border;
-  border-radius: 4px;
+  border-radius: $radius;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   cursor: pointer;
@@ -86,30 +86,32 @@
 .content {
   flex: 1;
   overflow: auto;
-  padding: 4px 0 40px;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- グラフ下端のスクロール余白（スケール外のレイアウト級） */
+  padding: $space-2xs 0 40px;
 }
 
 .errorBox {
-  margin: 8px 10px;
-  background-color: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: #f87171;
+  margin: $space-sm $space-sm;
+  background-color: $color-error-bg;
+  border: 1px solid $color-error-border;
+  border-radius: $radius;
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  color: $color-error;
 }
 
 .centerMessage {
-  padding: 40px 10px;
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 中央メッセージの上下余白（スケール外のレイアウト級） */
+  padding: 40px $space-sm;
   text-align: center;
   color: $dark-text-muted;
-  font-size: 13px;
+  font-size: $font-size-sm;
 }
 
 .loadMoreWrap {
   display: flex;
   justify-content: center;
-  padding: 12px;
+  padding: $space-md;
 }
 
 .loadMoreSpinner {
@@ -119,13 +121,13 @@
 .loadMoreButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
+  gap: $space-xs;
+  padding: $space-xs $space-lg;
   border: 1px solid $dark-border;
-  border-radius: 4px;
+  border-radius: $radius;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  font-size: 12px;
+  font-size: $font-size-xs;
   cursor: pointer;
 
   &:hover {

@@ -2,7 +2,7 @@
   background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   border: 1px solid $dark-border-light;
-  padding: 12px;
+  padding: $space-md;
 }
 
 .header {
@@ -13,39 +13,37 @@
 
 .headerWithMargin {
   composes: header;
-  margin-bottom: 8px;
+  margin-bottom: $space-sm;
 }
 
 .title {
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: white;
   display: flex;
   align-items: center;
 }
 
 .titleIcon {
-  width: 16px;
-  height: 16px;
-  margin-right: 8px;
-  color: #f97316;
+  margin-right: $space-sm;
+  color: $gray-400;
 }
 
 .countBadge {
-  margin-left: 8px;
+  margin-left: $space-sm;
   font-size: $font-size-xs;
   color: $dark-text-secondary;
   background-color: $dark-bg-secondary;
-  padding: 2px 8px;
+  padding: $space-3xs $space-sm;
   border-radius: $radius;
 }
 
 .refreshButton {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: $dark-text-primary;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
@@ -66,15 +64,13 @@
 }
 
 .refreshIcon {
-  width: 12px;
-  height: 12px;
-  margin-right: 4px;
+  margin-right: $space-2xs;
 }
 
 .emptyText {
   color: $gray-400;
   font-size: $font-size-sm;
-  margin-top: 8px;
+  margin-top: $space-sm;
 }
 
 .scrollArea {
@@ -87,8 +83,8 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding-right: 8px;
+  gap: $space-sm;
+  padding-right: $space-sm;
 
   @include sm-up {
     grid-template-columns: repeat(3, 1fr);
@@ -108,7 +104,7 @@
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
-  padding: 8px;
+  padding: $space-sm;
   text-align: left;
   transition: all $transition-normal $transition-easing;
   box-shadow: $shadow-sm;
@@ -116,7 +112,7 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: #f97316;
+    border-color: $dark-border-focus;
   }
 
   &:disabled {
@@ -127,7 +123,7 @@
 
 .scriptName {
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: white;
   @include truncate;
 }
@@ -135,11 +131,11 @@
 .scriptCommand {
   font-size: $font-size-xs;
   color: $gray-400;
-  margin-top: 2px;
+  margin-top: $space-3xs;
   @include truncate;
 
   .scriptButton:hover & {
-    color: #fed7aa;
+    color: $gray-300;
   }
 }
 
@@ -156,13 +152,11 @@
 }
 
 .runIconSvg {
-  width: 12px;
-  height: 12px;
-  color: #fdba74;
+  color: $gray-400;
 }
 
 .helpText {
   font-size: $font-size-xs;
   color: $gray-500;
-  margin-top: 8px;
+  margin-top: $space-sm;
 }
