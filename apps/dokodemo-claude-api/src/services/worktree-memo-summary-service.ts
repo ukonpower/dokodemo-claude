@@ -18,6 +18,10 @@ import { EventEmitter } from 'events';
 import { existsSync } from 'fs';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { cleanChildEnv } from '../utils/clean-env.js';
+import {
+  deleteAgentSdkTranscript,
+  getSummaryScratchCwd,
+} from '../utils/agent-sdk-transcript.js';
 import type { PersistenceService } from './persistence-service.js';
 
 export interface WorktreeMemoSummaryEvent {
@@ -206,9 +210,14 @@ export class WorktreeMemoSummaryService extends EventEmitter {
       ANTHROPIC_AUTH_TOKEN: undefined,
     });
 
+    // 要約セッションはユーザーが後から /resume したくないので、
+    // cwd を隔離スクラッチに寄せて実プロジェクトの履歴を汚さず、
+    // 完了後に session_id 由来の jsonl を掃除する。
+    const scratchCwd = getSummaryScratchCwd();
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: any = {
-      cwd: worktreePath,
+      cwd: scratchCwd,
       model: SUMMARY_MODEL,
       // ツール不要の構造化出力でも内部で複数ターン消費することがあるため 2 以上
       maxTurns: 4,
@@ -221,21 +230,29 @@ export class WorktreeMemoSummaryService extends EventEmitter {
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const message of query({ prompt, options }) as AsyncIterable<any>) {
-      if (message?.type === 'result') {
-        if (message.subtype === 'success' && message.structured_output) {
-          const summary = (
-            message.structured_output as { summary: string }
-          ).summary
-            .trim()
-            .replace(/\n[\s\S]*$/, ''); // 念のため 1 行目だけ使う
-          return summary || null;
+    let sessionId: string | undefined;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for await (const message of query({ prompt, options }) as AsyncIterable<any>) {
+        if (typeof message?.session_id === 'string') {
+          sessionId = message.session_id;
         }
-        throw new Error(`要約失敗: ${message.subtype || 'unknown'}`);
+        if (message?.type === 'result') {
+          if (message.subtype === 'success' && message.structured_output) {
+            const summary = (
+              message.structured_output as { summary: string }
+            ).summary
+              .trim()
+              .replace(/\n[\s\S]*$/, ''); // 念のため 1 行目だけ使う
+            return summary || null;
+          }
+          throw new Error(`要約失敗: ${message.subtype || 'unknown'}`);
+        }
       }
+      return null;
+    } finally {
+      void deleteAgentSdkTranscript(scratchCwd, sessionId);
     }
-    return null;
   }
 
   private async persist(): Promise<void> {

@@ -12,6 +12,7 @@
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { cleanChildEnv } from '../utils/clean-env.js';
+import { deleteAgentSdkTranscript } from '../utils/agent-sdk-transcript.js';
 
 export interface LoopJudgeVerdict {
   continue: boolean;
@@ -108,15 +109,26 @@ export async function judgeLoop(
     },
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for await (const message of query({ prompt, options }) as AsyncIterable<any>) {
-    if (message?.type === 'result') {
-      if (message.subtype === 'success' && message.structured_output) {
-        return message.structured_output as LoopJudgeVerdict;
+  // 判定セッションはユーザーが後から /resume したくないので、
+  // 完了後に session_id 由来の jsonl を掃除する（cwd は実プロジェクト
+  // のまま：Read/Bash 等のツールを使うため隔離 cwd には移せない）。
+  let sessionId: string | undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for await (const message of query({ prompt, options }) as AsyncIterable<any>) {
+      if (typeof message?.session_id === 'string') {
+        sessionId = message.session_id;
       }
-      throw new Error(`判定失敗: ${message.subtype || 'unknown'}`);
+      if (message?.type === 'result') {
+        if (message.subtype === 'success' && message.structured_output) {
+          return message.structured_output as LoopJudgeVerdict;
+        }
+        throw new Error(`判定失敗: ${message.subtype || 'unknown'}`);
+      }
     }
-  }
 
-  throw new Error('判定結果が返りませんでした');
+    throw new Error('判定結果が返りませんでした');
+  } finally {
+    void deleteAgentSdkTranscript(input.cwd, sessionId);
+  }
 }
