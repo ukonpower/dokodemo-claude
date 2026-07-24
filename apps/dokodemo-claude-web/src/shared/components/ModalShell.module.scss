@@ -1,0 +1,51 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  @include flex-center;
+  z-index: 50;
+  padding: $space-lg;
+}
+
+.panel {
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  padding: $space-lg $space-xl;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+}
+
+.content {
+  padding: $space-lg $space-xl;
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-md;
+  padding: $space-lg $space-xl;
+  border-top: 1px solid $dark-border;
+  flex-shrink: 0;
+}

@@ -1,0 +1,155 @@
+// Storybook のトークン / コンポーネントストーリー共通の表示レイアウト。
+
+.section {
+  & + & {
+    margin-top: $space-2xl;
+  }
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  margin-bottom: $space-xs;
+}
+
+.sectionDesc {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  margin-bottom: $space-lg;
+}
+
+// --- カラースウォッチ ---
+.swatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: $space-md;
+}
+
+.swatch {
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background-color: $dark-bg-secondary;
+}
+
+.swatchColor {
+  height: 3.5rem;
+  width: 100%;
+}
+
+.swatchMeta {
+  padding: $space-sm;
+}
+
+.swatchName {
+  display: block;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  color: $dark-text-primary;
+  word-break: break-all;
+}
+
+.swatchValue {
+  display: block;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  color: $dark-text-secondary;
+  margin-top: $space-3xs;
+}
+
+// パレット（10 段）を横並びで見せる行
+.paletteRow {
+  display: flex;
+  align-items: stretch;
+  gap: $space-3xs;
+  margin-bottom: $space-md;
+}
+
+.paletteFamily {
+  width: 4.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+.paletteChip {
+  flex: 1;
+  height: 3rem;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: $space-3xs;
+  font-size: 0.5rem;
+  font-family: $font-mono;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// --- タイポグラフィ ---
+.typeRow {
+  display: flex;
+  align-items: baseline;
+  gap: $space-lg;
+  padding: $space-sm 0;
+  border-bottom: 1px solid $dark-border;
+}
+
+.typeMeta {
+  width: 12rem;
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  color: $dark-text-secondary;
+}
+
+.typeSample {
+  color: $dark-text-primary;
+}
+
+// --- スペーシング ---
+.spaceRow {
+  display: flex;
+  align-items: center;
+  gap: $space-lg;
+  padding: $space-2xs 0;
+}
+
+.spaceMeta {
+  width: 12rem;
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  color: $dark-text-secondary;
+}
+
+.spaceBar {
+  height: 1rem;
+  background-color: $accent;
+  border-radius: $radius-sm;
+}
+
+// --- コンポーネント見本の並べ方 ---
+.componentGrid {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xl;
+}
+
+.componentRow {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  flex-wrap: wrap;
+}
+
+.rowLabel {
+  width: 8rem;
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  color: $dark-text-secondary;
+}

@@ -1,0 +1,47 @@
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: $radius;
+  background: none;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: $dark-text-secondary;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// --- サイズ ---
+.md {
+  width: 2rem;
+  height: 2rem;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.xs {
+  width: 1.5rem;
+  height: 1.5rem;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
