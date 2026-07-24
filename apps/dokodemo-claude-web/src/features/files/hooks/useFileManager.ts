@@ -7,6 +7,7 @@ import type {
   ClientToServerEvents,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useRefreshOnFocus } from '@/shared/hooks/useRefreshOnFocus';
 import { BACKEND_URL } from '@/shared/utils/backend-url';
 
 export interface UseFileManagerReturn {
@@ -37,6 +38,17 @@ export function useFileManager(
   useEffect(() => {
     currentRepoRef.current = currentRepo;
   }, [currentRepo]);
+
+  // タブ復帰時にファイル一覧を再取得する。
+  // dokodemo-preview / dokodemo-md の受信は file-uploaded の push 通知で
+  // 届くが、バックグラウンドタブでは通知を取り逃すことがあるため、
+  // 復帰タイミングで一覧を取り直して補完する。
+  useRefreshOnFocus(() => {
+    if (!socket || !socket.connected) return;
+    const rid = repositoryIdMap.getRid(currentRepoRef.current);
+    if (!rid) return;
+    socket.emit('get-files', { rid });
+  });
 
   useEffect(() => {
     if (!socket) return;

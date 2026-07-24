@@ -7,6 +7,7 @@ import type {
   WorktreeSyncEntry,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useRefreshOnFocus } from '@/shared/hooks/useRefreshOnFocus';
 import {
   getLastWorktreeForParent,
   setLastWorktreeForParent,
@@ -145,6 +146,19 @@ export function useWorktrees(
   useEffect(() => {
     parentRepoPathRef.current = parentRepoPath;
   }, [parentRepoPath]);
+
+  // タブ復帰時にワークツリー一覧を再取得する。
+  // PR 状況（prInfo）は worktrees-list に相乗りして届くため、GitHub 側で
+  // PR が作成・マージされても、ここで再取得しない限り画面に反映されない。
+  // gh CLI の呼び出し頻度はサーバ側の PR キャッシュ（30秒 TTL）で抑制される。
+  useRefreshOnFocus(() => {
+    if (!socket || !socket.connected) return;
+    const repoPath = currentRepoRef.current;
+    if (!repoPath) return;
+    const rid = repositoryIdMap.getRid(repoPath);
+    if (!rid) return;
+    socket.emit('list-worktrees', { rid });
+  });
 
   // Socketイベントリスナー
   useEffect(() => {

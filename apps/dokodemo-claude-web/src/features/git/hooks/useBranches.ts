@@ -8,6 +8,7 @@ import type {
   ClientToServerEvents,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useRefreshOnFocus } from '@/shared/hooks/useRefreshOnFocus';
 
 /**
  * pull の状態
@@ -155,26 +156,17 @@ export function useBranches(
   }, [socket, requestSyncStatus]);
 
   // タブ/ウィンドウにフォーカスが戻ったとき fetch 付きで再取得する。
-  // visibilitychange と focus は同時に発火しうるため、直近実行からの経過時間で抑制する。
-  useEffect(() => {
-    if (!socket) return;
-    const handleFocusRefresh = () => {
-      if (document.visibilityState !== 'visible') return;
-      if (
-        Date.now() - lastSyncRefreshAtRef.current <
-        SYNC_STATUS_REFRESH_MIN_INTERVAL_MS
-      ) {
-        return;
-      }
-      refreshSyncStatus();
-    };
-    window.addEventListener('focus', handleFocusRefresh);
-    document.addEventListener('visibilitychange', handleFocusRefresh);
-    return () => {
-      window.removeEventListener('focus', handleFocusRefresh);
-      document.removeEventListener('visibilitychange', handleFocusRefresh);
-    };
-  }, [socket, refreshSyncStatus]);
+  // 手動リフレッシュ直後の再発火は lastSyncRefreshAtRef で追加抑制する
+  // （フック内蔵のスロットルは focus 起因の実行しか記録しないため）。
+  useRefreshOnFocus(() => {
+    if (
+      Date.now() - lastSyncRefreshAtRef.current <
+      SYNC_STATUS_REFRESH_MIN_INTERVAL_MS
+    ) {
+      return;
+    }
+    refreshSyncStatus();
+  }, SYNC_STATUS_REFRESH_MIN_INTERVAL_MS);
 
   // Socketイベントリスナー
   useEffect(() => {
