@@ -24,7 +24,7 @@
 
   &::-webkit-scrollbar-thumb {
     background-color: $gray-600;
-    border-radius: 4px;
+    border-radius: $radius;
   }
 
   &::-webkit-scrollbar-track {
@@ -54,12 +54,12 @@
   line-height: 1.25rem;
   text-align: center;
   color: $gray-600;
-  background-color: rgba(30, 58, 138, 0.3);
+  background-color: rgba($blue-900, 0.3);
   user-select: none;
 }
 
 .lineNum {
-  padding: 0 0.25rem;
+  padding: 0 $space-2xs;
   text-align: right;
   user-select: none;
   border-right: 1px solid $gray-700;
@@ -80,7 +80,7 @@
 .contentCol {
   min-width: 0;
   overflow: hidden;
-  padding: 0 0.5rem;
+  padding: 0 $space-sm;
 }
 
 // 折り返しOFF時のテキスト本体。ペイン内で横スクロール分だけ逆方向に流す
@@ -94,21 +94,21 @@
 .contentColWrap {
   min-width: 0;
   overflow: hidden;
-  padding: 0 0.5rem;
+  padding: 0 $space-sm;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
-.bgAddition { background-color: rgba(20, 83, 45, 0.3); }
-.bgDeletion { background-color: rgba(127, 29, 29, 0.3); }
+.bgAddition { background-color: $diff-added-bg; }
+.bgDeletion { background-color: $diff-removed-bg; }
 
 // 反対側に対応行がない空欄セル
 .cellEmpty {
   background-color: rgba($gray-800, 0.6);
 }
 
-.textAddition { color: #86efac; }
-.textDeletion { color: #fca5a5; }
+.textAddition { color: $diff-added-text; }
+.textDeletion { color: $diff-removed-text; }
 .textContext { color: $gray-400; }
 
 .lineNumDefault { color: $gray-600; }
@@ -142,18 +142,18 @@
   left: 0;
   right: 0;
   min-height: 8px;
-  background-color: rgba(255, 255, 255, 0.14);
-  border-radius: 2px;
+  background-color: rgba(white, 0.14);
+  border-radius: $radius-sm;
   pointer-events: none;
 }
 
-.rulerMarkAddition { background-color: rgba(74, 222, 128, 0.8); }
-.rulerMarkDeletion { background-color: rgba(248, 113, 113, 0.8); }
+.rulerMarkAddition { background-color: rgba($green-400, 0.8); }
+.rulerMarkDeletion { background-color: rgba($red-400, 0.8); }
 .rulerMarkMixed {
   background: linear-gradient(
     90deg,
-    rgba(248, 113, 113, 0.8) 50%,
-    rgba(74, 222, 128, 0.8) 50%
+    rgba($red-400, 0.8) 50%,
+    rgba($green-400, 0.8) 50%
   );
 }
 
@@ -164,7 +164,7 @@
   right: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $space-3xs;
   z-index: 1;
 }
 
@@ -176,7 +176,7 @@
   height: 1.5rem;
   padding: 0;
   border: 1px solid $gray-700;
-  border-radius: 0.25rem;
+  border-radius: $radius;
   background-color: rgba($gray-800, 0.85);
   color: $gray-400;
   cursor: pointer;

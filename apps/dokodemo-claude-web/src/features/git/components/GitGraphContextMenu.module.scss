@@ -9,24 +9,24 @@
   z-index: 41;
   min-width: 220px;
   max-width: 340px;
-  padding: 4px;
+  padding: $space-2xs;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
-  border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-radius: $radius-md;
+  box-shadow: 0 6px 20px rgba(black, 0.4);
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-sm;
   width: 100%;
-  padding: 6px 10px;
+  padding: $space-xs $space-sm;
   border: none;
-  border-radius: 4px;
+  border-radius: $radius;
   background: transparent;
   text-align: left;
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   cursor: pointer;
 
@@ -49,7 +49,7 @@
 
 @media (pointer: coarse) {
   .item {
-    padding: 12px 14px;
-    font-size: 13px;
+    padding: $space-md;
+    font-size: $font-size-sm;
   }
 }

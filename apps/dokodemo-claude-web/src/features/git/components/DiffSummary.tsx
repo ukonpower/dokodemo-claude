@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Loader2 } from 'lucide-react';
 import type { GitDiffFile, GitDiffSummary } from '@/types';
 import EmptyState from '@/shared/components/EmptyState';
 import { FileIcon, splitFilePath } from '@/shared/utils/file-icon';
@@ -19,18 +19,21 @@ function getStatusDisplay(status: GitDiffFile['status']): {
   textColor: string;
   bgColor: string;
 } {
+  // 色はデザイントークンのプリミティブ値と一致させている
+  // （SCSS 変数は TSX から参照できないため、同値の hex を直書き）:
+  // A=$color-success, D=$color-error, R=$color-info, U(untracked)=$purple-400, M=$color-warning
   switch (status) {
     case 'A':
-      return { icon: '+', textColor: '#4ade80', bgColor: '#14532d' };
+      return { icon: '+', textColor: '#10b981', bgColor: '#064e3b' }; // emerald-500 / emerald-900
     case 'D':
-      return { icon: '-', textColor: '#f87171', bgColor: '#7f1d1d' };
+      return { icon: '-', textColor: '#ef4444', bgColor: '#7f1d1d' }; // red-500 / red-900
     case 'R':
-      return { icon: 'R', textColor: '#60a5fa', bgColor: '#1e3a5f' };
+      return { icon: 'R', textColor: '#3b82f6', bgColor: '#1e3a8a' }; // blue-500 / blue-900
     case 'U':
-      return { icon: '?', textColor: '#a78bfa', bgColor: '#4c1d95' };
+      return { icon: '?', textColor: '#c084fc', bgColor: '#581c87' }; // purple-400 / purple-900
     case 'M':
     default:
-      return { icon: 'M', textColor: '#fbbf24', bgColor: '#854d0e' };
+      return { icon: 'M', textColor: '#f59e0b', bgColor: '#78350f' }; // amber-500 / amber-900
   }
 }
 
@@ -62,10 +65,7 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
       {/* ローディング */}
       {isLoading && !summary && (
         <div className={s.loadingCenter}>
-          <svg className={s.loadingSpinner} fill="none" viewBox="0 0 24 24">
-            <circle className={s.spinnerCircle} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className={s.spinnerPath} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
+          <Loader2 className={s.loadingSpinner} size={16} />
         </div>
       )}
 

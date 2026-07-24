@@ -32,28 +32,28 @@
   }
 
   &:hover::after {
-    background: #60a5fa;
+    background: $accent;
   }
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-sm;
   height: 32px;
-  padding: 0 10px;
+  padding: 0 $space-sm;
   border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
 
 .headerHash {
   font-family: monospace;
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-muted;
 }
 
 .headerTitle {
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -65,24 +65,6 @@
   flex: 1;
 }
 
-.closeButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: $dark-text-secondary;
-  cursor: pointer;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-  }
-}
-
 .body {
   flex: 1;
   display: flex;
@@ -91,8 +73,8 @@
 
 .loading {
   color: $dark-text-muted;
-  font-size: 13px;
-  padding: 10px;
+  font-size: $font-size-sm;
+  padding: $space-sm;
 }
 
 // 左ペイン: メタ + メッセージ + ファイル一覧
@@ -101,7 +83,7 @@
   width: 320px;
   max-width: 40%;
   overflow-y: auto;
-  padding: 10px;
+  padding: $space-sm;
   border-right: 1px solid $dark-border;
 }
 
@@ -117,9 +99,9 @@
 .diffHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   height: 30px;
-  padding: 0 8px;
+  padding: 0 $space-sm;
   border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
@@ -128,7 +110,7 @@
   flex: 1;
   min-width: 0;
   font-family: monospace;
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -142,7 +124,7 @@
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: 4px;
+  border-radius: $radius;
   background: transparent;
   color: $dark-text-secondary;
   cursor: pointer;
@@ -180,21 +162,21 @@
 
 .diffPlaceholder {
   color: $dark-text-muted;
-  font-size: 12px;
-  padding: 12px;
+  font-size: $font-size-xs;
+  padding: $space-md;
 }
 
 .meta {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 8px;
+  gap: $space-3xs;
+  margin-bottom: $space-sm;
 }
 
 .metaRow {
   display: flex;
-  gap: 8px;
-  font-size: 12px;
+  gap: $space-sm;
+  font-size: $font-size-xs;
 }
 
 .metaLabel {
@@ -209,12 +191,12 @@
 }
 
 .message {
-  margin: 0 0 10px;
-  padding: 8px 10px;
+  margin: 0 0 $space-sm;
+  padding: $space-sm;
   background-color: $dark-bg-primary;
   border: 1px solid $dark-border;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: $radius;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   white-space: pre-wrap;
   word-break: break-word;
@@ -224,17 +206,17 @@
 .fileList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $space-3xs;
 }
 
 .fileButton {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: $space-sm;
   width: 100%;
-  padding: 3px 6px;
+  padding: $space-3xs $space-xs;
   border: none;
-  border-radius: 4px;
+  border-radius: $radius;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -259,9 +241,9 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 600;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
 }
 
 .fileIcon {
@@ -276,7 +258,7 @@
   min-width: 0;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: $space-xs;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -284,13 +266,13 @@
 
 .filePathName {
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
   color: $dark-text-secondary;
 }
 
 .filePathDir {
-  font-size: 10px;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,23 +282,23 @@
 .stats {
   flex-shrink: 0;
   display: inline-flex;
-  gap: 6px;
-  font-size: 11px;
+  gap: $space-xs;
+  font-size: $font-size-xs;
   font-variant-numeric: tabular-nums;
 }
 
 .add {
-  color: #4ade80;
+  color: $diff-added-text;
 }
 
 .del {
-  color: #f87171;
+  color: $diff-removed-text;
 }
 
 .noFiles {
   color: $dark-text-muted;
-  font-size: 12px;
-  padding: 6px;
+  font-size: $font-size-xs;
+  padding: $space-xs;
 }
 
 // モバイル: 左右分割ではなく上下に積む

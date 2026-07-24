@@ -104,7 +104,7 @@ function RefChip({
       }
     >
       {r.worktree && (
-        <FolderGit2 size={10} className={s.chipIcon} aria-hidden="true" />
+        <FolderGit2 size={12} className={s.chipIcon} aria-hidden="true" />
       )}
       {r.name}
     </span>

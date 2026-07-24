@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, CloudUpload, RefreshCw } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  CloudUpload,
+  RefreshCw,
+  GitBranch as GitBranchIcon,
+  ChevronDown,
+  Plus,
+  Download,
+  Check,
+  Trash2,
+  Link,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import type { GitBranch, GitWorktree } from '@/types';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useBranchesContext } from '@/features/git/providers/BranchesProvider';
+import Button from '@/shared/components/Button';
 import BranchCreateModal from './BranchCreateModal';
 import s from './BranchSelector.module.scss';
 
@@ -272,35 +287,11 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
         disabled={!isConnected || isLoading}
         className={s.triggerButton}
       >
-        <svg
-          className={s.branchIcon}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 7l5 5m0 0l-5 5m5-5H6"
-          />
-        </svg>
+        <GitBranchIcon className={s.branchIcon} />
         <span className={s.branchName}>
           {isLoading ? '...' : currentBranch || 'ブランチ'}
         </span>
-        <svg
-          className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <ChevronDown className={`${s.chevron} ${isOpen ? s.chevronOpen : ''}`} />
       </button>
 
       {/* VSCode 風の ahead/behind インジケーター */}
@@ -416,19 +407,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
               className={s.toolbarButton}
               title="ブランチを作成"
             >
-              <svg
-                className={s.toolbarIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <Plus className={s.toolbarIcon} />
               <span>作成</span>
             </button>
             <button
@@ -440,19 +419,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
               className={s.toolbarButton}
               title="現在のブランチを pull (--ff-only)"
             >
-              <svg
-                className={s.toolbarIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"
-                />
-              </svg>
+              <Download className={s.toolbarIcon} />
               <span>{isPulling ? 'Pull中…' : 'Pull'}</span>
             </button>
             <button
@@ -460,19 +427,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
               className={s.toolbarIconButton}
               title="ブランチ一覧を更新"
             >
-              <svg
-                className={s.toolbarIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
+              <RefreshCw className={s.toolbarIcon} />
             </button>
           </div>
           <div className={s.dropdownList}>
@@ -500,17 +455,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
                         >
                           <span className={s.branchButtonName}>{branch.name}</span>
                           {branch.current && (
-                            <svg
-                              className={s.checkIcon}
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <Check className={s.checkIcon} />
                           )}
                         </button>
                         {canDeleteBranch(branch) && (
@@ -519,19 +464,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
                             className={s.deleteButton}
                             title={`ブランチ「${branch.name}」を削除`}
                           >
-                            <svg
-                              className={s.deleteIcon}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
+                            <Trash2 className={s.deleteIcon} />
                           </button>
                         )}
                       </div>
@@ -550,17 +483,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
                         onClick={() => handleBranchSwitch(branch.name)}
                         className={s.remoteBranchButton}
                       >
-                        <svg
-                          className={s.remoteIcon}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <Link className={s.remoteIcon} />
                         <span className={s.remoteName}>{branch.name}</span>
                       </button>
                     ))}
@@ -579,19 +502,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
           <div className={s.modalContent}>
             <div className={s.modalHeader}>
               <div className={`${s.modalIconCircle} ${s.modalIconCircleRed}`}>
-                <svg
-                  className={`${s.modalIcon} ${s.modalIconRed}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+                <AlertTriangle className={`${s.modalIcon} ${s.modalIconRed}`} />
               </div>
               <h3 className={s.modalTitle}>
                 ブランチを削除
@@ -632,18 +543,10 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
             )}
 
             <div className={s.modalFooter}>
-              <button
-                onClick={handleCancelDelete}
-                className={s.cancelButton}
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className={s.dangerButton}
-              >
+              <Button onClick={handleCancelDelete}>キャンセル</Button>
+              <Button variant="danger" onClick={handleConfirmDelete}>
                 削除する
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -699,18 +602,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
                 title={pullState.status === 'running' ? 'Pull 実行中' : '閉じる'}
                 aria-label="閉じる"
               >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X />
               </button>
             </div>
             <div className={s.pullPopupBody}>
@@ -770,18 +662,7 @@ function BranchSelector({ worktrees }: BranchSelectorProps) {
                 title={pushState.status === 'running' ? 'Push 実行中' : '閉じる'}
                 aria-label="閉じる"
               >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X />
               </button>
             </div>
             <div className={s.pullPopupBody}>

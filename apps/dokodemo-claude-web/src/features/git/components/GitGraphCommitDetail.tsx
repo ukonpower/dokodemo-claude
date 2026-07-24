@@ -7,6 +7,7 @@ import type {
 } from '@/types';
 import { formatGraphDate } from '@/features/git/utils/git-graph-layout';
 import { FileIcon, splitFilePath } from '@/shared/utils/file-icon';
+import IconButton from '@/shared/components/IconButton';
 import DiffLines from './DiffLines';
 import { UNCOMMITTED_HASH } from './GitGraphSvg';
 import s from './GitGraphCommitDetail.module.scss';
@@ -30,16 +31,18 @@ function statusStyle(status: GitGraphFileChange['status']): {
   color: string;
   bg: string;
 } {
+  // 色はデザイントークンのプリミティブ値と一致（SCSS 変数は TSX から参照不可のため同値 hex を直書き）:
+  // A=$color-success, D=$color-error, R=$color-info, M=$color-warning
   switch (status) {
     case 'A':
-      return { label: 'A', color: '#4ade80', bg: '#14532d' };
+      return { label: 'A', color: '#10b981', bg: '#064e3b' }; // emerald-500 / emerald-900
     case 'D':
-      return { label: 'D', color: '#f87171', bg: '#7f1d1d' };
+      return { label: 'D', color: '#ef4444', bg: '#7f1d1d' }; // red-500 / red-900
     case 'R':
-      return { label: 'R', color: '#60a5fa', bg: '#1e3a5f' };
+      return { label: 'R', color: '#3b82f6', bg: '#1e3a8a' }; // blue-500 / blue-900
     case 'M':
     default:
-      return { label: 'M', color: '#fbbf24', bg: '#854d0e' };
+      return { label: 'M', color: '#f59e0b', bg: '#78350f' }; // amber-500 / amber-900
   }
 }
 
@@ -130,14 +133,9 @@ const GitGraphCommitDetail: React.FC<GitGraphCommitDetailProps> = ({
               : ''}
         </span>
         <span className={s.spacer} />
-        <button
-          className={s.closeButton}
-          onClick={onClose}
-          title="閉じる"
-          aria-label="閉じる"
-        >
-          <X size={16} />
-        </button>
+        <IconButton size="md" label="閉じる" onClick={onClose}>
+          <X />
+        </IconButton>
       </div>
 
       <div className={s.body}>

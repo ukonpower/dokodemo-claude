@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
+import Button from '@/shared/components/Button';
 import s from './GitGraphActionDialog.module.scss';
 
 export interface GitGraphDialogCheckbox {
@@ -129,16 +130,14 @@ const GitGraphActionDialog: React.FC<GitGraphActionDialogProps> = ({
         )}
 
         <div className={s.buttons}>
-          <button
-            className={s.confirmButton}
+          <Button
+            variant="primary"
             onClick={handleConfirm}
             disabled={confirmDisabled}
           >
             {confirmLabel}
-          </button>
-          <button className={s.cancelButton} onClick={onCancel}>
-            キャンセル
-          </button>
+          </Button>
+          <Button onClick={onCancel}>キャンセル</Button>
         </div>
       </div>
     </div>

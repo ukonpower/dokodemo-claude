@@ -101,7 +101,7 @@ const GitGraphSvg: React.FC<GitGraphSvgProps> = ({
               cx={cx}
               cy={cy}
               r={DOT_RADIUS}
-              fill="#0a0a0a"
+              fill="#0a0a0a" // $dark-bg-primary と同値（背景色で中空に見せる）
               stroke={color}
               strokeWidth={2}
             />

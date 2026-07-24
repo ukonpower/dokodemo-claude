@@ -43,9 +43,9 @@ const GitGraphBranchDropdown: React.FC<GitGraphBranchDropdownProps> = ({
         onClick={() => setOpen((o) => !o)}
         title="ブランチ絞り込み"
       >
-        <GitBranch size={13} />
+        <GitBranch size={14} />
         <span className={s.triggerLabel}>{selected ?? SHOW_ALL_LABEL}</span>
-        <ChevronDown size={13} />
+        <ChevronDown size={14} />
       </button>
 
       {open && (

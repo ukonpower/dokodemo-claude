@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ArrowLeft, WrapText, RefreshCw, Loader2 } from 'lucide-react';
 import type { GitDiffDetail } from '@/types';
 import DiffLines from './DiffLines';
 import s from './DiffViewer.module.scss';
@@ -47,19 +48,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
           onClick={onBack}
           className={s.backButton}
         >
-          <svg
-            className={s.backIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <ArrowLeft size={16} />
           戻る
         </button>
 
@@ -76,9 +65,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
           }`}
           title={wordWrap ? '折り返しOFF' : '折り返しON'}
         >
-          <svg className={s.wrapIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6h18M3 12h15a3 3 0 110 6h-4m0 0l2-2m-2 2l2 2M3 18h7" />
-          </svg>
+          <WrapText size={16} />
         </button>
 
         {/* リフレッシュボタン */}
@@ -88,19 +75,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
           className={`${s.refreshButton} ${isLoading ? s.spinning : ''}`}
           title="更新"
         >
-          <svg
-            className={s.refreshIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
+          <RefreshCw size={16} />
         </button>
       </div>
 
@@ -116,25 +91,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
         {/* ローディング表示 */}
         {isLoading && !detail && (
           <div className={s.loadingCenter}>
-            <svg
-              className={s.loadingSpinner}
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className={s.spinnerCircle}
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className={s.spinnerPath}
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <Loader2 className={s.loadingSpinner} size={32} />
           </div>
         )}
 
