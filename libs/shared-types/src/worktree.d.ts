@@ -6,6 +6,7 @@ export interface GitWorktree {
   isMain: boolean; // メインワークツリーかどうか
   parentRepoPath: string; // 親リポジトリのパス
   memo?: string; // ワークツリーのメモ（本文のみ。URLは表示時に自動リンク化）
+  memoSummary?: string; // メモの一言要約（haiku で生成。タブに表示）
   prInfo?: GitWorktreePrInfo; // 紐付く GitHub PR 情報（gh CLI 経由で取得）
 }
 

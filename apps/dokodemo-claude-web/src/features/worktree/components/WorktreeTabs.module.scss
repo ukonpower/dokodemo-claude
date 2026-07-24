@@ -246,8 +246,37 @@
   }
 }
 
+// ブランチ名（上段）とメモ要約（下段）の 2 行縦積み（AiInstanceTabs と同じトーン）
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: $space-3xs;
+  min-width: 0;
+}
+
+.tabTopRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .tabBranchName {
   white-space: nowrap;
+}
+
+.tabSummary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  &.active {
+    color: $gray-400;
+  }
 }
 
 // PR バッジ：PR 番号 + 状態色ドット

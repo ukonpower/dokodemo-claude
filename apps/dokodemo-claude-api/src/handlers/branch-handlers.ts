@@ -18,6 +18,7 @@ import {
 } from '../utils/git-utils.js';
 import { getWorktreePrsByBranch } from '../utils/gh-utils.js';
 import { startBranchWatching } from '../services/branch-watcher.js';
+import { worktreeMemoSummaryService } from '../services/worktree-memo-summary-service.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
@@ -73,7 +74,12 @@ export function addWorktreeIds(
   for (const wt of worktrees) {
     const wtid = repositoryIdManager.tryGetId(wt.path);
     if (wtid === undefined) continue;
-    result.push({ ...wt, wtid, memo: memoManager?.get(wt.path) });
+    result.push({
+      ...wt,
+      wtid,
+      memo: memoManager?.get(wt.path),
+      memoSummary: worktreeMemoSummaryService.getSummary(wt.path),
+    });
   }
   if (parentRepoPath && sortOrderManager) {
     return sortOrderManager.applyOrder(parentRepoPath, result);
