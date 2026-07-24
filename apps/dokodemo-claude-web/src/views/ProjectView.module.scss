@@ -1,314 +1,21 @@
-@use "sass:color";
-
 .root {
   min-height: 100vh;
   background-color: $dark-bg-primary;
   display: flex;
   flex-direction: column;
   // 画面下部固定の RepositorySwitcher 分の余白
-  padding-bottom: 3rem;
+  padding-bottom: $space-3xl;
 
   // モバイルでは RepositorySwitcher が画面上部固定になる
   @include sm-down {
     padding-bottom: 0;
-    padding-top: 3rem;
+    padding-top: $space-3xl;
   }
-}
-
-// ヘッダー
-.header {
-  background-color: $dark-bg-secondary;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid $dark-border;
-  overflow: hidden;
-}
-
-.headerInner {
-  max-width: 80rem;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0.25rem 0.75rem;
-
-  @include sm-up {
-    padding: 0.375rem 1rem;
-  }
-
-  @include lg-up {
-    padding: 0.5rem 2rem;
-  }
-}
-
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-
-  @include lg-up {
-    gap: 1rem;
-  }
-}
-
-// 左グループ
-.headerLeft {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  flex-shrink: 0;
-
-  & > * + * {
-    margin-left: 0.5rem;
-  }
-
-  @include lg-up {
-    & > * + * {
-      margin-left: 1rem;
-    }
-  }
-}
-
-.backLink {
-  // btn-icon はグローバルスタイルを使用するため、追加スタイルのみ
-  color: $dark-text-secondary;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
-  flex-shrink: 0;
-
-  // SP時はヘッダー高さを縮めるため btn-icon (2rem) より一回り小さく
-  @include sm-down {
-    width: 1.75rem;
-    height: 1.75rem;
-
-    svg {
-      width: 0.875rem;
-      height: 0.875rem;
-    }
-  }
-
-  &:hover {
-    color: white;
-    background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus, 0 0 0 3px rgba($dark-border-focus, 0.3);
-  }
-}
-
-.repoInfo {
-  border-left: 1px solid $dark-border-light;
-  padding-left: 0.5rem;
-  min-width: 0;
-
-  @include sm-up {
-    padding-left: 1rem;
-  }
-}
-
-.repoTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.repoTitle {
-  font-size: $font-size-sm;
-  font-weight: 600;
-  color: white;
-  @include truncate;
-  cursor: pointer;
-  transition: color 150ms ease;
-
-  @include sm-up {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-  }
-
-  &:hover {
-    color: #93c5fd; // blue-300
-  }
-}
-
-.copiedText {
-  color: $color-success;
-}
-
-.githubButton {
-  // btn-icon-xs はグローバルスタイル
-  color: $gray-400;
-  flex-shrink: 0;
-
-  &:hover {
-    color: white;
-  }
-}
-
-.repoPath {
-  font-size: $font-size-xs;
-  color: $gray-400;
-  @include truncate;
-  max-width: 100%;
-  display: none;
-
-  @include lg-up {
-    display: block;
-  }
-
-  @include sm-up {
-    max-width: 24rem;
-  }
-}
-
-// 右グループ
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  flex-shrink: 0;
-
-  @include sm-up {
-    gap: 0.5rem;
-  }
-}
-
-.toolButtons {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  @include sm-up {
-    gap: 0.5rem;
-  }
-}
-
-// エディタドロップダウン
-.editorDropdownWrapper {
-  position: relative;
-}
-
-.editorDropdown {
-  position: absolute;
-  right: 0;
-  margin-top: 0.5rem;
-  width: 9rem;
-  background-color: $gray-800;
-  border-radius: $radius-md;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  z-index: 50;
-
-  // ring-1 ring-gray-700
-  box-shadow: 0 0 0 1px $gray-700, 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.editorDropdownList {
-  padding: 0.25rem 0;
-}
-
-.editorItem {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  font-size: $font-size-xs;
-  font-weight: 500;
-  color: white;
-  transition: background-color 150ms ease;
-}
-
-.editorItemVscode {
-  &:hover {
-    background-color: #1d4ed8; // blue-700
-  }
-}
-
-.editorItemCursor {
-  &:hover {
-    background-color: #7e22ce; // purple-700
-  }
-}
-
-.editorItemIcon {
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.5rem;
-}
-
-.editorIconVscode {
-  color: #60a5fa; // blue-400
-}
-
-.editorIconCursor {
-  color: #c084fc; // purple-400
-}
-
-// スピナー (共通)
-.spinnerAnimation {
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-.opacity25 {
-  opacity: 0.25;
-}
-
-.opacity75 {
-  opacity: 0.75;
-}
-
-// 接続状態
-.connectionInfo {
-  display: flex;
-  align-items: center;
-
-  & > * + * {
-    margin-left: 0.5rem;
-  }
-}
-
-.statusDot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-}
-
-.statusConnected {
-  background-color: $color-success;
-}
-
-.statusReconnecting {
-  background-color: #eab308; // yellow-500
-}
-
-.statusDisconnected {
-  background-color: $color-error;
-}
-
-.statusText {
-  font-size: $font-size-xs;
-  color: $gray-300;
-  font-weight: 500;
-  display: none;
-
-  @include sm-up {
-    display: inline;
-  }
-}
-
-.sessionId {
-  font-size: $font-size-xs;
-  color: $gray-400;
-  font-family: $font-mono;
-  display: none;
-
-  @include sm-up {
-    display: inline;
-  }
 }
 
 // メインコンテンツ
@@ -318,27 +25,27 @@
   margin-left: auto;
   margin-right: auto;
   width: 100%;
-  padding: 0.375rem 0.5rem;
+  padding: $space-xs $space-sm;
   display: flex;
   flex-direction: column;
 
   & > * + * {
-    margin-top: 0.375rem;
+    margin-top: $space-xs;
   }
 
   @include sm-up {
-    padding: 0.75rem 1rem;
+    padding: $space-md $space-lg;
 
     & > * + * {
-      margin-top: 0.75rem;
+      margin-top: $space-md;
     }
   }
 
   @include lg-up {
-    padding: 0.5rem 2rem;
+    padding: $space-sm $space-2xl;
 
     & > * + * {
-      margin-top: 0.5rem;
+      margin-top: $space-sm;
     }
   }
 }
@@ -347,16 +54,16 @@
 .topLayout {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: $space-xs;
   flex: 1 1 0%;
   min-height: 0;
 
   @include sm-up {
-    gap: 0.75rem;
+    gap: $space-md;
   }
 
   @include lg-up {
-    gap: 0.5rem;
+    gap: $space-sm;
   }
 }
 
@@ -364,10 +71,10 @@
 .branchBar {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: $space-2xs;
   background-color: rgba($gray-800, 0.5);
   border-radius: $radius-lg;
-  padding: 0.25rem 0.375rem;
+  padding: $space-2xs $space-xs;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -378,7 +85,7 @@
   }
 
   @include sm-up {
-    padding: 0.125rem 0.25rem;
+    padding: $space-3xs $space-2xs;
   }
 }
 
@@ -397,11 +104,11 @@
 .dashboardButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: $space-2xs;
   margin-left: auto;
-  padding: 0.25rem 0.5rem;
+  padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: $dark-text-secondary;
   background-color: $dark-bg-tertiary;
   border: 1px solid $dark-border;
@@ -428,7 +135,7 @@
 .cliSection {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(black, 0.1), 0 8px 10px -6px rgba(black, 0.1);
   border: 1px solid $dark-border-light;
   display: flex;
   flex-direction: column;
@@ -436,8 +143,8 @@
 
   // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
   @include sm-down {
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
+    margin-left: -$space-sm;
+    margin-right: -$space-sm;
     border-left: none;
     border-right: none;
     border-radius: 0;
@@ -452,7 +159,7 @@
 }
 
 .sectionHeader {
-  padding: 0.375rem 0.75rem;
+  padding: $space-xs $space-md;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
   border-radius: $radius-lg $radius-lg 0 0;
@@ -465,7 +172,7 @@
   }
 
   @include sm-up {
-    padding: 0.5rem 1rem;
+    padding: $space-sm $space-lg;
   }
 }
 
@@ -476,7 +183,7 @@
   background-color: $dark-bg-tertiary;
   border-bottom: 1px solid $dark-border;
   border-radius: $radius-lg $radius-lg 0 0;
-  padding-right: 0.5rem;
+  padding-right: $space-sm;
   // ラベル + 指示内容要約の 2 行タブが収まる高さ（要約の有無で高さが揺れないよう固定）
   min-height: 2.75rem;
 
@@ -499,12 +206,12 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .sectionTitle {
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: $gray-400;
   display: flex;
   align-items: center;
@@ -513,15 +220,8 @@
 .sectionTitleIcon {
   width: 0.875rem;
   height: 0.875rem;
-  margin-right: 0.375rem;
+  margin-right: $space-xs;
   color: $gray-500;
-}
-
-.sectionTitleIconGreen {
-  width: 0.875rem;
-  height: 0.875rem;
-  margin-right: 0.375rem;
-  color: $color-success;
 }
 
 // CLI内部レイアウト
@@ -532,17 +232,17 @@
   flex-direction: column;
   // SP時は xterm をコンテナ端まで到達させるため横方向パディングを 0 に
   // (cliMainCol/cliInnerRow が overflow:hidden なので子要素のネガティブマージンでは脱出できない)
-  padding: 0.25rem 0;
-  gap: 0.25rem;
+  padding: $space-2xs 0;
+  gap: $space-2xs;
   overflow: hidden;
 
   @include sm-up {
-    padding: 1rem;
-    gap: 0.75rem;
+    padding: $space-lg;
+    gap: $space-md;
   }
 
   @include lg-up {
-    gap: 1rem;
+    gap: $space-lg;
   }
 }
 
@@ -551,16 +251,16 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: $space-sm;
   overflow: hidden;
 
   @include sm-up {
-    gap: 0.75rem;
+    gap: $space-md;
   }
 
   @include lg-up {
     flex-direction: row;
-    gap: 1rem;
+    gap: $space-lg;
   }
 }
 
@@ -573,12 +273,12 @@
   // RepoHeader (z-index: 60) より上に出す
   z-index: 100;
   background-color: $dark-bg-secondary;
-  padding: 0.5rem;
+  padding: $space-sm;
   overflow-y: auto;
   overscroll-behavior: contain;
 
   @include sm-up {
-    padding: 1rem;
+    padding: $space-lg;
   }
 
   // 入力欄・ボタン群が縦に伸びても xterm が潰れないよう最低高さを確保し、
@@ -657,34 +357,34 @@
 }
 
 .cliInputWrapper {
-  margin-top: 1rem;
+  margin-top: $space-lg;
   flex-shrink: 0;
   padding: 0 1px;
 
   // SP時は AI出力との間隔を詰めて操作系の縦余白も削減
   // 横方向は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
   @include sm-down {
-    margin-top: 0.25rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    margin-top: $space-2xs;
+    padding-left: $space-sm;
+    padding-right: $space-sm;
   }
 }
 
 // キーボードボタン領域（入力欄の下・メイン列内）
 .keyboardArea {
-  margin-top: 1rem;
+  margin-top: $space-lg;
   flex-shrink: 0;
 
   // SP時は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
   @include sm-down {
-    margin-top: 0.5rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    margin-top: $space-sm;
+    padding-left: $space-sm;
+    padding-right: $space-sm;
   }
 }
 
 .desktopQueue {
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   flex-shrink: 0;
   overflow-y: auto;
   display: none;
@@ -700,7 +400,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: $space-md;
 
   @include lg-up {
     width: 340px;
@@ -725,7 +425,7 @@
 }
 
 .mobileQueue {
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   flex-shrink: 0;
   overflow-y: auto;
 
@@ -735,8 +435,8 @@
 
   // SP時は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
   @include sm-down {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: $space-sm;
+    padding-right: $space-sm;
   }
 }
 
@@ -744,7 +444,7 @@
 .terminalSection {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(black, 0.1), 0 8px 10px -6px rgba(black, 0.1);
   border: 1px solid $dark-border-light;
   display: flex;
   flex-direction: column;
@@ -753,8 +453,8 @@
   // SP時は親(.main)の左右パディングを相殺してエッジまで広げ、左右の枠線・角丸を消す
   // xterm を画面端まで広げるため
   @include sm-down {
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
+    margin-left: -$space-sm;
+    margin-right: -$space-sm;
     border-left: none;
     border-right: none;
     border-radius: 0;
@@ -781,17 +481,17 @@
 .bottomGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
+  gap: $space-sm;
 
   @include sm-up {
-    gap: 1rem;
+    gap: $space-lg;
   }
 }
 
 .bottomSection {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(black, 0.1), 0 8px 10px -6px rgba(black, 0.1);
   border: 1px solid $dark-border-light;
 }
 
@@ -799,10 +499,10 @@
 .deleteRepoButton {
   font-size: $font-size-xs;
   color: rgba($color-error, 0.4);
-  transition: color 150ms ease;
+  transition: color $transition-fast ease;
 
   &:hover {
-    color: #f87171; // red-400
+    color: $color-error;
   }
 
   &:disabled {
@@ -814,29 +514,29 @@
 .deleteCenter {
   display: flex;
   justify-content: center;
-  padding-top: 0.5rem;
-  padding-bottom: 0.25rem;
+  padding-top: $space-sm;
+  padding-bottom: $space-2xs;
 }
 
 // ダイアログ共通
 .dialogOverlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(black, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  padding: 1rem;
+  padding: $space-lg;
 }
 
 .dialogCard {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(black, 0.25);
   max-width: 28rem;
   width: 100%;
-  padding: 1.5rem;
+  padding: $space-xl;
   border: 1px solid $dark-border-light;
 }
 
@@ -845,10 +545,10 @@
   align-items: center;
 
   & > * + * {
-    margin-left: 0.75rem;
+    margin-left: $space-md;
   }
 
-  margin-bottom: 1rem;
+  margin-bottom: $space-lg;
 }
 
 .dialogIconShrink {
@@ -864,27 +564,27 @@
 .dialogIconOrange {
   height: 1.5rem;
   width: 1.5rem;
-  color: #f97316; // orange-500
+  color: $color-warning;
 }
 
 .dialogTitle {
-  font-size: 1.125rem;
+  font-size: $font-size-lg;
   line-height: 1.75rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: white;
 }
 
 .dialogBody {
-  margin-bottom: 1.5rem;
+  margin-bottom: $space-xl;
 }
 
 // 削除ダイアログの赤い警告ボックス
 .dangerBox {
-  background-color: #7f1d1d; // red-900
+  background-color: $color-error-bg;
   border-radius: $radius-md;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid #b91c1c; // red-700
+  padding: $space-lg;
+  margin-bottom: $space-lg;
+  border: 1px solid $color-error-border;
 }
 
 .dangerFlex {
@@ -898,23 +598,23 @@
 .dangerIcon {
   height: 1.25rem;
   width: 1.25rem;
-  color: #f87171; // red-400
+  color: $color-error;
 }
 
 .dangerContent {
-  margin-left: 0.75rem;
+  margin-left: $space-md;
 }
 
 .dangerTitle {
   font-size: $font-size-sm;
-  font-weight: 500;
-  color: #fecaca; // red-200
+  font-weight: $font-weight-medium;
+  color: $color-error;
 }
 
 .dangerList {
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   font-size: $font-size-sm;
-  color: #fca5a5; // red-300
+  color: $dark-text-secondary;
 }
 
 .dangerListUl {
@@ -922,17 +622,17 @@
   list-style-position: inside;
 
   & > * + * {
-    margin-top: 0.25rem;
+    margin-top: $space-2xs;
   }
 }
 
-// 警告ボックス(オレンジ)
+// 警告ボックス（停止確認・警告ステータス）
 .warningBox {
-  background-color: #7c2d12; // orange-900
+  background-color: $color-warning-bg;
   border-radius: $radius-md;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid #c2410c; // orange-700
+  padding: $space-lg;
+  margin-bottom: $space-lg;
+  border: 1px solid $color-warning-border;
 }
 
 .warningFlex {
@@ -946,23 +646,23 @@
 .warningIcon {
   height: 1.25rem;
   width: 1.25rem;
-  color: #fb923c; // orange-400
+  color: $color-warning;
 }
 
 .warningContent {
-  margin-left: 0.75rem;
+  margin-left: $space-md;
 }
 
 .warningTitle {
   font-size: $font-size-sm;
-  font-weight: 500;
-  color: #fed7aa; // orange-200
+  font-weight: $font-weight-medium;
+  color: $color-warning;
 }
 
 .warningList {
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   font-size: $font-size-sm;
-  color: #fdba74; // orange-300
+  color: $dark-text-secondary;
 }
 
 .warningListUl {
@@ -970,34 +670,34 @@
   list-style-position: inside;
 
   & > * + * {
-    margin-top: 0.25rem;
+    margin-top: $space-2xs;
   }
 }
 
 .warningNote {
-  margin-top: 0.75rem;
+  margin-top: $space-md;
   font-size: $font-size-xs;
-  color: #fb923c; // orange-400
+  color: $color-warning;
 }
 
 // リポジトリ情報ボックス
 .repoInfoBox {
   background-color: $dark-bg-tertiary;
   border-radius: $radius-md;
-  padding: 0.75rem;
+  padding: $space-md;
   border: 1px solid $dark-border-light;
 }
 
 .repoInfoName {
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: white;
 }
 
 .repoInfoPath {
   font-size: $font-size-xs;
   color: $gray-400;
-  margin-top: 0.25rem;
+  margin-top: $space-2xs;
 }
 
 // ダイアログアクション
@@ -1005,106 +705,26 @@
   display: flex;
 
   & > * + * {
-    margin-left: 0.75rem;
+    margin-left: $space-md;
   }
 }
 
-.cancelButton {
+// ダイアログの左右等幅アクションボタン（Button コンポーネントに merge）
+.dialogActionButton {
   flex: 1 1 0%;
-  background-color: $dark-bg-tertiary;
-  color: $dark-text-primary;
-  border: 1px solid $dark-border-light;
-  padding: 0.5rem 1rem;
-  border-radius: $radius-lg;
-  transition: all 150ms ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus, 0 0 0 3px rgba($dark-border-focus, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.deleteButton {
-  flex: 1 1 0%;
-  background-color: $color-error;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: $radius-lg;
-  transition: all 150ms ease;
-  font-weight: 500;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background-color: color.adjust($color-error, $lightness: -10%);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $color-error, 0 0 0 3px rgba($color-error, 0.3);
-  }
-}
-
-.stopButton {
-  flex: 1 1 0%;
-  background-color: #ea580c; // orange-600
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: $radius-lg;
-  transition: all 150ms ease;
-  font-weight: 500;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: #c2410c; // orange-700
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px #f97316, 0 0 0 3px rgba(#f97316, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
 .stopSpinner {
   animation: spin 1s linear infinite;
-  margin-left: -0.25rem;
-  margin-right: 0.5rem;
   height: 1rem;
   width: 1rem;
-  color: white;
-}
-
-.spinnerCircle {
-  opacity: 0.25;
-}
-
-.spinnerPath {
-  opacity: 0.75;
 }
 
 // ワークツリー削除オーバーレイ
 .worktreeOverlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(black, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1114,9 +734,9 @@
 .worktreeCard {
   background-color: $gray-800;
   border-radius: $radius-lg;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(black, 0.1);
   border: 1px solid $dark-border-light;
-  padding: 1.5rem;
+  padding: $space-xl;
   text-align: center;
 }
 
@@ -1124,94 +744,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: $space-lg;
 }
 
 .worktreeSpinner {
   animation: spin 1s linear infinite;
   height: 2rem;
   width: 2rem;
-  color: #60a5fa; // blue-400
+  color: $gray-400;
 }
 
 .worktreeTitle {
   color: white;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
 }
 
 .worktreeSubtitle {
   color: $gray-400;
   font-size: $font-size-sm;
-  margin-top: 0.5rem;
-}
-
-// ツールバーボタン
-.fileViewerButton {
-  color: $gray-300;
-  background-color: $gray-700;
-  border: 1px solid $dark-border-light;
-
-  &:hover {
-    color: white;
-    background-color: $gray-600;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 1px $dark-border-focus;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.editorButton {
-  color: $gray-300;
-  background-color: $gray-700;
-  border: 1px solid $dark-border-light;
-
-  &:hover {
-    color: white;
-    background-color: $gray-600;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 1px $dark-border-focus;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.codeServerButton {
-  color: white;
-  background-color: #2563eb; // blue-600
-  border: 1px solid $blue-500;
-
-  &:hover {
-    background-color: $blue-500;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: inset 0 0 0 1px #60a5fa; // blue-400
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  margin-top: $space-sm;
 }
 
 .worktreePath {
   color: $gray-500;
   font-size: $font-size-xs;
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   font-family: $font-mono;
   @include truncate;
   max-width: 20rem;

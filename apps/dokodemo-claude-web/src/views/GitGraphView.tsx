@@ -305,7 +305,7 @@ export function GitGraphView({ gitGraph, repoName, embedded = false }: GitGraphV
               disabled={loading}
             >
               {loading && (
-                <RefreshCw size={13} className={s.loadMoreSpinner} />
+                <RefreshCw size={14} className={s.loadMoreSpinner} />
               )}
               {loading ? '読み込み中...' : 'さらに読み込む'}
             </button>

@@ -5,12 +5,12 @@
   background-color: $dark-bg-primary;
   color: $dark-text-primary;
   // 下部固定の RepositorySwitcher 分の余白
-  padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc($space-3xl + env(safe-area-inset-bottom, 0));
 
   // モバイルでは RepositorySwitcher が画面上部固定になる
   @include sm-down {
     padding-bottom: env(safe-area-inset-bottom, 0);
-    padding-top: 3rem;
+    padding-top: $space-3xl;
   }
 
   @include md-up {
@@ -24,28 +24,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
+  gap: $space-sm;
+  padding: $space-xs $space-md;
   background-color: $dark-bg-secondary;
   border-bottom: 1px solid $dark-border;
   flex-wrap: wrap;
 
   @include md-up {
-    padding: 0.4rem 1rem;
+    padding: $space-xs $space-lg;
   }
 }
 
 .toolbarLeft {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: $space-xs;
   flex-wrap: wrap;
 }
 
 .toolbarRight {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: $space-xs;
   flex-shrink: 0;
 }
 
@@ -61,21 +61,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   background-color: $dark-bg-secondary;
   border-bottom: 1px solid $dark-border;
   flex-wrap: wrap;
 
   @include md-up {
-    padding: 0.5rem 1rem;
+    padding: $space-sm $space-lg;
   }
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: $space-sm;
   min-width: 0;
   flex: 1;
 }
@@ -83,7 +83,7 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: $space-xs;
   flex-shrink: 0;
 }
 
@@ -110,14 +110,14 @@
 
 .repoTitle {
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   margin: 0;
   @include truncate;
 }
 
 .viewLabel {
-  font-size: 0.65rem;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
   letter-spacing: 0.05em;
 }
@@ -125,10 +125,10 @@
 .selectionChip {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border: 1px solid $dark-border;
@@ -147,8 +147,8 @@
 .columnsControl {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
+  gap: $space-2xs;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
 
   // スマホは grid が 1 列固定なので列選択 UI は非表示
@@ -158,8 +158,8 @@
 }
 
 .columnsSelect {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.75rem;
+  padding: $space-2xs $space-xs;
+  font-size: $font-size-xs;
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   border: 1px solid $dark-border;
@@ -168,7 +168,7 @@
 
   &:focus {
     outline: none;
-    border-color: $blue-500;
+    border-color: $dark-border-focus;
   }
 }
 
@@ -195,23 +195,23 @@
 }
 
 .iconButtonActive {
-  background-color: $blue-500;
-  color: white;
-  border-color: $blue-500;
+  background-color: $accent;
+  color: $dark-text-primary;
+  border-color: $accent;
 
   &:hover:not(:disabled) {
     background-color: $accent-hover;
-    color: white;
+    color: $dark-text-primary;
   }
 }
 
 .modeSwitchButton {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  gap: $space-2xs;
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   border: 1px solid $dark-border;
@@ -250,8 +250,8 @@
   }
   background-color: $dark-bg-secondary;
   border-top: 1px solid $dark-border;
-  padding: 0.5rem 0.75rem;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  padding: $space-sm $space-md;
+  box-shadow: 0 -4px 12px rgba(black, 0.2);
 
   @include md-up {
     // PC では root を 100vh 固定 + flex column で、最下端 3rem は
@@ -260,7 +260,7 @@
     position: relative;
     bottom: auto;
     flex-shrink: 0;
-    padding: 0.6rem 1rem;
+    padding: $space-sm $space-lg;
   }
 }
 
@@ -269,12 +269,12 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: $space-xs;
 }
 
 .broadcastLabel {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
   color: $accent;
   letter-spacing: 0.02em;
 }
@@ -298,24 +298,24 @@
 .main {
   flex: 1;
   min-width: 0;
-  padding: 0.75rem;
+  padding: $space-md;
 
   @include md-up {
-    padding: 1rem;
+    padding: $space-lg;
     overflow-y: auto;
   }
 }
 
 .grid {
   display: grid;
-  gap: 0.75rem;
+  gap: $space-md;
   // 行高をビューポート基準の固定値にする。1fr や auto を使うと
   // 「入力欄を畳む → terminalArea が広がる → xterm 再 fit → PTY resize →
   // 再描画 → grid 行高再計算」のループに入り、xterm が無限に拡張する。
   grid-auto-rows: clamp(320px, 50vh, 560px);
 
   @include md-up {
-    gap: 1rem;
+    gap: $space-lg;
   }
 }
 
@@ -332,7 +332,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
-  padding: 0.6rem 1rem;
+  padding: $space-sm $space-lg;
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   border: 1px solid $dark-border-light;

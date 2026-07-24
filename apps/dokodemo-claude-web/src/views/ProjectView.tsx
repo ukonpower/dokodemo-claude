@@ -3,7 +3,13 @@ import {
   LayoutDashboard,
   PanelRightClose,
   PanelRightOpen,
+  Terminal,
+  AlertTriangle,
+  CircleStop,
+  Loader2,
 } from 'lucide-react';
+import Button from '@/shared/components/Button';
+import IconButton from '@/shared/components/IconButton';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
@@ -288,11 +294,11 @@ export function ProjectView() {
               <div className={s.cliTabActions}>
                 {/* 右列（送信/受信/MD/Git）の折りたたみトグル。PC でのみ表示し、
                     畳むと CLI がその分だけ横に広がる（状態はリポジトリ単位で保存） */}
-                <button
-                  type="button"
+                <IconButton
+                  size="xs"
+                  className={s.sideColToggle}
                   onClick={handleToggleSideCol}
-                  className={`btn-icon-xs ${s.sideColToggle}`}
-                  title={
+                  label={
                     isSideColCollapsed
                       ? '送信・受信パネルを表示'
                       : '送信・受信パネルを畳んで CLI を広げる'
@@ -300,11 +306,11 @@ export function ProjectView() {
                   aria-pressed={isSideColCollapsed}
                 >
                   {isSideColCollapsed ? (
-                    <PanelRightOpen size={14} />
+                    <PanelRightOpen />
                   ) : (
-                    <PanelRightClose size={14} />
+                    <PanelRightClose />
                   )}
-                </button>
+                </IconButton>
               </div>
             </div>
 
@@ -386,19 +392,7 @@ export function ProjectView() {
           <section className={`${s.terminalSection} ${terminals.length > 0 ? s.terminalSectionExpanded : ''}`}>
             <div className={s.sectionHeader}>
               <h2 className={s.sectionTitle}>
-                <svg
-                  className={s.sectionTitleIconGreen}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+                <Terminal className={s.sectionTitleIcon} />
                 ターミナル
               </h2>
             </div>
@@ -432,19 +426,7 @@ export function ProjectView() {
           <div className={s.dialogCard}>
             <div className={s.dialogHeader}>
               <div className={s.dialogIconShrink}>
-                <svg
-                  className={s.dialogIconRed}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+                <AlertTriangle className={s.dialogIconRed} />
               </div>
               <div>
                 <h3 className={s.dialogTitle}>
@@ -456,17 +438,7 @@ export function ProjectView() {
               <div className={s.dangerBox}>
                 <div className={s.dangerFlex}>
                   <div className={s.dangerIconShrink}>
-                    <svg
-                      className={s.dangerIcon}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <AlertTriangle className={s.dangerIcon} />
                   </div>
                   <div className={s.dangerContent}>
                     <h4 className={s.dangerTitle}>
@@ -503,13 +475,16 @@ export function ProjectView() {
               </div>
             </div>
             <div className={s.dialogActions}>
-              <button
+              <Button
+                variant="ghost"
+                className={s.dialogActionButton}
                 onClick={() => setShowDeleteConfirm(false)}
-                className={s.cancelButton}
               >
                 キャンセル
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="danger"
+                className={s.dialogActionButton}
                 onClick={() => {
                   const repoInfo = repositories.find(
                     (r) => r.path === currentRepo
@@ -527,10 +502,9 @@ export function ProjectView() {
                   onDeleteRepository(currentRepo, repoName);
                   setShowDeleteConfirm(false);
                 }}
-                className={s.deleteButton}
               >
                 削除する
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -542,25 +516,7 @@ export function ProjectView() {
           <div className={s.dialogCard}>
             <div className={s.dialogHeader}>
               <div className={s.dialogIconShrink}>
-                <svg
-                  className={s.dialogIconOrange}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-                  />
-                </svg>
+                <CircleStop className={s.dialogIconOrange} />
               </div>
               <div>
                 <h3 className={s.dialogTitle}>
@@ -572,17 +528,7 @@ export function ProjectView() {
               <div className={s.warningBox}>
                 <div className={s.warningFlex}>
                   <div className={s.warningIconShrink}>
-                    <svg
-                      className={s.warningIcon}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <AlertTriangle className={s.warningIcon} />
                   </div>
                   <div className={s.warningContent}>
                     <h4 className={s.warningTitle}>
@@ -626,45 +572,29 @@ export function ProjectView() {
               </div>
             </div>
             <div className={s.dialogActions}>
-              <button
+              <Button
+                variant="ghost"
+                className={s.dialogActionButton}
                 onClick={onCancelStopProcesses}
                 disabled={stoppingProcesses}
-                className={s.cancelButton}
               >
                 キャンセル
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                className={s.dialogActionButton}
                 onClick={onConfirmStopProcesses}
                 disabled={stoppingProcesses}
-                className={s.stopButton}
               >
                 {stoppingProcesses ? (
                   <>
-                    <svg
-                      className={s.stopSpinner}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className={s.spinnerCircle}
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className={s.spinnerPath}
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader2 className={s.stopSpinner} />
                     停止中...
                   </>
                 ) : (
                   '停止する'
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -686,26 +616,7 @@ export function ProjectView() {
         <div className={s.worktreeOverlay}>
           <div className={s.worktreeCard}>
             <div className={s.worktreeSpinnerWrap}>
-              <svg
-                className={s.worktreeSpinner}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className={s.spinnerCircle}
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className={s.spinnerPath}
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
+              <Loader2 className={s.worktreeSpinner} />
             </div>
             <p className={s.worktreeTitle}>ワークツリーを削除中...</p>
             <p className={s.worktreeSubtitle}>
