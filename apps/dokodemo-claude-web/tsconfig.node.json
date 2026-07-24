@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
+    // vite.config.js / .d.ts をソース横に吐かない（古いJSが vite.config.ts より優先読込されるのを防ぐ）
+    "emitDeclarationOnly": true,
+    "declarationDir": "./node_modules/.tmp/tsc-node",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
