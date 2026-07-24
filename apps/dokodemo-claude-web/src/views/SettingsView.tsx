@@ -396,16 +396,16 @@ export function SettingsView() {
 
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <span className={s.rowLabel}>AIタブの指示内容要約</span>
+                    <span className={s.rowLabel}>タブの要約表示</span>
                     <p className={s.rowDesc}>
-                      AIに送った指示から「そのセッションが何に取り組んでいるか」を生成してタブに表示します（haiku を使用）
+                      AIタブは送った指示から、ワークツリータブはメモから要約を生成してタブに表示します（haiku を使用）
                     </p>
                   </div>
                   <div className={s.rowControl}>
                     <button
                       role="switch"
                       aria-checked={summaryEnabled === true}
-                      aria-label="AIタブの指示内容要約"
+                      aria-label="タブの要約表示"
                       onClick={handleToggleSummary}
                       disabled={summaryEnabled === null}
                       className={`${s.switch} ${summaryEnabled ? s.switchOn : ''}`}

@@ -160,10 +160,21 @@ function SortableWorktreeTab({
         }}
         className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isActive ? s.active : ''}`}
       >
-        <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
-          {wt.branch}
+        <span className={s.tabTexts}>
+          <span className={s.tabTopRow}>
+            <span
+              className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}
+            >
+              {wt.branch}
+            </span>
+            {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
+          </span>
+          {wt.memoSummary && (
+            <span className={`${s.tabSummary} ${isActive ? s.active : ''}`}>
+              {wt.memoSummary}
+            </span>
+          )}
         </span>
-        {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
       </a>
 
       {/* 3点リーダーメニュー */}
