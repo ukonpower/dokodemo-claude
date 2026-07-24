@@ -88,6 +88,9 @@ jspm_packages/
 # Storybook build outputs
 .out
 .storybook-out
+storybook-static/
+*/storybook-static/
+**/storybook-static/
 
 # Temporary folders
 tmp/

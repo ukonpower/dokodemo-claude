@@ -1,0 +1,108 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(black, 0.45);
+}
+
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: $space-lg;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: 0 10px 30px rgba(black, 0.5);
+}
+
+.message {
+  font-size: $font-size-sm;
+  line-height: 1.6;
+  color: $dark-text-primary;
+  word-break: break-all;
+  white-space: pre-line;
+}
+
+.inputRow {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  margin-top: $space-md;
+}
+
+.inputLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+.textInput {
+  height: 28px;
+  padding: 0 $space-sm;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+
+  &:focus {
+    outline: none;
+    border-color: $dark-border-light;
+  }
+}
+
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  margin-top: $space-md;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  cursor: pointer;
+
+  input {
+    margin: 0;
+    cursor: pointer;
+  }
+}
+
+.commandPreview {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  margin-top: $space-md;
+}
+
+.commandLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+.commandCode {
+  display: block;
+  padding: $space-sm;
+  border: 1px solid $dark-border;
+  border-left: 3px solid $color-warning;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-sm;
+  margin-top: $space-lg;
+}

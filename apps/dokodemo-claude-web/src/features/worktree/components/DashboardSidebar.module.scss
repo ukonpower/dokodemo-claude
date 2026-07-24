@@ -1,0 +1,283 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
+  background-color: $dark-bg-secondary;
+  border-right: 1px solid $dark-border;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-xs;
+  padding: $space-sm $space-sm;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.titleArea {
+  display: flex;
+  align-items: baseline;
+  gap: $space-xs;
+  min-width: 0;
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+}
+
+.count {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.collapseButton {
+  @include flex-center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-xs $space-sm;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.quickButton {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  min-width: 0;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.quickLabel {
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+}
+
+.quickCount {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+  font-variant-numeric: tabular-nums;
+  padding: $space-3xs $space-2xs;
+  border-radius: $radius-sm;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.list {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: $space-2xs 0;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: $space-lg $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  text-align: center;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: $space-xs $space-sm;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.itemHidden {
+  opacity: 0.45;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  min-width: 0;
+}
+
+.visToggle {
+  @include flex-center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.visToggleOn {
+  color: $accent;
+
+  &:hover {
+    color: $accent;
+  }
+}
+
+.broadcastCheckLabel {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.broadcastCheck {
+  width: 14px;
+  height: 14px;
+  accent-color: $accent;
+  cursor: pointer;
+}
+
+.branchName {
+  flex: 1;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  @include truncate;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  min-width: 0;
+}
+
+.mainTag {
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-2xs;
+  border-radius: $radius-sm;
+  background-color: $dark-bg-hover;
+  color: $dark-text-secondary;
+  font-weight: $font-weight-semibold;
+  flex-shrink: 0;
+}
+
+.memoToggle {
+  @include flex-center;
+  gap: $space-3xs;
+  width: auto;
+  height: 22px;
+  padding: 0 $space-2xs;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.memoToggleOpen {
+  color: $accent;
+  background-color: $dark-bg-tertiary;
+}
+
+.openButton {
+  @include flex-center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: $dark-text-muted;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
+  }
+}
+
+.memoPopover {
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: $space-sm $space-md;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+.handle {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 22px;
+  align-self: stretch;
+  background-color: $dark-bg-secondary;
+  border: none;
+  border-right: 1px solid $dark-border;
+  color: $dark-text-muted;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}

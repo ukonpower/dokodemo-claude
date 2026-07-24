@@ -1,0 +1,52 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-2xs;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  @include scrollbar-thin;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: $gray-300;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  text-align: left;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  cursor: pointer;
+  min-width: 0;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $gray-100;
+  }
+}
+
+.listIcon {
+  flex-shrink: 0;
+  color: $gray-300;
+}
+
+.listLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

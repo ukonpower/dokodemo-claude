@@ -7,16 +7,16 @@ import {
   GitMerge,
   GitCommitHorizontal,
 } from 'lucide-react';
-import type { UseGitGraphReturn } from '../hooks';
-import type { GitGraphRef } from '../types';
-import GitGraphTable from '../components/GitGraphTable';
-import GitGraphCommitDetail from '../components/GitGraphCommitDetail';
-import GitGraphBranchDropdown from '../components/GitGraphBranchDropdown';
-import GitGraphFindWidget from '../components/GitGraphFindWidget';
+import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
+import type { GitGraphRef } from '@/types';
+import GitGraphTable from '@/features/git/components/GitGraphTable';
+import GitGraphCommitDetail from '@/features/git/components/GitGraphCommitDetail';
+import GitGraphBranchDropdown from '@/features/git/components/GitGraphBranchDropdown';
+import GitGraphFindWidget from '@/features/git/components/GitGraphFindWidget';
 import GitGraphContextMenu, {
   type GitGraphMenuItem,
-} from '../components/GitGraphContextMenu';
-import GitGraphActionDialog from '../components/GitGraphActionDialog';
+} from '@/features/git/components/GitGraphContextMenu';
+import GitGraphActionDialog from '@/features/git/components/GitGraphActionDialog';
 import s from './GitGraphView.module.scss';
 
 /** checkout / merge 確認ダイアログの内容（種別ごとの discriminated union） */
@@ -305,7 +305,7 @@ export function GitGraphView({ gitGraph, repoName, embedded = false }: GitGraphV
               disabled={loading}
             >
               {loading && (
-                <RefreshCw size={13} className={s.loadMoreSpinner} />
+                <RefreshCw size={14} className={s.loadMoreSpinner} />
               )}
               {loading ? '読み込み中...' : 'さらに読み込む'}
             </button>

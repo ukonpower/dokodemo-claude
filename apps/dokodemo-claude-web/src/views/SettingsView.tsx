@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Monitor, Sparkles, Bell, Link2 } from 'lucide-react';
-import type { Socket } from 'socket.io-client';
-import type {
-  AiProvider,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '../types';
-import type { AppSettings, FontSizePreset, PermissionMode } from '../utils/app-settings';
-import { useWebPush } from '../hooks/useWebPush';
+import Button from '@/shared/components/Button';
+import IconButton from '@/shared/components/IconButton';
+import type { AiProvider } from '@/types';
+import type { FontSizePreset, PermissionMode } from '@/app/utils/app-settings';
+import { useWebPush } from '@/app/hooks/useWebPush';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import s from './SettingsView.module.scss';
 
 type SectionId = 'appearance' | 'ai' | 'notification' | 'integration';
@@ -48,21 +49,16 @@ interface PluginState {
   message: { type: 'success' | 'error'; text: string } | null;
 }
 
-interface SettingsViewProps {
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-  settings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
-  currentRepo: string;
-  onBack: () => void;
-}
+export function SettingsView() {
+  const { socket } = useSocketContext();
+  const {
+    appSettings: settings,
+    handleSettingsChange: onSettingsChange,
+  } = useAppSettingsContext();
+  const { repository } = useRepositoryContext();
+  const { currentRepo } = repository;
+  const { closeSettings: onBack } = useNavigationContext();
 
-export function SettingsView({
-  socket,
-  settings,
-  onSettingsChange,
-  currentRepo,
-  onBack,
-}: SettingsViewProps) {
   const webPush = useWebPush(socket, true, currentRepo);
 
   const [claudeHooks, setClaudeHooks] = useState<HooksProviderState>({
@@ -273,13 +269,14 @@ export function SettingsView({
       </div>
       <div className={s.rowControl}>
         {renderStatus(state.configured, '設定済み', '未設定')}
-        <button
+        <Button
+          variant={state.configured ? 'danger' : 'primary'}
+          size="sm"
           onClick={() => handleToggleHooks(provider)}
           disabled={state.loading}
-          className={state.configured ? s.buttonDanger : s.buttonPrimary}
         >
           {state.loading ? '処理中...' : state.configured ? '削除' : '追加'}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -288,9 +285,9 @@ export function SettingsView({
     <div className={s.root}>
       {/* ヘッダー */}
       <header className={s.header}>
-        <button onClick={onBack} className="btn-icon" title="戻る" aria-label="戻る">
-          <ArrowLeft className={s.backIcon} />
-        </button>
+        <IconButton label="戻る" onClick={onBack}>
+          <ArrowLeft />
+        </IconButton>
         <h1 className={s.headerTitle}>設定</h1>
       </header>
 
@@ -469,32 +466,35 @@ export function SettingsView({
                             )
                             : renderStatus(false, '', '無効')}
                         {!webPush.isSubscribed ? (
-                          <button
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={webPush.subscribe}
                             disabled={
                               webPush.loading ||
                               webPush.permissionState === 'denied'
                             }
-                            className={s.buttonPrimary}
                           >
                             {webPush.loading ? '処理中...' : '有効にする'}
-                          </button>
+                          </Button>
                         ) : (
                           <>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={webPush.testNotification}
                               disabled={webPush.testLoading}
-                              className={s.buttonSecondary}
                             >
                               {webPush.testLoading ? '送信中...' : 'テスト送信'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={webPush.unsubscribe}
                               disabled={webPush.loading}
-                              className={s.buttonDanger}
                             >
                               {webPush.loading ? '処理中...' : '無効にする'}
-                            </button>
+                            </Button>
                           </>
                         )}
                       </>
@@ -544,17 +544,18 @@ export function SettingsView({
                   </div>
                   <div className={s.rowControl}>
                     {renderStatus(pluginState.installed, 'インストール済', '未インストール')}
-                    <button
+                    <Button
+                      variant={pluginState.installed ? 'danger' : 'primary'}
+                      size="sm"
                       onClick={handleTogglePlugin}
                       disabled={pluginState.loading}
-                      className={pluginState.installed ? s.buttonDanger : s.buttonPrimary}
                     >
                       {pluginState.loading
                         ? '処理中...'
                         : pluginState.installed
                           ? 'アンインストール'
                           : 'インストール'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

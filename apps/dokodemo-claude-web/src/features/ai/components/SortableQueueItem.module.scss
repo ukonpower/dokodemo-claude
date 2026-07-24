@@ -1,0 +1,590 @@
+.itemRoot {
+  display: flex;
+  flex-direction: column;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.grabCursor {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// === 通常表示モード ===
+.normalRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+}
+
+.indexNumber {
+  color: $gray-500;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
+  font-family: $font-sans;
+  flex-shrink: 0;
+}
+
+.promptContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.promptText {
+  @include truncate;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  line-height: 1.3;
+}
+
+.statusBadge {
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-sm;
+  padding: $space-3xs $space-xs;
+  font-family: $font-sans;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.removeButton {
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+  color: $gray-500;
+  background: none;
+  border: none;
+  padding: $space-2xs;
+  line-height: 0;
+  border-radius: $radius;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+// === 閲覧モード ===
+.viewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-2xs;
+}
+
+.viewHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+}
+
+.viewBody {
+  & > * + * {
+    margin-top: $space-2xs;
+  }
+}
+
+.viewPromptBox {
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  white-space: pre-wrap;
+  min-height: 60px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.viewFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
+}
+
+.viewTags {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+}
+
+.viewTag {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3xs;
+  font-size: $font-size-xs;
+  padding: $space-3xs $space-xs;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-muted;
+  font-family: $font-mono;
+  line-height: 1;
+}
+
+.viewActions {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+}
+
+// 再実行はモノトーンのアクセント（青は使わない）
+.requeueButton {
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  background-color: rgba($accent, 0.2);
+  border: 1px solid $accent;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($accent, 0.3);
+  }
+}
+
+.closeButton {
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+// === 編集モード ===
+.editHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-2xs;
+}
+
+.editHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+}
+
+.editIndex {
+  flex-shrink: 0;
+  width: 16px;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  text-align: center;
+}
+
+.editTextarea {
+  width: 100%;
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  resize: vertical;
+  min-height: 60px;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.editFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $space-xs;
+}
+
+.optionsWrapper {
+  position: relative;
+}
+
+.optionsButton {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  border-radius: $radius;
+  border: 1px solid;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+}
+
+.optionsButtonActive {
+  background-color: rgba($accent, 0.2);
+  border-color: $accent;
+  color: $accent;
+}
+
+.optionsButtonInactive {
+  background-color: $dark-bg-secondary;
+  border-color: $dark-border-light;
+  color: $dark-text-muted;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.optionsIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.optionsBadge {
+  margin-left: $space-3xs;
+  padding: $space-3xs $space-2xs;
+  font-size: $font-size-2xs;
+  background-color: $accent;
+  color: white;
+  border-radius: $radius-full;
+  line-height: 1;
+}
+
+.optionsChevron {
+  width: 12px;
+  height: 12px;
+  transition: transform $transition-fast $transition-easing;
+}
+
+.optionsChevronOpen {
+  transform: rotate(180deg);
+}
+
+// 位置・幅・高さは fixed 配置のためインライン style で指定する
+.optionsDropdown {
+  position: fixed;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  overflow-y: auto;
+}
+
+.optionsDropdownInner {
+  padding: $space-sm;
+
+  & > * + * {
+    margin-top: $space-2xs;
+  }
+}
+
+.optionItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-xs $space-sm;
+  border-radius: $radius;
+  transition: background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  border-radius: $radius;
+  border: 1px solid;
+  @include flex-center;
+  transition: all $transition-fast $transition-easing;
+}
+
+// 選択状態はモノトーンのアクセントで統一（/clear・/commit で色を分けない）
+.checkboxCheckedBlue {
+  background-color: $accent;
+  border-color: $accent;
+}
+
+.checkboxCheckedGreen {
+  background-color: $accent;
+  border-color: $accent;
+}
+
+.checkboxUnchecked {
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-light;
+}
+
+.checkIcon {
+  width: 8px;
+  height: 8px;
+  color: white;
+}
+
+.optionText {
+  flex: 1;
+  text-align: left;
+}
+
+.optionLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  font-family: $font-mono;
+}
+
+.optionDescription {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+}
+
+.optionsSeparator {
+  border-top: 1px solid $dark-border-light;
+  margin: $space-2xs 0;
+}
+
+.modelSection {
+  padding: $space-sm;
+}
+
+.modelLabel {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+  margin-bottom: $space-2xs;
+}
+
+.modelGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-2xs;
+}
+
+.modelCell {
+  position: relative;
+
+  &:hover .modelCellDelete {
+    opacity: 1;
+  }
+}
+
+.modelCellDelete {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  font-size: $font-size-xs;
+  line-height: 1;
+  color: white;
+  background-color: $color-error;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $color-error-hover;
+  }
+}
+
+.modelButton {
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  border-radius: $radius;
+  border: 1px solid;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modelButtonActive {
+  background-color: $accent;
+  border-color: $accent;
+  color: white;
+}
+
+.modelButtonInactive {
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-light;
+  color: $dark-text-muted;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.modelAddTrigger {
+  width: 100%;
+  margin-top: $space-xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  text-align: left;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddForm {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  margin-top: $space-xs;
+}
+
+.modelAddInput {
+  width: 100%;
+  padding: $space-2xs $space-xs;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+}
+
+.modelAddActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-xs;
+}
+
+.modelAddCancel {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.modelAddSubmit {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: white;
+  background-color: $accent;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+}
+
+.cancelEditButton {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.saveEditButton {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $accent;
+  border: 1px solid $accent;
+  border-radius: $radius;
+  color: white;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* ループ編集セクション */
+.loopSection {
+  padding: $space-sm $space-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.loopSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loopSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.loopEnableButton,
+.loopClearButton {
+  font-size: $font-size-xs;
+  padding: $space-2xs $space-sm;
+  min-height: 28px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}

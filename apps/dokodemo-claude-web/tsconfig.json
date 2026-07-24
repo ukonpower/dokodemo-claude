@@ -14,7 +14,14 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@dokodemo-workspace/shared-types": [
+        "../../libs/shared-types/src/index.d.ts"
+      ]
+    }
   },
   "include": ["src"],
   "exclude": ["src/sw.ts"],

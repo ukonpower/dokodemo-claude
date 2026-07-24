@@ -1,0 +1,155 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.55);
+  padding: $space-lg;
+
+  @include md-up {
+    align-items: center;
+  }
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  flex: 1;
+}
+
+.count {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.closeButton {
+  @include flex-center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+  border-radius: $radius-sm;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid $dark-border;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.list {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: $space-2xs 0;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: $space-lg $space-sm;
+  text-align: center;
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+}
+
+.item {
+  padding: $space-xs $space-md;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.itemLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.itemCheck {
+  width: 16px;
+  height: 16px;
+  accent-color: $accent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.itemBranch {
+  flex: 1;
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+  @include truncate;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  min-width: 0;
+}
+
+.mainTag {
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-2xs;
+  border-radius: $radius-sm;
+  background-color: $dark-bg-hover;
+  color: $dark-text-secondary;
+  font-weight: $font-weight-semibold;
+}
+
+.memoIcon {
+  color: $dark-text-muted;
+  flex-shrink: 0;
+}

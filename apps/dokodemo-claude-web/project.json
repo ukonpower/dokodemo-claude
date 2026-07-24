@@ -11,6 +11,13 @@
         "command": "tsc --noEmit",
         "cwd": "{workspaceRoot}/apps/dokodemo-claude-web"
       }
+    },
+    "lint:style": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "stylelint \"src/**/*.scss\"",
+        "cwd": "{workspaceRoot}/apps/dokodemo-claude-web"
+      }
     }
   }
 }

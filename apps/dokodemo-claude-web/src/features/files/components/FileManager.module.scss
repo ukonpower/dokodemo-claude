@@ -1,0 +1,345 @@
+.container {
+  position: relative;
+  padding: $space-sm $space-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  min-height: 100%;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.containerDragging {
+  background-color: rgba($accent, 0.06);
+  box-shadow: inset 0 0 0 1px rgba($accent, 0.45);
+}
+
+.uploadStatus {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  margin-bottom: $space-sm;
+}
+
+.uploadProgress {
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.uploadProgressFill {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: $accent;
+  transition: width 0.2s;
+}
+
+.uploadStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
+}
+
+.uploadStatusText {
+  font-size: $font-size-xs;
+  color: rgba(white, 0.6);
+  font-family: $font-sans;
+}
+
+.uploadCancelButton {
+  flex-shrink: 0;
+  padding: $space-3xs $space-sm;
+  font-size: $font-size-xs;
+  color: rgba(white, 0.6);
+  background-color: transparent;
+  border: 1px solid rgba(white, 0.2);
+  border-radius: $radius;
+  cursor: pointer;
+  font-family: $font-sans;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:hover {
+    color: white;
+    border-color: rgba(white, 0.4);
+    background-color: rgba(white, 0.06);
+  }
+}
+
+.errorBox {
+  background-color: $color-error-bg;
+  border: 1px solid $color-error-border;
+  border-radius: $radius;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $color-error;
+  font-family: $font-sans;
+}
+
+.grid {
+  // 横幅いっぱいに敷き詰め、列数はコンテナ幅に応じて自動調整。
+  // カードは最小 80px を下限に 1fr で伸び、余白なくフル幅を使う。
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: $space-xs;
+  align-content: start;
+}
+
+.dropZone {
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba(white, 0.02);
+    border-color: $dark-border-light;
+  }
+}
+
+.dropZoneDragging {
+  background-color: rgba($accent, 0.08);
+  border-color: $accent;
+}
+
+.dropZoneDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.thumbnailCard {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.thumbnailButton {
+  width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.thumbnailButtonMedia {
+  cursor: pointer;
+}
+
+.thumbnailButtonOther {
+  cursor: default;
+}
+
+.mediaFill {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoOverlay {
+  position: absolute;
+  inset: 0;
+  @include flex-center;
+  pointer-events: none;
+}
+
+.playButton {
+  width: 2rem;
+  height: 2rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  @include flex-center;
+}
+
+.playIcon {
+  width: 1rem;
+  height: 1rem;
+  color: white;
+  margin-left: $space-3xs;
+}
+
+.otherFileContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  padding: $space-2xs;
+}
+
+.otherFileIcon {
+  color: $dark-text-muted;
+}
+
+.otherFileSize {
+  font-size: $font-size-2xs;
+  color: $gray-500;
+}
+
+.hoverOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+  transition: opacity $transition-fast $transition-easing;
+}
+
+.hoverOverlayMedia {
+  cursor: pointer;
+}
+
+.hoverOverlayActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hoverOverlayInactive {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.thumbnailCard:hover .hoverOverlayInactive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButtons {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: $space-2xs;
+  z-index: 10;
+  transition: opacity $transition-fast $transition-easing;
+}
+
+.actionButtonsActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButtonsInactive {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.thumbnailCard:hover .actionButtonsInactive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actionButton {
+  width: 22px;
+  height: 22px;
+  @include flex-center;
+  border-radius: $radius-full;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    transform $transition-fast $transition-easing;
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.copyButton {
+  background-color: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.75);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: white;
+  }
+}
+
+.copyButtonSuccess {
+  background-color: rgba($color-success, 0.3);
+  border-color: rgba($color-success, 0.6);
+  color: $emerald-300;
+}
+
+.downloadButton {
+  background-color: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.75);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: white;
+  }
+}
+
+.deleteButton {
+  background-color: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.8);
+
+  &:hover {
+    background-color: rgba($color-error, 0.35);
+    border-color: rgba($color-error, 0.65);
+    color: $red-300;
+  }
+}
+
+.actionIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.nameLabel {
+  padding: $space-3xs $space-2xs $space-2xs;
+  background-color: $dark-bg-tertiary;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  pointer-events: none;
+}
+
+.titleText {
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-200;
+  font-family: $font-sans;
+  line-height: 1.2;
+  @include truncate;
+}
+
+.filenameText {
+  font-size: $font-size-2xs;
+  color: $gray-400;
+  font-family: $font-mono;
+  line-height: 1.2;
+  @include truncate;
+}

@@ -1,0 +1,405 @@
+// モーダルの骨組み（overlay / panel / header / footer）は ModalShell に委譲。
+// ここにはフォーム本体・ファイル同期セクション固有のスタイルのみ残す。
+
+.formFields {
+  & > * + * {
+    margin-top: $space-lg;
+  }
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: $radius;
+  border-color: $gray-600;
+  background-color: $gray-700;
+}
+
+.checkboxLabel {
+  font-size: $font-size-sm;
+  color: $gray-300;
+}
+
+.fieldGroup {
+  // wrapper for each field
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-sm;
+  color: $gray-300;
+  margin-bottom: $space-2xs;
+}
+
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
+  margin-bottom: $space-2xs;
+
+  .fieldLabel {
+    margin-bottom: 0;
+  }
+}
+
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  font-size: $font-size-xs;
+  color: $gray-300;
+  padding: $space-3xs $space-sm;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background-color: transparent;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.spinning {
+  animation: refresh-spin 1s linear infinite;
+}
+
+@keyframes refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.requiredMark {
+  color: $red-400;
+}
+
+.selectInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  color: white;
+  font-size: $font-size-sm;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
+  }
+}
+
+.textInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  color: white;
+  font-size: $font-size-sm;
+
+  &::placeholder {
+    color: $gray-500;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
+  }
+}
+
+.fieldHint {
+  margin-top: $space-2xs;
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.createErrorBox {
+  margin-top: $space-lg;
+  padding: $space-md $space-md;
+  background-color: $color-error-bg;
+  border-left: 3px solid $color-error;
+  border-radius: $radius-md;
+}
+
+.createErrorTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+  font-size: $font-size-sm;
+  margin-bottom: $space-xs;
+}
+
+.createErrorIcon {
+  flex-shrink: 0;
+}
+
+.createErrorMessage {
+  margin: 0;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: $gray-200;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.syncSection {
+  margin-top: $space-lg;
+  padding: $space-md;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  background-color: rgba(black, 0.15);
+}
+
+.syncHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $space-sm;
+}
+
+.syncTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $gray-200;
+}
+
+.syncSaveButton {
+  font-size: $font-size-xs;
+  color: $gray-300;
+  padding: $space-2xs $space-sm;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background-color: transparent;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncSaveButtonSaved {
+  color: $color-success;
+  border-color: $color-success-border;
+}
+
+.syncHint {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-bottom: $space-sm;
+}
+
+.syncList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.syncRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-2xs $space-xs;
+  border-radius: $radius;
+
+  &:hover {
+    background-color: rgba(white, 0.03);
+  }
+}
+
+.syncPath {
+  flex: 1;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-200;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.syncPathMuted {
+  color: $gray-500;
+}
+
+.syncSelect {
+  flex-shrink: 0;
+  padding: $space-3xs $space-xs;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: white;
+  font-size: $font-size-xs;
+}
+
+.syncRemoveButton {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $gray-500;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $color-error;
+    background-color: $color-error-bg;
+  }
+}
+
+.syncAddRow {
+  display: flex;
+  gap: $space-xs;
+  margin-top: $space-sm;
+  align-items: flex-start;
+}
+
+.syncAddInputWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.syncAddInput {
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: white;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+
+  &:focus {
+    outline: none;
+    border-color: $dark-border-focus;
+  }
+}
+
+.suggestList {
+  // 親モーダルの overflow に切り取られないよう document.body にポータル描画し、
+  // top/left/width/maxHeight は JS から inline style で渡す
+  position: fixed;
+  z-index: 100; // modalOverlay の z-index: 50 より上
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  padding: $space-3xs;
+  margin: 0;
+  list-style: none;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  // スマホ向けにタップしやすいデフォルトサイズ
+  padding: $space-sm $space-xs;
+  font-size: $font-size-sm;
+  font-family: $font-mono;
+  color: $gray-200;
+  border-radius: $radius;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+
+  @include sm-up {
+    padding: $space-2xs $space-xs;
+    font-size: $font-size-xs;
+    gap: $space-xs;
+  }
+}
+
+.suggestItemActive {
+  background-color: $dark-bg-hover;
+}
+
+.suggestItemDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.suggestIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: $gray-400;
+}
+
+.suggestName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestBadge {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-family: $font-sans;
+}
+
+.syncAddButton {
+  padding: $space-2xs $space-xs;
+  font-size: $font-size-xs;
+  color: $gray-200;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background-color: transparent;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncEmpty {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-style: italic;
+  padding: $space-2xs $space-xs;
+}

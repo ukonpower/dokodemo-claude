@@ -1,0 +1,94 @@
+.root {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  overflow-y: auto;
+  padding: $space-xs $space-2xs;
+  gap: $space-3xs;
+  @include scrollbar-thin;
+
+  @include sm-down {
+    width: 40%;
+    min-width: 140px;
+  }
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: $gray-300;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  text-align: left;
+  padding: $space-xs $space-sm;
+  border-radius: $radius;
+  cursor: pointer;
+  min-width: 0;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.listItemActive {
+  background-color: $gray-800;
+  color: $dark-text-primary;
+}
+
+.listIcon {
+  flex-shrink: 0;
+  color: $gray-400;
+}
+
+.listLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: $space-lg $space-xl;
+  background-color: $dark-bg-secondary;
+  @include scrollbar-thin;
+
+  @include sm-down {
+    padding: $space-md $space-md;
+  }
+}
+
+.placeholder,
+.loadingText,
+.errorText {
+  color: $gray-400;
+  font-size: $font-size-sm;
+  text-align: center;
+  padding: $space-2xl 0;
+}
+
+.errorText {
+  color: $color-error;
+}

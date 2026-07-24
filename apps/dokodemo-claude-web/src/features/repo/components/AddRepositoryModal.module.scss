@@ -1,0 +1,107 @@
+.modeSelector {
+  margin-bottom: $space-lg;
+}
+
+.modeTabs {
+  display: flex;
+  background-color: $dark-bg-primary;
+  border-radius: $radius-lg;
+  padding: $space-2xs;
+  border: 1px solid $dark-border-light;
+}
+
+.modeTab {
+  flex: 1 1 0%;
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast $transition-easing;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-xs;
+}
+
+.modeTabActive {
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  box-shadow: $shadow-md;
+  border: 1px solid $dark-border-light;
+}
+
+.modeTabInactive {
+  color: $dark-text-secondary;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.modeTabIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.form {
+  & > * + * {
+    margin-top: $space-lg;
+  }
+}
+
+.fieldGroup {
+  // wrapper
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $gray-300;
+  margin-bottom: $space-xs;
+}
+
+.textInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  transition: all $transition-fast $transition-easing;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+// 送信ボタン（Button variant="primary" のレイアウト調整のみ）
+.submitButton {
+  width: 100%;
+}
+
+.submitSpinner {
+  animation: spin 1s linear infinite;
+  margin-right: $space-2xs;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

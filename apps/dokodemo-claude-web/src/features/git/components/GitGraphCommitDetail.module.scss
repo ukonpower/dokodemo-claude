@@ -1,0 +1,322 @@
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
+  height: 70vh;
+  min-height: 180px;
+  flex-shrink: 0;
+}
+
+// 上辺のリサイズハンドル
+.resizer {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: row-resize;
+  z-index: 2;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background-color 0.12s;
+  }
+
+  &:hover::after {
+    background: $accent;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  height: 32px;
+  padding: 0 $space-sm;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.headerHash {
+  font-family: monospace;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.headerTitle {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60vw;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.loading {
+  color: $dark-text-muted;
+  font-size: $font-size-sm;
+  padding: $space-sm;
+}
+
+// 左ペイン: メタ + メッセージ + ファイル一覧
+.leftPane {
+  flex-shrink: 0;
+  width: 320px;
+  max-width: 40%;
+  overflow-y: auto;
+  padding: $space-sm;
+  border-right: 1px solid $dark-border;
+}
+
+// 右ペイン: 選択中ファイルの差分
+.rightPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: $dark-bg-primary;
+}
+
+.diffHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  height: 30px;
+  padding: 0 $space-sm;
+  border-bottom: 1px solid $dark-border;
+  flex-shrink: 0;
+}
+
+.diffFilename {
+  flex: 1;
+  min-width: 0;
+  font-family: monospace;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diffIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: $radius;
+  background: transparent;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.diffIconButtonActive {
+  background-color: $dark-bg-hover;
+  color: $dark-text-primary;
+}
+
+.spinning svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.diffScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diffPlaceholder {
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  padding: $space-md;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  margin-bottom: $space-sm;
+}
+
+.metaRow {
+  display: flex;
+  gap: $space-sm;
+  font-size: $font-size-xs;
+}
+
+.metaLabel {
+  flex-shrink: 0;
+  width: 72px;
+  color: $dark-text-muted;
+}
+
+.metaValue {
+  color: $dark-text-secondary;
+  word-break: break-all;
+}
+
+.message {
+  margin: 0 0 $space-sm;
+  padding: $space-sm;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.fileButton {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  width: 100%;
+  padding: $space-3xs $space-xs;
+  border: none;
+  border-radius: $radius;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.fileButtonActive {
+  background-color: $dark-bg-hover;
+
+  .filePathName {
+    color: $dark-text-primary;
+  }
+}
+
+.statusBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filePath {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: $space-xs;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filePathName {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-secondary;
+}
+
+.filePathDir {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats {
+  flex-shrink: 0;
+  display: inline-flex;
+  gap: $space-xs;
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+}
+
+.add {
+  color: $diff-added-text;
+}
+
+.del {
+  color: $diff-removed-text;
+}
+
+.noFiles {
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  padding: $space-xs;
+}
+
+// モバイル: 左右分割ではなく上下に積む
+@include sm-down {
+  .panel {
+    height: 72vh;
+  }
+
+  .body {
+    flex-direction: column;
+  }
+
+  .leftPane {
+    width: 100%;
+    max-width: none;
+    flex-shrink: 0;
+    max-height: 45%;
+    border-right: none;
+    border-bottom: 1px solid $dark-border;
+  }
+}

@@ -4,9 +4,7 @@ import {
   useMemo,
   useState,
   type ChangeEvent,
-  type RefObject,
 } from 'react';
-import { Socket } from 'socket.io-client';
 import {
   CheckSquare,
   ChevronLeft,
@@ -15,63 +13,25 @@ import {
   RefreshCw,
   Square,
 } from 'lucide-react';
-import type {
-  AiInstance,
-  AiProvider,
-  EditorInfo,
-  EditorType,
-  GitRepository,
-  GitWorktree,
-  RepoProcessStatus,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '../types';
-import { repositoryIdMap } from '../utils/repository-id-map';
-import { useWorktreeDashboard } from '../hooks/useWorktreeDashboard';
-import RepoHeader from '../components/RepoHeader';
-import RepositorySwitcher from '../components/RepositorySwitcher';
-import WorktreeDashboardCard from '../components/WorktreeDashboardCard';
-import TextInput from '../components/CommandInput';
+import type { AiProvider, GitWorktree } from '@/types';
+import IconButton from '@/shared/components/IconButton';
+import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import { useWorktreeDashboard } from '@/features/worktree/hooks/useWorktreeDashboard';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
+import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
+import RepoHeader from '@/features/repo/components/RepoHeader';
+import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
+import WorktreeDashboardCard from '@/features/worktree/components/WorktreeDashboardCard';
+import TextInput from '@/features/ai/components/CommandInput';
 import DashboardSidebar, {
   DashboardSidebarHandle,
-} from '../components/DashboardSidebar';
-import DashboardFilterModal from '../components/DashboardFilterModal';
-import { useScopedSendSettings } from '../hooks/useScopedSendSettings';
+} from '@/features/worktree/components/DashboardSidebar';
+import DashboardFilterModal from '@/features/worktree/components/DashboardFilterModal';
+import { useScopedSendSettings } from '@/features/ai/hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
-
-interface DashboardViewProps {
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-  isConnected: boolean;
-  isReconnecting: boolean;
-  connectionAttempts: number;
-  primaryInstance?: AiInstance;
-  worktrees: GitWorktree[];
-  parentRepoPath: string;
-  currentRepo: string;
-  repositories: GitRepository[];
-  repoProcessStatuses: RepoProcessStatus[];
-  onOpenSettings: () => void;
-  onPasteFile?: (file: File) => Promise<string | undefined>;
-  isUploadingFile: boolean;
-  uploadProgress?: number | null;
-  onCancelUpload?: () => void;
-  onSwitchToProjectView: () => void;
-  onOpenWorktree: (path: string) => void;
-  onSwitchRepository: (path: string) => void;
-
-  // RepoHeader 用
-  onOpenFileViewer: () => void;
-  /** Git Graph（コミットグラフ）全画面ビューを開く */
-  onOpenGraphView: () => void;
-  startingCodeServer: boolean;
-  isLocalhost: boolean;
-  availableEditors: EditorInfo[];
-  showEditorMenu: boolean;
-  setShowEditorMenu: (show: boolean) => void;
-  editorMenuRef: RefObject<HTMLDivElement | null>;
-  onOpenInEditor: (id: EditorType) => void;
-  remoteUrl: string | null;
-}
 
 const COLUMN_OPTIONS: Array<'auto' | 1 | 2 | 3 | 4> = ['auto', 1, 2, 3, 4];
 
@@ -164,36 +124,30 @@ function readSidebarOpen(): boolean {
  * 全 worktree の AI 出力をグリッドで一覧する。各カードから個別に prompt 送信、
  * 上部の入力欄からは選択中の WT へ一斉に送信できる。
  */
-export function DashboardView({
-  socket,
-  isConnected,
-  isReconnecting,
-  connectionAttempts,
-  primaryInstance,
-  worktrees,
-  parentRepoPath,
-  currentRepo,
-  repositories,
-  repoProcessStatuses,
-  onOpenSettings,
-  onPasteFile,
-  isUploadingFile,
-  uploadProgress,
-  onCancelUpload,
-  onSwitchToProjectView,
-  onOpenWorktree,
-  onSwitchRepository,
-  onOpenFileViewer,
-  onOpenGraphView,
-  startingCodeServer,
-  isLocalhost,
-  availableEditors,
-  showEditorMenu,
-  setShowEditorMenu,
-  editorMenuRef,
-  onOpenInEditor,
-  remoteUrl,
-}: DashboardViewProps) {
+export function DashboardView() {
+  const { socket, isConnected } = useSocketContext();
+  const { repository, switchRepositoryFromList: onSwitchRepository } =
+    useRepositoryContext();
+  const { currentRepo, repoProcessStatuses } = repository;
+  const branchWorktree = useWorktreeContext();
+  const { worktrees, parentRepoPath } = branchWorktree;
+  const fileManager = useFileManagerContext();
+  const {
+    uploadFile: onPasteFile,
+    isUploadingFile,
+    uploadProgress,
+    cancelUpload: onCancelUpload,
+  } = fileManager;
+  const { setDashboardModeAndPersist } = useNavigationContext();
+
+  // ダッシュボードを閉じて通常表示（プロジェクトビュー）へ戻る
+  const onSwitchToProjectView = () => setDashboardModeAndPersist(false);
+  // 指定 worktree を通常表示で開く
+  const onOpenWorktree = (path: string) => {
+    setDashboardModeAndPersist(false);
+    onSwitchRepository(path);
+  };
+
   // 列数（auto / 1-4 列）
   const [columns, setColumns] = useState<'auto' | 1 | 2 | 3 | 4>(() =>
     readColumnsSetting(parentRepoPath || currentRepo)
@@ -462,25 +416,7 @@ export function DashboardView({
 
   return (
     <div className={s.root}>
-      <RepoHeader
-        isConnected={isConnected}
-        isReconnecting={isReconnecting}
-        connectionAttempts={connectionAttempts}
-        primaryInstance={primaryInstance}
-        repositories={repositories}
-        currentRepo={currentRepo}
-        onOpenFileViewer={onOpenFileViewer}
-        onOpenGraphView={onOpenGraphView}
-        onOpenSettings={onOpenSettings}
-        startingCodeServer={startingCodeServer}
-        isLocalhost={isLocalhost}
-        availableEditors={availableEditors}
-        showEditorMenu={showEditorMenu}
-        setShowEditorMenu={setShowEditorMenu}
-        editorMenuRef={editorMenuRef}
-        onOpenInEditor={onOpenInEditor}
-        remoteUrl={remoteUrl}
-      />
+      <RepoHeader />
 
       <div className={s.toolbar}>
         <div className={s.toolbarLeft}>
@@ -551,15 +487,13 @@ export function DashboardView({
           </label>
         </div>
         <div className={s.toolbarRight}>
-          <button
-            type="button"
+          <IconButton
+            label="再読み込み"
             onClick={() => dashboard.refresh()}
             disabled={!isConnected}
-            className="btn-icon"
-            title="再読み込み"
           >
-            <RefreshCw size={16} />
-          </button>
+            <RefreshCw />
+          </IconButton>
         </div>
       </div>
 
@@ -671,12 +605,7 @@ export function DashboardView({
         onSetAllVisible={handleSetAllVisible}
       />
 
-      <RepositorySwitcher
-        repositories={repositories}
-        currentRepo={currentRepo}
-        repoProcessStatuses={repoProcessStatuses}
-        onSwitchRepository={onSwitchRepository}
-      />
+      <RepositorySwitcher />
     </div>
   );
 }

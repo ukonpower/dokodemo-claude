@@ -1,0 +1,158 @@
+.emptyState {
+  @include flex-center;
+  min-height: 100%;
+}
+
+.emptyText {
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+}
+
+.root {
+  padding: $space-sm $space-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  min-height: 100%;
+}
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-xs;
+  padding-top: $space-xs;
+  border-top: 1px solid $dark-border-light;
+}
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+}
+
+.spinIcon {
+  animation: spin 1s linear infinite;
+  color: $color-info;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.processingText {
+  color: $gray-500;
+  font-size: $font-size-2xs;
+  font-family: $font-sans;
+}
+
+.pausedText {
+  color: $color-warning;
+  font-size: $font-size-2xs;
+  font-family: $font-sans;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+}
+
+.footerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-2xs;
+  background: none;
+  border: none;
+  padding: $space-3xs $space-xs;
+  font-family: $font-sans;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  // モバイルではタップターゲットを広げる
+  @include sm-down {
+    padding: $space-sm $space-sm;
+  }
+}
+
+// 処理中アイテムの停止は破壊的操作なのでエラー色（赤）
+.cancelButton {
+  composes: footerButton;
+  color: $color-error;
+}
+
+.pauseButton {
+  composes: footerButton;
+  color: $gray-500;
+}
+
+.resumeButton {
+  composes: footerButton;
+  color: $gray-500;
+}
+
+.resetButton {
+  composes: footerButton;
+  color: $gray-500;
+}
+
+// ループ終了バナー（AI 判断の理由表示）
+.loopEndBanner {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+  padding: $space-sm $space-sm;
+  border-radius: $radius;
+  border: 1px solid $color-info-border;
+  margin-bottom: $space-xs;
+  background-color: $color-info-bg;
+  color: $color-info;
+}
+
+.loopEndHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
+}
+
+.loopEndTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}
+
+.loopEndClose {
+  display: flex;
+  align-items: center;
+  padding: $space-xs;
+  margin: -$space-2xs;
+  border: none;
+  border-radius: $radius;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.loopEndReason {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,0 +1,159 @@
+// 共通 Markdown 表示スタイル。
+// FileContentViewer のプレビュー表示・Worktree メモ表示で共用する。
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  color: $gray-300;
+  max-width: none;
+
+  * {
+    overflow-wrap: anywhere;
+  }
+
+  // ブロック要素の上下余白を端で打ち消し、コンテナと密着させる
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: $gray-200;
+    font-weight: $font-weight-semibold;
+  }
+
+  h1 {
+    font-size: $font-size-sm;
+    border-bottom: 1px solid $gray-700;
+    padding-bottom: $space-xs;
+    margin-bottom: $space-md;
+    margin-top: $space-lg;
+  }
+
+  h2 {
+    font-size: $font-size-sm;
+    border-bottom: 1px solid rgba($gray-700, 0.5);
+    padding-bottom: $space-2xs;
+    margin-bottom: $space-sm;
+    margin-top: $space-lg;
+  }
+
+  h3 {
+    font-size: $font-size-xs;
+    margin-bottom: $space-xs;
+    margin-top: $space-md;
+  }
+
+  h4 {
+    font-size: $font-size-xs;
+    margin-bottom: $space-2xs;
+    margin-top: $space-sm;
+  }
+
+  p {
+    color: $gray-300;
+    margin: $space-xs 0;
+    line-height: 1.625;
+  }
+
+  a {
+    color: $blue-400;
+    text-decoration: none;
+    word-break: break-all;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  strong {
+    color: $gray-200;
+  }
+
+  pre {
+    background: transparent;
+    padding: 0;
+    margin: $space-xs 0;
+  }
+
+  blockquote {
+    border-left: 3px solid $gray-600;
+    color: $gray-400;
+    margin: $space-xs 0;
+    padding-left: $space-md;
+    font-style: normal;
+  }
+
+  ul,
+  ol {
+    margin: $space-xs 0;
+    padding-left: $space-xl;
+  }
+
+  li {
+    color: $gray-300;
+    margin: $space-3xs 0;
+  }
+
+  hr {
+    border-color: $gray-700;
+    margin: $space-sm 0;
+  }
+
+  table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: $space-xs 0;
+  }
+
+  th {
+    color: $gray-300;
+    font-size: $font-size-xs;
+    word-break: break-word;
+    padding: $space-2xs $space-sm;
+    border-bottom: 1px solid $gray-700;
+    text-align: left;
+  }
+
+  td {
+    color: $gray-400;
+    font-size: $font-size-xs;
+    word-break: break-all;
+    padding: $space-2xs $space-sm;
+    border-bottom: 1px solid rgba($gray-700, 0.5);
+  }
+
+  img {
+    border-radius: $radius-lg;
+    margin: $space-xs 0;
+    max-width: 100%;
+  }
+}
+
+// 外側 padding を持たせたい呼び出し側用（FileContentViewer のプレビュー）
+.padded {
+  padding: $space-lg;
+}
+
+// Markdown inline code（ハイライト対象外）
+.inlineCode {
+  background-color: $gray-800;
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  color: $gray-200;
+  font-family: $font-mono;
+  word-break: break-all;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

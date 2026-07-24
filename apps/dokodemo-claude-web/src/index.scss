@@ -46,6 +46,7 @@ pre {
   input,
   textarea,
   select {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- iOS Safari のフォーカス時 zoom を防ぐため 16px 固定が必須（トークン化不可） */
     font-size: 16px !important;
   }
 }

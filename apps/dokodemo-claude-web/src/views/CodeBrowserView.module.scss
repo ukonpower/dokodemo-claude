@@ -8,15 +8,15 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  gap: $space-sm;
+  padding: $space-xs $space-md;
   border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
 
 .backButton {
-  padding: 0.25rem;
+  padding: $space-2xs;
   color: $dark-text-muted;
 
   &:hover {
@@ -38,9 +38,9 @@
 .modeTabs {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: 0.375rem;
+  gap: $space-3xs;
+  padding: $space-3xs;
+  border-radius: $radius-md;
   background-color: $dark-bg-primary;
   flex-shrink: 0;
 }
@@ -48,9 +48,9 @@
 .modeTab {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 0.3rem;
+  gap: $space-xs;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
   font-size: $font-size-xs;
   color: $dark-text-muted;
 

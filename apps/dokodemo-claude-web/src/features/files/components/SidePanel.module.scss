@@ -1,0 +1,239 @@
+// 右列サイドパネル（アコーディオン積層）
+// 既存のセクションカード言語（cliSection / terminalSection）に統一する:
+//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-tertiary / 枠 = $dark-border-light
+//   純ニュートラルグレー（青みなし）、開閉シェブロンで状態を示す
+
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+
+  // lg 未満（縦積み最下部・タブ切替）: 高さ上限を設け tabContent 内でスクロール
+  max-height: 38dvh;
+
+  // lg 以上（右列・縦積み）: 列いっぱいの高さに追従し各セクションボディを個別スクロール
+  @include lg-up {
+    max-height: none;
+    height: 100%;
+    min-height: 0;
+  }
+}
+
+// 各セクション（見出しバー + ボディ）
+.section {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-height: 0;
+
+  & + & {
+    border-top: 1px solid $dark-border;
+  }
+}
+
+// 開いているセクションは残りの縦スペースを分け合って埋める（lg のみ）。
+// SP では root の高さ基準がないため flex 分割はせず、内容高さで積む。
+.sectionOpen {
+  @include lg-up {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  height: 2rem;
+  padding: 0 $space-sm 0 $space-xs;
+  background-color: $dark-bg-tertiary;
+  cursor: pointer;
+  color: $gray-400;
+  flex-shrink: 0;
+  user-select: none;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-200;
+    background-color: $dark-bg-hover;
+  }
+}
+
+// lg のセクション見出し（開閉しない静的ラベル）
+.headerStatic {
+  cursor: default;
+  padding-left: $space-sm;
+  color: $gray-200;
+
+  &:hover {
+    color: $gray-200;
+    background-color: $dark-bg-tertiary;
+  }
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.headerLabel {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  font-family: $font-sans;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.headerSub {
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
+  color: $gray-500;
+  font-family: $font-sans;
+  line-height: 1;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.count {
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-300;
+  background-color: $gray-800;
+  border-radius: $radius-full;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 $space-xs;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-sans;
+  line-height: 1;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: $dark-bg-secondary;
+  @include scrollbar-thin;
+}
+
+// lg 未満：タブバー（既存の下線タブ言語に合わせる）
+.tabBar {
+  display: flex;
+  flex-shrink: 0;
+  background-color: $dark-bg-tertiary;
+  border-bottom: 1px solid $dark-border;
+}
+
+.tab {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  height: 2.5rem;
+  padding: 0 $space-sm;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: $gray-400;
+  font-family: $font-sans;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover:not(.tabActive) {
+    color: $gray-200;
+    background-color: $dark-bg-hover;
+  }
+
+  // スマホ: タブの縦サイズを少し詰める
+  @include sm-down {
+    height: 2rem;
+  }
+}
+
+.tabActive {
+  color: $dark-text-primary;
+  background-color: $gray-800;
+  border-bottom-color: $gray-300;
+}
+
+.tabIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tabLabel {
+  white-space: nowrap;
+}
+
+.maximizeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  background: transparent;
+  color: $gray-400;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.tabMaximizeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: $gray-400;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.tabContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: $dark-bg-secondary;
+  @include scrollbar-thin;
+}
+
+.gitSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+

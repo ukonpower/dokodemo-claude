@@ -1,0 +1,162 @@
+.root {
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius-lg;
+  border: 1px solid $dark-border-light;
+  padding: $space-md;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerWithMargin {
+  composes: header;
+  margin-bottom: $space-sm;
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: white;
+  display: flex;
+  align-items: center;
+}
+
+.titleIcon {
+  margin-right: $space-sm;
+  color: $gray-400;
+}
+
+.countBadge {
+  margin-left: $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-secondary;
+  padding: $space-3xs $space-sm;
+  border-radius: $radius;
+}
+
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $dark-text-primary;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  transition: all $transition-fast $transition-easing;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.refreshIcon {
+  margin-right: $space-2xs;
+}
+
+.emptyText {
+  color: $gray-400;
+  font-size: $font-size-sm;
+  margin-top: $space-sm;
+}
+
+.scrollArea {
+  max-height: 128px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $gray-600 $gray-800;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $space-sm;
+  padding-right: $space-sm;
+
+  @include sm-up {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @include md-up {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @include lg-up {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.scriptButton {
+  position: relative;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  padding: $space-sm;
+  text-align: left;
+  transition: all $transition-normal $transition-easing;
+  box-shadow: $shadow-sm;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.scriptName {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: white;
+  @include truncate;
+}
+
+.scriptCommand {
+  font-size: $font-size-xs;
+  color: $gray-400;
+  margin-top: $space-3xs;
+  @include truncate;
+
+  .scriptButton:hover & {
+    color: $gray-300;
+  }
+}
+
+.runIcon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity $transition-fast $transition-easing;
+
+  .scriptButton:hover & {
+    opacity: 1;
+  }
+}
+
+.runIconSvg {
+  color: $gray-400;
+}
+
+.helpText {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  margin-top: $space-sm;
+}

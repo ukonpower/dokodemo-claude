@@ -1,0 +1,395 @@
+.container {
+  & > * + * {
+    margin-top: $space-md;
+  }
+}
+
+.headerSection {
+  // wrapper
+}
+
+.headerRow {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  margin-bottom: $space-md;
+
+  @include sm-up {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $space-md;
+  }
+}
+
+.title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1 1 0%;
+
+  @include sm-up {
+    max-width: 28rem;
+  }
+}
+
+.searchInput {
+  width: 100%;
+  padding: $space-xs $space-sm $space-xs $space-2xl;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+  color: $dark-text-primary;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  transition: all $transition-fast $transition-easing;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+    border-color: $dark-border-focus;
+  }
+
+  &:hover {
+    border-color: $dark-border-focus;
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  left: $space-md;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1rem;
+  width: 1rem;
+  color: $gray-400;
+}
+
+.clearButton {
+  position: absolute;
+  right: $space-md;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $gray-400;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.clearIcon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-xs $space-sm;
+  background-color: $accent;
+  color: $dark-text-primary;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $accent-hover;
+  }
+}
+
+.addButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.addButtonText {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+// Empty states
+.emptyState {
+  text-align: center;
+  padding: $space-3xl 0;
+
+  @include sm-up {
+    /* stylelint-disable-next-line declaration-property-value-disallowed-list -- 空状態の縦センタリング余白（スケール外のレイアウト級） */
+    padding: 4rem 0;
+  }
+}
+
+.emptyIcon {
+  margin: 0 auto;
+  height: 3rem;
+  width: 3rem;
+  color: $gray-500;
+}
+
+.emptyTitle {
+  margin-top: $space-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $dark-text-primary;
+}
+
+.emptyDescription {
+  margin-top: $space-2xs;
+  font-size: $font-size-sm;
+  color: $gray-400;
+}
+
+.emptyButton {
+  margin-top: $space-lg;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-sm $space-lg;
+  background-color: $accent;
+  color: $dark-text-primary;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $accent-hover;
+  }
+}
+
+.emptyButtonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+// Search empty
+.searchEmpty {
+  text-align: center;
+  padding: $space-2xl 0;
+
+  @include sm-up {
+    padding: $space-3xl 0;
+  }
+}
+
+.searchEmptyIcon {
+  margin: 0 auto;
+  height: 3rem;
+  width: 3rem;
+  color: $gray-400;
+}
+
+.searchEmptyTitle {
+  margin-top: $space-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $dark-text-primary;
+}
+
+.searchEmptyDescription {
+  margin-top: $space-2xs;
+  font-size: $font-size-sm;
+  color: $gray-300;
+}
+
+.searchEmptyButton {
+  margin-top: $space-lg;
+  display: inline-flex;
+  align-items: center;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $dark-border-focus;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+  }
+}
+
+// Project list
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.projectRow {
+  position: relative;
+  cursor: pointer;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-lg;
+  padding: $space-sm $space-md;
+  transition: all $transition-normal $transition-easing;
+  display: block;
+  text-decoration: none;
+
+  &:hover {
+    background-color: $dark-bg-secondary;
+    border-color: $dark-border-light;
+  }
+}
+
+.projectRowActive {
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-focus;
+  box-shadow: 0 0 12px 0 rgba(white, 0.03);
+}
+
+.projectRowMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+}
+
+.projectRowHeader {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.projectText {
+  min-width: 0;
+  flex: 1;
+}
+
+.projectNameRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.aiStatus {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cardName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  @include truncate;
+}
+
+.cardPath {
+  font-size: $font-size-xs;
+  color: $gray-500;
+  font-family: $font-mono;
+  @include truncate;
+}
+
+.repoStatusInline {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-3xs $space-2xs;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  border: 1px solid transparent;
+}
+
+.repoStatusProgress {
+  border-color: $color-warning-border;
+  background-color: $color-warning-bg;
+  color: $color-warning;
+}
+
+.repoStatusError {
+  border-color: $color-error-border;
+  background-color: $color-error-bg;
+  color: $color-error;
+}
+
+// Menu
+.menuWrapper {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.menuButton {
+  padding: $space-2xs;
+  background-color: $dark-bg-secondary;
+  color: $gray-400;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  transition: all $transition-normal $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.menuIcon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.menuDropdown {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: $space-2xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+  min-width: 140px;
+}
+
+.menuItem {
+  width: 100%;
+  padding: $space-sm $space-md;
+  text-align: left;
+  font-size: $font-size-sm;
+  color: $color-error;
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  transition: background-color $transition-fast $transition-easing, color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $color-error-hover;
+  }
+}
+
+.menuItemIcon {
+  height: 1rem;
+  width: 1rem;
+}

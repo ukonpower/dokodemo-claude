@@ -1,0 +1,721 @@
+@use "sass:color";
+
+// 横スクロールは親の .branchBar 側で一体的に行うため、自身は縮まず内容幅を保つ
+.root {
+  flex-shrink: 0;
+
+  &.normal {
+    background-color: $gray-900;
+    border-bottom: 1px solid $dark-border-light;
+  }
+}
+
+.singleRoot {
+  min-width: 0;
+
+  &.normal {
+    background-color: $gray-900;
+    border-bottom: 1px solid $dark-border-light;
+  }
+}
+
+.singleInner {
+  display: flex;
+  align-items: center;
+
+  &.normal {
+    padding: $space-sm $space-lg;
+  }
+}
+
+.createButton {
+  display: inline-flex;
+  align-items: center;
+  font-weight: $font-weight-medium;
+  color: $gray-400;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $gray-200;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    padding: $space-2xs $space-sm;
+    font-size: $font-size-xs;
+    line-height: 1rem;
+  }
+
+  &.normal {
+    padding: $space-xs $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+    background-color: $gray-800;
+    border: 1px solid $dark-border-light;
+    border-radius: $radius-md;
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px $dark-border-focus;
+    }
+  }
+}
+
+.createIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+    margin-right: $space-sm;
+  }
+}
+
+.tabsContainer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+// メインワークツリー（左固定）セクション
+.mainSection {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.mainTab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &.compactStyle {
+    border-radius: $radius;
+
+    &.active {
+      background-color: rgba($gray-700, 0.5);
+    }
+
+    &:not(.active):hover {
+      background-color: rgba($gray-700, 0.3);
+    }
+  }
+
+  &.normalStyle {
+    border-bottom: 2px solid;
+
+    &.active {
+      border-color: $dark-text-primary;
+      background-color: $gray-800;
+    }
+
+    &:not(.active) {
+      border-color: transparent;
+
+      &:hover {
+        background-color: $gray-800;
+      }
+    }
+  }
+}
+
+.mainIcon {
+  flex-shrink: 0;
+
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+    margin-right: $space-sm;
+  }
+}
+
+// メインとブランチの区切り線
+.divider {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1px;
+  height: 1.25rem;
+  background-color: $dark-border-light;
+  margin: 0 $space-sm;
+}
+
+// ブランチワークツリータブ群（dnd-kit で並び替え可能。スクロールは親の .branchBar 側で一体的に行う）
+.tabsScroll {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tabWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &.compactStyle {
+    border-radius: $radius;
+
+    &.active {
+      background-color: rgba($gray-700, 0.5);
+    }
+
+    &:not(.active):hover {
+      background-color: rgba($gray-700, 0.3);
+    }
+  }
+
+  &.normalStyle {
+    border-bottom: 2px solid;
+
+    &.active {
+      border-color: $dark-text-primary;
+      background-color: $gray-800;
+    }
+
+    &:not(.active) {
+      border-color: transparent;
+
+      &:hover {
+        background-color: $gray-800;
+      }
+    }
+  }
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  transition: color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    padding: $space-2xs $space-sm;
+    font-size: $font-size-xs;
+    line-height: 1rem;
+  }
+
+  &.normal {
+    padding: $space-sm $space-sm $space-sm $space-lg;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+  }
+
+  &.active {
+    color: $dark-text-primary;
+  }
+
+  &:not(.active) {
+    color: $gray-400;
+
+    &:hover {
+      color: $gray-200;
+    }
+  }
+}
+
+.tabBranchName {
+  white-space: nowrap;
+}
+
+// PR バッジ：PR 番号 + 状態色ドット
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  margin-left: $space-xs;
+  padding: $space-3xs $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  line-height: 1.2;
+  color: $gray-300;
+  background-color: rgba($gray-700, 0.5);
+  border-radius: $radius;
+  flex-shrink: 0;
+
+  &.compact {
+    margin-left: $space-2xs;
+    padding: 0 $space-3xs;
+    font-size: $font-size-2xs;
+  }
+}
+
+.prNumber {
+  font-weight: $font-weight-medium;
+}
+
+.prStateDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+
+  // OPEN (緑) — PR の状態色
+  &.open {
+    background-color: $color-success;
+    box-shadow: 0 0 0 1px rgba($color-success, 0.4);
+  }
+
+  // MERGED (紫)
+  &.merged {
+    background-color: $purple-500;
+    box-shadow: 0 0 0 1px rgba($purple-500, 0.4);
+  }
+
+  // CLOSED (赤)
+  &.closed {
+    background-color: $color-error;
+    box-shadow: 0 0 0 1px rgba($color-error, 0.4);
+  }
+
+  // DRAFT (灰)
+  &.draft {
+    background-color: $gray-400;
+    box-shadow: 0 0 0 1px rgba($gray-400, 0.4);
+  }
+}
+
+.menuButton {
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    padding: $space-3xs;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    padding: $space-2xs;
+    margin-right: $space-sm;
+  }
+
+  &.open {
+    color: $gray-300;
+    background-color: $gray-700;
+  }
+
+  &:not(.open) {
+    color: $gray-500;
+
+    &:hover {
+      color: $gray-300;
+      background-color: $gray-700;
+    }
+  }
+}
+
+.menuIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.newButton {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: $gray-500;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $gray-300;
+    background-color: rgba($gray-700, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    padding: $space-2xs;
+  }
+
+  &.normal {
+    padding: $space-sm $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+  }
+}
+
+.newIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+// Portal menu
+.portalMenu {
+  position: fixed;
+  background-color: $gray-800;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  padding: $space-2xs 0;
+  z-index: 9999;
+  min-width: 140px;
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $gray-700;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.mergeItem {
+    color: $dark-text-secondary;
+  }
+
+  &.deleteItem {
+    color: $color-error;
+  }
+}
+
+.menuItemIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: $space-sm;
+}
+
+// Modal styles
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(black, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  @include flex-center;
+  padding: $space-lg;
+  z-index: 50;
+}
+
+.modalContent {
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg, 0 0 0 1px rgba(white, 0.04);
+  border: 1px solid $dark-border-light;
+  padding: $space-xl;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-md;
+  margin-bottom: $space-lg;
+}
+
+.modalHeaderText {
+  flex: 1;
+  min-width: 0;
+}
+
+.modalIconWrapper {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-full;
+  @include flex-center;
+
+  &.danger {
+    background-color: rgba($color-error, 0.12);
+    box-shadow: inset 0 0 0 1px rgba($color-error, 0.25);
+  }
+
+  &.info {
+    background-color: $dark-bg-hover;
+    box-shadow: inset 0 0 0 1px $dark-border-light;
+  }
+}
+
+.modalIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+
+  &.danger {
+    color: $color-error;
+  }
+
+  &.info {
+    color: $dark-text-secondary;
+  }
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  line-height: 1.4;
+  margin: 0 0 $space-xs;
+}
+
+.modalDescription {
+  color: $gray-300;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modalBranchName {
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  color: $color-error;
+  background-color: rgba($color-error, 0.1);
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
+}
+
+.modalBranchNameBlue {
+  font-family: $font-mono;
+  color: $gray-200;
+  background-color: rgba($gray-900, 0.4);
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
+}
+
+.warningBox {
+  border-radius: $radius-md;
+  padding: $space-md $space-lg;
+  margin-bottom: $space-lg;
+
+  &.warning {
+    background-color: rgba($color-warning, 0.08);
+    border: 1px solid rgba($color-warning, 0.3);
+  }
+
+  &.blue {
+    background-color: rgba($gray-900, 0.4);
+    border: 1px solid $dark-border-light;
+  }
+}
+
+.warningTitle {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $color-warning;
+  margin: 0 0 $space-sm;
+}
+
+.warningList {
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  & > * + * {
+    margin-top: $space-xs;
+  }
+
+  &.warning {
+    color: rgba(white, 0.78);
+
+    li {
+      position: relative;
+      padding-left: $space-lg;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0.25rem;
+        top: 0.55em;
+        width: 4px;
+        height: 4px;
+        border-radius: $radius-full;
+        background-color: $color-warning;
+      }
+    }
+  }
+
+  &.blue {
+    color: $dark-text-secondary;
+  }
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  margin-bottom: $space-xl;
+  border-radius: $radius-md;
+  border: 1px solid $dark-border-light;
+  background-color: rgba($gray-900, 0.4);
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba($gray-900, 0.7);
+    border-color: $dark-border-focus;
+  }
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: $color-error;
+  cursor: pointer;
+}
+
+.checkboxText {
+  font-size: $font-size-sm;
+  line-height: 1.4;
+  color: $gray-200;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-sm;
+}
+
+.cancelButton {
+  min-width: 6rem;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.25rem;
+  color: $gray-200;
+  background: transparent;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: rgba($gray-700, 0.4);
+    color: white;
+    border-color: $dark-border-focus;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px $gray-500, 0 0 0 4px $dark-bg-tertiary;
+  }
+}
+
+.confirmButton {
+  min-width: 6rem;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.25rem;
+  color: white;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    box-shadow $transition-fast $transition-easing;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &.danger {
+    background-color: $color-error;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+    &:hover:not(:disabled) {
+      background-color: $color-error-hover;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px $color-error, 0 0 0 4px $dark-bg-tertiary;
+    }
+  }
+
+  &.info {
+    background-color: $accent;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+    &:hover:not(:disabled) {
+      background-color: $accent-hover;
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px $accent, 0 0 0 4px $dark-bg-tertiary;
+    }
+  }
+}

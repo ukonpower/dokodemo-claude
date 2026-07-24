@@ -10,8 +10,9 @@
     "start": "npm run start:prepare && DC_MODE=prod node scripts/start-prod.js",
     "build:all": "npx nx run-many --target=build",
     "lint": "npx nx run-many --target=lint",
+    "lint:style": "npx nx run-many --target=lint:style",
     "type-check": "npx nx run-many --target=type-check",
-    "check-all": "npm run lint && npm run type-check",
+    "check-all": "npm run lint && npm run lint:style && npm run type-check",
     "setup": "node scripts/check-system-deps.js && npm install && npm install --prefix apps/dokodemo-claude-api && npm install --prefix apps/dokodemo-claude-web && node scripts/setup-env.js"
   },
   "dependencies": {

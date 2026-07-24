@@ -1,0 +1,627 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+// 左=矢印キー+Enter群 / 右=コマンド群 を横並びにする。
+// 折り返さず左寄せにし、コマンド群（2×2）を常に Enter の右余白に収める。
+.mainRow {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: $space-sm;
+}
+
+// PC（lg 以上）専用のコマンドバー。
+// 物理キーを省いた分、コマンド系ボタンを左詰め一列に集約して主役にする。
+.commandBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $space-xs;
+
+  // ネストしたカスタム行（.row）を中央寄せせず素直にインライン整列させる
+  .row {
+    justify-content: flex-start;
+    flex: 0 1 auto;
+  }
+
+  // 主要群（Clear/Commit/Resume/Model/その他）とカスタム群の間の区切り線。
+  // カスタムが無く「＋」だけの時も、主役コマンドとの視覚的な境界を保つ。
+  .groupDivider {
+    width: 1px;
+    align-self: stretch;
+    min-height: 1.5rem;
+    margin: 0 $space-2xs;
+    background-color: $gray-600;
+    flex: 0 0 auto;
+  }
+}
+
+.arrowGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: $space-2xs;
+  flex: 0 0 auto;
+}
+
+.commandGroup {
+  display: flex;
+  align-items: stretch;
+  gap: $space-xs;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+
+  // 幅が伸びても 2 列を維持しつつ、間延びしないよう控えめに頭打ちにする
+  max-width: 11rem;
+
+  // Clear/Commit/Resume/Model は常に 2×2 グリッドで Enter の右余白にコンパクトに収める。
+  // 全幅に折り返して縦積みにしない。
+  .coreCommandRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-xs;
+    width: 100%;
+    min-width: 0;
+
+    // 各セルを列いっぱいに広げて 2×2 を揃える
+    & > button,
+    & > .modelWrapper,
+    & > .modelWrapper > button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+}
+
+.divider {
+  width: 1px;
+  height: 4rem;
+  background-color: $gray-600;
+  flex: 0 0 auto;
+  align-self: center;
+
+  // PC（sideCol 280px固定）では区切り線非表示。md までは表示し続ける
+  @include lg-up {
+    display: none;
+  }
+}
+
+.arrowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-2xs;
+}
+
+.arrowKey {
+  @include flex-center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400;
+  }
+}
+
+.enterButton {
+  @include flex-center;
+  width: 3rem;
+  height: 4.75rem; // 矢印キー2段分 (2.25rem * 2 + gap 0.25rem)
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-400;
+  border-radius: $radius-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-family: $font-mono;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-lg;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-300;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400;
+  }
+}
+
+// Clear / Commit / Resume / Model / 「その他」トグルを一列に並べる。
+// 幅が足りない場合のみ折り返しを許可し、まとまりを保つ。
+.coreCommandRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-xs;
+  flex: 0 1 auto;
+
+  & > button,
+  & > .modelWrapper {
+    flex: 0 0 auto;
+  }
+}
+
+// 行コンテナ（同じグループのボタンを横並びにする）
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: $space-xs;
+
+  & > * {
+    flex: 0 1 auto;
+  }
+}
+
+// 共通ボタン基底
+%btnBase {
+  @include flex-center;
+  height: 1.875rem;
+  padding: 0 $space-sm;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $gray-500;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  @include sm-up {
+    height: 2rem;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    border-color: $gray-400;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $gray-400;
+  }
+}
+
+.escColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $space-2xs;
+}
+
+.escButton {
+  @extend %btnBase;
+  min-height: 2.25rem;
+  border-color: $gray-600;
+  color: $gray-400;
+
+  &:hover {
+    border-color: $gray-500;
+    color: $gray-300;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $gray-500;
+  }
+}
+
+.spaceButton {
+  @extend %btnBase;
+  min-height: 2.25rem;
+  border-color: $gray-600;
+  color: $gray-400;
+
+  &:hover {
+    border-color: $gray-500;
+    color: $gray-300;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $gray-500;
+  }
+}
+
+// Clear / Commit / Resume / Model はいずれも同ランクのセッションコマンド。
+// 以前は色分け（茶・緑・紫）していたが、意味が読めないためモノトーンに統一する。
+.clearButton {
+  @extend %btnBase;
+}
+
+.modeButton {
+  @extend %btnBase;
+  border-color: $accent;
+
+  &:hover {
+    border-color: $accent-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent;
+  }
+}
+
+.modelWrapper {
+  position: relative;
+}
+
+.modelButton {
+  @extend %btnBase;
+}
+
+.modelMenu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: $space-sm;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  z-index: 10;
+  min-width: 100px;
+  overflow: hidden;
+}
+
+.modelMenuItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: $space-sm $space-md;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $dark-text-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.commitButton {
+  @extend %btnBase;
+}
+
+.resumeButton {
+  @extend %btnBase;
+  border-color: $accent;
+  color: $accent;
+
+  &:hover {
+    border-color: $accent-hover;
+    color: $accent-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent;
+  }
+}
+
+// 補助系（折りたたみ）: 見出し（その他トグル）＋展開コンテンツを縦に積む
+.auxSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $space-xs;
+}
+
+// 「その他」タブの展開コンテンツ（補助系行 + カスタム行）
+.auxContent {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $space-sm;
+  width: 100%;
+
+  // 展開した補助群（Mode/Ctrl+C/Alt+T/Usage/Preview）は右に浮かせず左寄せに揃える
+  .row {
+    justify-content: flex-start;
+  }
+}
+
+.moreToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: $space-2xs;
+  height: 1.5rem;
+  padding: 0 $space-2xs;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-secondary;
+  }
+
+  &:focus {
+    outline: none;
+    color: $dark-text-secondary;
+  }
+}
+
+.grayButton {
+  @extend %btnBase;
+  border-color: $gray-600;
+  color: $gray-400;
+
+  &:hover {
+    border-color: $gray-500;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $gray-500;
+  }
+}
+
+// カスタム行（「その他」タブ内）
+.customSection {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.customHeader {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.customButton {
+  @extend %btnBase;
+  border-color: $accent;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $accent-hover;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 1px $accent;
+  }
+}
+
+.addButton {
+  @extend %btnBase;
+  border-style: dashed;
+  border-color: $dark-border-focus;
+  color: $dark-text-muted;
+  width: 2.25rem;
+  padding: 0;
+
+  @include sm-up {
+    width: 2.5rem;
+  }
+
+  &:hover {
+    color: $dark-text-primary;
+    border-color: $dark-text-muted;
+  }
+}
+
+// ダイアログ
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(black, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $space-lg;
+}
+
+.dialog {
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+  padding: $space-lg;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.dialogTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  margin: 0;
+}
+
+.dialogField {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.dialogLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+.dialogInput,
+.dialogTextarea {
+  width: 100%;
+  padding: $space-sm $space-sm;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  color: $dark-text-primary;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+    box-shadow: 0 0 0 1px $accent;
+  }
+}
+
+.dialogTextarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.dialogCheckboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-sm;
+}
+
+.dialogCheckbox {
+  margin-top: $space-3xs;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.dialogCheckboxLabel {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dialogCheckboxLabelText {
+  color: $dark-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.dialogCheckboxLabelHelp {
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  line-height: 1.3;
+}
+
+.dialogButtons {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  justify-content: flex-end;
+  margin-top: $space-2xs;
+}
+
+.dialogDeleteButton {
+  margin-right: auto;
+  padding: $space-xs $space-md;
+  border: 1px solid $color-error;
+  border-radius: $radius;
+  background: transparent;
+  color: $color-error;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $color-error-bg;
+  }
+}
+
+.dialogCancelButton {
+  padding: $space-xs $space-md;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  background: transparent;
+  color: $dark-text-secondary;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.dialogSubmitButton {
+  padding: $space-xs $space-md;
+  border: 1px solid $accent;
+  border-radius: $radius;
+  background-color: $accent;
+  color: white;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

@@ -1,0 +1,183 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.loadingCenter {
+  @include flex-center;
+  height: 100%;
+  color: $dark-text-muted;
+  font-size: $font-size-sm;
+}
+
+.errorCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: $space-md;
+  padding: $space-lg;
+}
+
+.errorIcon {
+  color: $color-error;
+}
+
+.errorText {
+  color: $dark-text-secondary;
+  font-size: $font-size-sm;
+  text-align: center;
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  color: $dark-text-muted;
+  font-size: $font-size-sm;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.emptyCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: $space-sm;
+  color: $dark-text-muted;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+}
+
+.fileHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
+  flex-shrink: 0;
+}
+
+.backButton {
+  padding: $space-2xs;
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.headerFilename {
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+  font-weight: $font-weight-medium;
+  @include truncate;
+}
+
+.tabGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-3xs;
+  margin-left: $space-sm;
+  background-color: $dark-bg-primary;
+  border-radius: $radius;
+  padding: $space-3xs;
+}
+
+.tabButton {
+  padding: $space-3xs $space-sm;
+  font-size: $font-size-xs;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+}
+
+.tabButtonActive {
+  background-color: $dark-bg-hover;
+  color: $dark-text-primary;
+}
+
+.tabButtonInactive {
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-secondary;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.wrapButton {
+  padding: $space-2xs;
+  transition: color $transition-fast $transition-easing;
+}
+
+.wrapButtonActive {
+  color: $dark-text-primary;
+}
+
+.wrapButtonInactive {
+  color: $dark-text-muted;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.fullscreenButton {
+  padding: $space-2xs;
+  color: $dark-text-muted;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.truncatedWarning {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-xs $space-md;
+  background-color: $color-warning-bg;
+  border-bottom: 1px solid $dark-border;
+  font-size: $font-size-xs;
+  color: $color-warning;
+}
+
+.contentArea {
+  flex: 1 1 0%;
+  overflow: auto;
+}
+
+.mediaPreview {
+  @include flex-center;
+  height: 100%;
+  padding: $space-lg;
+  background-color: $dark-bg-primary;
+}
+
+.mediaImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.mediaVideo {
+  max-width: 100%;
+  max-height: 100%;
+}

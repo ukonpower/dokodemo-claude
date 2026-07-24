@@ -1,0 +1,242 @@
+.root {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  flex: 1;
+}
+
+.swiper {
+  flex: 1;
+  min-width: 0;
+}
+
+.slideAuto {
+  width: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: $space-2xs;
+  padding: 0 $space-xs;
+  border: none;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: $gray-400;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+  white-space: nowrap;
+  max-width: 12rem;
+
+  &:hover:not(.active) {
+    background-color: $gray-800;
+    color: $gray-200;
+  }
+
+  // アクティブタブの下線はモノトーンで統一（provider 別のブランド色は使わない）
+  &.active {
+    color: white;
+    background-color: $gray-800;
+    border-bottom-color: $dark-text-primary;
+  }
+}
+
+// ラベル（上段）と要約（下段）の 2 行縦積み
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: $space-3xs;
+  min-width: 0;
+  padding: $space-2xs 0;
+}
+
+.label {
+  @include truncate;
+  max-width: 10rem;
+}
+
+// タブの AI に何を頼んだかの要約（ラベル下のサブテキスト。全文は title で表示）
+.summary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  .tab.active & {
+    color: $gray-400;
+  }
+}
+
+.menuBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  color: $gray-500;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: rgba(white, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+.addWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+// 新規インスタンス追加ボタン（タブ右端・スクロール内。タブの ⋮ と区別する丸アイコン）
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0 $space-xs;
+  padding: 0;
+  background: transparent;
+  border: 1px solid $dark-border-light;
+  border-radius: 50%;
+  color: $gray-400;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $gray-700;
+    border-color: $gray-500;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.65rem;
+    height: 0.65rem;
+  }
+}
+
+.addMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  background: none;
+  border: none;
+  color: $gray-200;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $gray-700;
+  }
+
+  // 矢印キーで選択中の項目
+  &.highlight {
+    background-color: $gray-700;
+  }
+
+  svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+}
+
+// タブメニュー内の区切り線（プロバイダー切替 と 再起動 の間）
+.menuDivider {
+  height: 1px;
+  margin: $space-3xs 0;
+  background-color: $dark-border-light;
+}
+
+// provider 切替セグメント（Claude / Codex の 2 択トグル）
+.providerSegment {
+  display: flex;
+  gap: $space-3xs;
+  padding: $space-3xs $space-2xs;
+}
+
+.providerSegmentItem {
+  flex: 1;
+  padding: $space-2xs $space-xs;
+  font-size: $font-size-xs;
+  background: transparent;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-sm;
+  color: $gray-300;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing,
+    border-color $transition-fast $transition-easing;
+
+  &:hover:not(.active) {
+    background-color: $gray-700;
+    color: $gray-100;
+  }
+
+  // アクティブ表示はモノトーン（provider 別ブランド色は使わない）
+  &.active {
+    color: white;
+    background-color: $gray-700;
+    border-color: $gray-500;
+    cursor: default;
+  }
+}
+
+// キーボード操作対象のタブメニュー: フォーカス中の項目を明示する
+.kbdMenu {
+  .addMenuItem:focus {
+    background-color: $gray-700;
+    outline: none;
+  }
+
+  .providerSegmentItem:focus {
+    outline: 2px solid $gray-200;
+    outline-offset: -2px;
+  }
+}

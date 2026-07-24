@@ -1,0 +1,37 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid transparent;
+  border-radius: $radius-full;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.spinIcon {
+  animation: badge-spin 1s linear infinite;
+}
+
+@keyframes badge-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 実行中はモノトーンのアクセントチップ（緑は完了＝成功状態に限定）
+.running {
+  background-color: rgba($accent, 0.16);
+  border-color: rgba($accent, 0.42);
+  color: $dark-text-primary;
+}
+
+.done {
+  background-color: $color-success-bg;
+  border-color: $color-success-border;
+  color: $color-success;
+}

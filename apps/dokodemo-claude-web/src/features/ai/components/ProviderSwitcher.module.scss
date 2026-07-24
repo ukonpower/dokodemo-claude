@@ -1,0 +1,41 @@
+.root {
+  display: flex;
+  align-items: center;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius-lg;
+  padding: $space-3xs;
+}
+
+.button {
+  padding: $space-3xs $space-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-md;
+  transition: all $transition-normal $transition-easing;
+  border: none;
+}
+
+.buttonActive {
+  background-color: $accent;
+  color: white;
+  box-shadow: $shadow-sm;
+}
+
+.buttonInactive {
+  color: $gray-400;
+  background: none;
+
+  &:hover {
+    color: $gray-200;
+    background-color: $dark-bg-primary;
+  }
+}
+
+.buttonDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonEnabled {
+  cursor: pointer;
+}

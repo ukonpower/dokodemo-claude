@@ -1,0 +1,84 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  height: 28px;
+  padding: 0 $space-sm;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  font-size: $font-size-xs;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.triggerLabel {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: $space-2xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  box-shadow: 0 6px 20px rgba(black, 0.4);
+}
+
+.groupLabel {
+  padding: $space-xs $space-sm $space-3xs;
+  font-size: $font-size-2xs;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: $dark-text-muted;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  border: none;
+  border-radius: $radius;
+  background: transparent;
+  text-align: left;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.itemRemote {
+  color: $dark-text-secondary;
+}
+
+.itemActive {
+  background-color: $dark-bg-hover;
+  // 現在チェックアウト中ブランチの状態マーカー（緑はステータス表示として維持）
+  box-shadow: inset 2px 0 0 $green-400;
+}

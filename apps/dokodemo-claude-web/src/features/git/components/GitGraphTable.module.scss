@@ -1,0 +1,168 @@
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.graphOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  // テーブル(z-index:1)より前面に置く。背後だと行ホバー時の
+  // 不透明な行背景が透明な graphCell を透かしてグラフを覆い隠す
+  z-index: 2;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-xs;
+  position: relative;
+  z-index: 1;
+  table-layout: fixed;
+}
+
+.row {
+  height: 24px;
+  user-select: none;
+  -webkit-touch-callout: none;
+
+  &:hover {
+    background-color: $dark-bg-secondary;
+  }
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.selected {
+  background-color: $dark-bg-hover;
+  // 選択中コミット行のマーカー（選択表現はニュートラルに寄せる）
+  box-shadow: inset 2px 0 0 $accent;
+}
+
+.match {
+  background-color: rgba($amber-400, 0.12);
+}
+
+.currentMatch {
+  background-color: rgba($amber-400, 0.28);
+}
+
+.graphCell {
+  height: 24px;
+  padding: 0;
+  // SVG が背後で描画するのでセル自体は透明のスペーサー
+  background: transparent;
+}
+
+.descCol,
+.dateCol,
+.authorCol,
+.hashCol {
+  height: 24px;
+  line-height: 24px;
+  padding: 0 $space-sm;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.descCol {
+  color: $dark-text-primary;
+}
+
+.uncommitted {
+  color: $dark-text-secondary;
+  font-style: italic;
+}
+
+.chips {
+  display: inline-flex;
+  gap: $space-2xs;
+  margin-right: $space-xs;
+  vertical-align: middle;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0 $space-xs;
+  height: 16px;
+  line-height: 15px;
+  border-radius: $radius-lg;
+  font-size: $font-size-2xs;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  // ダブルクリック checkout 時のテキスト選択を抑止
+  user-select: none;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+// ブランチ参照ラベルの色分類（HEAD=緑 / branch・remote=青 / tag=amber /
+// worktree=ニュートラル）はグラフ凡例と対をなす分類のため hue を維持し、
+// 値はプリミティブトークンへ寄せる。
+.chipHead {
+  background-color: rgba($green-400, 0.18);
+  border-color: $green-400;
+  color: $green-400;
+  font-weight: $font-weight-semibold;
+}
+
+.chipBranch {
+  background-color: rgba($blue-400, 0.12);
+  border-color: rgba($blue-400, 0.5);
+  color: $blue-300;
+}
+
+.chipRemote {
+  background-color: rgba($blue-400, 0.08);
+  border-color: rgba($blue-400, 0.3);
+  color: $blue-400;
+}
+
+.chipTag {
+  background-color: rgba($amber-400, 0.15);
+  border-color: rgba($amber-500, 0.5);
+  color: $amber-400;
+}
+
+// 他の worktree がチェックアウト中のブランチ。破線ボーダー + アイコンで
+// 「別の作業場で使用中」を控えめに示す（通常ブランチより一段淡いトーン）。
+.chipWorktree {
+  background-color: rgba($gray-400, 0.06);
+  border-color: $gray-700;
+  border-style: dashed;
+  color: $gray-400;
+}
+
+.chipIcon {
+  vertical-align: -1px;
+  margin-right: $space-3xs;
+}
+
+.message {
+  // vertical-align: middle は CJK フォールバック時に行ボックスを 24px 超に押し広げ、
+  // SVG グラフとの行対応が下に行くほどずれるため baseline のままにする
+  vertical-align: baseline;
+}
+
+.dateCol {
+  color: $dark-text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
+.authorCol {
+  color: $dark-text-secondary;
+}
+
+.hashCol {
+  color: $dark-text-muted;
+  font-family: monospace;
+}

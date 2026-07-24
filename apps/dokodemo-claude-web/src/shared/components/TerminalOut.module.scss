@@ -1,0 +1,41 @@
+.root {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.terminalContainer {
+  height: 100%;
+  width: 100%;
+  background-color: $dark-bg-primary;
+}
+
+.scrollHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 3rem;
+  pointer-events: auto;
+  @include flex-center;
+  z-index: 10;
+
+  // SP時は xterm 可視幅を稼ぐためスクロールハンドルを半分の幅に
+  @include sm-down {
+    width: 1.5rem;
+  }
+}
+
+.scrollDots {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  pointer-events: none;
+}
+
+.textOverlay {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  z-index: 30;
+}

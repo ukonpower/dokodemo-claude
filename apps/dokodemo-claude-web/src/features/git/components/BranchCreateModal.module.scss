@@ -1,0 +1,62 @@
+.formFields {
+  & > * + * {
+    margin-top: $space-lg;
+  }
+}
+
+.fieldGroup {
+  // wrapper for each field
+}
+
+.fieldLabel {
+  display: block;
+  font-size: $font-size-sm;
+  color: $gray-300;
+  margin-bottom: $space-2xs;
+}
+
+.requiredMark {
+  color: $color-error;
+}
+
+.selectInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  color: white;
+  font-size: $font-size-sm;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+    border-color: $dark-border-focus;
+  }
+}
+
+.textInput {
+  width: 100%;
+  padding: $space-sm $space-md;
+  background-color: $gray-900;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-md;
+  color: white;
+  font-size: $font-size-sm;
+
+  &::placeholder {
+    color: $gray-500;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px $dark-border-focus;
+    border-color: $dark-border-focus;
+  }
+}
+
+.fieldHint {
+  margin-top: $space-2xs;
+  font-size: $font-size-xs;
+  color: $gray-500;
+}

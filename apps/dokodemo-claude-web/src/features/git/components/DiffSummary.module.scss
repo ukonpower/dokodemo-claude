@@ -1,0 +1,112 @@
+.container {
+  padding: $space-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  min-height: 100%;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background-color: $color-error-bg;
+  border: 1px solid $color-error-border;
+  border-radius: $radius;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $color-error;
+  font-family: Inter, sans-serif;
+}
+
+.loadingCenter {
+  @include flex-center;
+  flex: 1;
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+  color: $dark-text-muted;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.fileButton {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-xs;
+  border-radius: $radius-sm;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+}
+
+.statusBadge {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: $radius-sm;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-bold;
+  font-family: Inter, sans-serif;
+}
+
+.fileIcon {
+  @include flex-center;
+  flex-shrink: 0;
+}
+
+.filePath {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: $space-xs;
+  @include truncate;
+}
+
+.filePathDir {
+  color: $dark-text-muted;
+  font-size: $font-size-2xs;
+  font-family: Inter, sans-serif;
+  @include truncate;
+}
+
+.filePathName {
+  flex-shrink: 0;
+  color: $gray-300;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  font-family: Inter, sans-serif;
+}
+
+.statGroup {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: $space-xs;
+}
+
+.statAddition {
+  color: $diff-added-text;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
+  font-family: Inter, sans-serif;
+}
+
+.statDeletion {
+  color: $diff-removed-text;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
+  font-family: Inter, sans-serif;
+}

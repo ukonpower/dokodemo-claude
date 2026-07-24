@@ -1,0 +1,16 @@
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-md;
+}
+
+.warningIcon {
+  color: $color-warning;
+  flex-shrink: 0;
+}
+
+.bodyText {
+  font-size: $font-size-sm;
+  color: $gray-300;
+  line-height: $line-height-normal;
+}
