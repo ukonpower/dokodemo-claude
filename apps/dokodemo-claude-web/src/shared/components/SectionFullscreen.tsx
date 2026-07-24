@@ -56,7 +56,7 @@ const SectionFullscreen: React.FC<SectionFullscreenProps> = ({
           aria-label="閉じる"
           title="閉じる (Esc)"
         >
-          <X size={18} strokeWidth={2.25} />
+          <X size={16} strokeWidth={2.25} />
         </button>
       </div>
       <div className={s.body}>{children}</div>

@@ -3,7 +3,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #0e0e0e;
+  background-color: $dark-bg-primary;
   border-top: 1px solid $dark-border-light;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   z-index: 50;
@@ -18,7 +18,7 @@
   }
 
   :global(.swiper) {
-    padding: 0.375rem 0.75rem;
+    padding: $space-xs $space-md;
   }
 
   :global(.swiper-slide) {
@@ -27,23 +27,23 @@
 }
 
 .tab {
-  padding: 0.35rem 0.6rem;
+  padding: $space-xs $space-sm;
   border-radius: $radius-md;
   font-size: $font-size-xs;
-  font-weight: 500;
-  transition: all 200ms $transition-easing;
+  font-weight: $font-weight-medium;
+  transition: all $transition-normal $transition-easing;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: $space-xs;
   min-width: 168px;
   max-width: 220px;
   text-decoration: none;
 }
 
 .tabActive {
-  background-color: #1a1a1a;
-  color: white;
-  border: 1px solid #303030;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  border: 1px solid $dark-border-focus;
 }
 
 .tabInactive {
@@ -53,7 +53,7 @@
 
   &:hover {
     background-color: $dark-bg-tertiary;
-    color: white;
+    color: $dark-text-primary;
     border-color: $dark-border-focus;
   }
 }
@@ -61,7 +61,7 @@
 .tabHeader {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: $space-xs;
   min-width: 0;
   justify-content: space-between;
 }

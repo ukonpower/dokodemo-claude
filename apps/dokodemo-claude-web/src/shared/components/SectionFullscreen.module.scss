@@ -10,8 +10,8 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 10px 14px;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
   flex-shrink: 0;
 }
@@ -24,9 +24,9 @@
 }
 
 .headerTitle {
-  color: white;
+  color: $dark-text-primary;
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   font-family: $font-sans;
 
   @include sm-up {
@@ -35,14 +35,14 @@
 }
 
 .headerCount {
-  font-size: 0.625rem;
-  font-weight: 600;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
   color: $gray-300;
   background-color: $gray-800;
   border-radius: $radius-full;
   min-width: 1.1rem;
   height: 1.1rem;
-  padding: 0 0.35rem;
+  padding: 0 $space-xs;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -58,11 +58,11 @@
   @include flex-center;
   width: 34px;
   height: 34px;
-  color: white;
+  color: $dark-text-primary;
   border-radius: $radius-full;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(white, 0.1);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing,
@@ -70,8 +70,8 @@
     transform $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.32);
+    background-color: rgba(white, 0.22);
+    border-color: rgba(white, 0.32);
   }
 
   &:active {

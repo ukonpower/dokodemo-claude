@@ -1,10 +1,8 @@
-@use "sass:color";
-
 .header {
   position: relative;
   z-index: 60;
   background-color: $dark-bg-secondary;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: $shadow-sm;
   border-bottom: 1px solid $dark-border;
 }
 
@@ -12,14 +10,14 @@
   max-width: 80rem;
   margin-left: auto;
   margin-right: auto;
-  padding: 0.25rem 0.75rem;
+  padding: $space-2xs $space-md;
 
   @include sm-up {
-    padding: 0.375rem 1rem;
+    padding: $space-xs $space-lg;
   }
 
   @include lg-up {
-    padding: 0.5rem 2rem;
+    padding: $space-sm $space-2xl;
   }
 }
 
@@ -27,10 +25,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: $space-sm;
 
   @include lg-up {
-    gap: 1rem;
+    gap: $space-lg;
   }
 }
 
@@ -41,20 +39,19 @@
   flex: 1 1 auto;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 
   @include lg-up {
     & > * + * {
-      margin-left: 1rem;
+      margin-left: $space-lg;
     }
   }
 }
 
+// ヘッダーのアイコンボタン群は枠なしで統一する（戻る・ツール・エディタ）。
 .backLink {
   color: $dark-text-secondary;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   flex-shrink: 0;
 
   @include sm-down {
@@ -68,9 +65,8 @@
   }
 
   &:hover {
-    color: white;
+    color: $dark-text-primary;
     background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
   }
 
   &:focus {
@@ -81,37 +77,37 @@
 
 .repoInfo {
   border-left: 1px solid $dark-border-light;
-  padding-left: 0.5rem;
+  padding-left: $space-sm;
   min-width: 0;
 
   @include sm-up {
-    padding-left: 1rem;
+    padding-left: $space-lg;
   }
 }
 
 .repoTitleRow {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
   min-width: 0;
 }
 
 .repoTitle {
   font-size: $font-size-sm;
-  font-weight: 600;
-  color: white;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
   min-width: 0;
   @include truncate;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color $transition-fast ease;
 
   @include sm-up {
-    font-size: 1.125rem;
+    font-size: $font-size-lg;
     line-height: 1.75rem;
   }
 
   &:hover {
-    color: #93c5fd;
+    color: $dark-text-secondary;
   }
 }
 
@@ -122,10 +118,6 @@
 .githubButton {
   color: $gray-400;
   flex-shrink: 0;
-
-  &:hover {
-    color: white;
-  }
 }
 
 .repoPath {
@@ -147,21 +139,21 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
   flex-shrink: 0;
 
   @include sm-up {
-    gap: 0.5rem;
+    gap: $space-sm;
   }
 }
 
 .toolButtons {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: $space-xs;
 
   @include sm-up {
-    gap: 0.5rem;
+    gap: $space-sm;
   }
 }
 
@@ -175,110 +167,67 @@
 }
 
 .editorMainButton {
-  color: white;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
-
-  &:hover:not(:disabled) {
-    color: white;
-    background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  color: $dark-text-primary;
 }
 
 .editorMainButtonHasDropdown {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-  border-right: none;
 }
 
 .editorDropdownToggle {
   width: 1.25rem;
   min-width: 1.25rem;
-  padding: 0;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  color: white;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
-
-  &:hover:not(:disabled) {
-    color: white;
-    background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  color: $dark-text-primary;
 }
 
 .editorDropdown {
   position: absolute;
   right: 0;
-  margin-top: 0.5rem;
+  margin-top: $space-sm;
   width: 9rem;
   background-color: $gray-800;
+  border: 1px solid $dark-border-light;
   border-radius: $radius-md;
-  box-shadow: 0 0 0 1px $gray-700, 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-lg;
   z-index: 50;
 }
 
 .editorDropdownList {
-  padding: 0.25rem 0;
+  padding: $space-2xs 0;
 }
 
 .editorItem {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: $space-sm $space-md;
   font-size: $font-size-xs;
-  font-weight: 500;
-  color: white;
-  transition: background-color 150ms ease;
+  font-weight: $font-weight-medium;
+  color: $dark-text-primary;
+  transition: background-color $transition-fast ease;
 }
 
-.editorItemVscode {
-  &:hover {
-    background-color: #1d4ed8;
-  }
-}
-
-.editorItemCursor {
-  &:hover {
-    background-color: #7e22ce;
-  }
-}
-
+.editorItemVscode,
+.editorItemCursor,
 .editorItemCodeServer {
   &:hover {
-    background-color: #047857;
+    background-color: $dark-bg-hover;
   }
 }
 
 .editorItemIcon {
   width: 1rem;
   height: 1rem;
-  margin-right: 0.5rem;
+  margin-right: $space-sm;
 }
 
-.editorIconVscode {
-  color: #60a5fa;
-}
-
-.editorIconCursor {
-  color: #c084fc;
-}
-
+.editorIconVscode,
+.editorIconCursor,
 .editorIconCodeServer {
-  color: #34d399;
+  color: $dark-text-secondary;
 }
 
 .spinnerAnimation {
@@ -290,27 +239,19 @@
   to { transform: rotate(360deg); }
 }
 
-.opacity25 {
-  opacity: 0.25;
-}
-
-.opacity75 {
-  opacity: 0.75;
-}
-
 .connectionInfo {
   display: flex;
   align-items: center;
 
   & > * + * {
-    margin-left: 0.5rem;
+    margin-left: $space-sm;
   }
 }
 
 .statusDot {
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
 }
 
 .statusConnected {
@@ -318,7 +259,7 @@
 }
 
 .statusReconnecting {
-  background-color: #eab308;
+  background-color: $color-warning;
 }
 
 .statusDisconnected {
@@ -328,7 +269,7 @@
 .statusText {
   font-size: $font-size-xs;
   color: $gray-300;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   display: none;
 
   @include sm-up {

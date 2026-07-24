@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search, X, FolderOpen, MoreVertical, Square } from 'lucide-react';
 import type { GitRepository } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useSocketContext } from '@/app/providers/SocketProvider';
@@ -93,38 +93,14 @@ const RepositoryManager: React.FC = () => {
                   placeholder="プロジェクトを検索..."
                   className={s.searchInput}
                 />
-                <svg
-                  className={s.searchIcon}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                <Search className={s.searchIcon} />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
                     className={s.clearButton}
                     title="検索をクリア"
                   >
-                    <svg
-                      className={s.clearIcon}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X className={s.clearIcon} />
                   </button>
                 )}
               </div>
@@ -144,25 +120,7 @@ const RepositoryManager: React.FC = () => {
         {/* プロジェクト一覧 */}
         {repositories.length === 0 ? (
           <div className={s.emptyState}>
-            <svg
-              className={s.emptyIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="m8 10 4 4 4-4"
-              />
-            </svg>
+            <FolderOpen className={s.emptyIcon} strokeWidth={1.5} />
             <h3 className={s.emptyTitle}>
               プロジェクトがありません
             </h3>
@@ -179,19 +137,7 @@ const RepositoryManager: React.FC = () => {
           </div>
         ) : filteredRepositories.length === 0 ? (
           <div className={s.searchEmpty}>
-            <svg
-              className={s.searchEmptyIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <Search className={s.searchEmptyIcon} strokeWidth={1.5} />
             <h3 className={s.searchEmptyTitle}>
               検索結果なし
             </h3>
@@ -269,15 +215,7 @@ const RepositoryManager: React.FC = () => {
                             className={s.menuButton}
                             title="メニュー"
                           >
-                            <svg
-                              className={s.menuIcon}
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle cx="12" cy="5" r="2" />
-                              <circle cx="12" cy="12" r="2" />
-                              <circle cx="12" cy="19" r="2" />
-                            </svg>
+                            <MoreVertical className={s.menuIcon} />
                           </button>
 
                           {isMenuOpen && (
@@ -300,21 +238,7 @@ const RepositoryManager: React.FC = () => {
                                 }}
                                 className={s.menuItem}
                               >
-                                <svg
-                                  className={s.menuItemIcon}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <rect
-                                    x="6"
-                                    y="6"
-                                    width="12"
-                                    height="12"
-                                    rx="1"
-                                    strokeWidth="2"
-                                  />
-                                </svg>
+                                <Square className={s.menuItemIcon} />
                                 プロセス停止
                               </button>
                             </div>
