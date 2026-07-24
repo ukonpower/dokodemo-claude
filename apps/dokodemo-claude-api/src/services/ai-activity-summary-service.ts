@@ -83,6 +83,7 @@ function buildSummaryPrompt(
     '',
     '- 句点・引用符・絵文字は付けない',
     '- 最新の指示を重視しつつ、単発の脇道ではなくセッション全体の取り組みでまとめる',
+    '- 前置きや説明のテキストは書かず、直ちに StructuredOutput ツールだけを呼んで回答する',
   ];
   if (previousSummary) {
     lines.push(
@@ -298,8 +299,8 @@ export class AiActivitySummaryService extends EventEmitter {
     const options: any = {
       cwd: repositoryPath,
       model: SUMMARY_MODEL,
-      // ツール不要の構造化出力でも内部で複数ターン消費することがあるため 2 以上
-      maxTurns: 4,
+      // モデルはテキスト回答→Stop hook催促→ツール呼び出しで2〜3ターン消費が常態のため余裕を持たせる
+      maxTurns: 8,
       allowedTools: [],
       permissionMode: 'dontAsk',
       env,
