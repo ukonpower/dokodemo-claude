@@ -370,8 +370,8 @@
 }
 
 .switchOn {
-  background-color: $accent-green;
-  border-color: $accent-green;
+  background-color: $color-success;
+  border-color: $color-success;
 }
 
 .switchKnob {
@@ -479,11 +479,11 @@
 }
 
 .buttonPrimary {
-  background-color: $accent-blue;
+  background-color: $accent;
   color: white;
 
   &:not(:disabled):hover {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
   }
 }
 

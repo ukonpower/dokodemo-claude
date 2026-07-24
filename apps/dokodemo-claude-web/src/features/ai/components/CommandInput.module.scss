@@ -222,8 +222,8 @@
   font-size: 8px;
 
   &.checked {
-    background-color: $accent-blue;
-    border-color: $accent-blue;
+    background-color: $accent;
+    border-color: $accent;
     color: white;
   }
 
@@ -323,8 +323,8 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
-    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
   }
 
   &:hover {
@@ -332,9 +332,9 @@
   }
 
   &.dragOver {
-    border-color: $accent-blue;
-    box-shadow: 0 0 0 1px $accent-blue;
-    background-color: rgba($accent-blue, 0.05);
+    border-color: $accent;
+    box-shadow: 0 0 0 1px $accent;
+    background-color: rgba($accent, 0.05);
   }
 }
 
@@ -567,8 +567,8 @@
 
 // 鉛筆ボタンへ画像をドラッグ中のハイライト
 .sketchDragOver {
-  color: $accent-blue;
-  border-color: $accent-blue;
+  color: $accent;
+  border-color: $accent;
   background-color: $dark-bg-hover;
 }
 
@@ -759,7 +759,7 @@
   transition: background-color $transition-normal $transition-easing;
 
   &.on {
-    background-color: $accent-blue;
+    background-color: $accent;
   }
 
   &.off {
@@ -817,7 +817,7 @@
   }
 
   &.active {
-    background-color: $accent-blue;
+    background-color: $accent;
     color: white;
   }
 
@@ -922,7 +922,7 @@
   cursor: pointer;
 
   &.selected {
-    background-color: $accent-blue;
+    background-color: $accent;
     color: white;
   }
 
@@ -950,7 +950,7 @@
   transition: opacity $transition-fast $transition-easing, color $transition-fast $transition-easing;
 
   &:hover {
-    color: $accent-red;
+    color: $color-error;
   }
 
   svg {
@@ -1000,7 +1000,7 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }
 
@@ -1027,7 +1027,7 @@
   padding: 0.25rem 0.5rem;
   font-size: $font-size-xs;
   color: white;
-  background-color: $accent-blue;
+  background-color: $accent;
   border: none;
   border-radius: $radius;
   cursor: pointer;
@@ -1045,8 +1045,8 @@
   justify-content: center;
   min-height: 2.25rem;
   padding: 0 1rem;
-  background-color: $accent-blue;
-  border: 1px solid $accent-blue;
+  background-color: $accent;
+  border: 1px solid $accent;
   border-radius: $radius-md;
   font-size: $font-size-sm;
   line-height: 1rem;
@@ -1057,7 +1057,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: color.adjust($accent-blue, $lightness: -10%);
+    background-color: color.adjust($accent, $lightness: -10%);
   }
 
   &:disabled {
@@ -1067,7 +1067,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px $accent-blue;
+    box-shadow: 0 0 0 2px $accent;
   }
 }
 

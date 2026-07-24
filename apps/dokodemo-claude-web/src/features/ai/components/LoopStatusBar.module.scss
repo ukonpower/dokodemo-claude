@@ -104,12 +104,12 @@
 }
 
 .continueButton {
-  background-color: $accent-blue;
-  border-color: $accent-blue;
+  background-color: $accent;
+  border-color: $accent;
   color: white;
 
   &:hover {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
   }
 }
 

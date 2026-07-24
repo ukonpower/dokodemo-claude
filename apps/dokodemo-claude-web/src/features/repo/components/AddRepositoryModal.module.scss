@@ -138,8 +138,8 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
-    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
   }
 
   &:hover {
@@ -163,8 +163,8 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
-    border-color: $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
+    border-color: $accent;
   }
 
   &:hover {
@@ -179,7 +179,7 @@
 // Submit button
 .submitButton {
   width: 100%;
-  background-color: $accent-green;
+  background-color: $color-success;
   color: white;
   padding: 0.625rem 1rem;
   border-radius: $radius-lg;
@@ -191,12 +191,12 @@
   justify-content: center;
 
   &:hover {
-    background-color: $accent-green-hover;
+    background-color: $color-success-hover;
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-green;
+    box-shadow: 0 0 0 1px $color-success;
   }
 
   &:disabled {

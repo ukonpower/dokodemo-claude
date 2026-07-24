@@ -286,14 +286,14 @@
 
 .modeButton {
   @extend %btnBase;
-  border-color: $accent-blue;
+  border-color: $accent;
 
   &:hover {
-    border-color: color.adjust($accent-blue, $lightness: -10%);
+    border-color: color.adjust($accent, $lightness: -10%);
   }
 
   &:focus {
-    box-shadow: 0 0 0 1px $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
   }
 }
 
@@ -350,29 +350,29 @@
 
 .commitButton {
   @extend %btnBase;
-  border-color: $accent-green;
+  border-color: $color-success;
 
   &:hover {
-    border-color: $accent-green-hover;
+    border-color: $color-success-hover;
   }
 
   &:focus {
-    box-shadow: 0 0 0 1px $accent-green;
+    box-shadow: 0 0 0 1px $color-success;
   }
 }
 
 .resumeButton {
   @extend %btnBase;
-  border-color: $accent-cyan;
-  color: $accent-cyan;
+  border-color: $accent;
+  color: $accent;
 
   &:hover {
-    border-color: $accent-cyan-hover;
-    color: $accent-cyan-hover;
+    border-color: $accent-hover;
+    color: $accent-hover;
   }
 
   &:focus {
-    box-shadow: 0 0 0 1px $accent-cyan;
+    box-shadow: 0 0 0 1px $accent;
   }
 }
 
@@ -455,18 +455,18 @@
 
 .customButton {
   @extend %btnBase;
-  border-color: $accent-cyan;
+  border-color: $accent;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
   &:hover {
-    border-color: $accent-cyan-hover;
+    border-color: $accent-hover;
   }
 
   &:focus {
-    box-shadow: 0 0 0 1px $accent-cyan;
+    box-shadow: 0 0 0 1px $accent;
   }
 }
 
@@ -549,8 +549,8 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
-    box-shadow: 0 0 0 1px $accent-blue;
+    border-color: $accent;
+    box-shadow: 0 0 0 1px $accent;
   }
 }
 
@@ -606,16 +606,16 @@
 .dialogDeleteButton {
   margin-right: auto;
   padding: 0.375rem 0.75rem;
-  border: 1px solid $accent-red;
+  border: 1px solid $color-error;
   border-radius: $radius;
   background: transparent;
-  color: $accent-red;
+  color: $color-error;
   font-size: $font-size-xs;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba($accent-red, 0.12);
+    background-color: rgba($color-error, 0.12);
   }
 }
 
@@ -637,9 +637,9 @@
 
 .dialogSubmitButton {
   padding: 0.375rem 0.875rem;
-  border: 1px solid $accent-blue;
+  border: 1px solid $accent;
   border-radius: $radius;
-  background-color: $accent-blue;
+  background-color: $accent;
   color: white;
   font-size: $font-size-xs;
   font-weight: 500;
@@ -647,7 +647,7 @@
   transition: all $transition-fast $transition-easing;
 
   &:hover:not(:disabled) {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
   }
 
   &:disabled {

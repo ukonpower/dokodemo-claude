@@ -150,9 +150,9 @@
 }
 
 .copyButtonCopied {
-  background-color: rgba($accent-green, 0.2);
-  color: $accent-green;
-  border-color: rgba($accent-green, 0.5);
+  background-color: rgba($color-success, 0.2);
+  color: $color-success;
+  border-color: rgba($color-success, 0.5);
 }
 
 .iconButton {
@@ -187,8 +187,8 @@
   border-color: rgba(255, 255, 255, 0.14);
 
   &:hover {
-    background-color: rgba($accent-red, 0.18);
-    border-color: rgba($accent-red, 0.5);
+    background-color: rgba($color-error, 0.18);
+    border-color: rgba($color-error, 0.5);
     color: #fca5a5;
   }
 }

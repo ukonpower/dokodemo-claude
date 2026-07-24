@@ -123,7 +123,7 @@
   transition: background-color $transition-normal $transition-easing;
 
   &.on {
-    background-color: $accent-blue;
+    background-color: $accent;
   }
 
   &.off {
@@ -184,7 +184,7 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }
 
@@ -207,6 +207,6 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }

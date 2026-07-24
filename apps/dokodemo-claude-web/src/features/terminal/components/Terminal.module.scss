@@ -38,11 +38,11 @@
   flex-shrink: 0;
 
   &.active {
-    background-color: $accent-green;
+    background-color: $color-success;
   }
 
   &.exited {
-    background-color: $accent-red;
+    background-color: $color-error;
   }
 
   &.other {
@@ -232,10 +232,10 @@
   }
 
   &.escKey {
-    border-color: $accent-red;
+    border-color: $color-error;
 
     &:hover {
-      border-color: $accent-red;
+      border-color: $color-error;
     }
   }
 }
@@ -294,7 +294,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
   }
 
   &:hover {
@@ -304,7 +304,7 @@
 
 .submitButton {
   padding: 0.25rem 0.75rem;
-  background-color: $accent-blue;
+  background-color: $accent;
   color: white;
   border-radius: $radius-lg;
   border: none;
@@ -315,7 +315,7 @@
   box-shadow: $shadow-sm;
 
   &:hover {
-    background-color: color.adjust($accent-blue, $lightness: -10%);
+    background-color: color.adjust($accent, $lightness: -10%);
   }
 }
 

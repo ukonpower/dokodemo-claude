@@ -116,7 +116,7 @@
 }
 
 .copiedText {
-  color: $accent-green;
+  color: $color-success;
 }
 
 .githubButton {
@@ -314,7 +314,7 @@
 }
 
 .statusConnected {
-  background-color: $accent-green;
+  background-color: $color-success;
 }
 
 .statusReconnecting {
@@ -322,7 +322,7 @@
 }
 
 .statusDisconnected {
-  background-color: $accent-red;
+  background-color: $color-error;
 }
 
 .statusText {

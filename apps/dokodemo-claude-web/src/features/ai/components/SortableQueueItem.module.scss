@@ -201,7 +201,7 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }
 
@@ -229,9 +229,9 @@
 }
 
 .optionsButtonActive {
-  background-color: rgba($accent-blue, 0.2);
-  border-color: $accent-blue;
-  color: $accent-blue;
+  background-color: rgba($accent, 0.2);
+  border-color: $accent;
+  color: $accent;
 }
 
 .optionsButtonInactive {
@@ -253,7 +253,7 @@
   margin-left: 2px;
   padding: 2px 4px;
   font-size: 10px;
-  background-color: $accent-blue;
+  background-color: $accent;
   color: white;
   border-radius: 9999px;
   line-height: 1;
@@ -393,7 +393,7 @@
   font-size: 11px;
   line-height: 1;
   color: white;
-  background-color: $accent-red;
+  background-color: $color-error;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -401,7 +401,7 @@
   transition: opacity $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $accent-red-hover;
+    background-color: $color-error-hover;
   }
 }
 
@@ -419,8 +419,8 @@
 }
 
 .modelButtonActive {
-  background-color: $accent-blue;
-  border-color: $accent-blue;
+  background-color: $accent;
+  border-color: $accent;
   color: white;
 }
 
@@ -468,7 +468,7 @@
 
   &:focus {
     outline: none;
-    border-color: $accent-blue;
+    border-color: $accent;
   }
 }
 
@@ -495,7 +495,7 @@
   padding: 4px 8px;
   font-size: 11px;
   color: white;
-  background-color: $accent-blue;
+  background-color: $accent;
   border: none;
   border-radius: $radius;
   cursor: pointer;
@@ -530,15 +530,15 @@
 .saveEditButton {
   padding: 4px 10px;
   font-size: $font-size-xs;
-  background-color: $accent-blue;
-  border: 1px solid $accent-blue;
+  background-color: $accent;
+  border: 1px solid $accent;
   border-radius: $radius;
   color: white;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
 
   &:hover {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
   }
 
   &:disabled {

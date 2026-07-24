@@ -102,8 +102,8 @@
 
 .errorBox {
   margin: 1rem;
-  background-color: rgba($accent-red, 0.2);
-  border: 1px solid rgba($accent-red, 0.5);
+  background-color: rgba($color-error, 0.2);
+  border: 1px solid rgba($color-error, 0.5);
   border-radius: $radius-lg;
   padding: 0.75rem 1rem;
   font-size: $font-size-sm;

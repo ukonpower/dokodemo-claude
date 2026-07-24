@@ -79,7 +79,7 @@
 
 .openButton {
   flex: 1;
-  background-color: $accent-blue;
+  background-color: $accent;
   color: white;
   padding: 8px 16px;
   border-radius: $radius-lg;
@@ -90,11 +90,11 @@
   cursor: pointer;
 
   &:hover {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 1px $accent-blue;
+    box-shadow: 0 0 0 1px $accent;
   }
 }

@@ -200,7 +200,7 @@
   border-color: $blue-500;
 
   &:hover:not(:disabled) {
-    background-color: $accent-blue-hover;
+    background-color: $accent-hover;
     color: white;
   }
 }
@@ -275,7 +275,7 @@
 .broadcastLabel {
   font-size: 0.7rem;
   font-weight: 600;
-  color: $accent-blue;
+  color: $accent;
   letter-spacing: 0.02em;
 }
 

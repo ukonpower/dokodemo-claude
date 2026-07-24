@@ -139,7 +139,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 9999px;
-  background-color: $accent-green;
+  background-color: $color-success;
   border: 1px solid $dark-bg-primary;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .statusConnected {
-  background-color: $accent-green;
+  background-color: $color-success;
 }
 
 .statusReconnecting {
@@ -198,7 +198,7 @@
 }
 
 .statusDisconnected {
-  background-color: $accent-red;
+  background-color: $color-error;
 }
 
 .statusText {

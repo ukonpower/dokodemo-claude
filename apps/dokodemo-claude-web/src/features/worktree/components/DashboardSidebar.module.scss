@@ -164,10 +164,10 @@
 }
 
 .visToggleOn {
-  color: $accent-blue;
+  color: $accent;
 
   &:hover {
-    color: $accent-blue;
+    color: $accent;
   }
 }
 
@@ -227,7 +227,7 @@
 }
 
 .memoToggleOpen {
-  color: $accent-blue;
+  color: $accent;
   background-color: $dark-bg-tertiary;
 }
 

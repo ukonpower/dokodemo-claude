@@ -1,6 +1,14 @@
 // ============================================
 // デザイントークン - 変数定義
 // ============================================
+// 2 層構造:
+//   1. プリミティブ層 … 生の値（カラーパレット・スケール）。原則コンポーネントから直接参照しない
+//   2. セマンティック層 … 用途に紐づく名前。コンポーネントはこちらを使う
+// 詳細は docs/design-system.md を参照。
+
+// ============================================
+// プリミティブ層
+// ============================================
 
 // --- ブレークポイント ---
 $breakpoint-xs: 475px;
@@ -10,7 +18,7 @@ $breakpoint-lg: 860px;
 $breakpoint-xl: 1280px;
 $breakpoint-2xl: 1536px;
 
-// --- カラー: グレースケール（純粋なニュートラル、青みなし）---
+// --- カラー: グレースケール（純粋なニュートラル、青みなし / Tailwind neutral 相当）---
 $gray-50: #fafafa;
 $gray-100: #f5f5f5;
 $gray-200: #e5e5e5;
@@ -22,79 +30,153 @@ $gray-700: #404040;
 $gray-800: #262626;
 $gray-900: #171717;
 
-// --- カラー: Claude ---
-$claude-50: #f8fafc;
-$claude-100: #f1f5f9;
-$claude-200: #e2e8f0;
-$claude-300: #cbd5e1;
-$claude-400: #94a3b8;
-$claude-500: #64748b;
-$claude-600: #475569;
-$claude-700: #334155;
-$claude-800: #1e293b;
-$claude-900: #0f172a;
+// --- カラー: プリミティブパレット（Tailwind CSS v3 公式値）---
+// red
+$red-50: #fef2f2;
+$red-100: #fee2e2;
+$red-200: #fecaca;
+$red-300: #fca5a5;
+$red-400: #f87171;
+$red-500: #ef4444;
+$red-600: #dc2626;
+$red-700: #b91c1c;
+$red-800: #991b1b;
+$red-900: #7f1d1d;
 
-// --- カラー: ダークテーマ 背景 ---
-$dark-bg-primary: #0a0a0a;
-$dark-bg-secondary: #141414;
-$dark-bg-tertiary: #1c1c1c;
-$dark-bg-hover: #252525;
+// orange
+$orange-50: #fff7ed;
+$orange-100: #ffedd5;
+$orange-200: #fed7aa;
+$orange-300: #fdba74;
+$orange-400: #fb923c;
+$orange-500: #f97316;
+$orange-600: #ea580c;
+$orange-700: #c2410c;
+$orange-800: #9a3412;
+$orange-900: #7c2d12;
 
-// --- カラー: ダークテーマ ボーダー ---
-$dark-border: #1f1f1f;
-$dark-border-light: #2a2a2a;
-$dark-border-focus: #333333;
+// amber
+$amber-50: #fffbeb;
+$amber-100: #fef3c7;
+$amber-200: #fde68a;
+$amber-300: #fcd34d;
+$amber-400: #fbbf24;
+$amber-500: #f59e0b;
+$amber-600: #d97706;
+$amber-700: #b45309;
+$amber-800: #92400e;
+$amber-900: #78350f;
 
-// --- カラー: ダークテーマ テキスト ---
-$dark-text-primary: #ffffff;
-$dark-text-secondary: #a0a0a0;
-$dark-text-muted: #666666;
-
-// --- カラー: アクセント ---
-$accent-blue: #6b7280;
-$accent-blue-hover: #4b5563;
-$accent-green: #10b981;
-$accent-green-hover: #059669;
-$accent-red: #ef4444;
-$accent-red-hover: #dc2626;
-$accent-purple: #9ca3af;
-$accent-purple-hover: #6b7280;
-$accent-cyan: #6b7280;
-$accent-cyan-hover: #4b5563;
-$accent-orange: #9ca3af;
-$accent-orange-hover: #6b7280;
-
-// --- カラー: セマンティック ---
-$color-success: #10b981;
-$color-warning: #f59e0b;
-$color-error: #ef4444;
-$color-info: #3b82f6;
-
-// --- カラー: その他 ---
+// yellow
+$yellow-50: #fefce8;
+$yellow-100: #fef9c3;
+$yellow-200: #fef08a;
+$yellow-300: #fde047;
+$yellow-400: #facc15;
+$yellow-500: #eab308;
 $yellow-600: #ca8a04;
 $yellow-700: #a16207;
+$yellow-800: #854d0e;
 $yellow-900: #713f12;
-$green-600: #16a34a;
-$red-600: #dc2626;
-$blue-500: #3b82f6;
-$cyan-500: #06b6d4;
 
-// --- フォント ---
+// green
+$green-50: #f0fdf4;
+$green-100: #dcfce7;
+$green-200: #bbf7d0;
+$green-300: #86efac;
+$green-400: #4ade80;
+$green-500: #22c55e;
+$green-600: #16a34a;
+$green-700: #15803d;
+$green-800: #166534;
+$green-900: #14532d;
+
+// emerald
+$emerald-50: #ecfdf5;
+$emerald-100: #d1fae5;
+$emerald-200: #a7f3d0;
+$emerald-300: #6ee7b7;
+$emerald-400: #34d399;
+$emerald-500: #10b981;
+$emerald-600: #059669;
+$emerald-700: #047857;
+$emerald-800: #065f46;
+$emerald-900: #064e3b;
+
+// blue
+$blue-50: #eff6ff;
+$blue-100: #dbeafe;
+$blue-200: #bfdbfe;
+$blue-300: #93c5fd;
+$blue-400: #60a5fa;
+$blue-500: #3b82f6;
+$blue-600: #2563eb;
+$blue-700: #1d4ed8;
+$blue-800: #1e40af;
+$blue-900: #1e3a8a;
+
+// cyan
+$cyan-50: #ecfeff;
+$cyan-100: #cffafe;
+$cyan-200: #a5f3fc;
+$cyan-300: #67e8f9;
+$cyan-400: #22d3ee;
+$cyan-500: #06b6d4;
+$cyan-600: #0891b2;
+$cyan-700: #0e7490;
+$cyan-800: #155e75;
+$cyan-900: #164e63;
+
+// purple
+$purple-50: #faf5ff;
+$purple-100: #f3e8ff;
+$purple-200: #e9d5ff;
+$purple-300: #d8b4fe;
+$purple-400: #c084fc;
+$purple-500: #a855f7;
+$purple-600: #9333ea;
+$purple-700: #7e22ce;
+$purple-800: #6b21a8;
+$purple-900: #581c87;
+
+// --- フォント（プリミティブ）---
 $font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 $font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', monospace;
 
-// --- スペーシング ---
-$spacing-touch: 44px;
-$spacing-touch-lg: 56px;
-
-// --- フォントサイズ ---
-$font-size-xs: 0.75rem;    // 12px
-$font-size-sm: 0.875rem;   // 14px
+// --- フォントサイズ（プリミティブスケール）---
+$font-size-2xs: 0.625rem;   // 10px
+$font-size-xs: 0.75rem;     // 12px
+$font-size-sm: 0.875rem;    // 14px
 $font-size-base: 1rem;      // 16px
 $font-size-lg: 1.125rem;    // 18px
 $font-size-xl: 1.25rem;     // 20px
 $font-size-2xl: 1.5rem;     // 24px
 $font-size-3xl: 1.875rem;   // 30px
+
+// --- フォントウェイト ---
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// --- 行送り ---
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+
+// --- スペーシングスケール（プリミティブ）---
+$space-3xs: 0.125rem; // 2px
+$space-2xs: 0.25rem;  // 4px
+$space-xs: 0.375rem;  // 6px
+$space-sm: 0.5rem;    // 8px
+$space-md: 0.75rem;   // 12px
+$space-lg: 1rem;      // 16px
+$space-xl: 1.5rem;    // 24px
+$space-2xl: 2rem;     // 32px
+$space-3xl: 3rem;     // 48px
+
+// --- タッチターゲット ---
+$spacing-touch: 44px;
+$spacing-touch-lg: 56px;
 
 // --- 角丸 ---
 $radius-sm: 0.125rem;  // 2px
@@ -116,3 +198,53 @@ $transition-fast: 150ms;
 $transition-normal: 200ms;
 $transition-slow: 300ms;
 $transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+// ============================================
+// セマンティック層
+// ============================================
+
+// --- 背景（ダークテーマ）---
+$dark-bg-primary: #0a0a0a;
+$dark-bg-secondary: #141414;
+$dark-bg-tertiary: #1c1c1c;
+$dark-bg-hover: #252525;
+
+// --- ボーダー（ダークテーマ）---
+$dark-border: #1f1f1f;
+$dark-border-light: #2a2a2a;
+$dark-border-focus: #333333;
+
+// --- テキスト（ダークテーマ）---
+$dark-text-primary: #ffffff;
+$dark-text-secondary: #a0a0a0;
+$dark-text-muted: #666666;
+
+// --- インタラクション強調色 ---
+$accent: $gray-500;
+$accent-hover: $gray-600;
+
+// --- ステータス ---
+$color-success: $emerald-500;
+$color-success-hover: $emerald-600;
+$color-warning: $amber-500;
+$color-warning-hover: $amber-600;
+$color-error: $red-500;
+$color-error-hover: $red-600;
+$color-info: $blue-500;
+$color-info-hover: $blue-600;
+
+// --- ステータス淡色（背景・ボーダー）---
+$color-success-bg: rgba($emerald-500, 0.12);
+$color-success-border: rgba($emerald-500, 0.35);
+$color-warning-bg: rgba($amber-500, 0.12);
+$color-warning-border: rgba($amber-500, 0.35);
+$color-error-bg: rgba($red-500, 0.12);
+$color-error-border: rgba($red-500, 0.35);
+$color-info-bg: rgba($blue-500, 0.12);
+$color-info-border: rgba($blue-500, 0.35);
+
+// --- diff ---
+$diff-added-text: $green-400;
+$diff-added-bg: rgba($green-500, 0.1);
+$diff-removed-text: $red-400;
+$diff-removed-bg: rgba($red-500, 0.1);
