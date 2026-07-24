@@ -4,43 +4,43 @@
 }
 
 .emptyText {
-  color: #4b5563;
-  font-size: 11px;
-  font-family: Inter, sans-serif;
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
 }
 
 .root {
-  padding: 8px 10px;
+  padding: $space-sm $space-sm;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $space-2xs;
   min-height: 100%;
 }
 
 .queueList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $space-2xs;
 }
 
 .footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #2d2e32;
+  gap: $space-xs;
+  padding-top: $space-xs;
+  border-top: 1px solid $dark-border-light;
 }
 
 .footerLeft {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
 }
 
 .spinIcon {
   animation: spin 1s linear infinite;
-  color: $blue-500;
+  color: $color-info;
 }
 
 @keyframes spin {
@@ -50,43 +50,44 @@
 
 .processingText {
   color: $gray-500;
-  font-size: 10px;
-  font-family: Inter, sans-serif;
+  font-size: $font-size-2xs;
+  font-family: $font-sans;
 }
 
 .pausedText {
-  color: #eab308;
-  font-size: 10px;
-  font-family: Inter, sans-serif;
+  color: $color-warning;
+  font-size: $font-size-2xs;
+  font-family: $font-sans;
 }
 
 .footerRight {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $space-2xs;
 }
 
 .footerButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: $font-size-2xs;
   background: none;
   border: none;
-  padding: 2px 6px;
-  font-family: Inter, sans-serif;
+  padding: $space-3xs $space-xs;
+  font-family: $font-sans;
   cursor: pointer;
   touch-action: manipulation;
 
   // モバイルではタップターゲットを広げる
   @include sm-down {
-    padding: 8px 10px;
+    padding: $space-sm $space-sm;
   }
 }
 
+// 処理中アイテムの停止は破壊的操作なのでエラー色（赤）
 .cancelButton {
   composes: footerButton;
-  color: #f97316;
+  color: $color-error;
 }
 
 .pauseButton {
@@ -108,35 +109,35 @@
 .loopEndBanner {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: $space-2xs;
+  padding: $space-sm $space-sm;
   border-radius: $radius;
-  border: 1px solid #1e3a5f;
-  margin-bottom: 6px;
-  background-color: #172032;
-  color: #93c5fd;
+  border: 1px solid $color-info-border;
+  margin-bottom: $space-xs;
+  background-color: $color-info-bg;
+  color: $color-info;
 }
 
 .loopEndHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: $space-sm;
 }
 
 .loopEndTitle {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: $space-2xs;
   font-size: $font-size-xs;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
 }
 
 .loopEndClose {
   display: flex;
   align-items: center;
-  padding: 6px;
-  margin: -4px;
+  padding: $space-xs;
+  margin: -$space-2xs;
   border: none;
   border-radius: $radius;
   background: transparent;

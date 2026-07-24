@@ -1,25 +1,25 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
+  gap: $space-2xs;
+  padding: $space-sm $space-sm;
   border-radius: $radius;
   border: 1px solid $dark-border-light;
-  margin-bottom: 6px;
+  margin-bottom: $space-xs;
   background-color: $dark-bg-secondary;
   color: $dark-text-primary;
 }
 
 .warning {
-  background-color: #402410;
-  border-color: #8b5a2b;
-  color: #fed7aa;
+  background-color: $color-warning-bg;
+  border-color: $color-warning-border;
+  color: $color-warning;
 }
 
 .info {
-  background-color: #172032;
-  border-color: #1e3a5f;
-  color: #93c5fd;
+  background-color: $color-info-bg;
+  border-color: $color-info-border;
+  color: $color-info;
 }
 
 .normal {
@@ -30,14 +30,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: $space-sm;
   flex-wrap: wrap;
 }
 
 .leftGroup {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   min-width: 0;
   flex: 1;
 }
@@ -69,7 +69,7 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   flex-shrink: 0;
 
   // モバイルでは折り返して全幅に広げ、タップしやすくする
@@ -83,7 +83,7 @@
 .endButton,
 .stopButton {
   font-size: $font-size-xs;
-  padding: 4px 12px;
+  padding: $space-2xs $space-md;
   min-height: 28px;
   border-radius: $radius;
   border: 1px solid $dark-border-light;
@@ -115,11 +115,11 @@
 
 .endButton,
 .stopButton {
-  color: #f87171;
-  border-color: #7f1d1d;
+  color: $color-error;
+  border-color: $color-error-border;
 
   &:hover {
-    background-color: #2a1215;
+    background-color: $color-error-bg;
   }
 }
 
@@ -127,7 +127,7 @@
 .reason {
   display: block;
   width: 100%;
-  padding: 2px 0;
+  padding: $space-3xs 0;
   background: none;
   border: none;
   text-align: left;

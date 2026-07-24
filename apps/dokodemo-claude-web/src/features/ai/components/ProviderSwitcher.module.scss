@@ -3,13 +3,13 @@
   align-items: center;
   background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
-  padding: 2px;
+  padding: $space-3xs;
 }
 
 .button {
-  padding: 2px 8px;
+  padding: $space-3xs $space-sm;
   font-size: $font-size-xs;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   border-radius: $radius-md;
   transition: all $transition-normal $transition-easing;
   border: none;

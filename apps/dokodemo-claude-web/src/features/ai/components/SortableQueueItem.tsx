@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { Repeat, X } from 'lucide-react';
+import { Check, ChevronDown, Repeat, SlidersHorizontal, X } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PromptQueueItem } from '@/types';
@@ -178,38 +178,16 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                 : s.optionsButtonInactive
             }`}
           >
-            <svg
-              className={s.optionsIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-              />
-            </svg>
+            <SlidersHorizontal className={s.optionsIcon} />
             <span>オプション</span>
             {activeOptionsCount > 0 && (
               <span className={s.optionsBadge}>
                 {activeOptionsCount}
               </span>
             )}
-            <svg
+            <ChevronDown
               className={`${s.optionsChevron} ${isOptionsOpen ? s.optionsChevronOpen : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            />
           </button>
 
           {/* オプションドロップダウン */}
@@ -239,19 +217,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     }`}
                   >
                     {editSendClearBefore && (
-                      <svg
-                        className={s.checkIcon}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
+                      <Check className={s.checkIcon} strokeWidth={3} />
                     )}
                   </div>
                   <div className={s.optionText}>
@@ -278,19 +244,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                     }`}
                   >
                     {editIsAutoCommit && (
-                      <svg
-                        className={s.checkIcon}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
+                      <Check className={s.checkIcon} strokeWidth={3} />
                     )}
                   </div>
                   <div className={s.optionText}>
@@ -384,7 +338,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                             title="このカスタムモデルを削除"
                             aria-label="カスタムモデルを削除"
                           >
-                            ×
+                            <X size={12} />
                           </button>
                         )}
                       </div>
@@ -640,7 +594,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
                 )}
                 {item.loop && (
                   <span className={s.viewTag}>
-                    <Repeat size={10} />
+                    <Repeat size={12} />
                     {item.loop.iteration}周目
                   </span>
                 )}
@@ -713,7 +667,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
           {/* ループバッジ */}
           {item.loop && (
             <span className={s.viewTag} title="ループアイテム">
-              <Repeat size={10} />
+              <Repeat size={12} />
               {item.loop.iteration}周目
             </span>
           )}

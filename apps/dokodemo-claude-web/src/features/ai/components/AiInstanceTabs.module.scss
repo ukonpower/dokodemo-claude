@@ -22,8 +22,8 @@
   display: flex;
   align-items: center;
   height: 100%;
-  gap: 0.3rem;
-  padding: 0 0.45rem;
+  gap: $space-2xs;
+  padding: 0 $space-xs;
   border: none;
   border-top: 2px solid transparent;
   border-bottom: 2px solid transparent;
@@ -31,7 +31,7 @@
   color: $gray-400;
   font-size: $font-size-xs;
   line-height: 1rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   cursor: pointer;
   transition:
     color $transition-fast $transition-easing,
@@ -45,18 +45,11 @@
     color: $gray-200;
   }
 
+  // アクティブタブの下線はモノトーンで統一（provider 別のブランド色は使わない）
   &.active {
     color: white;
     background-color: $gray-800;
-    border-bottom-color: $blue-500;
-
-    &.claude {
-      border-bottom-color: #fb923c; // orange-400
-    }
-
-    &.codex {
-      border-bottom-color: #38bdf8; // sky-400
-    }
+    border-bottom-color: $dark-text-primary;
   }
 }
 
@@ -66,9 +59,9 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 0.1rem;
+  gap: $space-3xs;
   min-width: 0;
-  padding: 0.25rem 0;
+  padding: $space-2xs 0;
 }
 
 .label {
@@ -80,8 +73,8 @@
 .summary {
   @include truncate;
   max-width: 10rem;
-  font-size: 0.65rem;
-  font-weight: 400;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
   line-height: 0.85rem;
   color: $gray-500;
 
@@ -136,7 +129,7 @@
   flex-shrink: 0;
   width: 1.3rem;
   height: 1.3rem;
-  margin: 0 0.4rem;
+  margin: 0 $space-xs;
   padding: 0;
   background: transparent;
   border: 1px solid $dark-border-light;
@@ -169,8 +162,8 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
+  gap: $space-xs;
+  padding: $space-2xs $space-md;
   font-size: $font-size-xs;
   background: none;
   border: none;
@@ -196,20 +189,20 @@
 // タブメニュー内の区切り線（プロバイダー切替 と 再起動 の間）
 .menuDivider {
   height: 1px;
-  margin: 0.2rem 0;
+  margin: $space-3xs 0;
   background-color: $dark-border-light;
 }
 
 // provider 切替セグメント（Claude / Codex の 2 択トグル）
 .providerSegment {
   display: flex;
-  gap: 0.2rem;
-  padding: 0.2rem 0.3rem;
+  gap: $space-3xs;
+  padding: $space-3xs $space-2xs;
 }
 
 .providerSegmentItem {
   flex: 1;
-  padding: 0.25rem 0.4rem;
+  padding: $space-2xs $space-xs;
   font-size: $font-size-xs;
   background: transparent;
   border: 1px solid $dark-border-light;
@@ -226,18 +219,12 @@
     color: $gray-100;
   }
 
+  // アクティブ表示はモノトーン（provider 別ブランド色は使わない）
   &.active {
     color: white;
     background-color: $gray-700;
+    border-color: $gray-500;
     cursor: default;
-
-    &.claude {
-      border-color: #fb923c; // orange-400（タブと揃える）
-    }
-
-    &.codex {
-      border-color: #38bdf8; // sky-400（タブと揃える）
-    }
   }
 }
 

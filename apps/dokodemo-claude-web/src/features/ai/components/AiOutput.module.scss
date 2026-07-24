@@ -49,7 +49,7 @@
 
   // 左端のボタンだけ左下を丸める（ボタン群としてまとめる）
   &:first-child {
-    border-radius: 0 0 0 0.375rem;
+    border-radius: 0 0 0 $radius-md;
   }
 
   &:hover {
@@ -98,23 +98,13 @@
   align-items: center;
 
   & > * + * {
-    margin-top: 0.75rem;
+    margin-top: $space-md;
   }
 }
 
 .loadingSpinner {
   animation: spin 1s linear infinite;
-  height: 2rem;
-  width: 2rem;
   color: $accent;
-}
-
-.loadingSpinnerCircle {
-  opacity: 0.25;
-}
-
-.loadingSpinnerPath {
-  opacity: 0.75;
 }
 
 .loadingText {
@@ -124,7 +114,7 @@
 .loadingMessage {
   font-size: $font-size-sm;
   line-height: 1.25rem;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: white;
 }
 
@@ -132,6 +122,6 @@
   font-size: $font-size-xs;
   line-height: 1rem;
   color: $gray-400;
-  margin-top: 0.25rem;
+  margin-top: $space-2xs;
 }
 

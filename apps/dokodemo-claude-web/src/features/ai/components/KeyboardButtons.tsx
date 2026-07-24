@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { CustomAiButton, CustomAiButtonScope } from '@/types';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
@@ -326,7 +327,8 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
       aria-expanded={showAux}
       title="その他のボタンを表示"
     >
-      {showAux ? '▾ その他' : '▸ その他'}
+      {showAux ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+      その他
     </button>
   ) : null;
 
@@ -437,7 +439,7 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
         title="ボタンを追加"
         aria-label="カスタムボタンを追加"
       >
-        ＋
+        <Plus size={14} />
       </button>
     </div>
   );

@@ -5,7 +5,7 @@
   width: 1.15rem;
   height: 1.15rem;
   border: 1px solid transparent;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -23,14 +23,15 @@
   }
 }
 
+// 実行中はモノトーンのアクセントチップ（緑は完了＝成功状態に限定）
 .running {
   background-color: rgba($accent, 0.16);
   border-color: rgba($accent, 0.42);
-  color: #bfdbfe;
+  color: $dark-text-primary;
 }
 
 .done {
-  background-color: rgba(#166534, 0.4);
-  border-color: rgba(#22c55e, 0.35);
-  color: #bbf7d0;
+  background-color: $color-success-bg;
+  border-color: $color-success-border;
+  color: $color-success;
 }

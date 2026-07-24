@@ -281,7 +281,7 @@ const PromptQueue: React.FC = () => {
             {isProcessing && (
               <>
                 <Loader
-                  size={10}
+                  size={12}
                   className={s.spinIcon}
                 />
                 <span className={s.processingText}>

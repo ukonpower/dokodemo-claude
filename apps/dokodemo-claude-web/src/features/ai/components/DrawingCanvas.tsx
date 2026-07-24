@@ -542,7 +542,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             aria-label="元に戻す"
             title="元に戻す"
           >
-            <Undo2 size={18} strokeWidth={2} />
+            <Undo2 size={16} strokeWidth={2} />
           </button>
           <button
             onClick={handleClear}
@@ -551,7 +551,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             aria-label="すべて消す"
             title="すべて消す"
           >
-            <Trash2 size={18} strokeWidth={2} />
+            <Trash2 size={16} strokeWidth={2} />
           </button>
           <button
             onClick={fitView}
@@ -559,7 +559,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             aria-label="表示をリセット"
             title="表示をリセット"
           >
-            <Maximize size={18} strokeWidth={2} />
+            <Maximize size={16} strokeWidth={2} />
           </button>
         </div>
       </div>

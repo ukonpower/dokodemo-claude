@@ -1,7 +1,7 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: $space-sm;
 }
 
 .disabled {
@@ -12,7 +12,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $space-2xs;
 }
 
 .fieldLabel {
@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: $space-md;
   min-height: 32px;
 
   .fieldLabel {
@@ -34,7 +34,7 @@
 }
 
 .fieldCaption {
-  font-size: 10px;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
 }
 
@@ -42,7 +42,7 @@
 .stepper {
   display: flex;
   align-items: stretch;
-  gap: 2px;
+  gap: $space-3xs;
   border-radius: $radius;
   background-color: $dark-bg-primary;
   border: 1px solid $dark-border-light;
@@ -74,13 +74,13 @@
 
 .stepperValue {
   @include flex-center;
-  gap: 4px;
+  gap: $space-2xs;
   min-width: 0;
 }
 
 .stepperInput {
   width: 2.4rem;
-  padding: 4px 0;
+  padding: $space-2xs 0;
   font-size: $font-size-sm;
   text-align: center;
   color: $dark-text-primary;
@@ -96,7 +96,7 @@
   font-size: $font-size-xs;
   color: $dark-text-muted;
   white-space: nowrap;
-  padding-right: 6px;
+  padding-right: $space-xs;
 }
 
 // 定期プランニングの有効/無効トグル行
@@ -104,7 +104,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: $space-md;
   width: 100%;
   min-height: 24px;
   padding: 0;
@@ -153,9 +153,9 @@
 .subGroup {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-left: 4px;
-  padding-left: 12px;
+  gap: $space-sm;
+  margin-left: $space-2xs;
+  padding-left: $space-md;
   border-left: 2px solid $dark-border-light;
 
   .fieldLabel {
@@ -175,7 +175,7 @@
 .selectInput {
   width: 100%;
   min-height: 32px;
-  padding: 4px 8px;
+  padding: $space-2xs $space-sm;
   font-size: $font-size-sm;
   color: $dark-text-primary;
   background-color: $dark-bg-primary;
@@ -191,7 +191,7 @@
 // AI 判断の判定基準テキストエリア
 .criteriaTextarea {
   width: 100%;
-  padding: 6px 8px;
+  padding: $space-xs $space-sm;
   font-size: $font-size-sm;
   line-height: 1.5;
   color: $dark-text-primary;

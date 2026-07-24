@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { ArrowDown, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowDown, RefreshCw, Maximize2, Minimize2, Loader } from 'lucide-react';
 import type { AiOutputLine } from '@/types';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
@@ -431,7 +431,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
               className={s.toolButton}
               title="ターミナルをリサイズ"
             >
-              <RefreshCw size={10} />
+              <RefreshCw size={12} />
             </button>
             {onToggleFullscreen && (
               <button
@@ -441,9 +441,9 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
                 aria-pressed={isFullscreen}
               >
                 {isFullscreen ? (
-                  <Minimize2 size={10} />
+                  <Minimize2 size={12} />
                 ) : (
-                  <Maximize2 size={10} />
+                  <Maximize2 size={12} />
                 )}
               </button>
             )}
@@ -464,26 +464,7 @@ const AiOutput = forwardRef<AiOutputRef, AiOutputProps>(
           {isLoading && (
             <div className={s.loadingOverlay}>
               <div className={s.loadingContent}>
-                <svg
-                  className={s.loadingSpinner}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className={s.loadingSpinnerCircle}
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className={s.loadingSpinnerPath}
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
+                <Loader className={s.loadingSpinner} size={32} aria-hidden />
                 <div className={s.loadingText}>
                   <p className={s.loadingMessage}>
                     {providerInfo.loadingMessage}

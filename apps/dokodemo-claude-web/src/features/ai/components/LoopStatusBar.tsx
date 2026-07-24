@@ -77,7 +77,7 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
     >
       <div className={s.mainRow}>
         <div className={s.leftGroup}>
-          <Repeat size={13} className={s.icon} />
+          <Repeat size={14} className={s.icon} />
           {isAwaitingApproval ? (
             <span className={s.text}>
               {loop.iteration - 1}周完了。継続しますか？
