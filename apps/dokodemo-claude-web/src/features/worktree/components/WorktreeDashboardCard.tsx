@@ -309,7 +309,7 @@ function WorktreeDashboardCard({
             aria-expanded={memoExpanded}
           >
             <StickyNote size={12} aria-hidden />
-            <ChevronDown size={10} aria-hidden className={s.memoChevron} />
+            <ChevronDown size={12} aria-hidden className={s.memoChevron} />
           </button>
         )}
         <button

@@ -15,8 +15,8 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.5rem;
+  gap: $space-xs;
+  padding: $space-xs $space-sm;
   background-color: $dark-bg-tertiary;
   border-bottom: 1px solid $dark-border;
   min-height: 36px;
@@ -32,29 +32,29 @@
 .checkbox {
   width: 14px;
   height: 14px;
-  accent-color: $blue-500;
+  accent-color: $accent;
   cursor: pointer;
 }
 
 .branchName {
   flex: 1;
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: $dark-text-primary;
   margin: 0;
   @include truncate;
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: $space-2xs;
 }
 
 .mainTag {
-  font-size: 0.65rem;
-  padding: 0.05rem 0.3rem;
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-2xs;
   border-radius: $radius-sm;
   background-color: $dark-bg-hover;
   color: $dark-text-secondary;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   letter-spacing: 0.02em;
 }
 
@@ -80,8 +80,8 @@
 .memoToggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.1rem;
-  padding: 0 0.25rem;
+  gap: $space-3xs;
+  padding: 0 $space-2xs;
   height: 22px;
   border: 1px solid transparent;
   background: transparent;
@@ -110,10 +110,10 @@
 }
 
 .memoBlock {
-  padding: 0.4rem 0.6rem;
+  padding: $space-xs $space-sm;
   background-color: $dark-bg-tertiary;
   border-bottom: 1px solid $dark-border;
-  font-size: 0.72rem;
+  font-size: $font-size-xs;
   color: $dark-text-secondary;
   max-height: 180px;
   overflow-y: auto;
@@ -143,14 +143,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: $space-2xs;
   width: 100%;
-  padding: 0.15rem 0.5rem;
+  padding: $space-3xs $space-sm;
   background-color: $dark-bg-tertiary;
   border: none;
   border-top: 1px solid $dark-border;
   color: $dark-text-muted;
-  font-size: 0.65rem;
+  font-size: $font-size-2xs;
   letter-spacing: 0.02em;
   cursor: pointer;
   flex-shrink: 0;
@@ -163,7 +163,7 @@
 }
 
 .inputArea {
-  padding: 0.4rem 0.5rem 0.5rem;
+  padding: $space-xs $space-sm $space-sm;
   background-color: $dark-bg-tertiary;
   flex-shrink: 0;
 }

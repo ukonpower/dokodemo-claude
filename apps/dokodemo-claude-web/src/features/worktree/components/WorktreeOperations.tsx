@@ -1,9 +1,11 @@
 import { useState, useRef } from 'react';
+import { Pencil, ChevronDown, AlertTriangle } from 'lucide-react';
 import type { DetectedPortInfo } from '@/types';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import MarkdownViewer from '@/shared/components/MarkdownViewer';
+import Button from '@/shared/components/Button';
 import s from './WorktreeOperations.module.scss';
 
 /**
@@ -97,11 +99,11 @@ function WorktreeMemoEditor({
           autoFocus
         />
         <div className={s.memoEditorButtons}>
-          <button className={s.memoSaveButton} onClick={saveEdit}>
+          <Button variant="primary" size="sm" onClick={saveEdit}>
             保存
-          </button>
-          <button
-            className={s.memoCancelButton}
+          </Button>
+          <Button
+            size="sm"
             onMouseDown={() => {
               // blur より先に発火させ、blur 保存を抑止する
               skipBlurSaveRef.current = true;
@@ -109,7 +111,7 @@ function WorktreeMemoEditor({
             onClick={cancelEdit}
           >
             キャンセル
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -135,19 +137,7 @@ function WorktreeMemoEditor({
         onClick={() => setIsEditing(true)}
         title="メモを編集"
       >
-        <svg
-          className={s.memoEditIcon}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
+        <Pencil size={16} className={s.memoEditIcon} />
       </button>
       <MarkdownViewer content={memo} stopLinkPropagation />
     </div>
@@ -202,21 +192,11 @@ function WorktreeOperations() {
             onClick={() => setIsMemoCollapsed((prev) => !prev)}
             title={isMemoCollapsed ? 'メモを展開' : 'メモを折りたたむ'}
           >
-            <svg
+            <ChevronDown
               className={`${s.sectionChevron} ${
                 isMemoCollapsed ? s.sectionChevronCollapsed : ''
               }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            />
             <span className={s.sectionLabel}>note</span>
           </button>
           {!isMemoCollapsed && (
@@ -237,19 +217,7 @@ function WorktreeOperations() {
           <div className={s.modalContent}>
             <div className={s.modalHeader}>
               <div className={`${s.modalIconCircle} ${s.modalIconCircleRed}`}>
-                <svg
-                  className={`${s.modalIcon} ${s.modalIconRed}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <AlertTriangle className={`${s.modalIcon} ${s.modalIconRed}`} />
               </div>
               <h3 className={s.modalTitle}>マージエラー</h3>
             </div>
@@ -280,9 +248,7 @@ function WorktreeOperations() {
             )}
 
             <div className={s.modalFooterEnd}>
-              <button onClick={onClearMergeError} className={s.closeButton}>
-                閉じる
-              </button>
+              <Button onClick={onClearMergeError}>閉じる</Button>
             </div>
           </div>
         </div>

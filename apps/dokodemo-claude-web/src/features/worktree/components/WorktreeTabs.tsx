@@ -1,5 +1,13 @@
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  MoreVertical,
+  Home,
+  Plus,
+  GitMerge,
+  Trash2,
+  AlertTriangle,
+} from 'lucide-react';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import {
   DndContext,
@@ -165,13 +173,7 @@ function SortableWorktreeTab({
         className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
         title="ワークツリー操作"
       >
-        <svg
-          className={`${s.menuIcon} ${compact ? s.compact : s.normal}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
+        <MoreVertical size={compact ? 12 : 16} />
       </button>
     </div>
   );
@@ -332,19 +334,10 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
             className={`${s.createButton} ${compact ? s.compact : s.normal}`}
             title="新しいワークツリーを作成"
           >
-            <svg
+            <Plus
+              size={compact ? 12 : 16}
               className={`${s.createIcon} ${compact ? s.compact : s.normal}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            />
             {!compact && 'ワークツリーを作成'}
           </button>
         </div>
@@ -409,19 +402,10 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                 }}
                 className={`${s.tabButton} ${compact ? s.compact : s.normal} ${isWorktreeActive(mainWorktree) ? s.active : ''}`}
               >
-                <svg
+                <Home
+                  size={compact ? 12 : 16}
                   className={`${s.mainIcon} ${compact ? s.compact : s.normal}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
+                />
                 <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
                   {mainWorktree.branch}
                 </span>
@@ -467,19 +451,10 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                 className={`${s.newButton} ${compact ? s.compact : s.normal}`}
                 title="新しいワークツリーを作成"
               >
-                <svg
+                <Plus
+                  size={compact ? 12 : 16}
                   className={`${s.newIcon} ${compact ? s.compact : s.normal}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
+                />
               </button>
             </div>
           </SortableContext>
@@ -505,19 +480,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   onClick={() => handleMergeClick(wt)}
                   className={`${s.menuItem} ${s.mergeItem}`}
                 >
-                  <svg
-                    className={s.menuItemIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
+                  <GitMerge className={s.menuItemIcon} />
                   マージ
                 </button>
                 <button
@@ -525,19 +488,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   disabled={isDeletingWorktree}
                   className={`${s.menuItem} ${s.deleteItem}`}
                 >
-                  <svg
-                    className={s.menuItemIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
+                  <Trash2 className={s.menuItemIcon} />
                   削除
                 </button>
               </>
@@ -563,19 +514,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
           <div className={s.modalContent}>
             <div className={s.modalHeader}>
               <div className={`${s.modalIconWrapper} ${s.danger}`}>
-                <svg
-                  className={`${s.modalIcon} ${s.danger}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+                <AlertTriangle className={`${s.modalIcon} ${s.danger}`} />
               </div>
               <div className={s.modalHeaderText}>
                 <h3 className={s.modalTitle}>ワークツリーを削除</h3>
@@ -642,19 +581,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
           <div className={s.modalContent}>
             <div className={s.modalHeader}>
               <div className={`${s.modalIconWrapper} ${s.info}`}>
-                <svg
-                  className={`${s.modalIcon} ${s.info}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                  />
-                </svg>
+                <GitMerge className={`${s.modalIcon} ${s.info}`} />
               </div>
               <h3 className={s.modalTitle}>
                 ブランチをマージ

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Zap, Play, Plus, X } from 'lucide-react';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
 import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
 import TerminalComponent from './Terminal';
+import Button from '@/shared/components/Button';
 import s from './TerminalManager.module.scss';
 
 const TerminalManager: React.FC = () => {
@@ -130,7 +132,7 @@ const TerminalManager: React.FC = () => {
                 }}
                 className={s.tabClose}
               >
-                ×
+                <X size={12} />
               </button>
             </div>
           ))}
@@ -141,7 +143,7 @@ const TerminalManager: React.FC = () => {
             disabled={!isConnected || !currentRepo}
             className={s.newTerminalButton}
           >
-            <span>+</span>
+            <Plus size={14} />
             <span className={s.newTerminalLabel}>新規</span>
           </button>
         </div>
@@ -191,19 +193,7 @@ const TerminalManager: React.FC = () => {
             <div className={s.shortcutsHeader}>
               <div className={s.shortcutsHeaderInner}>
                 <h3 className={s.shortcutsTitle}>
-                  <svg
-                    className={s.shortcutsIcon}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
+                  <Zap size={16} className={s.shortcutsIcon} />
                   コマンドショートカット
                 </h3>
                 <button
@@ -211,7 +201,7 @@ const TerminalManager: React.FC = () => {
                   disabled={!isConnected || !currentRepo || !activeTerminalId}
                   className={s.addShortcutButton}
                 >
-                  <span>+</span>
+                  <Plus size={14} />
                   <span className={s.addShortcutLabel}>追加</span>
                 </button>
               </div>
@@ -237,23 +227,24 @@ const TerminalManager: React.FC = () => {
                       className={s.shortcutInput}
                     />
                     <div className={s.shortcutFormButtons}>
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={handleCreateShortcut}
                         disabled={!shortcutCommand.trim()}
-                        className={s.shortcutCreateButton}
                       >
                         作成
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
                         onClick={() => {
                           setShowCreateShortcut(false);
                           setShortcutName('');
                           setShortcutCommand('');
                         }}
-                        className={s.shortcutCancelButton}
                       >
                         キャンセル
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -273,19 +264,7 @@ const TerminalManager: React.FC = () => {
                         className={s.shortcutExecuteButton}
                         title={`実行: ${shortcut.command}`}
                       >
-                        <svg
-                          className={s.shortcutExecIcon}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-6L10 2l-5 5v6l5 5z"
-                          />
-                        </svg>
+                        <Play size={12} className={s.shortcutExecIcon} />
                         <span className={s.shortcutName}>
                           {shortcut.name || shortcut.command}
                         </span>
@@ -302,7 +281,7 @@ const TerminalManager: React.FC = () => {
                           className={s.shortcutDeleteButton}
                           title="削除"
                         >
-                          ×
+                          <X size={12} />
                         </button>
                       )}
                     </div>

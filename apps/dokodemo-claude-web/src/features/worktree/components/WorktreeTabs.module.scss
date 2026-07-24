@@ -24,14 +24,14 @@
   align-items: center;
 
   &.normal {
-    padding: 0.5rem 1rem;
+    padding: $space-sm $space-lg;
   }
 }
 
 .createButton {
   display: inline-flex;
   align-items: center;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   color: $gray-400;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
@@ -50,13 +50,13 @@
   }
 
   &.compact {
-    padding: 0.25rem 0.5rem;
+    padding: $space-2xs $space-sm;
     font-size: $font-size-xs;
     line-height: 1rem;
   }
 
   &.normal {
-    padding: 0.375rem 0.75rem;
+    padding: $space-xs $space-md;
     font-size: $font-size-sm;
     line-height: 1.25rem;
     background-color: $gray-800;
@@ -74,13 +74,13 @@
   &.compact {
     width: 0.75rem;
     height: 0.75rem;
-    margin-right: 0.25rem;
+    margin-right: $space-2xs;
   }
 
   &.normal {
     width: 1rem;
     height: 1rem;
-    margin-right: 0.5rem;
+    margin-right: $space-sm;
   }
 }
 
@@ -120,7 +120,7 @@
     border-bottom: 2px solid;
 
     &.active {
-      border-color: $blue-500;
+      border-color: $dark-text-primary;
       background-color: $gray-800;
     }
 
@@ -140,13 +140,13 @@
   &.compact {
     width: 0.75rem;
     height: 0.75rem;
-    margin-right: 0.25rem;
+    margin-right: $space-2xs;
   }
 
   &.normal {
     width: 1rem;
     height: 1rem;
-    margin-right: 0.5rem;
+    margin-right: $space-sm;
   }
 }
 
@@ -157,7 +157,7 @@
   width: 1px;
   height: 1.25rem;
   background-color: $dark-border-light;
-  margin: 0 0.5rem;
+  margin: 0 $space-sm;
 }
 
 // ブランチワークツリータブ群（dnd-kit で並び替え可能。スクロールは親の .branchBar 側で一体的に行う）
@@ -190,7 +190,7 @@
     border-bottom: 2px solid;
 
     &.active {
-      border-color: $blue-500;
+      border-color: $dark-text-primary;
       background-color: $gray-800;
     }
 
@@ -207,7 +207,7 @@
 .tabButton {
   display: flex;
   align-items: center;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   white-space: nowrap;
   transition: color $transition-fast $transition-easing;
   background: none;
@@ -222,19 +222,19 @@
   }
 
   &.compact {
-    padding: 0.25rem 0.5rem;
+    padding: $space-2xs $space-sm;
     font-size: $font-size-xs;
     line-height: 1rem;
   }
 
   &.normal {
-    padding: 0.625rem 0.5rem 0.625rem 1rem;
+    padding: $space-sm $space-sm $space-sm $space-lg;
     font-size: $font-size-sm;
     line-height: 1.25rem;
   }
 
   &.active {
-    color: #60a5fa; // blue-400
+    color: $dark-text-primary;
   }
 
   &:not(.active) {
@@ -254,11 +254,11 @@
 .prBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.4rem;
-  padding: 0.05em 0.4em;
+  gap: $space-2xs;
+  margin-left: $space-xs;
+  padding: $space-3xs $space-2xs;
   font-family: $font-mono;
-  font-size: 0.75em;
+  font-size: $font-size-2xs;
   line-height: 1.2;
   color: $gray-300;
   background-color: rgba($gray-700, 0.5);
@@ -266,14 +266,14 @@
   flex-shrink: 0;
 
   &.compact {
-    margin-left: 0.25rem;
-    padding: 0 0.3em;
-    font-size: 0.7em;
+    margin-left: $space-2xs;
+    padding: 0 $space-3xs;
+    font-size: $font-size-2xs;
   }
 }
 
 .prNumber {
-  font-weight: 500;
+  font-weight: $font-weight-medium;
 }
 
 .prStateDot {
@@ -282,28 +282,28 @@
   border-radius: 9999px;
   flex-shrink: 0;
 
-  // OPEN (緑) — GitHub の open PR と合わせる
+  // OPEN (緑) — PR の状態色
   &.open {
-    background-color: #3fb950;
-    box-shadow: 0 0 0 1px rgba(63, 185, 80, 0.4);
+    background-color: $color-success;
+    box-shadow: 0 0 0 1px rgba($color-success, 0.4);
   }
 
   // MERGED (紫)
   &.merged {
-    background-color: #a371f7;
-    box-shadow: 0 0 0 1px rgba(163, 113, 247, 0.4);
+    background-color: $purple-500;
+    box-shadow: 0 0 0 1px rgba($purple-500, 0.4);
   }
 
   // CLOSED (赤)
   &.closed {
-    background-color: #f85149;
-    box-shadow: 0 0 0 1px rgba(248, 81, 73, 0.4);
+    background-color: $color-error;
+    box-shadow: 0 0 0 1px rgba($color-error, 0.4);
   }
 
   // DRAFT (灰)
   &.draft {
-    background-color: #8b949e;
-    box-shadow: 0 0 0 1px rgba(139, 148, 158, 0.4);
+    background-color: $gray-400;
+    box-shadow: 0 0 0 1px rgba($gray-400, 0.4);
   }
 }
 
@@ -319,13 +319,13 @@
   }
 
   &.compact {
-    padding: 0.125rem;
-    margin-right: 0.25rem;
+    padding: $space-3xs;
+    margin-right: $space-2xs;
   }
 
   &.normal {
-    padding: 0.25rem;
-    margin-right: 0.5rem;
+    padding: $space-2xs;
+    margin-right: $space-sm;
   }
 
   &.open {
@@ -377,11 +377,11 @@
   }
 
   &.compact {
-    padding: 0.25rem;
+    padding: $space-2xs;
   }
 
   &.normal {
-    padding: 0.625rem 0.75rem;
+    padding: $space-sm $space-md;
     font-size: $font-size-sm;
     line-height: 1.25rem;
   }
@@ -406,7 +406,7 @@
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   box-shadow: $shadow-lg;
-  padding: 0.25rem 0;
+  padding: $space-2xs 0;
   z-index: 9999;
   min-width: 140px;
 }
@@ -415,7 +415,7 @@
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0.5rem 1rem;
+  padding: $space-sm $space-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
   background: none;
@@ -433,7 +433,7 @@
   }
 
   &.mergeItem {
-    color: #60a5fa; // blue-400
+    color: $dark-text-secondary;
   }
 
   &.deleteItem {
@@ -444,7 +444,7 @@
 .menuItemIcon {
   width: 1rem;
   height: 1rem;
-  margin-right: 0.5rem;
+  margin-right: $space-sm;
 }
 
 // Modal styles
@@ -455,7 +455,7 @@
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   @include flex-center;
-  padding: 1rem;
+  padding: $space-lg;
   z-index: 50;
 }
 
@@ -464,7 +464,7 @@
   border-radius: $radius-xl;
   box-shadow: $shadow-lg, 0 0 0 1px rgba(white, 0.04);
   border: 1px solid $dark-border-light;
-  padding: 1.75rem;
+  padding: $space-xl;
   width: 100%;
   max-width: 28rem;
 }
@@ -472,8 +472,8 @@
 .modalHeader {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
-  margin-bottom: 1.25rem;
+  gap: $space-md;
+  margin-bottom: $space-lg;
 }
 
 .modalHeaderText {
@@ -494,8 +494,8 @@
   }
 
   &.info {
-    background-color: rgba($color-info, 0.12);
-    box-shadow: inset 0 0 0 1px rgba($color-info, 0.25);
+    background-color: $dark-bg-hover;
+    box-shadow: inset 0 0 0 1px $dark-border-light;
   }
 }
 
@@ -508,16 +508,16 @@
   }
 
   &.info {
-    color: $color-info;
+    color: $dark-text-secondary;
   }
 }
 
 .modalTitle {
   font-size: $font-size-lg;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   line-height: 1.4;
-  margin: 0 0 0.375rem;
+  margin: 0 0 $space-xs;
 }
 
 .modalDescription {
@@ -529,22 +529,25 @@
 
 .modalBranchName {
   font-family: $font-mono;
-  font-size: 0.95em;
+  font-size: $font-size-sm;
   color: $color-error;
   background-color: rgba($color-error, 0.1);
-  padding: 0.05em 0.4em;
+  padding: $space-3xs $space-xs;
   border-radius: $radius;
 }
 
 .modalBranchNameBlue {
   font-family: $font-mono;
-  color: #93c5fd;
+  color: $gray-200;
+  background-color: rgba($gray-900, 0.4);
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
 }
 
 .warningBox {
   border-radius: $radius-md;
-  padding: 0.875rem 1rem;
-  margin-bottom: 1.25rem;
+  padding: $space-md $space-lg;
+  margin-bottom: $space-lg;
 
   &.warning {
     background-color: rgba($color-warning, 0.08);
@@ -552,18 +555,18 @@
   }
 
   &.blue {
-    background-color: rgba(#1e3a5f, 0.3);
-    border: 1px solid rgba(#1d4ed8, 0.5);
+    background-color: rgba($gray-900, 0.4);
+    border: 1px solid $dark-border-light;
   }
 }
 
 .warningTitle {
   font-size: $font-size-xs;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: $color-warning;
-  margin: 0 0 0.5rem;
+  margin: 0 0 $space-sm;
 }
 
 .warningList {
@@ -574,7 +577,7 @@
   margin: 0;
 
   & > * + * {
-    margin-top: 0.375rem;
+    margin-top: $space-xs;
   }
 
   &.warning {
@@ -582,7 +585,7 @@
 
     li {
       position: relative;
-      padding-left: 1rem;
+      padding-left: $space-lg;
 
       &::before {
         content: "";
@@ -598,16 +601,16 @@
   }
 
   &.blue {
-    color: rgba(#60a5fa, 0.8);
+    color: $dark-text-secondary;
   }
 }
 
 .checkboxLabel {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  margin-bottom: $space-xl;
   border-radius: $radius-md;
   border: 1px solid $dark-border-light;
   background-color: rgba($gray-900, 0.4);
@@ -638,14 +641,14 @@
 .modalFooter {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: $space-sm;
 }
 
 .cancelButton {
   min-width: 6rem;
-  padding: 0.5rem 1rem;
+  padding: $space-sm $space-lg;
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   line-height: 1.25rem;
   color: $gray-200;
   background: transparent;
@@ -670,9 +673,9 @@
 
 .confirmButton {
   min-width: 6rem;
-  padding: 0.5rem 1rem;
+  padding: $space-sm $space-lg;
   font-size: $font-size-sm;
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   line-height: 1.25rem;
   color: white;
   border-radius: $radius-md;
@@ -704,15 +707,15 @@
   }
 
   &.info {
-    background-color: $color-info;
+    background-color: $accent;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 
     &:hover:not(:disabled) {
-      background-color: color.adjust($color-info, $lightness: -8%);
+      background-color: $accent-hover;
     }
 
     &:focus-visible {
-      box-shadow: 0 0 0 2px $color-info, 0 0 0 4px $dark-bg-tertiary;
+      box-shadow: 0 0 0 2px $accent, 0 0 0 4px $dark-bg-tertiary;
     }
   }
 }

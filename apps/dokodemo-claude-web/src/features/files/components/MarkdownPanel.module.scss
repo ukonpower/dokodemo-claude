@@ -9,38 +9,38 @@
 .list {
   flex: 1;
   overflow-y: auto;
-  padding: 4px;
+  padding: $space-2xs;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: $space-3xs;
   @include scrollbar-thin;
 }
 
 .listItem {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: $space-xs;
   width: 100%;
   background: transparent;
   border: 1px solid transparent;
-  color: #d1d5db;
-  font-size: 11px;
-  font-family: Inter, sans-serif;
+  color: $gray-300;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
   text-align: left;
-  padding: 5px 8px;
-  border-radius: 4px;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
   cursor: pointer;
   min-width: 0;
 
   &:hover {
-    background-color: #2a2b30;
-    color: #f3f4f6;
+    background-color: $dark-bg-hover;
+    color: $gray-100;
   }
 }
 
 .listIcon {
   flex-shrink: 0;
-  color: #d1d5db;
+  color: $gray-300;
 }
 
 .listLabel {

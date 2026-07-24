@@ -7,13 +7,15 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { RefreshCw, X, AlertTriangle, Folder, File } from 'lucide-react';
 import type {
   WorktreeSyncEntry,
   WorktreeSyncMode,
 } from '@/types';
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useBranchesContext } from '@/features/git/providers/BranchesProvider';
-import { useOverlayClose } from '@/shared/hooks/useOverlayClose';
+import ModalShell from '@/shared/components/ModalShell';
+import Button from '@/shared/components/Button';
 import s from './WorktreeCreateModal.module.scss';
 
 interface WorktreeCreateModalProps {
@@ -324,30 +326,28 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
   const loaded =
     hasInitializedRows || syncConfig?.parentRepoPath === parentRepoPath;
 
-  const overlayProps = useOverlayClose(onClose);
-
   return (
-    <div className={s.modalOverlay} {...overlayProps}>
-      <div className={s.modalContent} onKeyDown={handleKeyDown}>
-        <div className={s.modalHeader}>
-          <h3 className={s.modalTitle}>ワークツリーを作成</h3>
-          <button onClick={onClose} className={s.closeButton}>
-            <svg
-              className={s.closeIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
+    <ModalShell
+      title="ワークツリーを作成"
+      onClose={onClose}
+      footer={
+        <>
+          <Button onClick={onClose}>キャンセル</Button>
+          <Button
+            variant="primary"
+            onClick={handleCreate}
+            disabled={!branchName.trim() || isCreating}
+          >
+            {isCreating
+              ? '作成中...'
+              : worktreeCreateError
+                ? '再試行'
+                : '作成'}
+          </Button>
+        </>
+      }
+    >
+      <div onKeyDown={handleKeyDown}>
         <div className={s.formFields}>
           <div className={s.checkboxRow}>
             <input
@@ -378,19 +378,10 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
                   className={s.refreshButton}
                   title="ブランチ一覧を再読み込み"
                 >
-                  <svg
-                    className={`${s.refreshIcon} ${isRefreshingBranches ? s.spinning : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
+                  <RefreshCw
+                    size={14}
+                    className={isRefreshingBranches ? s.spinning : ''}
+                  />
                   {isRefreshingBranches ? '更新中…' : '再読み込み'}
                 </button>
               )}
@@ -440,19 +431,10 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
                   className={s.refreshButton}
                   title="ブランチ一覧を再読み込み"
                 >
-                  <svg
-                    className={`${s.refreshIcon} ${isRefreshingBranches ? s.spinning : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
+                  <RefreshCw
+                    size={14}
+                    className={isRefreshingBranches ? s.spinning : ''}
+                  />
                   {isRefreshingBranches ? '更新中…' : '再読み込み'}
                 </button>
               </div>
@@ -546,20 +528,7 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
                     className={s.syncRemoveButton}
                     title="この行を削除"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -653,7 +622,11 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
                           }}
                         >
                           <span className={s.suggestIcon}>
-                            {cand.type === 'directory' ? '📁' : '📄'}
+                            {cand.type === 'directory' ? (
+                              <Folder size={14} />
+                            ) : (
+                              <File size={14} />
+                            )}
                           </span>
                           <span className={s.suggestName}>
                             {cand.name}
@@ -683,19 +656,7 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
         {worktreeCreateError && (
           <div className={s.createErrorBox} role="alert">
             <div className={s.createErrorTitle}>
-              <svg
-                className={s.createErrorIcon}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <AlertTriangle size={16} className={s.createErrorIcon} />
               ワークツリーの作成に失敗しました
             </div>
             <pre className={s.createErrorMessage}>
@@ -703,25 +664,8 @@ function WorktreeCreateModal({ onClose }: WorktreeCreateModalProps) {
             </pre>
           </div>
         )}
-
-        <div className={s.modalFooter}>
-          <button onClick={onClose} className={s.cancelButton}>
-            キャンセル
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!branchName.trim() || isCreating}
-            className={s.createButton}
-          >
-            {isCreating
-              ? '作成中...'
-              : worktreeCreateError
-                ? '再試行'
-                : '作成'}
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 

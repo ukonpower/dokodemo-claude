@@ -13,9 +13,9 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: $space-2xs;
   min-height: 32px;
-  padding: 0 0.5rem;
+  padding: 0 $space-sm;
   text-align: left;
   transition: background-color $transition-fast $transition-easing, color $transition-fast $transition-easing;
 }
@@ -41,7 +41,7 @@
 
 .folderIcon {
   flex-shrink: 0;
-  color: #f97316; // dark-accent-orange
+  color: $dark-text-secondary;
 }
 
 .spacer {
@@ -60,31 +60,31 @@
 }
 
 .statusModified {
-  color: #facc15;
+  color: $color-warning;
 }
 
 .statusAdded {
-  color: #4ade80;
+  color: $color-success;
 }
 
 .statusDeleted {
-  color: #f87171;
+  color: $color-error;
   text-decoration: line-through;
 }
 
 .statusUntracked {
-  color: #4ade80;
+  color: $purple-400;
 }
 
 .statusRenamed {
-  color: #60a5fa;
+  color: $color-info;
 }
 
 .dirChangeDot {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 9999px;
-  background-color: #facc15;
+  background-color: $color-warning;
   flex-shrink: 0;
 }
 
@@ -94,5 +94,5 @@
   min-height: 28px;
   color: $dark-text-muted;
   font-size: $font-size-xs;
-  padding: 0 0.5rem;
+  padding: 0 $space-sm;
 }

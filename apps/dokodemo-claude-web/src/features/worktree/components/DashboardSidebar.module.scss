@@ -12,8 +12,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
-  padding: 0.5rem 0.6rem;
+  gap: $space-xs;
+  padding: $space-sm $space-sm;
   border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
@@ -21,18 +21,18 @@
 .titleArea {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: $space-xs;
   min-width: 0;
 }
 
 .title {
   font-size: $font-size-sm;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
 }
 
 .count {
-  font-size: 0.7rem;
+  font-size: $font-size-xs;
   color: $dark-text-muted;
 }
 
@@ -56,8 +56,8 @@
 .quickActions {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.6rem;
+  gap: $space-2xs;
+  padding: $space-xs $space-sm;
   border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
@@ -67,9 +67,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.7rem;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border: 1px solid $dark-border;
@@ -91,15 +91,15 @@
 }
 
 .quickLabel {
-  font-weight: 500;
+  font-weight: $font-weight-medium;
   white-space: nowrap;
 }
 
 .quickCount {
-  font-size: 0.62rem;
+  font-size: $font-size-2xs;
   color: $dark-text-muted;
   font-variant-numeric: tabular-nums;
-  padding: 0.05rem 0.3rem;
+  padding: $space-3xs $space-2xs;
   border-radius: $radius-sm;
   background-color: rgba(255, 255, 255, 0.04);
 }
@@ -108,12 +108,12 @@
   flex: 1;
   list-style: none;
   margin: 0;
-  padding: 0.3rem 0;
+  padding: $space-2xs 0;
   overflow-y: auto;
 }
 
 .empty {
-  padding: 1rem 0.6rem;
+  padding: $space-lg $space-sm;
   font-size: $font-size-xs;
   color: $dark-text-muted;
   text-align: center;
@@ -122,7 +122,7 @@
 .item {
   display: flex;
   flex-direction: column;
-  padding: 0.35rem 0.5rem;
+  padding: $space-xs $space-sm;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 
   &:last-child {
@@ -141,7 +141,7 @@
 .itemRow {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: $space-xs;
   min-width: 0;
 }
 
@@ -181,37 +181,37 @@
 .broadcastCheck {
   width: 14px;
   height: 14px;
-  accent-color: $blue-500;
+  accent-color: $accent;
   cursor: pointer;
 }
 
 .branchName {
   flex: 1;
-  font-size: 0.75rem;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
   @include truncate;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: $space-2xs;
   min-width: 0;
 }
 
 .mainTag {
-  font-size: 0.6rem;
-  padding: 0.02rem 0.25rem;
+  font-size: $font-size-2xs;
+  padding: $space-3xs $space-2xs;
   border-radius: $radius-sm;
   background-color: $dark-bg-hover;
   color: $dark-text-secondary;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   flex-shrink: 0;
 }
 
 .memoToggle {
   @include flex-center;
-  gap: 0.1rem;
+  gap: $space-3xs;
   width: auto;
   height: 22px;
-  padding: 0 0.3rem;
+  padding: 0 $space-2xs;
   border: 1px solid transparent;
   background-color: transparent;
   color: $dark-text-muted;
@@ -255,12 +255,12 @@
   width: 320px;
   max-height: 280px;
   overflow-y: auto;
-  padding: 0.5rem 0.7rem;
+  padding: $space-sm $space-md;
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   box-shadow: $shadow-lg;
-  font-size: 0.72rem;
+  font-size: $font-size-xs;
   color: $dark-text-primary;
 }
 

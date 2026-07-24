@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Zap, RefreshCw, Play } from 'lucide-react';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useTerminalContext } from '@/features/terminal/providers/TerminalProvider';
@@ -35,19 +36,7 @@ const NpmScripts: React.FC = () => {
       <div className={s.root}>
         <div className={s.header}>
           <h3 className={s.title}>
-            <svg
-              className={s.titleIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 20l4-16m-4 4l4 4-4 4"
-              />
-            </svg>
+            <Zap size={16} className={s.titleIcon} />
             npm scripts
           </h3>
           <button
@@ -55,19 +44,7 @@ const NpmScripts: React.FC = () => {
             disabled={!isConnected}
             className={s.refreshButton}
           >
-            <svg
-              className={s.refreshIcon}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <RefreshCw size={12} className={s.refreshIcon} />
             更新
           </button>
         </div>
@@ -82,19 +59,7 @@ const NpmScripts: React.FC = () => {
     <div className={s.root}>
       <div className={s.headerWithMargin}>
         <h3 className={s.title}>
-          <svg
-            className={s.titleIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 20l4-16m-4 4l4 4-4 4"
-            />
-          </svg>
+          <Zap size={16} className={s.titleIcon} />
           npm scripts
           <span className={s.countBadge}>
             {scriptEntries.length}
@@ -105,19 +70,7 @@ const NpmScripts: React.FC = () => {
           disabled={!isConnected}
           className={s.refreshButton}
         >
-          <svg
-            className={s.refreshIcon}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
+          <RefreshCw size={12} className={s.refreshIcon} />
           更新
         </button>
       </div>
@@ -141,19 +94,7 @@ const NpmScripts: React.FC = () => {
               </div>
               {/* 実行アイコン */}
               <div className={s.runIcon}>
-                <svg
-                  className={s.runIconSvg}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-5-14S5 5 5 8s5 7 5 7 5-4 5-7-5-8-5-8z"
-                  />
-                </svg>
+                <Play size={12} className={s.runIconSvg} />
               </div>
             </button>
           ))}
