@@ -162,8 +162,9 @@ npx nx type-check dokodemo-claude-api
    ```
    - ブラウザで `https://localhost:<DC_PROD_PORT>` にアクセス（既定 8000）
    - Express が Web (dist) + API を 1 ポートで配信
-   - 実体は `scripts/start-prod.js`（supervisor）。UI の更新ボタン（pull-self）が成功すると `.dc-restart-request` フラグが書かれ、supervisor が npm install（root/api/web）→ 全プロセス再起動を行う
-   - 更新ボタンは更新先ブランチ（`main` と main へ未マージの `release/*`、＋現在ブランチ）を選べる。切り替え時は追跡ファイルのローカル変更（npm install で書き換わる package-lock.json 等）を破棄してから fast-forward する。実装は `apps/dokodemo-claude-api/src/services/self-repo.ts`
+   - 実体は `scripts/start-prod.js`（supervisor）。更新（pull-self）が成功すると `.dc-restart-request` フラグが書かれ、supervisor が npm install（root/api/web）→ 全プロセス再起動を行う
+   - 更新の実行は**設定画面の「更新」セクション**にある（現在ブランチの更新と、更新先ブランチの切り替え）。切り替え候補は `main` と main へ未マージの `release/*`（＋現在ブランチ）。切り替え時は追跡ファイルのローカル変更（npm install で書き換わる package-lock.json 等）を破棄してから fast-forward する。実装は `apps/dokodemo-claude-api/src/services/self-repo.ts`
+   - ホーム画面の「更新あり」表示は新リリースの有無を示すインジケーターのみ（実行はしない）
 
 ## ビルドチェックフロー
 

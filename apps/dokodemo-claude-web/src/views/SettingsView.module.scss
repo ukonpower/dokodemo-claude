@@ -442,6 +442,34 @@
   color: $gray-500;
 }
 
+// --- 更新セクション（ブランチ切り替え） ---
+
+.branchRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  @include sm-down {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.branchSelect {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+
+  &:disabled {
+    color: $gray-500;
+  }
+}
+
 // --- メッセージ ---
 
 .messageSuccess {

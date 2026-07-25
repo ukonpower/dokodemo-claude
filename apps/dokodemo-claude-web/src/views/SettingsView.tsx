@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Monitor, Sparkles, Bell, Link2 } from 'lucide-react';
+import { ArrowLeft, Monitor, Sparkles, Bell, Link2, RefreshCw } from 'lucide-react';
 import Button from '@/shared/components/Button';
 import IconButton from '@/shared/components/IconButton';
 import type { AiProvider } from '@/types';
@@ -11,13 +11,19 @@ import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvid
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import s from './SettingsView.module.scss';
 
-type SectionId = 'appearance' | 'ai' | 'notification' | 'integration';
+type SectionId =
+  | 'appearance'
+  | 'ai'
+  | 'notification'
+  | 'integration'
+  | 'update';
 
 const SECTIONS: { id: SectionId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'appearance', label: '表示', icon: Monitor },
   { id: 'ai', label: 'AIセッション', icon: Sparkles },
   { id: 'notification', label: '通知', icon: Bell },
   { id: 'integration', label: '連携', icon: Link2 },
+  { id: 'update', label: '更新', icon: RefreshCw },
 ];
 
 const FONT_SIZE_OPTIONS: { preset: FontSizePreset; label: string; previewPx: number }[] = [
@@ -56,7 +62,15 @@ export function SettingsView() {
     handleSettingsChange: onSettingsChange,
   } = useAppSettingsContext();
   const { repository } = useRepositoryContext();
-  const { currentRepo } = repository;
+  const {
+    currentRepo,
+    pullSelf,
+    selfUpdateAvailable,
+    selfBranches,
+    selfCurrentBranch,
+    selfBranchesLoading,
+    fetchSelfBranches,
+  } = repository;
   const { closeSettings: onBack } = useNavigationContext();
 
   const webPush = useWebPush(socket, true, currentRepo);
@@ -72,6 +86,17 @@ export function SettingsView() {
   });
   // AIタブの指示内容要約の on/off（null = 未取得）
   const [summaryEnabled, setSummaryEnabled] = useState<boolean | null>(null);
+
+  // 更新セクションで選択中の切り替え先（空 = 現在ブランチ）
+  const [selectedBranch, setSelectedBranch] = useState('');
+  // 実際の切り替え先。未選択なら現在ブランチ扱い
+  const targetBranch = selectedBranch || selfCurrentBranch;
+  const currentBranchInfo = selfBranches.find(b => b.isCurrent);
+
+  // 更新先ブランチ一覧は設定画面を開いた時点で取得しておく
+  useEffect(() => {
+    fetchSelfBranches();
+  }, [fetchSelfBranches]);
 
   // カテゴリナビのスクロールスパイ
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -555,6 +580,81 @@ export function SettingsView() {
                         : pluginState.installed
                           ? 'アンインストール'
                           : 'インストール'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 更新 */}
+            <section
+              id="settings-update"
+              data-section-id="update"
+              className={s.section}
+            >
+              <h2 className={s.sectionTitle}>更新</h2>
+              <div className={s.card}>
+                <div className={s.row}>
+                  <div className={s.rowInfo}>
+                    <span className={s.rowLabel}>dokodemo-claude 本体</span>
+                    <p className={s.rowDesc}>
+                      現在のブランチ（
+                      {selfCurrentBranch || '取得中...'}）の最新を取り込みます
+                    </p>
+                  </div>
+                  <div className={s.rowControl}>
+                    {renderStatus(
+                      selfUpdateAvailable,
+                      currentBranchInfo && currentBranchInfo.behind > 0
+                        ? `更新あり (+${currentBranchInfo.behind})`
+                        : '更新あり',
+                      '最新'
+                    )}
+                    <Button variant="primary" size="sm" onClick={() => pullSelf()}>
+                      更新
+                    </Button>
+                  </div>
+                </div>
+
+                <div className={s.rowStack}>
+                  <div className={s.rowInfo}>
+                    <span className={s.rowLabel}>更新先ブランチの切り替え</span>
+                    <p className={s.rowDesc}>
+                      main と main へ未マージの release/*（＋現在のブランチ）に切り替えられます。
+                      切り替え時は追跡ファイルのローカル変更が破棄されます
+                    </p>
+                  </div>
+                  <div className={s.branchRow}>
+                    <select
+                      className={s.branchSelect}
+                      value={targetBranch}
+                      onChange={e => setSelectedBranch(e.target.value)}
+                      disabled={selfBranches.length === 0}
+                      aria-label="更新先ブランチ"
+                    >
+                      {selfBranches.length === 0 ? (
+                        <option value="">
+                          {selfBranchesLoading
+                            ? '読み込み中...'
+                            : 'ブランチを取得できませんでした'}
+                        </option>
+                      ) : (
+                        selfBranches.map(branch => (
+                          <option key={branch.name} value={branch.name}>
+                            {branch.name}
+                            {branch.behind > 0 ? ` (+${branch.behind})` : ''}
+                            {branch.isCurrent ? '（現在）' : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => pullSelf(targetBranch)}
+                      disabled={!targetBranch || targetBranch === selfCurrentBranch}
+                    >
+                      切り替えて更新
                     </Button>
                   </div>
                 </div>

@@ -62,6 +62,7 @@ export interface UseRepositoryReturn {
   pullSelf: (branch?: string) => void;
   selfUpdateAvailable: boolean;
   selfBranches: SelfBranch[];
+  selfCurrentBranch: string;
   selfBranchesLoading: boolean;
   fetchSelfBranches: () => void;
 
@@ -107,6 +108,8 @@ export function useRepository(
   const [selfUpdateAvailable, setSelfUpdateAvailable] = useState(false);
   // 更新先として選べるブランチ（main + 未マージの release/*）
   const [selfBranches, setSelfBranches] = useState<SelfBranch[]>([]);
+  // 現在チェックアウト中のブランチ（取得できていない場合は空）
+  const [selfCurrentBranch, setSelfCurrentBranch] = useState('');
   const [selfBranchesLoading, setSelfBranchesLoading] = useState(false);
 
   // Ref
@@ -262,6 +265,7 @@ export function useRepository(
     ) => {
       setSelfBranchesLoading(false);
       setSelfBranches(data.success ? data.branches : []);
+      setSelfCurrentBranch(data.current);
     };
 
     socket.on('id-mapping', handleIdMapping);
@@ -377,7 +381,7 @@ export function useRepository(
     setStopProcessTargetRid(null);
   }, []);
 
-  // 更新先ブランチ一覧の取得（更新メニューを開いたときに呼ぶ）
+  // 更新先ブランチ一覧の取得（設定画面の「更新」セクションを開いたときに呼ぶ）
   const fetchSelfBranches = useCallback(() => {
     if (!socket) return;
     setSelfBranchesLoading(true);
@@ -421,6 +425,7 @@ export function useRepository(
     pullSelf,
     selfUpdateAvailable,
     selfBranches,
+    selfCurrentBranch,
     selfBranchesLoading,
     fetchSelfBranches,
     endLoadingOnOutput,

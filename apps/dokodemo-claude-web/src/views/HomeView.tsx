@@ -8,7 +8,7 @@ import { useNavigationContext } from '@/app/providers/NavigationProvider';
 
 import RepositoryManager from '@/features/repo/components/RepositoryManager';
 import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
-import SelfUpdateButton from '@/features/repo/components/SelfUpdateButton';
+import SelfUpdateIndicator from '@/features/repo/components/SelfUpdateIndicator';
 import s from './HomeView.module.scss';
 
 export function HomeView() {
@@ -53,8 +53,8 @@ export function HomeView() {
                     Claude Code CLI Web Interface
                   </p>
                 </div>
-                {/* dokodemo-claude自身を更新（ブランチ選択付き） */}
-                <SelfUpdateButton />
+                {/* 新しいリリースがある場合のみ表示（更新の実行は設定画面） */}
+                <SelfUpdateIndicator />
               </div>
               <div className={s.headerRight}>
                 {/* 設定ボタン */}
