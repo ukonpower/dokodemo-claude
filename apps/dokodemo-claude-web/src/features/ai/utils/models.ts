@@ -19,6 +19,7 @@ export interface ModelOption {
 // 組み込みモデル（表示順）。API key 不要のもののみ。
 export const BUILTIN_MODEL_OPTIONS: ModelOption[] = [
   { value: '', label: '未指定', source: 'builtin' },
+  { value: 'claude-opus-5', label: 'Opus 5 [1m]', source: 'builtin' },
   { value: 'claude-opus-4-8', label: 'Opus 4.8 [1m]', source: 'builtin' },
   { value: 'claude-opus-4-7', label: 'Opus 4.7 [1m]', source: 'builtin' },
   { value: 'claude-sonnet-5', label: 'Sonnet 5', source: 'builtin' },
