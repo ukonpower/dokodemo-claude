@@ -35,6 +35,17 @@ import type { LoopSettingsValue } from './LoopSettingsFields';
 import DrawingCanvas from './DrawingCanvas';
 import s from './CommandInput.module.scss';
 
+/**
+ * 即送信でモデル指定がある場合、/model を先に送ってから本文を送るまでの待ち時間。
+ * 送信側で 300ms 後に Enter が付くため、それを見込んだ間隔にする
+ * （キュー送信（PromptQueueManager）と同じ 1.5 秒）。
+ */
+const MODEL_SWITCH_DELAY_MS = 1500;
+
+/** /model コマンドに渡す値へ正規化する（表示名と CLI の受け付ける値の差を吸収） */
+const toModelCommandValue = (model: string) =>
+  model === 'OpusPlan' ? 'opusplan' : model;
+
 /** fixed 配置のドロップダウンが画面外にはみ出さないよう left を収める */
 const clampDropdownLeft = (left: number, width: number) =>
   Math.max(8, Math.min(left, window.innerWidth - width - 8));
@@ -596,6 +607,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             model || undefined,
             loopArg
           );
+        } else if (model) {
+          // 即送信でモデル指定がある場合は /model を先に送ってから本文を送る
+          onSendCommand(`/model ${toModelCommandValue(model)}`);
+          setTimeout(() => {
+            onSendCommand(finalCommand);
+          }, MODEL_SWITCH_DELAY_MS);
         } else {
           // 通常のコマンド送信
           onSendCommand(finalCommand);
@@ -1370,9 +1387,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     ) : null;
 
     // モデル選択チップ。頻繁に使うので送信ボタンの直左（送信行）に置く。
-    // 即送信では model を送らない（onAddToQueue にしか渡らない）ため、
-    // キュー ON のときだけ出す。即送信時のモデル切替は KeyboardButtons の
-    // 「Model」（/model を直接送るボタン）が担う。
+    // 即送信・キューのどちらでも効く（即送信は /model を先に送ってから本文を送る）。
     const modelSelector = (
       <div className={`${s.optGroup} ${s.modelChip}`}>
         <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
@@ -1733,6 +1748,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             <div className={s.toolbarLeft}>{indentButtons}</div>
             <div className={s.sendTopRowActions}>
               <div className={s.toolbarRight}>{uploadButton}</div>
+              {modelSelector}
               <button
                 type="button"
                 onClick={sendCommand}
@@ -1755,7 +1771,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               <div className={s.toolbarLeft}>{indentButtons}</div>
               <div className={s.sendTopRowActions}>
                 <div className={s.toolbarRight}>{uploadButton}</div>
-                {addToQueue && modelSelector}
+                {modelSelector}
                 <button
                   type="button"
                   onClick={sendCommand}
