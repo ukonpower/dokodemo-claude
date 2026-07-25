@@ -1405,11 +1405,17 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 : 'モデル切替: 選ぶと /model をすぐ送信'
             }
           >
-            <span className={s.optLabel}>モデル</span>
-            {addToQueue && (
-              <span className={s.optValue}>
-                {resolveModelLabel(model, modelOptions)}
-              </span>
+            {addToQueue ? (
+              <>
+                <span className={s.optLabel}>モデル</span>
+                <span className={s.optValue}>
+                  {resolveModelLabel(model, modelOptions)}
+                </span>
+              </>
+            ) : (
+              // 即送信は「切り替える」操作なので、KeyboardButtons の Model
+              // ボタンと同じ表記に揃える
+              'Model'
             )}
             <ChevronDown
               className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
