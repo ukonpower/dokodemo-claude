@@ -58,6 +58,13 @@ export interface EditorInfo {
   available: boolean;
 }
 
+// dokodemo-claude 自身の更新先として選べるブランチ
+export interface SelfBranch {
+  name: string; // ブランチ名（例: "main" / "release/v0.1.28"）
+  isCurrent: boolean; // 現在チェックアウト中か
+  behind: number; // origin/<name> に対して未取り込みのコミット数
+}
+
 // code-server関連の型定義
 export interface CodeServer {
   repositoryPath: string;

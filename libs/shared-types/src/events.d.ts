@@ -14,6 +14,7 @@ import type {
   RepoProcessStatus,
   EditorInfo,
   CodeServer,
+  SelfBranch,
 } from './repo';
 import type {
   GitBranch,
@@ -341,6 +342,15 @@ export interface ServerToClientEvents {
     success: boolean;
     message: string;
     output: string;
+    branch?: string; // 更新後のブランチ
+  }) => void;
+
+  // 更新先として選べるブランチ一覧（main + 未マージの release/*）
+  'self-branches': (data: {
+    success: boolean;
+    current: string;
+    branches: SelfBranch[];
+    message?: string;
   }) => void;
 
   // 自身のリモート更新（新リリース）有無の通知
@@ -754,7 +764,11 @@ export interface ClientToServerEvents {
   }) => void;
 
   // dokodemo-claude自身の更新関連イベント
-  'pull-self': () => void;
+  // branch を指定するとそのブランチへ切り替えてから最新化する（未指定なら現在ブランチ）
+  'pull-self': (data?: { branch?: string }) => void;
+
+  // 更新先ブランチ一覧の取得
+  'get-self-branches': () => void;
 
   // 現在ブランチの pull
   'pull-branch': (data: {

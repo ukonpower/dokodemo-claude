@@ -8,6 +8,7 @@ import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
 import { checkSelfUpdate } from '../services/self-update-checker.js';
+import { getSelfBranches, updateSelf } from '../services/self-repo.js';
 
 // エディタの型定義
 type EditorType = 'vscode' | 'cursor' | 'code-server';
@@ -243,77 +244,71 @@ export function registerMiscHandlers(
     }
   );
 
-  // dokodemo-claude自身のgit pull
-  socket.on('pull-self', async () => {
+  // dokodemo-claude自身の更新先ブランチ一覧
+  socket.on('get-self-branches', async () => {
     try {
-      const selfRepoPath = projectRoot;
-
-      const gitPullProcess = spawn('git', ['pull'], {
-        cwd: selfRepoPath,
-        env: cleanChildEnv(),
+      const result = await getSelfBranches(projectRoot);
+      socket.emit('self-branches', result);
+    } catch (error) {
+      socket.emit('self-branches', {
+        success: false,
+        current: '',
+        branches: [],
+        message: `ブランチ一覧の取得に失敗しました: ${error}`,
       });
-      let output = '';
-      let errorOutput = '';
+    }
+  });
 
-      gitPullProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
+  // dokodemo-claude自身の更新（ブランチ指定可）
+  socket.on('pull-self', async (data) => {
+    try {
+      const result = await updateSelf(projectRoot, data?.branch);
 
-      gitPullProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      const pullTimeout = setTimeout(() => {
-        gitPullProcess.kill('SIGTERM');
+      if (!result.success) {
         socket.emit('self-pulled', {
           success: false,
-          message: 'git pullがタイムアウトしました',
-          output: output,
+          message: result.message,
+          output: result.output,
+          branch: result.branch,
         });
-      }, 60000);
+        return;
+      }
 
-      gitPullProcess.on('exit', (code) => {
-        clearTimeout(pullTimeout);
+      const branchLabel = result.branchChanged
+        ? `${result.branch} に切り替えて更新しました`
+        : `${result.branch} を最新版に更新しました`;
+      let message = `dokodemo-claudeを${branchLabel}。数十秒後に自動的に切り替わります。`;
 
-        if (code === 0) {
-          let message =
-            'dokodemo-claudeを最新版に更新しました。数十秒後に自動的に切り替わります。';
-
-          // prod (npm run start) では supervisor (scripts/start-prod.js) が
-          // このフラグを検知して npm install → 全プロセス再起動を行う
-          if (process.env.DC_MODE === 'prod') {
-            try {
-              fs.writeFileSync(
-                path.join(selfRepoPath, '.dc-restart-request'),
-                `${new Date().toISOString()}\n`
-              );
-              message =
-                'dokodemo-claudeを最新版に更新しました。依存関係の更新とサーバー再起動を行うため、1〜2分ほど待ってからページを再読み込みしてください。';
-            } catch {
-              // フラグが書けない場合は従来どおり tsx watch の自動再起動に任せる
-            }
-          }
-
-          socket.emit('self-pulled', {
-            success: true,
-            message,
-            output: output || errorOutput,
-          });
-
-          // pull 完了後に更新有無を再チェックし、バッジを消す
-          void checkSelfUpdate();
-        } else {
-          socket.emit('self-pulled', {
-            success: false,
-            message: 'git pullに失敗しました',
-            output: errorOutput || output,
-          });
+      // prod (npm run start) では supervisor (scripts/start-prod.js) が
+      // このフラグを検知して npm install → 全プロセス再起動を行う
+      if (process.env.DC_MODE === 'prod') {
+        try {
+          fs.writeFileSync(
+            path.join(projectRoot, '.dc-restart-request'),
+            `${new Date().toISOString()}\n`
+          );
+          message = `dokodemo-claudeを${branchLabel}。依存関係の更新とサーバー再起動を行うため、1〜2分ほど待ってからページを再読み込みしてください。`;
+        } catch {
+          // フラグが書けない場合は従来どおり tsx watch の自動再起動に任せる
         }
+      } else if (result.branchChanged) {
+        // dev では supervisor が居ないため、依存の入れ直しは手動になる
+        message = `dokodemo-claudeを${branchLabel}。依存関係が変わっている場合は npm install を実行してください。`;
+      }
+
+      socket.emit('self-pulled', {
+        success: true,
+        message,
+        output: result.output,
+        branch: result.branch,
       });
+
+      // 更新完了後に更新有無を再チェックし、バッジを消す
+      void checkSelfUpdate();
     } catch (error) {
       socket.emit('self-pulled', {
         success: false,
-        message: `git pullエラー: ${error}`,
+        message: `更新に失敗しました: ${error}`,
         output: '',
       });
     }

@@ -6,6 +6,7 @@ import type {
   ServerToClientEvents,
   ClientToServerEvents,
   PermissionMode,
+  SelfBranch,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 
@@ -58,8 +59,11 @@ export interface UseRepositoryReturn {
   cancelStopProcesses: () => void;
 
   // 自身の更新
-  pullSelf: () => void;
+  pullSelf: (branch?: string) => void;
   selfUpdateAvailable: boolean;
+  selfBranches: SelfBranch[];
+  selfBranchesLoading: boolean;
+  fetchSelfBranches: () => void;
 
   // ローディング終了コールバック
   endLoadingOnOutput: () => void;
@@ -101,6 +105,9 @@ export function useRepository(
 
   // 自身のリモート更新（新リリース）有無
   const [selfUpdateAvailable, setSelfUpdateAvailable] = useState(false);
+  // 更新先として選べるブランチ（main + 未マージの release/*）
+  const [selfBranches, setSelfBranches] = useState<SelfBranch[]>([]);
+  const [selfBranchesLoading, setSelfBranchesLoading] = useState(false);
 
   // Ref
   const currentRepoRef = useRef(currentRepo);
@@ -249,6 +256,14 @@ export function useRepository(
       setSelfUpdateAvailable(data.updateAvailable);
     };
 
+    // 更新先ブランチ一覧
+    const handleSelfBranches = (
+      data: Parameters<ServerToClientEvents['self-branches']>[0]
+    ) => {
+      setSelfBranchesLoading(false);
+      setSelfBranches(data.success ? data.branches : []);
+    };
+
     socket.on('id-mapping', handleIdMapping);
     socket.on('id-mapping-updated', handleIdMappingUpdated);
     socket.on('repos-list', handleReposList);
@@ -257,6 +272,7 @@ export function useRepository(
     socket.on('repo-deleted', handleRepoDeleted);
     socket.on('repo-switched', handleRepoSwitched);
     socket.on('self-update-status', handleSelfUpdateStatus);
+    socket.on('self-branches', handleSelfBranches);
 
     return () => {
       socket.off('id-mapping', handleIdMapping);
@@ -267,6 +283,7 @@ export function useRepository(
       socket.off('repo-deleted', handleRepoDeleted);
       socket.off('repo-switched', handleRepoSwitched);
       socket.off('self-update-status', handleSelfUpdateStatus);
+      socket.off('self-branches', handleSelfBranches);
     };
   }, [socket]);
 
@@ -360,15 +377,27 @@ export function useRepository(
     setStopProcessTargetRid(null);
   }, []);
 
-  const pullSelf = useCallback(() => {
-    if (socket) {
-      if (
-        confirm('dokodemo-claude自身を最新版に更新します。よろしいですか？')
-      ) {
-        socket.emit('pull-self');
-      }
-    }
+  // 更新先ブランチ一覧の取得（更新メニューを開いたときに呼ぶ）
+  const fetchSelfBranches = useCallback(() => {
+    if (!socket) return;
+    setSelfBranchesLoading(true);
+    socket.emit('get-self-branches');
   }, [socket]);
+
+  const pullSelf = useCallback(
+    (branch?: string) => {
+      if (!socket) return;
+      const isBranchChange =
+        !!branch && !selfBranches.some((b) => b.name === branch && b.isCurrent);
+      const message = isBranchChange
+        ? `dokodemo-claude を ${branch} に切り替えて更新します。\n追跡ファイルのローカル変更は破棄されます。よろしいですか？`
+        : 'dokodemo-claude自身を最新版に更新します。よろしいですか？';
+      if (confirm(message)) {
+        socket.emit('pull-self', branch ? { branch } : {});
+      }
+    },
+    [socket, selfBranches]
+  );
 
   return {
     repositories,
@@ -391,6 +420,9 @@ export function useRepository(
     cancelStopProcesses,
     pullSelf,
     selfUpdateAvailable,
+    selfBranches,
+    selfBranchesLoading,
+    fetchSelfBranches,
     endLoadingOnOutput,
   };
 }
