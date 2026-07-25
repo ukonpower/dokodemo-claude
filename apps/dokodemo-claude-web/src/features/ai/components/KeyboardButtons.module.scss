@@ -60,7 +60,7 @@
   // 幅が伸びても 2 列を維持しつつ、間延びしないよう控えめに頭打ちにする
   max-width: 11rem;
 
-  // Clear/Commit/Resume/Model は常に 2×2 グリッドで Enter の右余白にコンパクトに収める。
+  // Clear/Commit/Resume/Usage は常に 2×2 グリッドで Enter の右余白にコンパクトに収める。
   // 全幅に折り返して縦積みにしない。
   .coreCommandRow {
     display: grid;
@@ -70,9 +70,7 @@
     min-width: 0;
 
     // 各セルを列いっぱいに広げて 2×2 を揃える
-    & > button,
-    & > .modelWrapper,
-    & > .modelWrapper > button {
+    & > button {
       width: 100%;
       min-width: 0;
     }
@@ -163,7 +161,7 @@
   }
 }
 
-// Clear / Commit / Resume / Model / 「その他」トグルを一列に並べる。
+// Clear / Commit / Resume / Usage / 「その他」トグルを一列に並べる。
 // 幅が足りない場合のみ折り返しを許可し、まとまりを保つ。
 .coreCommandRow {
   display: flex;
@@ -172,8 +170,7 @@
   gap: $space-xs;
   flex: 0 1 auto;
 
-  & > button,
-  & > .modelWrapper {
+  & > button {
     flex: 0 0 auto;
   }
 }
@@ -283,46 +280,6 @@
 
   &:focus {
     box-shadow: 0 0 0 1px $accent;
-  }
-}
-
-.modelWrapper {
-  position: relative;
-}
-
-.modelButton {
-  @extend %btnBase;
-}
-
-.modelMenu {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: $space-sm;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  z-index: 10;
-  min-width: 100px;
-  overflow: hidden;
-}
-
-.modelMenuItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: $space-sm $space-md;
-  font-size: $font-size-xs;
-  line-height: 1rem;
-  color: $dark-text-primary;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-
-  &:hover {
-    background-color: $dark-bg-hover;
   }
 }
 

@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import type { CustomAiButton, CustomAiButtonScope } from '@/types';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useAiContext } from '@/features/ai/providers/AiProvider';
-import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
-import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import s from './KeyboardButtons.module.scss';
 
 // lg 以上（2カラムレイアウト＝物理キーボードのある PC 環境の目安）。
@@ -206,7 +204,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
     sendResume: onSendResume,
     sendUsage: onSendUsage,
     sendMode: onSendMode,
-    changeModel: onChangeModel,
   } = aiCli;
   const currentProvider = activeInstance?.provider ?? 'claude';
   const disabled = !isConnected || !currentRepositoryPath || !activeInstance;
@@ -220,12 +217,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
     deleteButton: onDeleteCustomButton,
   } = customAiButtonsApi;
 
-  const [showModelMenu, setShowModelMenu] = useState(false);
-  const modelWrapperRef = useRef<HTMLDivElement | null>(null);
-  const closeModelMenu = useCallback(() => setShowModelMenu(false), []);
-  useOutsideClose(showModelMenu, closeModelMenu, {
-    ignore: [modelWrapperRef],
-  });
   const [showAux, setShowAux] = useState(false);
   const [dialogState, setDialogState] = useState<DialogState>(null);
 
@@ -233,24 +224,17 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
   // 代わりにコマンド系ボタンを主役として常時表示する。
   const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
 
-  // モデル選択肢（組み込み + API 取得 + カスタム）。
-  // 即時 /model 送信メニューのため「未指定」（空値）は除外する。
-  const { options: modelOptions } = useModelOptions();
-  const selectableModels = modelOptions.filter((o) => o.value !== '');
-
   const isClaude = currentProvider === 'claude';
 
   // 操作コマンドの内訳:
-  // - Clear / Commit / Resume / Model: 常時コマンドバーに表示（使用頻度が高い）
-  // - Mode（Shift+Tab） / Ctrl+C / Alt+T / Usage / Preview: 「その他」に格納
+  // - Clear / Commit / Resume / Usage: 常時コマンドバーに表示（使用頻度が高い）
+  // - Mode（Shift+Tab） / Ctrl+C / Alt+T / Preview: 「その他」に格納
+  // モデル切替は入力欄の Model チップが担うため、ここには置かない。
   const hasModeCommand = Boolean(isClaude && onSendMode);
   const hasInterruptCommand = Boolean(onSendInterrupt);
-  const hasModel = Boolean(isClaude && onChangeModel);
   const hasResume = Boolean(isClaude && onSendResume);
-  // 「その他」に格納する補助コマンド（Alt+T / Usage / Preview）
-  const hasExtraCommands = Boolean(
-    isClaude && (onSendAltT || onSendUsage || onSendPreview)
-  );
+  // 「その他」に格納する補助コマンド（Alt+T / Preview）
+  const hasExtraCommands = Boolean(isClaude && (onSendAltT || onSendPreview));
 
   // 「その他」トグルの表示要否。
   // PC は Mode / Ctrl+C / 補助コマンドをここに格納するので、どれも無ければトグルごと隠す。
@@ -283,39 +267,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
     >
       Ctrl+C
     </button>
-  ) : null;
-
-  // Model ドロップダウン（「その他」の中に配置）
-  const modelDropdownButton = hasModel && onChangeModel ? (
-    <div className={s.modelWrapper} ref={modelWrapperRef}>
-      <button
-        type="button"
-        onClick={() => setShowModelMenu(!showModelMenu)}
-        disabled={disabled}
-        className={s.modelButton}
-        title="モデルを選択"
-      >
-        Model
-      </button>
-      {showModelMenu && (
-        <div className={s.modelMenu}>
-          {selectableModels.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onChangeModel(opt.value);
-                setShowModelMenu(false);
-              }}
-              className={s.modelMenuItem}
-              title={opt.value}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   ) : null;
 
   // 「その他」トグル。コマンド行には混ぜず、補助群の見出しとして主要行の下に置く
@@ -367,11 +318,21 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           Resume
         </button>
       )}
-      {modelDropdownButton}
+      {isClaude && onSendUsage && (
+        <button
+          type="button"
+          onClick={onSendUsage}
+          disabled={disabled}
+          className={s.grayButton}
+          title="使用状況を表示 (/usage)"
+        >
+          Usage
+        </button>
+      )}
     </div>
   );
 
-  // 補助コマンド群（Alt+T / Usage / Preview）
+  // 補助コマンド群（Alt+T / Preview）
   const extraCommandButtons = (
     <>
       {isClaude && onSendAltT && (
@@ -383,17 +344,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
           title="Alt+Tキーを送信"
         >
           Alt+T
-        </button>
-      )}
-      {isClaude && onSendUsage && (
-        <button
-          type="button"
-          onClick={onSendUsage}
-          disabled={disabled}
-          className={s.grayButton}
-          title="使用状況を表示 (/usage)"
-        >
-          Usage
         </button>
       )}
       {isClaude && onSendPreview && (
