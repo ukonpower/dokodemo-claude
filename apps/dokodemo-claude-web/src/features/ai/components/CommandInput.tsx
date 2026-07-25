@@ -35,13 +35,6 @@ import type { LoopSettingsValue } from './LoopSettingsFields';
 import DrawingCanvas from './DrawingCanvas';
 import s from './CommandInput.module.scss';
 
-/**
- * 即送信でモデル指定がある場合、/model を先に送ってから本文を送るまでの待ち時間。
- * 送信側で 300ms 後に Enter が付くため、それを見込んだ間隔にする
- * （キュー送信（PromptQueueManager）と同じ 1.5 秒）。
- */
-const MODEL_SWITCH_DELAY_MS = 1500;
-
 /** /model コマンドに渡す値へ正規化する（表示名と CLI の受け付ける値の差を吸収） */
 const toModelCommandValue = (model: string) =>
   model === 'OpusPlan' ? 'opusplan' : model;
@@ -429,13 +422,22 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
     };
 
+    // モデルの選択。キューでは送信時に適用するため設定に持つだけだが、
+    // 即送信では選んだ時点で /model を送ってセッションのモデルを切り替える。
+    const selectModel = (value: string) => {
+      handleSettingChange('model', value);
+      if (!addToQueue && value) {
+        onSendCommand(`/model ${toModelCommandValue(value)}`);
+      }
+    };
+
     // カスタムモデル追加フォームの送信
     const handleAddCustomModel = () => {
       const id = newModelId.trim();
       if (!id) return;
       addCustomModel(id, newModelName.trim() || undefined);
       // 追加したモデルを選択状態にする
-      handleSettingChange('model', id);
+      selectModel(id);
       setNewModelId('');
       setNewModelName('');
       setIsAddModelOpen(false);
@@ -607,12 +609,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             model || undefined,
             loopArg
           );
-        } else if (model) {
-          // 即送信でモデル指定がある場合は /model を先に送ってから本文を送る
-          onSendCommand(`/model ${toModelCommandValue(model)}`);
-          setTimeout(() => {
-            onSendCommand(finalCommand);
-          }, MODEL_SWITCH_DELAY_MS);
         } else {
           // 通常のコマンド送信
           onSendCommand(finalCommand);
@@ -1386,8 +1382,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       </>
     ) : null;
 
-    // モデル選択チップ。頻繁に使うので送信ボタンの直左（送信行）に置く。
-    // 即送信・キューのどちらでも効く（即送信は /model を先に送ってから本文を送る）。
+    // モデルチップ。頻繁に使うので送信ボタンの直左（送信行）に置く。
+    // 即送信では選択した時点で /model を送る「モデル切替」、
+    // キューでは送信時に適用される「モデル指定」として振る舞う。
     const modelSelector = (
       <div className={`${s.optGroup} ${s.modelChip}`}>
         <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
@@ -1397,7 +1394,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
             disabled={disabled}
             className={`${s.modelButton} ${model ? s.active : ''}`}
-            title="モデル選択"
+            title={
+              addToQueue
+                ? 'モデル指定: キュー送信時に /model を適用'
+                : 'モデル切替: 選ぶと /model をすぐ送信'
+            }
           >
             <span className={s.optLabel}>モデル</span>
             <span className={s.optValue}>
@@ -1422,7 +1423,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                   <button
                     type="button"
                     onClick={() => {
-                      handleSettingChange('model', opt.value);
+                      selectModel(opt.value);
                       setIsModelDropdownOpen(false);
                       setIsAddModelOpen(false);
                     }}
