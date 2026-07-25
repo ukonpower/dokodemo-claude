@@ -97,51 +97,6 @@
   }
 }
 
-.updateButton {
-  position: relative;
-  padding: $space-2xs $space-sm;
-  border-radius: $radius;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-  transition: all $transition-normal $transition-easing;
-  display: flex;
-  align-items: center;
-
-  & > * + * {
-    margin-left: $space-2xs;
-  }
-
-  background-color: $dark-bg-tertiary;
-  color: $dark-text-secondary;
-  border: 1px solid $dark-border-light;
-  white-space: nowrap;
-  align-self: flex-start;
-  margin-top: $space-2xs;
-
-  &:hover {
-    background-color: $dark-bg-hover;
-    color: white;
-    border-color: $dark-border-focus;
-  }
-}
-
-.updateIcon {
-  height: 0.75rem;
-  width: 0.75rem;
-}
-
-// 新リリースがあるときのアップデートマーク（ボタン右上のドット）
-.updateBadge {
-  position: absolute;
-  top: -0.1875rem;
-  right: -0.1875rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: $radius-full;
-  background-color: $color-success;
-  border: 1px solid $dark-bg-primary;
-}
-
 .headerRight {
   display: flex;
   align-items: center;

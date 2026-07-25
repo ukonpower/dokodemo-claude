@@ -1,4 +1,4 @@
-import { RefreshCw, Settings, CircleStop, AlertTriangle, Loader2 } from 'lucide-react';
+import { Settings, CircleStop, AlertTriangle, Loader2 } from 'lucide-react';
 import Button from '@/shared/components/Button';
 import IconButton from '@/shared/components/IconButton';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
@@ -8,6 +8,7 @@ import { useNavigationContext } from '@/app/providers/NavigationProvider';
 
 import RepositoryManager from '@/features/repo/components/RepositoryManager';
 import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
+import SelfUpdateIndicator from '@/features/repo/components/SelfUpdateIndicator';
 import s from './HomeView.module.scss';
 
 export function HomeView() {
@@ -19,9 +20,6 @@ export function HomeView() {
   const { repository } = useRepositoryContext();
   const {
     repositories,
-    // リポジトリアクション
-    pullSelf: onPullSelf,
-    selfUpdateAvailable,
     // ローディング状態
     isSwitchingRepo,
     // プロセス停止確認ダイアログ
@@ -55,20 +53,8 @@ export function HomeView() {
                     Claude Code CLI Web Interface
                   </p>
                 </div>
-                {/* dokodemo-claude自身を更新ボタン */}
-                <button
-                  onClick={onPullSelf}
-                  className={s.updateButton}
-                  title={
-                    selfUpdateAvailable
-                      ? '新しいリリースがあります。クリックで最新版に更新 (git pull)'
-                      : 'dokodemo-claude自身を最新版に更新 (git pull)'
-                  }
-                >
-                  <RefreshCw className={s.updateIcon} />
-                  <span>更新</span>
-                  {selfUpdateAvailable && <span className={s.updateBadge} />}
-                </button>
+                {/* 新しいリリースがある場合のみ表示（更新の実行は設定画面） */}
+                <SelfUpdateIndicator />
               </div>
               <div className={s.headerRight}>
                 {/* 設定ボタン */}

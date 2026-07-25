@@ -1,0 +1,22 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  align-self: flex-start;
+  margin-top: $space-2xs;
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: $radius-full;
+  background-color: $color-success;
+}
