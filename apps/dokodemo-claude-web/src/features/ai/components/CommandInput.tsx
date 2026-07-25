@@ -422,11 +422,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
     };
 
-    // モデルの選択。キューでは送信時に適用するため設定に持つだけだが、
-    // 即送信では選んだ時点で /model を送ってセッションのモデルを切り替える。
+    // モデルの選択。キューでは送信時に適用するため設定として保持し、
+    // 即送信では保持せずその場で /model を送ってセッションを切り替える。
     const selectModel = (value: string) => {
-      handleSettingChange('model', value);
-      if (!addToQueue && value) {
+      if (addToQueue) {
+        handleSettingChange('model', value);
+        return;
+      }
+      if (value) {
         onSendCommand(`/model ${toModelCommandValue(value)}`);
       }
     };
@@ -436,7 +439,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       const id = newModelId.trim();
       if (!id) return;
       addCustomModel(id, newModelName.trim() || undefined);
-      // 追加したモデルを選択状態にする
+      // 追加したモデルをそのまま適用する（キュー: 選択状態 / 即送信: /model 送信）
       selectModel(id);
       setNewModelId('');
       setNewModelName('');
@@ -1383,8 +1386,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     ) : null;
 
     // モデルチップ。頻繁に使うので送信ボタンの直左（送信行）に置く。
-    // 即送信では選択した時点で /model を送る「モデル切替」、
-    // キューでは送信時に適用される「モデル指定」として振る舞う。
+    // 即送信では選んだ時点で /model を送るだけの「モデル切替」メニュー。
+    // 設定として保持しない（CLI 側で直接切り替えられても追えず、選択値を
+    // 現在のモデルとして出すと実態とズレるため）ので、チップに値は出さない。
+    // キューでは送信時に適用される「モデル指定」なので選択中の値を表示する。
     const modelSelector = (
       <div className={`${s.optGroup} ${s.modelChip}`}>
         <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
@@ -1393,7 +1398,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             type="button"
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
             disabled={disabled}
-            className={`${s.modelButton} ${model ? s.active : ''}`}
+            className={`${s.modelButton} ${addToQueue && model ? s.active : ''}`}
             title={
               addToQueue
                 ? 'モデル指定: キュー送信時に /model を適用'
@@ -1401,9 +1406,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             }
           >
             <span className={s.optLabel}>モデル</span>
-            <span className={s.optValue}>
-              {resolveModelLabel(model, modelOptions)}
-            </span>
+            {addToQueue && (
+              <span className={s.optValue}>
+                {resolveModelLabel(model, modelOptions)}
+              </span>
+            )}
             <ChevronDown
               className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
             />
@@ -1418,7 +1425,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 transform: 'translateY(-100%)',
               }}
             >
-              {modelOptions.map((opt) => (
+              {/* 即送信は「切り替える」操作なので、何もしない未指定は出さない */}
+              {(addToQueue
+                ? modelOptions
+                : modelOptions.filter((opt) => opt.value)
+              ).map((opt) => (
                 <div key={opt.value || 'unset'} className={s.modelOptionRow}>
                   <button
                     type="button"
@@ -1428,7 +1439,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                       setIsAddModelOpen(false);
                     }}
                     className={`${s.modelOption} ${
-                      model === opt.value ? s.selected : ''
+                      addToQueue && model === opt.value ? s.selected : ''
                     }`}
                     title={opt.value || '未指定'}
                   >
