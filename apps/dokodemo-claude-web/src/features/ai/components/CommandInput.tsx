@@ -35,6 +35,10 @@ import type { LoopSettingsValue } from './LoopSettingsFields';
 import DrawingCanvas from './DrawingCanvas';
 import s from './CommandInput.module.scss';
 
+/** /model コマンドに渡す値へ正規化する（表示名と CLI の受け付ける値の差を吸収） */
+const toModelCommandValue = (model: string) =>
+  model === 'OpusPlan' ? 'opusplan' : model;
+
 /** fixed 配置のドロップダウンが画面外にはみ出さないよう left を収める */
 const clampDropdownLeft = (left: number, width: number) =>
   Math.max(8, Math.min(left, window.innerWidth - width - 8));
@@ -418,13 +422,25 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
     };
 
+    // モデルの選択。キューでは送信時に適用するため設定として保持し、
+    // 即送信では保持せずその場で /model を送ってセッションを切り替える。
+    const selectModel = (value: string) => {
+      if (addToQueue) {
+        handleSettingChange('model', value);
+        return;
+      }
+      if (value) {
+        onSendCommand(`/model ${toModelCommandValue(value)}`);
+      }
+    };
+
     // カスタムモデル追加フォームの送信
     const handleAddCustomModel = () => {
       const id = newModelId.trim();
       if (!id) return;
       addCustomModel(id, newModelName.trim() || undefined);
-      // 追加したモデルを選択状態にする
-      handleSettingChange('model', id);
+      // 追加したモデルをそのまま適用する（キュー: 選択状態 / 即送信: /model 送信）
+      selectModel(id);
       setNewModelId('');
       setNewModelName('');
       setIsAddModelOpen(false);
@@ -1369,6 +1385,155 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       </>
     ) : null;
 
+    // モデルチップ。頻繁に使うので送信ボタンの直左（送信行）に置く。
+    // 即送信では選んだ時点で /model を送るだけの「モデル切替」メニュー。
+    // 設定として保持しない（CLI 側で直接切り替えられても追えず、選択値を
+    // 現在のモデルとして出すと実態とズレるため）ので、チップに値は出さない。
+    // キューでは送信時に適用される「モデル指定」なので選択中の値を表示する。
+    const modelSelector = (
+      <div className={`${s.optGroup} ${s.modelChip}`}>
+        <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
+          <button
+            ref={modelButtonRef}
+            type="button"
+            onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+            disabled={disabled}
+            className={`${s.modelButton} ${addToQueue && model ? s.active : ''}`}
+            title={
+              addToQueue
+                ? 'モデル指定: キュー送信時に /model を適用'
+                : 'モデル切替: 選ぶと /model をすぐ送信'
+            }
+          >
+            {addToQueue ? (
+              <>
+                <span className={s.optLabel}>モデル</span>
+                <span className={s.optValue}>
+                  {resolveModelLabel(model, modelOptions)}
+                </span>
+              </>
+            ) : (
+              // 即送信は「切り替える」操作なので、KeyboardButtons の Model
+              // ボタンと同じ表記に揃える
+              'Model'
+            )}
+            <ChevronDown
+              className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
+            />
+          </button>
+
+          {isModelDropdownOpen && (
+            <div
+              className={s.modelDropdown}
+              style={{
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`,
+                transform: 'translateY(-100%)',
+              }}
+            >
+              {/* 即送信は「切り替える」操作なので、何もしない未指定は出さない */}
+              {(addToQueue
+                ? modelOptions
+                : modelOptions.filter((opt) => opt.value)
+              ).map((opt) => (
+                <div key={opt.value || 'unset'} className={s.modelOptionRow}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectModel(opt.value);
+                      setIsModelDropdownOpen(false);
+                      setIsAddModelOpen(false);
+                    }}
+                    className={`${s.modelOption} ${
+                      addToQueue && model === opt.value ? s.selected : ''
+                    }`}
+                    title={opt.value || '未指定'}
+                  >
+                    {opt.label}
+                  </button>
+                  {opt.source === 'custom' && (
+                    <button
+                      type="button"
+                      onClick={() => removeCustomModel(opt.value)}
+                      className={s.modelOptionDelete}
+                      title="このカスタムモデルを削除"
+                      aria-label="カスタムモデルを削除"
+                    >
+                      <X />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <div className={s.modelDropdownSeparator} />
+
+              {/* カスタムモデル追加 */}
+              {isAddModelOpen ? (
+                <div className={s.modelAddForm}>
+                  <input
+                    type="text"
+                    value={newModelId}
+                    onChange={(e) => setNewModelId(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomModel();
+                      }
+                    }}
+                    placeholder="モデルID（必須）"
+                    className={s.modelAddInput}
+                    autoFocus
+                  />
+                  <input
+                    type="text"
+                    value={newModelName}
+                    onChange={(e) => setNewModelName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomModel();
+                      }
+                    }}
+                    placeholder="表示名（任意）"
+                    className={s.modelAddInput}
+                  />
+                  <div className={s.modelAddActions}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModelOpen(false);
+                        setNewModelId('');
+                        setNewModelName('');
+                      }}
+                      className={s.modelAddCancel}
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomModel}
+                      disabled={!newModelId.trim()}
+                      className={s.modelAddSubmit}
+                    >
+                      追加
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsAddModelOpen(true)}
+                  className={s.modelAddTrigger}
+                >
+                  ＋ カスタムモデルを追加…
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+
     return (
       <div
         className={s.root}
@@ -1601,6 +1766,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             <div className={s.toolbarLeft}>{indentButtons}</div>
             <div className={s.sendTopRowActions}>
               <div className={s.toolbarRight}>{uploadButton}</div>
+              {modelSelector}
               <button
                 type="button"
                 onClick={sendCommand}
@@ -1623,6 +1789,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               <div className={s.toolbarLeft}>{indentButtons}</div>
               <div className={s.sendTopRowActions}>
                 <div className={s.toolbarRight}>{uploadButton}</div>
+                {modelSelector}
                 <button
                   type="button"
                   onClick={sendCommand}
@@ -1674,138 +1841,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               {/* キューオプション（キューON時のみ表示。モード固定サイズの下段に折り返す） */}
               {addToQueue && (
                 <div className={s.optionGrid}>
-                  {/* モデル選択（頻繁に使うため先頭に配置） */}
-                  <div className={s.optGroup}>
-                  <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
-                    <button
-                      ref={modelButtonRef}
-                      type="button"
-                      onClick={() =>
-                        setIsModelDropdownOpen(!isModelDropdownOpen)
-                      }
-                      disabled={disabled}
-                      className={`${s.modelButton} ${model ? s.active : ''}`}
-                      title="モデル選択"
-                    >
-                      <span className={s.optLabel}>モデル</span>
-                      <span className={s.optValue}>
-                        {resolveModelLabel(model, modelOptions)}
-                      </span>
-                      <ChevronDown
-                        className={`${s.modelDropdownIcon} ${isModelDropdownOpen ? s.open : ''}`}
-                      />
-                    </button>
-
-                    {isModelDropdownOpen && (
-                      <div
-                        className={s.modelDropdown}
-                        style={{
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                          transform: 'translateY(-100%)',
-                        }}
-                      >
-                        {modelOptions.map((opt) => (
-                          <div
-                            key={opt.value || 'unset'}
-                            className={s.modelOptionRow}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleSettingChange('model', opt.value);
-                                setIsModelDropdownOpen(false);
-                                setIsAddModelOpen(false);
-                              }}
-                              className={`${s.modelOption} ${
-                                model === opt.value ? s.selected : ''
-                              }`}
-                              title={opt.value || '未指定'}
-                            >
-                              {opt.label}
-                            </button>
-                            {opt.source === 'custom' && (
-                              <button
-                                type="button"
-                                onClick={() => removeCustomModel(opt.value)}
-                                className={s.modelOptionDelete}
-                                title="このカスタムモデルを削除"
-                                aria-label="カスタムモデルを削除"
-                              >
-                                <X />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-
-                        <div className={s.modelDropdownSeparator} />
-
-                        {/* カスタムモデル追加 */}
-                        {isAddModelOpen ? (
-                          <div className={s.modelAddForm}>
-                            <input
-                              type="text"
-                              value={newModelId}
-                              onChange={(e) => setNewModelId(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddCustomModel();
-                                }
-                              }}
-                              placeholder="モデルID（必須）"
-                              className={s.modelAddInput}
-                              autoFocus
-                            />
-                            <input
-                              type="text"
-                              value={newModelName}
-                              onChange={(e) => setNewModelName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleAddCustomModel();
-                                }
-                              }}
-                              placeholder="表示名（任意）"
-                              className={s.modelAddInput}
-                            />
-                            <div className={s.modelAddActions}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsAddModelOpen(false);
-                                  setNewModelId('');
-                                  setNewModelName('');
-                                }}
-                                className={s.modelAddCancel}
-                              >
-                                キャンセル
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleAddCustomModel}
-                                disabled={!newModelId.trim()}
-                                className={s.modelAddSubmit}
-                              >
-                                追加
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setIsAddModelOpen(true)}
-                            className={s.modelAddTrigger}
-                          >
-                            ＋ カスタムモデルを追加…
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  </div>
-
                   {/* /clear（送信前） */}
                   <div className={s.optGroup}>
                     <button

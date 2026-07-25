@@ -49,7 +49,6 @@ export interface UseAiCliReturn {
   sendResume: () => void;
   sendUsage: () => void;
   sendMode: () => void;
-  changeModel: (model: string) => void;
 
   // プライマリ専用
   changePrimaryProvider: (provider: AiProvider) => void;
@@ -502,13 +501,6 @@ export function useAiCli(
     sendCommandToActive('\x1b[Z', 'raw');
   }, [sendCommandToActive]);
 
-  const changeModel = useCallback(
-    (model: string) => {
-      sendCommandToActive(`/model ${model}`, 'prompt');
-    },
-    [sendCommandToActive]
-  );
-
   // プライマリの provider 切替
   const changePrimaryProvider = useCallback(
     (newProvider: AiProvider) => {
@@ -673,7 +665,6 @@ export function useAiCli(
     sendResume,
     sendUsage,
     sendMode,
-    changeModel,
     changePrimaryProvider,
     restartCli,
     clearHistory,

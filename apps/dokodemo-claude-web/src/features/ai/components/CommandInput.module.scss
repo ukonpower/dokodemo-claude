@@ -626,12 +626,30 @@
   gap: $space-xs;
 }
 
-// 上ライン右側: アップロード＋送信をまとめて右に寄せる
+// 上ライン右側: アップロード＋モデル＋送信をまとめて右に寄せる。
+// モデルチップは可変長なので、狭い画面では縮んでよいように min-width: 0 を許す
 .sendTopRowActions {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: $space-xs;
+}
+
+// 送信行に置くモデルチップ。送信ボタンを押し出さないよう幅の上限を決め、
+// 溢れる分は .optValue の省略記号で丸める
+.modelChip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 12rem;
+
+  @include sm-down {
+    max-width: 8rem;
+  }
+
+  .modelDropdownWrapper {
+    flex: 0 1 auto;
+  }
 }
 
 .sendOptionsBar {
@@ -645,7 +663,8 @@
 }
 
 // 修飾グループの下段グリッド。
-// 上段: モデル | /clear | /commit（3 等幅セル）、下段: ループ（全幅）
+// 上段: /clear | /commit（3 等幅セルのうち 2 つを使う。モデルは送信行に移設）、
+// 下段: ループ（全幅）
 .optionGrid {
   width: 100%;
   display: grid;
