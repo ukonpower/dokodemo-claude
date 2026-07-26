@@ -459,6 +459,22 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
 
     // カスタムキーイベントハンドラ（コピー/ペースト対応）
     terminal.current.attachCustomKeyEventHandler((event) => {
+      // Ctrl+Shift+←→↓: AIインスタンスタブ操作のグローバルショートカット。
+      // xterm に処理させるとエスケープシーケンス（\x1b[1;6D 等）がシェルへ
+      // 送られてしまうため握り潰す。false を返しても xterm は伝播を止めないので、
+      // window の keydown リスナー（useAppHotkeys）には届く
+      if (
+        event.ctrlKey &&
+        event.shiftKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        (event.key === 'ArrowLeft' ||
+          event.key === 'ArrowRight' ||
+          event.key === 'ArrowDown')
+      ) {
+        return false;
+      }
+
       // Ctrl+C または Cmd+C: 選択テキストがあればコピー
       if (
         (event.ctrlKey || event.metaKey) &&

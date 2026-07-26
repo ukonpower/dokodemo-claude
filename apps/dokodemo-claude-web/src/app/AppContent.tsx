@@ -73,7 +73,7 @@ export function AppContent() {
   useAppHotkeys({
     onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
     onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
-    // Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
+    // Ctrl+Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
     // （右端でさらに右を押すと provider を選ぶ追加メニューを開く）
     onSwitchAiInstance: (direction) => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
@@ -92,7 +92,7 @@ export function AppContent() {
       }
       aiCli.activateInstance(sorted[targetIndex].instanceId);
     },
-    // Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
+    // Ctrl+Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
     onOpenActiveTabMenu: () => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
       const active = aiCli.activeInstance;

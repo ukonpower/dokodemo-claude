@@ -20,7 +20,7 @@ import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvid
 export interface AiContextValue {
   aiCli: UseAiCliReturn;
   customAiButtons: UseCustomAiButtonsReturn;
-  /** AIインスタンスタブの追加メニューを Shift+→（右端）から開くための ref */
+  /** AIインスタンスタブの追加メニューを Ctrl+Shift+→（右端）から開くための ref */
   aiInstanceTabsRef: RefObject<AiInstanceTabsHandle | null>;
   primaryProvider: AiProviderName | undefined;
 }
@@ -43,7 +43,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const aiCli = useAiCli(socket, repository.currentRepo, onAiOutputReceived);
   const { activeInstance } = aiCli;
 
-  // AIインスタンスタブの追加メニューを Shift+→（右端）から開くための ref
+  // AIインスタンスタブの追加メニューを Ctrl+Shift+→（右端）から開くための ref
   const aiInstanceTabsRef = useRef<AiInstanceTabsHandle>(null);
   const primaryProvider = aiCli.primaryInstance?.provider;
 
