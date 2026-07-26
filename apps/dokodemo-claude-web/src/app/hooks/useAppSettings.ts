@@ -6,12 +6,20 @@ import {
 } from '@/app/utils/app-settings';
 
 /**
+ * 完了後の自動コミットの動作
+ * - off: 何もしない
+ * - commit: コミットのみ（push しない）
+ * - commit-push: コミットして push まで行う
+ */
+export type AutoCommitMode = 'off' | 'commit' | 'commit-push';
+
+/**
  * コマンド入力設定の型
  */
 export interface CommandSendSettings {
   addToQueue: boolean;
   sendClear: boolean;
-  sendCommit: boolean;
+  autoCommit: AutoCommitMode;
   model?: string;
   workflowSkill?: string;
   autoTarget?: 'plan' | 'implement';
@@ -66,7 +74,15 @@ function loadSettingsForRepoInternal(repoPath: string): CommandSendSettings {
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved) as CommandSendSettings;
+      // 保存済みの値が不正・未設定なら安全側（コミットしない）に倒す
+      if (
+        parsed.autoCommit !== 'commit' &&
+        parsed.autoCommit !== 'commit-push'
+      ) {
+        parsed.autoCommit = 'off';
+      }
+      return parsed;
     } catch {
       // パース失敗時はデフォルト値
     }
@@ -74,7 +90,7 @@ function loadSettingsForRepoInternal(repoPath: string): CommandSendSettings {
   return {
     addToQueue: false,
     sendClear: false,
-    sendCommit: false,
+    autoCommit: 'off',
   };
 }
 

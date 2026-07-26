@@ -27,6 +27,7 @@ import {
 } from './LoopSettingsFields';
 import LoopStatusBar from './LoopStatusBar';
 import s from './PromptQueue.module.scss';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 const PromptQueue: React.FC = () => {
   // プロンプトキュー関連
@@ -53,7 +54,7 @@ const PromptQueue: React.FC = () => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [editSendClearBefore, setEditSendClearBefore] = useState(false);
-  const [editIsAutoCommit, setEditIsAutoCommit] = useState(false);
+  const [editAutoCommit, setEditAutoCommit] = useState<AutoCommitMode>('off');
   const [editModel, setEditModel] = useState('');
   const [editLoop, setEditLoop] = useState<EditLoopSettings | null>(null);
   const [viewingItemId, setViewingItemId] = useState<string | null>(null);
@@ -75,7 +76,13 @@ const PromptQueue: React.FC = () => {
     setEditingItemId(item.id);
     setEditPrompt(item.prompt);
     setEditSendClearBefore(item.sendClearBefore ?? false);
-    setEditIsAutoCommit(item.isAutoCommit ?? false);
+    setEditAutoCommit(
+      item.isAutoCommit
+        ? item.isAutoCommitPush
+          ? 'commit-push'
+          : 'commit'
+        : 'off'
+    );
     setEditModel(item.model ?? '');
     setEditLoop(
       item.loop
@@ -99,7 +106,7 @@ const PromptQueue: React.FC = () => {
     setEditingItemId(null);
     setEditPrompt('');
     setEditSendClearBefore(false);
-    setEditIsAutoCommit(false);
+    setEditAutoCommit('off');
     setEditModel('');
     setEditLoop(null);
   };
@@ -135,7 +142,7 @@ const PromptQueue: React.FC = () => {
         itemId,
         editPrompt,
         editSendClearBefore,
-        editIsAutoCommit,
+        editAutoCommit,
         editModel,
         loopUpdate
       );
@@ -246,7 +253,7 @@ const PromptQueue: React.FC = () => {
                   isViewing={isViewing}
                   editPrompt={editPrompt}
                   editSendClearBefore={editSendClearBefore}
-                  editIsAutoCommit={editIsAutoCommit}
+                  editAutoCommit={editAutoCommit}
                   editModel={editModel}
                   editLoop={editLoop}
                   canRemove={canRemove}
@@ -264,7 +271,7 @@ const PromptQueue: React.FC = () => {
                   onRequeue={onRequeue!}
                   setEditPrompt={setEditPrompt}
                   setEditSendClearBefore={setEditSendClearBefore}
-                  setEditIsAutoCommit={setEditIsAutoCommit}
+                  setEditAutoCommit={setEditAutoCommit}
                   setEditModel={setEditModel}
                   setEditLoop={setEditLoop}
                 />

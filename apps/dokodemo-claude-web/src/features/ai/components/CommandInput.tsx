@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import type { AiProvider } from '@/types';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/features/ai/utils/models';
@@ -117,7 +118,7 @@ interface TextInputProps {
   onAddToQueue?: (
     command: string,
     sendClearBefore: boolean,
-    sendCommitAfter: boolean,
+    autoCommit: AutoCommitMode,
     model?: string,
     loop?: {
       judge: 'ai' | 'user' | 'none';
@@ -143,7 +144,7 @@ interface TextInputProps {
   sendSettings?: {
     addToQueue: boolean;
     sendClear: boolean;
-    sendCommit: boolean;
+    autoCommit: AutoCommitMode;
     model?: string;
     workflowSkill?: string;
     autoTarget?: 'plan' | 'implement';
@@ -163,7 +164,7 @@ interface TextInputProps {
   onSendSettingsChange?: (settings: {
     addToQueue: boolean;
     sendClear: boolean;
-    sendCommit: boolean;
+    autoCommit: AutoCommitMode;
     model?: string;
     workflowSkill?: string;
     autoTarget?: 'plan' | 'implement';
@@ -334,7 +335,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     // 非プライマリではキュー機能を使えないため、addToQueue を強制的に false 扱いにする
     const addToQueue = isPrimary ? (sendSettings?.addToQueue ?? false) : false;
     const sendClearBefore = sendSettings?.sendClear ?? false;
-    const sendCommitAfter = sendSettings?.sendCommit ?? false;
+    const autoCommit: AutoCommitMode = sendSettings?.autoCommit ?? 'off';
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
 
@@ -380,7 +381,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       key:
         | 'addToQueue'
         | 'sendClear'
-        | 'sendCommit'
+        | 'autoCommit'
         | 'model'
         | 'workflowSkill'
         | 'autoTarget'
@@ -540,20 +541,20 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onAddToQueue(
             formatSkillCommand(`/workflow-research ${command}`),
             autoClear,
-            false,
+            'off',
             undefined
           );
           onAddToQueue(
             formatSkillCommand(`/workflow-plan ${command}`),
             false,
-            false,
+            'off',
             undefined
           );
           if (autoReview) {
             onAddToQueue(
               formatSkillCommand(`/dokodemo-claude-tools:workflow-plan-codexreview`),
               false,
-              false,
+              'off',
               undefined
             );
           }
@@ -561,7 +562,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             onAddToQueue(
               formatSkillCommand(`/workflow-implement`),
               autoClear,
-              false,
+              'off',
               undefined
             );
           }
@@ -608,7 +609,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onAddToQueue(
             finalCommand,
             sendClearBefore,
-            sendCommitAfter,
+            autoCommit,
             model || undefined,
             loopArg
           );
@@ -1862,13 +1863,21 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     <button
                       type="button"
                       onClick={() =>
-                        handleSettingChange('sendCommit', !sendCommitAfter)
+                        handleSettingChange(
+                          'autoCommit',
+                          autoCommit === 'off'
+                            ? 'commit'
+                            : autoCommit === 'commit'
+                              ? 'commit-push'
+                              : 'off'
+                        )
                       }
                       disabled={disabled}
-                      className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
-                      title="/commit: 完了後に自動コミット"
+                      className={`${s.optionButton} ${autoCommit !== 'off' ? s.active : ''}`}
+                      title="完了後の自動コミット: なし → /commit（push しない） → /commit+push"
                     >
-                      <span className={s.optLabel}>後</span>/commit
+                      <span className={s.optLabel}>後</span>
+                      {autoCommit === 'commit-push' ? '/commit+push' : '/commit'}
                     </button>
                   </div>
 

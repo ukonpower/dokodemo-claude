@@ -39,6 +39,7 @@ import SidePanel from '@/features/files/components/SidePanel';
 import AiInstanceTabs from '@/features/ai/components/AiInstanceTabs';
 import DrawingCanvas from '@/features/ai/components/DrawingCanvas';
 import s from './ProjectView.module.scss';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 // SidePanel（右列：送信/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。
 // PC（lg 以上・右列配置時）でのみ意味を持ち、CLI を横幅いっぱいに広げるための設定。
@@ -223,7 +224,7 @@ export function ProjectView() {
     (
       command: string,
       sendClearBefore: boolean,
-      sendCommitAfter: boolean,
+      autoCommit: AutoCommitMode,
       model?: string,
       loop?: {
         judge: 'ai' | 'user' | 'none';
@@ -233,7 +234,7 @@ export function ProjectView() {
         planning?: { everyN: number; model: string; prompt: string };
       }
     ) => {
-      onAddToQueue(command, sendClearBefore, sendCommitAfter, model, loop);
+      onAddToQueue(command, sendClearBefore, autoCommit, model, loop);
       aiOutputRef.current?.scrollToBottom();
     },
     [onAddToQueue]

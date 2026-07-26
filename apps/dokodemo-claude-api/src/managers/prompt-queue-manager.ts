@@ -19,6 +19,11 @@ import { judgeLoop } from '../services/loop-judge-service.js';
 
 const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 
+// 空回り検知: 自動コミット有効なループで、この周回数だけ連続して HEAD が動かなければ
+// 「同じところで足踏みしている」とみなして承認待ちに倒す。
+// 毎周コミットが積まれる前提のループでしか判定できないため、自動コミット有効時のみ働く。
+const LOOP_IDLE_ROUND_LIMIT = 3;
+
 // コールドスタート（CLI 新規起動）時は起動完了を待ってからプロンプトを送るが、
 // それでも TUI 入力ハンドラの初期化と Enter の到達が競合して取りこぼされる
 // ことが稀にある。保険として Enter をこの間隔で 1 回追加送信する。
@@ -196,6 +201,7 @@ export class PromptQueueManager extends EventEmitter {
     options?: {
       sendClearBefore?: boolean;
       isAutoCommit?: boolean;
+      isAutoCommitPush?: boolean;
       isCodexReview?: boolean;
       model?: string;
       loop?: {
@@ -242,6 +248,7 @@ export class PromptQueueManager extends EventEmitter {
         status: 'pending',
         sendClearBefore: options?.sendClearBefore,
         isAutoCommit: options?.isAutoCommit,
+        isAutoCommitPush: options?.isAutoCommitPush,
         isCodexReview: options?.isCodexReview,
         model: options?.model,
         loop,
@@ -327,6 +334,7 @@ export class PromptQueueManager extends EventEmitter {
       prompt?: string;
       sendClearBefore?: boolean;
       isAutoCommit?: boolean;
+      isAutoCommitPush?: boolean;
       isCodexReview?: boolean;
       model?: string;
       // null: ループ解除 / 値あり: 設定項目を差し替え（iteration 等の状態は維持）
@@ -360,6 +368,9 @@ export class PromptQueueManager extends EventEmitter {
     }
     if (updates.isAutoCommit !== undefined) {
       item.isAutoCommit = updates.isAutoCommit;
+    }
+    if (updates.isAutoCommitPush !== undefined) {
+      item.isAutoCommitPush = updates.isAutoCommitPush;
     }
     if (updates.isCodexReview !== undefined) {
       item.isCodexReview = updates.isCodexReview;
@@ -486,6 +497,8 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     item.loop.awaitingUserApproval = false;
+    // 空回りで倒れていた場合、カウンタを戻さないと承認直後に再び倒れる
+    item.loop.idleRounds = 0;
 
     await this.persistQueues();
     this.emitQueueUpdated(repositoryPath, provider, state);
@@ -938,6 +951,7 @@ export class PromptQueueManager extends EventEmitter {
 
     // 処理中のアイテムを完了にする
     let shouldAutoCommit = false;
+    let shouldAutoCommitPush = false;
     let shouldCodexReview = false;
     if (state.currentItemId) {
       const currentItem = state.queue.find(
@@ -946,6 +960,7 @@ export class PromptQueueManager extends EventEmitter {
       if (currentItem) {
         currentItem.status = 'completed';
         shouldAutoCommit = currentItem.isAutoCommit || false;
+        shouldAutoCommitPush = currentItem.isAutoCommitPush || false;
         shouldCodexReview = currentItem.isCodexReview || false;
 
         this.emit('prompt-queue-processing-completed', {
@@ -1058,9 +1073,13 @@ export class PromptQueueManager extends EventEmitter {
           provider
         );
 
+        // 既定は push しないコミット。push は明示的に有効化されたときだけ行う
+        // （無人ループでは push が「公開行為」になるため、既定を安全側に置く）
         await this.sendSlashCommand(
           session.id,
-          '/dokodemo-claude-tools:commit-push',
+          shouldAutoCommitPush
+            ? '/dokodemo-claude-tools:commit-push'
+            : '/dokodemo-claude-tools:commit',
           session.coldStart,
           { repositoryPath, provider, itemId: 'auto-commit' }
         );
@@ -1303,6 +1322,36 @@ export class PromptQueueManager extends EventEmitter {
         return;
       }
       item.loop.nextSendAt = undefined;
+
+      // e. 空回り検知: 自動コミット有効なループなら、周回ごとにコミットが
+      //    増えているはず。増えないまま LOOP_IDLE_ROUND_LIMIT 周続いたら、
+      //    同じところで足踏みしているとみなして承認待ちに倒す。
+      //    計画ターンは実装を伴わないため計測から除外する。
+      if (item.isAutoCommit && !item.loop.pendingPlanning) {
+        const head = this.getHeadCommit(repositoryPath);
+        if (head) {
+          if (item.loop.lastHeadCommit === head) {
+            item.loop.idleRounds = (item.loop.idleRounds ?? 0) + 1;
+          } else {
+            item.loop.idleRounds = 0;
+            item.loop.lastHeadCommit = head;
+          }
+
+          if ((item.loop.idleRounds ?? 0) >= LOOP_IDLE_ROUND_LIMIT) {
+            item.loop.awaitingUserApproval = true;
+            item.loop.lastJudgeReason = `⚠ ${LOOP_IDLE_ROUND_LIMIT}周連続でコミットが増えていません。同じところで足踏みしている可能性があるため停止しました。`;
+            await this.persistQueues();
+            this.emit('loop-approval-required', {
+              repositoryPath,
+              provider,
+              itemId: item.id,
+              iteration: item.loop.iteration,
+            });
+            this.emitQueueUpdated(repositoryPath, provider, state);
+            return;
+          }
+        }
+      }
     }
 
     // ループアイテムの送信内容の差し替え

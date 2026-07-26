@@ -4,7 +4,7 @@ import type { CommandSendSettings } from '@/app/hooks/useAppSettings';
 const DEFAULT_SEND_SETTINGS: CommandSendSettings = {
   addToQueue: false,
   sendClear: false,
-  sendCommit: false,
+  autoCommit: 'off',
 };
 
 function getStorageKey(scopeKey: string): string {

@@ -23,6 +23,7 @@ import type {
 } from '@/types';
 import { useScopedSendSettings } from '@/features/ai/hooks/useScopedSendSettings';
 import s from './WorktreeDashboardCard.module.scss';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 function getInputExpandedStorageKey(worktreePath: string): string {
   return `dashboard-input-expanded-${encodeURIComponent(worktreePath)}`;
@@ -76,7 +77,7 @@ interface WorktreeDashboardCardProps {
     rid: string,
     command: string,
     sendClearBefore: boolean,
-    sendCommitAfter: boolean,
+    autoCommit: AutoCommitMode,
     model?: string
   ) => void;
   /** 自カードの xterm サイズに合わせて PTY をリサイズ */
@@ -270,10 +271,10 @@ function WorktreeDashboardCard({
     (
       command: string,
       sendClearBefore: boolean,
-      sendCommitAfter: boolean,
+      autoCommit: AutoCommitMode,
       model?: string
     ) => {
-      onAddToQueue(rid, command, sendClearBefore, sendCommitAfter, model);
+      onAddToQueue(rid, command, sendClearBefore, autoCommit, model);
     },
     [onAddToQueue, rid]
   );
