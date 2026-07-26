@@ -33,7 +33,7 @@ const ADD_MENU_ITEMS: { key: AiProvider | 'close'; label: string }[] = [
   { key: 'close', label: '閉じる' },
 ];
 
-/** 親からメニューを開くための命令的ハンドル（Shift+→ の右端追加 / Shift+↓ のタブメニュー） */
+/** 親からメニューを開くための命令的ハンドル（Ctrl+Shift+→ の右端追加 / Ctrl+Shift+↓ のタブメニュー） */
 export interface AiInstanceTabsHandle {
   openAddMenu: () => void;
   openTabMenu: (instanceId: string) => void;
@@ -103,13 +103,13 @@ function AiInstanceTabs(
     setShowAddMenu(true);
   }, []);
 
-  // 選択中タブのメニューを開く（Shift+↓ からの呼び出し用）
+  // 選択中タブのメニューを開く（Ctrl+Shift+↓ からの呼び出し用）
   const openTabMenu = useCallback((instanceId: string) => {
     setShowAddMenu(false);
     setOpenMenuInstanceId(instanceId);
   }, []);
 
-  // 親（Shift+→ の右端追加 / Shift+↓ のタブメニュー）からメニューを開けるようにする
+  // 親（Ctrl+Shift+→ の右端追加 / Ctrl+Shift+↓ のタブメニュー）からメニューを開けるようにする
   useImperativeHandle(
     ref,
     () => ({ openAddMenu, openTabMenu }),
@@ -161,7 +161,7 @@ function AiInstanceTabs(
   );
 
   // 追加メニュー表示中はキーボード操作を横取りする。
-  // capture フェーズで伝播を止め、グローバルの Shift+矢印ハンドラと競合させない。
+  // capture フェーズで伝播を止め、グローバルの Ctrl+Shift+矢印ハンドラと競合させない。
   useEffect(() => {
     if (!showAddMenu) return;
     const onKey = (e: KeyboardEvent) => {

@@ -1112,12 +1112,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
 
       // Cmd/Ctrl + ↑ で前の履歴へ、Cmd/Ctrl + ↓ で次の履歴へ
-      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') {
+      // （Ctrl+Shift+矢印はAIインスタンスタブ操作のグローバルショートカットなので素通しする）
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'ArrowUp') {
         e.preventDefault();
         navigateHistoryUp();
         return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowDown') {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'ArrowDown') {
         e.preventDefault();
         navigateHistoryDown();
         return;
