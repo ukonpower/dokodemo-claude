@@ -46,6 +46,9 @@ export interface UseRepositoryReturn {
   // リポジトリ削除関連
   showDeleteConfirm: boolean;
   setShowDeleteConfirm: (show: boolean) => void;
+  /** 削除が失敗したときのメッセージ（成功時・未実行時は null） */
+  deleteError: string | null;
+  clearDeleteError: () => void;
 
   // アクション
   cloneRepository: (url: string, name: string) => void;
@@ -103,6 +106,8 @@ export function useRepository(
 
   // 削除確認
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // 削除失敗の理由（ワークツリーを指定した場合など）。握り潰すと無反応に見えるため保持する
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // 自身のリモート更新（新リリース）有無
   const [selfUpdateAvailable, setSelfUpdateAvailable] = useState(false);
@@ -224,12 +229,17 @@ export function useRepository(
       data: Parameters<ServerToClientEvents['repo-deleted']>[0]
     ) => {
       if (data.success) {
+        setDeleteError(null);
         if (currentRepoRef.current === data.path) {
           setCurrentRepo('');
           const url = new URL(window.location.href);
           url.searchParams.delete('repo');
+          // 削除後は設定画面などのビュー指定も落としてホームへ戻す
+          url.searchParams.delete('view');
           window.history.replaceState({}, '', url.toString());
         }
+      } else {
+        setDeleteError(data.message);
       }
     };
 
@@ -313,11 +323,14 @@ export function useRepository(
   const deleteRepository = useCallback(
     (path: string, name: string) => {
       if (socket) {
+        setDeleteError(null);
         socket.emit('delete-repo', { path, name });
       }
     },
     [socket]
   );
+
+  const clearDeleteError = useCallback(() => setDeleteError(null), []);
 
   const switchRepository = useCallback(
     (path: string, options?: { skipPushState?: boolean }) => {
@@ -415,6 +428,8 @@ export function useRepository(
     stopProcessTargetRid,
     showDeleteConfirm,
     setShowDeleteConfirm,
+    deleteError,
+    clearDeleteError,
     cloneRepository,
     createRepository,
     deleteRepository,

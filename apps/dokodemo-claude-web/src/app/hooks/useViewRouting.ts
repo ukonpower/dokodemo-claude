@@ -24,6 +24,9 @@ export interface UseViewRoutingReturn {
   settingsMode: boolean;
   openSettings: () => void;
   closeSettings: () => void;
+  projectSettingsMode: boolean;
+  openProjectSettings: () => void;
+  closeProjectSettings: () => void;
 }
 
 /**
@@ -57,6 +60,12 @@ export function useViewRouting(
     () => initialViewFromUrl === 'settings'
   );
 
+  // プロジェクト設定ページの表示状態（?view=project-settings）。
+  // アプリ設定と同じく一時的な遷移先なので永続化はしない
+  const [projectSettingsMode, setProjectSettingsMode] = useState<boolean>(
+    () => initialViewFromUrl === 'project-settings'
+  );
+
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
   useEffect(() => {
@@ -79,11 +88,19 @@ export function useViewRouting(
 
       if (viewFromUrl === 'settings') {
         setSettingsMode(true);
+        setProjectSettingsMode(false);
         return;
       }
 
-      // settings 以外へ遷移する場合は設定ページを閉じる
+      if (viewFromUrl === 'project-settings') {
+        setSettingsMode(false);
+        setProjectSettingsMode(true);
+        return;
+      }
+
+      // settings 系以外へ遷移する場合は設定ページを閉じる
       setSettingsMode(false);
+      setProjectSettingsMode(false);
 
       if (viewFromUrl === 'graph') {
         setDashboardMode(false);
@@ -157,6 +174,7 @@ export function useViewRouting(
   // 設定ページを開く（URL に ?view=settings を積む）
   const openSettings = useCallback(() => {
     setSettingsMode(true);
+    setProjectSettingsMode(false);
     const url = new URL(window.location.href);
     url.searchParams.set('view', 'settings');
     window.history.pushState({}, '', url.toString());
@@ -175,11 +193,34 @@ export function useViewRouting(
     window.history.pushState({}, '', url.toString());
   }, [dashboardMode]);
 
+  // プロジェクト設定ページを開く（URL に ?view=project-settings を積む）
+  const openProjectSettings = useCallback(() => {
+    setProjectSettingsMode(true);
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'project-settings');
+    window.history.pushState({}, '', url.toString());
+  }, []);
+
+  // プロジェクト設定ページを閉じて元のビューへ戻る
+  const closeProjectSettings = useCallback(() => {
+    setProjectSettingsMode(false);
+    const url = new URL(window.location.href);
+    if (dashboardMode) {
+      url.searchParams.set('view', 'dashboard');
+    } else if (url.searchParams.get('view') === 'project-settings') {
+      url.searchParams.delete('view');
+    }
+    window.history.pushState({}, '', url.toString());
+  }, [dashboardMode]);
+
   return {
     dashboardMode,
     setDashboardModeAndPersist,
     settingsMode,
     openSettings,
     closeSettings,
+    projectSettingsMode,
+    openProjectSettings,
+    closeProjectSettings,
   };
 }

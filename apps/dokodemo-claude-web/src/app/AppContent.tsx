@@ -24,6 +24,7 @@ import { ProjectView } from '@/views/ProjectView';
 import { CodeBrowserView } from '@/views/CodeBrowserView';
 import { DashboardView } from '@/views/DashboardView';
 import { SettingsView } from '@/views/SettingsView';
+import { ProjectSettingsView } from '@/views/ProjectSettingsView';
 
 import ProjectSwitcherModal from '@/features/repo/components/ProjectSwitcherModal';
 import CommandPaletteModal from '@/shared/components/CommandPaletteModal';
@@ -42,8 +43,12 @@ export function AppContent() {
   const gitDiff = useGitDiffContext();
   const gitGraph = useGitGraphContext();
   const fileViewer = useFileViewerContext();
-  const { dashboardMode, setDashboardModeAndPersist, settingsMode } =
-    useNavigationContext();
+  const {
+    dashboardMode,
+    setDashboardModeAndPersist,
+    settingsMode,
+    projectSettingsMode,
+  } = useNavigationContext();
 
   // プロジェクト切り替えポップアップ
   const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
@@ -162,10 +167,21 @@ export function AppContent() {
   }
 
   // リポジトリが選択されていない場合はホーム画面
+  // （プロジェクト設定は対象リポジトリが要るので、この分岐より後ろに置く）
   if (!repository.currentRepo) {
     return (
       <>
       <HomeView />
+      {overlays}
+      </>
+    );
+  }
+
+  // プロジェクト設定ページ（リポジトリ単位）
+  if (projectSettingsMode) {
+    return (
+      <>
+      <ProjectSettingsView />
       {overlays}
       </>
     );

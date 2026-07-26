@@ -496,14 +496,14 @@
   border: 1px solid $dark-border-light;
 }
 
-// 削除ボタン
-.deleteRepoButton {
+// プロジェクト設定への導線（削除などの破壊的操作はこの先）
+.projectSettingsButton {
   font-size: $font-size-xs;
-  color: rgba($color-error, 0.4);
+  color: $gray-500;
   transition: color $transition-fast ease;
 
   &:hover {
-    color: $color-error;
+    color: $gray-300;
   }
 
   &:disabled {
