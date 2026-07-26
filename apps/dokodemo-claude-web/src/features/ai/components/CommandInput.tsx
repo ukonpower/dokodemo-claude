@@ -1939,6 +1939,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                 onChange={handleLoopSettingsChange}
                 workModel={model}
                 onWorkModelChange={(v) => handleSettingChange('model', v)}
+                twoColumnOnPc
               />
             </div>
           </div>

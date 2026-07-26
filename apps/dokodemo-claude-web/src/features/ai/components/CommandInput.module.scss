@@ -1112,10 +1112,10 @@
   // 開いた瞬間に上からスライドして展開するアニメーション
   animation: loopAccordionOpen $transition-normal $transition-easing;
 
-  // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
-  // （幅はキューオプション行 .optionGrid の上限に揃える）
+  // PC ではフィールドを 2 カラムに並べるため、横幅を composer 幅相当まで広げる
+  // （縦に伸びて入力欄や出力を押し下げるのを防ぐ）
   @include lg-up {
-    max-width: 26rem;
+    max-width: 42rem;
   }
 }
 
@@ -1126,7 +1126,8 @@
   }
   to {
     opacity: 1;
-    max-height: 360px;
+    // 展開アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
+    max-height: 640px;
   }
 }
 

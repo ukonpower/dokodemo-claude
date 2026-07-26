@@ -9,6 +9,13 @@
   pointer-events: none;
 }
 
+// 主要フィールドをまとめるラッパー（既定は .root と同じ縦積み）
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -186,6 +193,25 @@
     outline: none;
     border-color: $accent;
   }
+}
+
+// PC で横幅が取れる場所（送信バー直下のアコーディオン）向けの 2 カラム配置。
+// .fieldGroup / .subGroup と併用し、display を grid に上書きする
+// （フィールドごとに高さが違うため上揃え）
+.twoColumnOnPc {
+  @include lg-up {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: $space-lg;
+    row-gap: $space-sm;
+  }
+}
+
+// 2 カラム時に 1 行を占有するフィールド（テキストエリア）
+// 縦積み（flex）時は grid-column が無視されるため 1 カラムには影響しない
+.fullSpan {
+  grid-column: 1 / -1;
 }
 
 // AI 判断の判定基準テキストエリア
