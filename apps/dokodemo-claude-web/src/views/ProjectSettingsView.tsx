@@ -177,11 +177,13 @@ export function ProjectSettingsView() {
   const projectName = currentRepo.split('/').pop() ?? '';
   const worktreeCount = worktrees.filter((wt) => !wt.isMain).length;
 
-  // 開いた時点の最新状態を取得しておく
+  // 開いた時点の最新状態を取得しておく。
+  // rid（id-mapping）は接続直後にはまだ届いていないことがあり、その間の要求は
+  // 空振りするため、rid が確定したタイミングでも取り直す。
   useEffect(() => {
     refreshFiles();
     requestWorktreeSyncConfig();
-  }, [refreshFiles, requestWorktreeSyncConfig]);
+  }, [refreshFiles, requestWorktreeSyncConfig, repository.currentRid]);
 
   // --- ファイル ---
 
