@@ -148,24 +148,27 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
         {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
         {onWorkModelChange && (
           <div className={s.field}>
-            <div className={s.fieldLabel}>作業モデル</div>
-            <select
-              value={workModel ?? ''}
-              onChange={(e) => onWorkModelChange(e.target.value)}
-              disabled={disabled}
-              className={s.selectInput}
-            >
-              {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
-              {workModel &&
-                !modelOptions.some((o) => o.value === workModel) && (
-                  <option value={workModel}>{workModel}</option>
-                )}
-              {modelOptions.map((opt) => (
-                <option key={opt.value || 'unset'} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            {/* 2 カラム時は隣の「継続の判断」と入力の上端を揃えるため 1 行に並べる */}
+            <div className={twoColumnOnPc ? s.rowFieldOnPc : ''}>
+              <div className={s.fieldLabel}>作業モデル</div>
+              <select
+                value={workModel ?? ''}
+                onChange={(e) => onWorkModelChange(e.target.value)}
+                disabled={disabled}
+                className={s.selectInput}
+              >
+                {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
+                {workModel &&
+                  !modelOptions.some((o) => o.value === workModel) && (
+                    <option value={workModel}>{workModel}</option>
+                  )}
+                {modelOptions.map((opt) => (
+                  <option key={opt.value || 'unset'} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className={s.fieldCaption}>
               周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま
             </div>

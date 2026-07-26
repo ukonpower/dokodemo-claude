@@ -208,6 +208,29 @@
   }
 }
 
+// PC 2 カラム時のみ .rowField 相当の 1 行レイアウトにする
+// （縦積みのままだと隣のセルと入力の上端が揃わないため）
+.rowFieldOnPc {
+  @include lg-up {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+    min-height: 32px;
+
+    .fieldLabel {
+      flex-shrink: 0;
+    }
+
+    .selectInput {
+      width: auto;
+      flex: 1;
+      min-width: 0;
+      max-width: 240px;
+    }
+  }
+}
+
 // 2 カラム時に 1 行を占有するフィールド（テキストエリア）
 // 縦積み（flex）時は grid-column が無視されるため 1 カラムには影響しない
 .fullSpan {
