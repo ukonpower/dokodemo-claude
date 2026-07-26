@@ -16,31 +16,24 @@ import s from './CodeBrowserView.module.scss';
 /** 左サイドバーの表示モード */
 export type CodeBrowserMode = 'changes' | 'tree' | 'graph';
 
-const MODE_STORAGE_KEY = (repo: string) => `dokodemo-codebrowser-mode-${repo}`;
-
 const MODES: { id: CodeBrowserMode; label: string; icon: typeof GitCompare }[] = [
-  { id: 'changes', label: '変更', icon: GitCompare },
   { id: 'tree', label: 'ツリー', icon: FolderTree },
+  { id: 'changes', label: '変更', icon: GitCompare },
   { id: 'graph', label: 'グラフ', icon: GitFork },
 ];
 
-function readInitialMode(currentRepo: string): CodeBrowserMode {
+/**
+ * 初期モードは常にファイルツリー。
+ * 差分（変更）やグラフは「ユーザーが明示的に切り替えたとき」だけ表示する位置づけなので、
+ * 前回モードの永続化・復元は行わない（deep-link の ?mode= だけを尊重する）。
+ */
+function readInitialMode(): CodeBrowserMode {
   const params = new URLSearchParams(window.location.search);
   const fromUrl = params.get('mode');
   if (fromUrl === 'changes' || fromUrl === 'tree' || fromUrl === 'graph') {
     return fromUrl;
   }
-  // mode 未指定でファイルが指定されていればツリー起点
-  if (params.get('file')) return 'tree';
-  try {
-    const saved = localStorage.getItem(MODE_STORAGE_KEY(currentRepo));
-    if (saved === 'changes' || saved === 'tree' || saved === 'graph') {
-      return saved;
-    }
-  } catch {
-    /* noop */
-  }
-  return 'changes';
+  return 'tree';
 }
 
 /**
@@ -72,9 +65,7 @@ export function CodeBrowserView() {
         currentRepo.split('/').filter(Boolean).pop() ||
         '';
 
-  const [mode, setMode] = useState<CodeBrowserMode>(() =>
-    readInitialMode(currentRepo)
-  );
+  const [mode, setMode] = useState<CodeBrowserMode>(readInitialMode);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 680;
   const showFileOnMobile = isMobile && fileViewer.selectedFilePath !== null;
@@ -86,21 +77,13 @@ export function CodeBrowserView() {
     return () => syncActive(false);
   }, [mode, syncActive]);
 
-  // モード切替（localStorage と URL に反映）
-  const changeMode = useCallback(
-    (next: CodeBrowserMode) => {
-      setMode(next);
-      try {
-        localStorage.setItem(MODE_STORAGE_KEY(currentRepo), next);
-      } catch {
-        /* noop */
-      }
-      const url = new URL(window.location.href);
-      url.searchParams.set('mode', next);
-      window.history.replaceState({}, '', url.toString());
-    },
-    [currentRepo]
-  );
+  // モード切替（URL にのみ反映。次回オープン時はツリーへ戻す）
+  const changeMode = useCallback((next: CodeBrowserMode) => {
+    setMode(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', next);
+    window.history.replaceState({}, '', url.toString());
+  }, []);
 
   // ブラウザ戻る/進むで mode を URL に追従
   useEffect(() => {
