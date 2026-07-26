@@ -152,6 +152,15 @@
   line-height: 1.8;
 }
 
+// 削除対象のパス（長いのでリストから外して折り返し表示する）
+.dangerPath {
+  margin-top: $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  word-break: break-all;
+}
+
 // 削除確認のためにプロジェクト名を打ち込む欄
 .confirmField {
   display: flex;

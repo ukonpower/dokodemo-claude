@@ -113,13 +113,14 @@ function DeleteRepositoryDialog({
           この操作は元に戻せません
         </span>
         <ul className={s.dangerList}>
-          <li>{repoPath} を削除します</li>
+          <li>ディレクトリを削除します</li>
           {worktreeCount > 0 && (
             <li>ワークツリー {worktreeCount} 件も削除されます</li>
           )}
           <li>AI セッション・ターミナルは終了します</li>
           <li>アップロードやメモなどの保存データも消えます</li>
         </ul>
+        <p className={s.dangerPath}>{repoPath}</p>
       </div>
       <div className={s.confirmField}>
         <label className={s.confirmLabel} htmlFor="delete-repo-confirm">
@@ -607,16 +608,16 @@ export function ProjectSettingsView() {
                         削除されるもの
                       </span>
                       <ul className={s.dangerList}>
-                        <li>リポジトリディレクトリ全体（{currentRepo}）</li>
-                        <li>
-                          このリポジトリのワークツリー
-                          {worktreeCount > 0 ? `（${worktreeCount}件）` : ''}
-                        </li>
+                        <li>リポジトリディレクトリ全体</li>
+                        {worktreeCount > 0 && (
+                          <li>このリポジトリのワークツリー {worktreeCount}件</li>
+                        )}
                         <li>AI セッション・ターミナル・プロンプトキュー</li>
                         <li>
                           アップロードファイル・ワークツリーのメモ・同期設定・このプロジェクト固有の送信ボタン
                         </li>
                       </ul>
+                      <p className={s.dangerPath}>{currentRepo}</p>
                     </div>
                   )}
                   {!isWorktree && (
