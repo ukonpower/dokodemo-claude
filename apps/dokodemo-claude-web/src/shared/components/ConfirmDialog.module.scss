@@ -1,0 +1,62 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(black, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: $space-lg;
+}
+
+.card {
+  background-color: $dark-bg-secondary;
+  border-radius: $radius-lg;
+  box-shadow: 0 25px 50px -12px rgba(black, 0.25);
+  max-width: 28rem;
+  width: 100%;
+  padding: $space-xl;
+  border: 1px solid $dark-border-light;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  margin-bottom: $space-lg;
+}
+
+.icon {
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.iconDanger {
+  color: $color-error;
+}
+
+.iconWarning {
+  color: $color-warning;
+}
+
+.title {
+  font-size: $font-size-lg;
+  line-height: 1.75rem;
+  font-weight: $font-weight-medium;
+  color: white;
+}
+
+.body {
+  margin-bottom: $space-xl;
+}
+
+.actions {
+  display: flex;
+  gap: $space-md;
+}
+
+// 左右等幅のアクションボタン（Button コンポーネントに merge）
+.actionButton {
+  flex: 1 1 0%;
+}
