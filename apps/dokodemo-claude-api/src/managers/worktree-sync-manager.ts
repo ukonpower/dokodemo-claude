@@ -83,6 +83,14 @@ export class WorktreeSyncManager {
     return Ok(sanitized);
   }
 
+  /**
+   * リポジトリ削除時の後始末用。同期設定を破棄する。
+   */
+  async remove(parentRepoPath: string): Promise<void> {
+    if (!this.configs.delete(parentRepoPath)) return;
+    await this.persist();
+  }
+
   private async persist(): Promise<Result<void, WorktreeSyncError>> {
     const data: Record<string, WorktreeSyncEntry[]> = {};
     for (const [key, entries] of this.configs.entries()) {

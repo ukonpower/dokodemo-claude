@@ -286,7 +286,7 @@ export function registerFileRoutes(app: Express, io: TypedServer): void {
  * Socket.IOイベントハンドラーを登録
  */
 export function registerFileHandlers(ctx: HandlerContext): void {
-  const { socket } = ctx;
+  const { socket, io } = ctx;
 
   socket.on('get-files', async (data) => {
     const { rid } = data;
@@ -301,6 +301,18 @@ export function registerFileHandlers(ctx: HandlerContext): void {
       ...result,
       rid,
       filename,
+    });
+  });
+
+  // アップロードファイルの一括削除。
+  // 他タブの一覧も追従させるため結果は全クライアントへ配信する。
+  socket.on('delete-all-files', async (data) => {
+    const { rid, source } = data;
+    const result = await fileManager.deleteAllFiles(rid, source);
+    io.emit('files-cleared', {
+      ...result,
+      rid,
+      source,
     });
   });
 }
