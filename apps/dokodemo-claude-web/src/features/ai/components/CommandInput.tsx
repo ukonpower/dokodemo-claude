@@ -362,8 +362,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-    // ループ設定アコーディオンの開閉状態
-    const [isLoopExpanded, setIsLoopExpanded] = useState(false);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -1871,12 +1869,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     </button>
                   </div>
 
-                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に。
-                      モデルチップと同じ「ラベル＋値＋シェブロン」の開閉ボタン形式 */}
+                  {/* ループ（タップで ON/OFF。ON の間だけ下に設定パネルが出る。
+                      全幅で下段に置き、右端にトグルスイッチを表示する） */}
                   <div className={`${s.optGroup} ${s.optGroupWide}`}>
                   <button
                     type="button"
-                    onClick={() => setIsLoopExpanded(!isLoopExpanded)}
+                    onClick={() =>
+                      handleSettingChange('loopEnabled', !loopEnabled)
+                    }
                     disabled={disabled}
                     className={`${s.modelButton} ${loopEnabled ? s.active : ''}`}
                     title="ループ: 完了後に同じプロンプトを繰り返し送信"
@@ -1890,9 +1890,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                           : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
                         : 'オフ'}
                     </span>
-                    <ChevronDown
-                      className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
-                    />
+                    <div
+                      className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}
+                    >
+                      <div
+                        className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
+                      />
+                    </div>
                   </button>
                   </div>
                 </div>
@@ -1901,47 +1905,26 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         )}
 
-        {/* ループ設定アコーディオン（送信バーの直下に展開） */}
-        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
-          <div className={s.loopAccordion}>
-            <button
-              type="button"
-              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
-              className={s.loopToggleRow}
-            >
-              <span className={s.loopToggleText}>
-                <Repeat size={14} />
-                ループ送信
-              </span>
-              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
-                <div
-                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
-                />
-              </div>
-            </button>
-            <div className={s.loopAccordionHint}>
-              完了後に同じプロンプトを繰り返し送信します
-            </div>
-
-            <div className={s.loopAccordionBody}>
-              <LoopSettingsFields
-                value={{
-                  judge: loopJudge,
-                  judgeEveryN: loopJudgeEveryN,
-                  intervalSec: loopIntervalMin * 60,
-                  judgeCriteria: loopJudgeCriteria,
-                  planningEnabled: loopPlanningEnabled,
-                  planningEveryN: loopPlanningEveryN,
-                  planningModel: loopPlanningModel,
-                  planningPrompt: loopPlanningPrompt,
-                }}
-                disabled={!loopEnabled}
-                onChange={handleLoopSettingsChange}
-                workModel={model}
-                onWorkModelChange={(v) => handleSettingChange('model', v)}
-                twoColumnOnPc
-              />
-            </div>
+        {/* ループ設定パネル（ループ ON の間だけ送信バー直下に表示） */}
+        {onAddToQueue && isPrimary && loopEnabled && (
+          <div className={s.loopPanel}>
+            <LoopSettingsFields
+              value={{
+                judge: loopJudge,
+                judgeEveryN: loopJudgeEveryN,
+                intervalSec: loopIntervalMin * 60,
+                judgeCriteria: loopJudgeCriteria,
+                planningEnabled: loopPlanningEnabled,
+                planningEveryN: loopPlanningEveryN,
+                planningModel: loopPlanningModel,
+                planningPrompt: loopPlanningPrompt,
+              }}
+              disabled={disabled}
+              onChange={handleLoopSettingsChange}
+              workModel={model}
+              onWorkModelChange={(v) => handleSettingChange('model', v)}
+              twoColumnOnPc
+            />
           </div>
         )}
 

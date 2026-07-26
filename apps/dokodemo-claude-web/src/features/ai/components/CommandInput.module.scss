@@ -776,8 +776,10 @@
     background-color: $accent;
   }
 
+  // チップ地の色（$dark-bg-secondary / $dark-bg-hover）に埋もれないよう
+  // OFF のトラックは 1 段明るいグレーにする
   &.off {
-    background-color: $dark-bg-secondary;
+    background-color: $dark-border-light;
   }
 }
 
@@ -1102,15 +1104,16 @@
   }
 }
 
-/* プロンプトループ設定アコーディオン（送信バー直下にインライン展開） */
-.loopAccordion {
+/* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
+.loopPanel {
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   overflow: hidden;
+  padding: $space-sm $space-md $space-md;
   transform-origin: top;
-  // 開いた瞬間に上からスライドして展開するアニメーション
-  animation: loopAccordionOpen $transition-normal $transition-easing;
+  // ON にした瞬間に上からスライドして現れるアニメーション
+  animation: loopPanelOpen $transition-normal $transition-easing;
 
   // PC ではフィールドを 2 カラムに並べるため、横幅を composer 幅相当まで広げる
   // （縦に伸びて入力欄や出力を押し下げるのを防ぐ）
@@ -1119,48 +1122,14 @@
   }
 }
 
-@keyframes loopAccordionOpen {
+@keyframes loopPanelOpen {
   from {
     opacity: 0;
     max-height: 0;
   }
   to {
     opacity: 1;
-    // 展開アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
+    // アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
     max-height: 640px;
   }
-}
-
-.loopToggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-sm;
-  width: 100%;
-  min-height: 40px;
-  padding: $space-sm $space-md $space-2xs;
-  background: none;
-  border: none;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.loopToggleText {
-  display: flex;
-  align-items: center;
-  gap: $space-xs;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  color: $dark-text-primary;
-}
-
-.loopAccordionHint {
-  padding: 0 $space-md $space-sm;
-  font-size: $font-size-2xs;
-  color: $dark-text-muted;
-}
-
-.loopAccordionBody {
-  padding: $space-sm $space-md $space-md;
-  border-top: 1px solid $dark-border-light;
 }
