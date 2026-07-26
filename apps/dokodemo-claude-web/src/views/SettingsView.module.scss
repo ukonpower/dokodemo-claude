@@ -24,6 +24,11 @@
   color: $dark-text-primary;
 }
 
+// 閉じるボタンはヘッダー右端に寄せる
+.headerClose {
+  margin-left: auto;
+}
+
 // --- 本文（スクロールコンテナ） ---
 
 .body {

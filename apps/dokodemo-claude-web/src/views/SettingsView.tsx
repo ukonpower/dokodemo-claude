@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Monitor, Sparkles, Bell, Link2, RefreshCw } from 'lucide-react';
+import { X, Monitor, Sparkles, Bell, Link2, RefreshCw } from 'lucide-react';
 import Button from '@/shared/components/Button';
 import IconButton from '@/shared/components/IconButton';
 import type { AiProvider } from '@/types';
@@ -310,10 +310,10 @@ export function SettingsView() {
     <div className={s.root}>
       {/* ヘッダー */}
       <header className={s.header}>
-        <IconButton label="戻る" onClick={onBack}>
-          <ArrowLeft />
-        </IconButton>
         <h1 className={s.headerTitle}>設定</h1>
+        <IconButton label="閉じる" onClick={onBack} className={s.headerClose}>
+          <X />
+        </IconButton>
       </header>
 
       <div className={s.body} ref={bodyRef}>
