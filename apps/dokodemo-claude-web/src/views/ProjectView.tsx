@@ -67,10 +67,6 @@ export function ProjectView() {
   const {
     repositories,
     currentRepo,
-    // リポジトリ操作
-    showDeleteConfirm,
-    setShowDeleteConfirm,
-    deleteRepository: onDeleteRepository,
     // プロセス停止
     showStopProcessConfirm,
     stoppingProcesses,
@@ -123,8 +119,9 @@ export function ProjectView() {
     openBlockedUrl: onOpenBlockedUrl,
   } = useEditorLauncherContext();
 
-  // ダッシュボード切替
-  const { setDashboardModeAndPersist } = useNavigationContext();
+  // ダッシュボード切替・プロジェクト設定
+  const { setDashboardModeAndPersist, openProjectSettings: onOpenProjectSettings } =
+    useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
   // ワークフローファイルを別タブで開く
@@ -409,106 +406,17 @@ export function ProjectView() {
           </section>
         </div>
 
+        {/* プロジェクト設定への導線。削除などの破壊的操作はこの先に集約している */}
         <div className={s.deleteCenter}>
           <button
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={onOpenProjectSettings}
             disabled={!isConnected}
-            className={s.deleteRepoButton}
+            className={s.projectSettingsButton}
           >
-            このリポジトリを削除...
+            プロジェクト設定...
           </button>
         </div>
       </main>
-
-      {/* 削除確認ダイアログ */}
-      {showDeleteConfirm && (
-        <div className={s.dialogOverlay}>
-          <div className={s.dialogCard}>
-            <div className={s.dialogHeader}>
-              <div className={s.dialogIconShrink}>
-                <AlertTriangle className={s.dialogIconRed} />
-              </div>
-              <div>
-                <h3 className={s.dialogTitle}>
-                  リポジトリを削除しますか？
-                </h3>
-              </div>
-            </div>
-            <div className={s.dialogBody}>
-              <div className={s.dangerBox}>
-                <div className={s.dangerFlex}>
-                  <div className={s.dangerIconShrink}>
-                    <AlertTriangle className={s.dangerIcon} />
-                  </div>
-                  <div className={s.dangerContent}>
-                    <h4 className={s.dangerTitle}>
-                      注意: この操作は元に戻せません
-                    </h4>
-                    <div className={s.dangerList}>
-                      <ul className={s.dangerListUl}>
-                        <li>リポジトリディレクトリ全体が削除されます</li>
-                        <li>Claude CLIセッションが終了されます</li>
-                        <li>実行中のターミナルが全て終了されます</li>
-                        <li>履歴データがすべて消去されます</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className={s.repoInfoBox}>
-                <p className={s.repoInfoName}>
-                  {(() => {
-                    const repoInfo = repositories.find(
-                      (r) => r.path === currentRepo
-                    );
-                    if (
-                      repoInfo?.isWorktree &&
-                      repoInfo?.parentRepoName &&
-                      repoInfo?.worktreeBranch
-                    ) {
-                      return `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`;
-                    }
-                    return currentRepo.split('/').pop();
-                  })()}
-                </p>
-                <p className={s.repoInfoPath}>{currentRepo}</p>
-              </div>
-            </div>
-            <div className={s.dialogActions}>
-              <Button
-                variant="ghost"
-                className={s.dialogActionButton}
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                キャンセル
-              </Button>
-              <Button
-                variant="danger"
-                className={s.dialogActionButton}
-                onClick={() => {
-                  const repoInfo = repositories.find(
-                    (r) => r.path === currentRepo
-                  );
-                  let repoName: string;
-                  if (
-                    repoInfo?.isWorktree &&
-                    repoInfo?.parentRepoName &&
-                    repoInfo?.worktreeBranch
-                  ) {
-                    repoName = `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`;
-                  } else {
-                    repoName = currentRepo.split('/').pop() || '';
-                  }
-                  onDeleteRepository(currentRepo, repoName);
-                  setShowDeleteConfirm(false);
-                }}
-              >
-                削除する
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* プロセス停止確認ダイアログ */}
       {showStopProcessConfirm && stopProcessTargetRid && (

@@ -344,6 +344,84 @@ class FileManager {
     }
   }
 
+  /**
+   * リポジトリのアップロードファイルを一括削除する。
+   * source を指定するとその種別のみ、'all' なら全件（metadata.json 含む）を削除する。
+   */
+  async deleteAllFiles(
+    rid: string,
+    source: FileSource | 'all'
+  ): Promise<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    freedBytes: number;
+  }> {
+    if (!rid) {
+      return {
+        success: false,
+        message: 'リポジトリIDが指定されていません',
+        deletedCount: 0,
+        freedBytes: 0,
+      };
+    }
+
+    // 一覧取得で source / size を確定させてから消す（metadata と実体のずれを避ける）
+    const files = await this.getFiles(rid);
+    const targets =
+      source === 'all' ? files : files.filter((f) => f.source === source);
+
+    if (targets.length === 0) {
+      return {
+        success: true,
+        message: '削除対象のファイルはありませんでした',
+        deletedCount: 0,
+        freedBytes: 0,
+      };
+    }
+
+    const dirPath = this.getRepositoryUploadsPath(rid);
+    let deletedCount = 0;
+    let freedBytes = 0;
+    const metadata = await this.readMetadata(rid);
+
+    for (const file of targets) {
+      try {
+        await fs.unlink(path.join(dirPath, file.filename));
+        delete metadata[file.filename];
+        deletedCount++;
+        freedBytes += file.size;
+      } catch (error) {
+        console.error('ファイル一括削除エラー:', file.filename, error);
+      }
+    }
+
+    await this.writeMetadata(rid, metadata);
+
+    const failedCount = targets.length - deletedCount;
+    return {
+      success: failedCount === 0,
+      message:
+        failedCount === 0
+          ? `${deletedCount}件のファイルを削除しました`
+          : `${deletedCount}件を削除しましたが、${failedCount}件の削除に失敗しました`,
+      deletedCount,
+      freedBytes,
+    };
+  }
+
+  /**
+   * リポジトリのアップロードディレクトリごと削除する（リポジトリ削除時の後始末用）
+   */
+  async removeRepositoryUploads(rid: string): Promise<void> {
+    if (!rid) return;
+    await fs
+      .rm(this.getRepositoryUploadsPath(rid), { recursive: true, force: true })
+      .catch((error) => {
+        console.error('アップロードディレクトリの削除エラー:', rid, error);
+      });
+  }
+
   getFilePath(rid: string, filename: string): string | null {
     if (!rid) {
       return null;

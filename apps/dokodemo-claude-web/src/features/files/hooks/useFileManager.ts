@@ -3,9 +3,20 @@ import { Socket } from 'socket.io-client';
 import * as tus from 'tus-js-client';
 import type {
   UploadedFileInfo,
+  FileSource,
   ServerToClientEvents,
   ClientToServerEvents,
 } from '@/types';
+
+/**
+ * アップロードファイル一括削除の結果
+ */
+export interface ClearFilesResult {
+  success: boolean;
+  message: string;
+  deletedCount: number;
+  freedBytes: number;
+}
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useRefreshOnFocus } from '@/shared/hooks/useRefreshOnFocus';
 import { BACKEND_URL } from '@/shared/utils/backend-url';
@@ -16,6 +27,12 @@ export interface UseFileManagerReturn {
   uploadProgress: number | null;
   refreshFiles: () => void;
   deleteFile: (filename: string) => void;
+  /** 種別を指定してアップロードファイルを一括削除する */
+  deleteAllFiles: (source: FileSource | 'all') => void;
+  /** 直近の一括削除の結果（実行前・別リポジトリ宛ては null） */
+  clearFilesResult: ClearFilesResult | null;
+  /** 一括削除の結果表示を消す */
+  dismissClearFilesResult: () => void;
   uploadFile: (file: File) => Promise<string | undefined>;
   /** 進行中のアップロードを中断する（進捗リセット・resolve(undefined)） */
   cancelUpload: () => void;
@@ -29,6 +46,8 @@ export function useFileManager(
   const [files, setFiles] = useState<UploadedFileInfo[]>([]);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [clearFilesResult, setClearFilesResult] =
+    useState<ClearFilesResult | null>(null);
 
   const currentRepoRef = useRef(currentRepo);
 
@@ -88,14 +107,37 @@ export function useFileManager(
       }
     };
 
+    // 一括削除は全クライアントへ配信されるため、rid が一致する場合だけ反映する
+    const handleFilesCleared = (
+      data: Parameters<ServerToClientEvents['files-cleared']>[0]
+    ) => {
+      const currentRid = repositoryIdMap.getRid(currentRepoRef.current);
+      if (data.rid !== currentRid) return;
+      setClearFilesResult({
+        success: data.success,
+        message: data.message,
+        deletedCount: data.deletedCount,
+        freedBytes: data.freedBytes,
+      });
+      if (data.deletedCount > 0) {
+        setFiles((prev) =>
+          data.source === 'all'
+            ? []
+            : prev.filter((f) => f.source !== data.source)
+        );
+      }
+    };
+
     socket.on('files-list', handleFilesList);
     socket.on('file-deleted', handleFileDeleted);
     socket.on('file-uploaded', handleFileUploaded);
+    socket.on('files-cleared', handleFilesCleared);
 
     return () => {
       socket.off('files-list', handleFilesList);
       socket.off('file-deleted', handleFileDeleted);
       socket.off('file-uploaded', handleFileUploaded);
+      socket.off('files-cleared', handleFilesCleared);
     };
   }, [socket]);
 
@@ -117,6 +159,21 @@ export function useFileManager(
     },
     [socket, currentRepo]
   );
+
+  const deleteAllFiles = useCallback(
+    (source: FileSource | 'all') => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      setClearFilesResult(null);
+      socket.emit('delete-all-files', { rid, source });
+    },
+    [socket, currentRepo]
+  );
+
+  const dismissClearFilesResult = useCallback(() => {
+    setClearFilesResult(null);
+  }, []);
 
   const uploadFile = useCallback(
     (file: File): Promise<string | undefined> => {
@@ -223,10 +280,12 @@ export function useFileManager(
     setUploadProgress(null);
   }, []);
 
-  // リポジトリ切り替え時はアップロード進行中表示だけリセット（files は socket 応答で上書き）
+  // リポジトリ切り替え時はアップロード進行中表示と一括削除の結果表示をリセット
+  // （files は socket 応答で上書きされる）
   useEffect(() => {
     setIsUploadingFile(false);
     setUploadProgress(null);
+    setClearFilesResult(null);
   }, [currentRepo]);
 
   return {
@@ -235,6 +294,9 @@ export function useFileManager(
     uploadProgress,
     refreshFiles,
     deleteFile,
+    deleteAllFiles,
+    clearFilesResult,
+    dismissClearFilesResult,
     uploadFile,
     cancelUpload,
     clearState,
