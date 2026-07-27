@@ -114,6 +114,11 @@ interface LoopSettingsFieldsProps {
    */
   workModel?: string;
   onWorkModelChange?: (model: string) => void;
+  /**
+   * PC（lg-up）でフィールドを 2 カラムに並べる。
+   * 横幅が取れる送信バー直下のアコーディオン用。狭いキューアイテム編集では渡さない。
+   */
+  twoColumnOnPc?: boolean;
 }
 
 /**
@@ -126,108 +131,119 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   onChange,
   workModel,
   onWorkModelChange,
+  twoColumnOnPc,
 }) => {
   const selectedOption = JUDGE_OPTIONS.find((o) => o.value === value.judge);
   const intervalMin = Math.floor(value.intervalSec / 60);
   // プランニングのモデル選択肢（「未指定」は除外。モデル指定が本機能の目的のため）
   const { options: modelOptions } = useModelOptions();
   const planningModelOptions = modelOptions.filter((o) => o.value);
+  // 2 カラム指定時のみグリッド化するクラス（既定は縦積みのまま）
+  const twoColumnClass = twoColumnOnPc ? s.twoColumnOnPc : '';
 
   return (
     <div className={`${s.root} ${disabled ? s.disabled : ''}`}>
-      {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
-      {onWorkModelChange && (
-        <div className={s.field}>
-          <div className={s.fieldLabel}>作業モデル</div>
-          <select
-            value={workModel ?? ''}
-            onChange={(e) => onWorkModelChange(e.target.value)}
-            disabled={disabled}
-            className={s.selectInput}
-          >
-            {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
-            {workModel &&
-              !modelOptions.some((o) => o.value === workModel) && (
-                <option value={workModel}>{workModel}</option>
-              )}
-            {modelOptions.map((opt) => (
-              <option key={opt.value || 'unset'} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <div className={s.fieldCaption}>
-            周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま
+      {/* 主要フィールド群（PC 2 カラム時はここがグリッドになる） */}
+      <div className={`${s.fieldGroup} ${twoColumnClass}`}>
+        {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
+        {onWorkModelChange && (
+          <div className={s.field}>
+            {/* 2 カラム時は隣の「継続の判断」と入力の上端を揃えるため 1 行に並べる */}
+            <div className={twoColumnOnPc ? s.rowFieldOnPc : ''}>
+              <div className={s.fieldLabel}>作業モデル</div>
+              <select
+                value={workModel ?? ''}
+                onChange={(e) => onWorkModelChange(e.target.value)}
+                disabled={disabled}
+                className={s.selectInput}
+              >
+                {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
+                {workModel &&
+                  !modelOptions.some((o) => o.value === workModel) && (
+                    <option value={workModel}>{workModel}</option>
+                  )}
+                {modelOptions.map((opt) => (
+                  <option key={opt.value || 'unset'} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={s.fieldCaption}>
+              周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* 継続の判断（プルダウン） */}
-      <div className={s.field}>
-        <div className={s.rowField}>
-          <div className={s.fieldLabel}>継続の判断</div>
-          <select
-            value={value.judge}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                judge: e.target.value as LoopSettingsValue['judge'],
-              })
-            }
-            disabled={disabled}
-            className={`${s.selectInput} ${s.selectSlim}`}
-          >
-            {JUDGE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {selectedOption && (
-          <div className={s.fieldCaption}>{selectedOption.caption}</div>
         )}
-      </div>
 
-      {/* 判断間隔（判断ありの場合のみ） */}
-      {value.judge !== 'none' && (
-        <div className={s.rowField}>
-          <div className={s.fieldLabel}>判断間隔</div>
-          <Stepper
-            value={value.judgeEveryN}
-            min={1}
-            suffix="周ごと"
-            disabled={disabled}
-            onChange={(n) => onChange({ ...value, judgeEveryN: n })}
-          />
-        </div>
-      )}
-
-      {/* AI 判断の判定基準（任意） */}
-      {value.judge === 'ai' && (
+        {/* 継続の判断（プルダウン） */}
         <div className={s.field}>
-          <div className={s.fieldLabel}>判定基準（任意）</div>
-          <textarea
-            value={value.judgeCriteria}
-            onChange={(e) => onChange({ ...value, judgeCriteria: e.target.value })}
+          <div className={s.rowField}>
+            <div className={s.fieldLabel}>継続の判断</div>
+            <select
+              value={value.judge}
+              onChange={(e) =>
+                onChange({
+                  ...value,
+                  judge: e.target.value as LoopSettingsValue['judge'],
+                })
+              }
+              disabled={disabled}
+              className={`${s.selectInput} ${s.selectSlim}`}
+            >
+              {JUDGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedOption && (
+            <div className={s.fieldCaption}>{selectedOption.caption}</div>
+          )}
+        </div>
+
+        {/* 判断間隔（判断ありの場合のみ） */}
+        {value.judge !== 'none' && (
+          <div className={s.rowField}>
+            <div className={s.fieldLabel}>判断間隔</div>
+            <Stepper
+              value={value.judgeEveryN}
+              min={1}
+              suffix="周ごと"
+              disabled={disabled}
+              onChange={(n) => onChange({ ...value, judgeEveryN: n })}
+            />
+          </div>
+        )}
+
+        {/* 再送までの待機時間 */}
+        <div className={s.rowField}>
+          <div className={s.fieldLabel}>再送待機</div>
+          <Stepper
+            value={intervalMin}
+            min={0}
+            suffix="分"
             disabled={disabled}
-            placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
-            rows={2}
-            className={s.criteriaTextarea}
+            onChange={(n) => onChange({ ...value, intervalSec: n * 60 })}
           />
         </div>
-      )}
 
-      {/* 再送までの待機時間 */}
-      <div className={s.rowField}>
-        <div className={s.fieldLabel}>再送待機</div>
-        <Stepper
-          value={intervalMin}
-          min={0}
-          suffix="分"
-          disabled={disabled}
-          onChange={(n) => onChange({ ...value, intervalSec: n * 60 })}
-        />
+        {/* AI 判断の判定基準（任意・2 カラム時は全幅） */}
+        {value.judge === 'ai' && (
+          <div className={`${s.field} ${s.fullSpan}`}>
+            <div className={s.fieldLabel}>判定基準（任意）</div>
+            <textarea
+              value={value.judgeCriteria}
+              onChange={(e) =>
+                onChange({ ...value, judgeCriteria: e.target.value })
+              }
+              disabled={disabled}
+              placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
+              rows={2}
+              className={s.criteriaTextarea}
+            />
+          </div>
+        )}
       </div>
 
       {/* 定期プランニング（トグルで有効化、子設定は左ボーダーでネスト） */}
@@ -259,7 +275,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
       </div>
 
       {value.planningEnabled && (
-        <div className={s.subGroup}>
+        <div className={`${s.subGroup} ${twoColumnClass}`}>
           <div className={s.rowField}>
             <div className={s.fieldLabel}>間隔</div>
             <Stepper
@@ -298,7 +314,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             </select>
           </div>
 
-          <div className={s.field}>
+          <div className={`${s.field} ${s.fullSpan}`}>
             <div className={s.fieldLabel}>プロンプト</div>
             <textarea
               value={value.planningPrompt}

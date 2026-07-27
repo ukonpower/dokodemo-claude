@@ -6,6 +6,11 @@ import {
 } from '@/app/utils/app-settings';
 
 /**
+ * 送信モード。送信＝即送信、キュー＝送信予約、ループ＝キュー＋繰り返し実行。
+ */
+export type SendMode = 'send' | 'queue' | 'loop';
+
+/**
  * 完了後の自動コミットの動作
  * - off: 何もしない
  * - commit: コミットのみ（push しない）
@@ -17,7 +22,7 @@ export type AutoCommitMode = 'off' | 'commit' | 'commit-push';
  * コマンド入力設定の型
  */
 export interface CommandSendSettings {
-  addToQueue: boolean;
+  sendMode: SendMode;
   sendClear: boolean;
   autoCommit: AutoCommitMode;
   model?: string;
@@ -25,8 +30,7 @@ export interface CommandSendSettings {
   autoTarget?: 'plan' | 'implement';
   autoReview?: boolean;
   autoClear?: boolean;
-  // プロンプトループ設定（キュー ON 時のみ有効）
-  loopEnabled?: boolean;
+  // プロンプトループ設定（sendMode === 'loop' のとき有効）
   loopJudge?: 'ai' | 'user' | 'none';
   loopJudgeEveryN?: number;
   loopIntervalMin?: number; // 分単位（0 = 即時）
@@ -70,28 +74,32 @@ function getRepoSettingsKey(repoPath: string): string {
  * リポジトリ用の設定を読み込む
  */
 function loadSettingsForRepoInternal(repoPath: string): CommandSendSettings {
+  const defaults: CommandSendSettings = {
+    sendMode: 'send',
+    sendClear: false,
+    autoCommit: 'off',
+  };
   const key = getRepoSettingsKey(repoPath);
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      const parsed = JSON.parse(saved) as CommandSendSettings;
+      const merged = {
+        ...defaults,
+        ...JSON.parse(saved),
+      } as CommandSendSettings;
       // 保存済みの値が不正・未設定なら安全側（コミットしない）に倒す
       if (
-        parsed.autoCommit !== 'commit' &&
-        parsed.autoCommit !== 'commit-push'
+        merged.autoCommit !== 'commit' &&
+        merged.autoCommit !== 'commit-push'
       ) {
-        parsed.autoCommit = 'off';
+        merged.autoCommit = 'off';
       }
-      return parsed;
+      return merged;
     } catch {
       // パース失敗時はデフォルト値
     }
   }
-  return {
-    addToQueue: false,
-    sendClear: false,
-    autoCommit: 'off',
-  };
+  return defaults;
 }
 
 /**

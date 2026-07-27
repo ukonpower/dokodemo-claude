@@ -23,7 +23,10 @@ import {
   X,
 } from 'lucide-react';
 import type { AiProvider } from '@/types';
-import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
+import type {
+  AutoCommitMode,
+  CommandSendSettings,
+} from '@/app/hooks/useAppSettings';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/features/ai/utils/models';
@@ -141,45 +144,9 @@ interface TextInputProps {
   /** 自動フォーカスを有効化するか */
   autoFocus?: boolean;
   /** 送信設定の状態 */
-  sendSettings?: {
-    addToQueue: boolean;
-    sendClear: boolean;
-    autoCommit: AutoCommitMode;
-    model?: string;
-    workflowSkill?: string;
-    autoTarget?: 'plan' | 'implement';
-    autoReview?: boolean;
-    autoClear?: boolean;
-    loopEnabled?: boolean;
-    loopJudge?: 'ai' | 'user' | 'none';
-    loopJudgeEveryN?: number;
-    loopIntervalMin?: number;
-    loopJudgeCriteria?: string;
-    loopPlanningEnabled?: boolean;
-    loopPlanningEveryN?: number;
-    loopPlanningModel?: string;
-    loopPlanningPrompt?: string;
-  };
+  sendSettings?: CommandSendSettings;
   /** 送信設定の更新ハンドラ */
-  onSendSettingsChange?: (settings: {
-    addToQueue: boolean;
-    sendClear: boolean;
-    autoCommit: AutoCommitMode;
-    model?: string;
-    workflowSkill?: string;
-    autoTarget?: 'plan' | 'implement';
-    autoReview?: boolean;
-    autoClear?: boolean;
-    loopEnabled?: boolean;
-    loopJudge?: 'ai' | 'user' | 'none';
-    loopJudgeEveryN?: number;
-    loopIntervalMin?: number;
-    loopJudgeCriteria?: string;
-    loopPlanningEnabled?: boolean;
-    loopPlanningEveryN?: number;
-    loopPlanningModel?: string;
-    loopPlanningPrompt?: string;
-  }) => void;
+  onSendSettingsChange?: (settings: CommandSendSettings) => void;
   /** クリップボードから画像をペーストした時のハンドラ（オプション）。成功時にパスを返す */
   onPasteFile?: (file: File) => Promise<string | undefined>;
   /** ファイルアップロード中フラグ（オプション） */
@@ -332,15 +299,17 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [tempCommand, setTempCommand] = useState<string>(''); // 履歴を遡る前の一時入力
 
     // sendSettingsの値を使用（propsが渡されていない場合はローカルstate）
-    // 非プライマリではキュー機能を使えないため、addToQueue を強制的に false 扱いにする
-    const addToQueue = isPrimary ? (sendSettings?.addToQueue ?? false) : false;
+    // 非プライマリではキュー/ループを使えないため、送信モードを即送信に丸める
+    const sendMode = isPrimary ? (sendSettings?.sendMode ?? 'send') : 'send';
+    // ループはキューの上に載る動作なので、キュー扱いする範囲に含める
+    const addToQueue = sendMode === 'queue' || sendMode === 'loop';
     const sendClearBefore = sendSettings?.sendClear ?? false;
     const autoCommit: AutoCommitMode = sendSettings?.autoCommit ?? 'off';
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
 
-    // ループ設定（キュー ON 時のみ有効）
-    const loopEnabled = addToQueue && (sendSettings?.loopEnabled ?? false);
+    // ループ設定（ループモード時のみ有効）
+    const loopEnabled = sendMode === 'loop';
     const loopJudge = sendSettings?.loopJudge ?? 'none';
     const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
     const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
@@ -363,8 +332,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
     // モデル選択のドロップダウン開閉状態
     const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-    // ループ設定アコーディオンの開閉状態
-    const [isLoopExpanded, setIsLoopExpanded] = useState(false);
     // カスタムモデル追加フォームの開閉と入力値
     const [isAddModelOpen, setIsAddModelOpen] = useState(false);
     const [newModelId, setNewModelId] = useState('');
@@ -376,27 +343,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       left: 0,
     });
 
-    // チェックボックスの状態変更ハンドラ
-    const handleSettingChange = (
-      key:
-        | 'addToQueue'
-        | 'sendClear'
-        | 'autoCommit'
-        | 'model'
-        | 'workflowSkill'
-        | 'autoTarget'
-        | 'autoReview'
-        | 'autoClear'
-        | 'loopEnabled'
-        | 'loopJudge'
-        | 'loopJudgeEveryN'
-        | 'loopIntervalMin'
-        | 'loopJudgeCriteria'
-        | 'loopPlanningEnabled'
-        | 'loopPlanningEveryN'
-        | 'loopPlanningModel'
-        | 'loopPlanningPrompt',
-      value: boolean | string | number
+    // 送信設定の単一キー更新ハンドラ
+    const handleSettingChange = <K extends keyof CommandSendSettings>(
+      key: K,
+      value: CommandSendSettings[K]
     ) => {
       if (onSendSettingsChange && sendSettings) {
         onSendSettingsChange({
@@ -537,7 +487,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           const autoTarget = sendSettings?.autoTarget ?? 'plan';
           const autoReview = sendSettings?.autoReview ?? false;
           const autoClear = sendSettings?.autoClear ?? false;
-          handleSettingChange('addToQueue', true);
+          // Auto は複数プロンプトをキューへ積むワークフローなのでキューモードに切り替える
+          handleSettingChange('sendMode', 'queue');
           onAddToQueue(
             formatSkillCommand(`/workflow-research ${command}`),
             autoClear,
@@ -1813,7 +1764,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
             {/* オプション: 送信モード切替＋修飾グリッド（全幅） */}
             <div className={s.sendOptionsBar}>
-              {/* 送信モード切替（即送信 / キュー）セグメント */}
+              {/* 送信モード切替（送信 / キュー / ループ）タブ */}
               <div
                 className={s.modeSegment}
                 role="group"
@@ -1821,26 +1772,36 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               >
                 <button
                   type="button"
-                  onClick={() => handleSettingChange('addToQueue', false)}
+                  onClick={() => handleSettingChange('sendMode', 'send')}
                   disabled={disabled}
-                  className={`${s.modeButton} ${!addToQueue ? s.active : ''}`}
-                  title="即送信: 入力をそのまま AI へ送る"
+                  className={`${s.modeButton} ${sendMode === 'send' ? s.active : ''}`}
+                  title="送信: 入力をそのまま AI へ送る"
                 >
-                  即送信
+                  送信
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSettingChange('addToQueue', true)}
+                  onClick={() => handleSettingChange('sendMode', 'queue')}
                   disabled={disabled}
-                  className={`${s.modeButton} ${addToQueue ? s.active : ''}`}
-                  title="キュー: 送信予約リストに追加（clear / commit / ループ等の設定が使える）"
+                  className={`${s.modeButton} ${sendMode === 'queue' ? s.active : ''}`}
+                  title="キュー: 送信予約リストに追加（clear / commit の設定が使える）"
                 >
                   <Menu className={s.queueIcon} />
                   キュー
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleSettingChange('sendMode', 'loop')}
+                  disabled={disabled}
+                  className={`${s.modeButton} ${sendMode === 'loop' ? s.active : ''}`}
+                  title="ループ: キューに追加し、完了後に同じプロンプトを繰り返し送信"
+                >
+                  <Repeat className={s.queueIcon} />
+                  ループ
+                </button>
               </div>
 
-              {/* キューオプション（キューON時のみ表示。モード固定サイズの下段に折り返す） */}
+              {/* キュー/ループ共通のオプション（即送信では使えないため非表示） */}
               {addToQueue && (
                 <div className={s.optionGrid}>
                   {/* /clear（送信前） */}
@@ -1881,76 +1842,32 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     </button>
                   </div>
 
-                  {/* ループ（タップで下のアコーディオンを開閉。全幅で下段に。
-                      モデルチップと同じ「ラベル＋値＋シェブロン」の開閉ボタン形式 */}
-                  <div className={`${s.optGroup} ${s.optGroupWide}`}>
-                  <button
-                    type="button"
-                    onClick={() => setIsLoopExpanded(!isLoopExpanded)}
-                    disabled={disabled}
-                    className={`${s.modelButton} ${loopEnabled ? s.active : ''}`}
-                    title="ループ: 完了後に同じプロンプトを繰り返し送信"
-                  >
-                    <Repeat size={12} />
-                    <span className={s.optLabel}>ループ</span>
-                    <span className={s.optValue}>
-                      {loopEnabled
-                        ? loopJudge === 'none'
-                          ? '無限'
-                          : `${loopJudge === 'ai' ? 'AI' : '確認'}・${loopJudgeEveryN}周`
-                        : 'オフ'}
-                    </span>
-                    <ChevronDown
-                      className={`${s.modelDropdownIcon} ${isLoopExpanded ? s.open : ''}`}
-                    />
-                  </button>
-                  </div>
                 </div>
               )}
               </div>
           </div>
         )}
 
-        {/* ループ設定アコーディオン（送信バーの直下に展開） */}
-        {onAddToQueue && isPrimary && addToQueue && isLoopExpanded && (
-          <div className={s.loopAccordion}>
-            <button
-              type="button"
-              onClick={() => handleSettingChange('loopEnabled', !loopEnabled)}
-              className={s.loopToggleRow}
-            >
-              <span className={s.loopToggleText}>
-                <Repeat size={14} />
-                ループ送信
-              </span>
-              <div className={`${s.toggleTrack} ${loopEnabled ? s.on : s.off}`}>
-                <div
-                  className={`${s.toggleThumb} ${loopEnabled ? s.on : s.off}`}
-                />
-              </div>
-            </button>
-            <div className={s.loopAccordionHint}>
-              完了後に同じプロンプトを繰り返し送信します
-            </div>
-
-            <div className={s.loopAccordionBody}>
-              <LoopSettingsFields
-                value={{
-                  judge: loopJudge,
-                  judgeEveryN: loopJudgeEveryN,
-                  intervalSec: loopIntervalMin * 60,
-                  judgeCriteria: loopJudgeCriteria,
-                  planningEnabled: loopPlanningEnabled,
-                  planningEveryN: loopPlanningEveryN,
-                  planningModel: loopPlanningModel,
-                  planningPrompt: loopPlanningPrompt,
-                }}
-                disabled={!loopEnabled}
-                onChange={handleLoopSettingsChange}
-                workModel={model}
-                onWorkModelChange={(v) => handleSettingChange('model', v)}
-              />
-            </div>
+        {/* ループ設定パネル（ループ ON の間だけ送信バー直下に表示） */}
+        {onAddToQueue && isPrimary && loopEnabled && (
+          <div className={s.loopPanel}>
+            <LoopSettingsFields
+              value={{
+                judge: loopJudge,
+                judgeEveryN: loopJudgeEveryN,
+                intervalSec: loopIntervalMin * 60,
+                judgeCriteria: loopJudgeCriteria,
+                planningEnabled: loopPlanningEnabled,
+                planningEveryN: loopPlanningEveryN,
+                planningModel: loopPlanningModel,
+                planningPrompt: loopPlanningPrompt,
+              }}
+              disabled={disabled}
+              onChange={handleLoopSettingsChange}
+              workModel={model}
+              onWorkModelChange={(v) => handleSettingChange('model', v)}
+              twoColumnOnPc
+            />
           </div>
         )}
 

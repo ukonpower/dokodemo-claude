@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CommandSendSettings } from '@/app/hooks/useAppSettings';
 
 const DEFAULT_SEND_SETTINGS: CommandSendSettings = {
-  addToQueue: false,
+  sendMode: 'send',
   sendClear: false,
   autoCommit: 'off',
 };

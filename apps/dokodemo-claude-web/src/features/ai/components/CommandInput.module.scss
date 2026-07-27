@@ -662,24 +662,18 @@
   gap: $space-xs;
 }
 
-// 修飾グループの下段グリッド。
-// 上段: /clear | /commit（3 等幅セルのうち 2 つを使う。モデルは送信行に移設）、
-// 下段: ループ（全幅）
+// 修飾グループの下段グリッド（/clear | /commit の 2 等幅セル。
+// モデルは送信行、ループ設定はモードタブ選択時のパネルへ移設）
 .optionGrid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: $space-xs;
 
   // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
   @include lg-up {
-    max-width: 26rem;
+    max-width: 18rem;
   }
-}
-
-// 全幅セル（ループ）。グリッドの全カラムをまたぐ
-.optGroupWide {
-  grid-column: 1 / -1;
 }
 
 // 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
@@ -697,7 +691,7 @@
 }
 
 .modeButton {
-  // 即送信 / キューは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
+  // 送信 / キュー / ループは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
   flex: 0 0 auto;
   min-width: 3.5rem;
   display: flex;
@@ -762,41 +756,6 @@
   width: 0.75rem;
   height: 0.75rem;
   flex-shrink: 0;
-}
-
-.toggleTrack {
-  position: relative;
-  width: 1.5rem;
-  height: 0.875rem;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  transition: background-color $transition-normal $transition-easing;
-
-  &.on {
-    background-color: $accent;
-  }
-
-  &.off {
-    background-color: $dark-bg-secondary;
-  }
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 0.125rem;
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 9999px;
-  background-color: white;
-  transition: all $transition-normal $transition-easing;
-
-  &.on {
-    left: 0.75rem;
-  }
-
-  &.off {
-    left: 0.125rem;
-  }
 }
 
 .optionDivider {
@@ -1102,64 +1061,32 @@
   }
 }
 
-/* プロンプトループ設定アコーディオン（送信バー直下にインライン展開） */
-.loopAccordion {
+/* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
+.loopPanel {
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   overflow: hidden;
+  padding: $space-sm $space-md $space-md;
   transform-origin: top;
-  // 開いた瞬間に上からスライドして展開するアニメーション
-  animation: loopAccordionOpen $transition-normal $transition-easing;
+  // ON にした瞬間に上からスライドして現れるアニメーション
+  animation: loopPanelOpen $transition-normal $transition-easing;
 
-  // PC では全幅に間延びさせず、送信バー直下のコンパクトなパネルにする
-  // （幅はキューオプション行 .optionGrid の上限に揃える）
+  // PC ではフィールドを 2 カラムに並べるため、横幅を composer 幅相当まで広げる
+  // （縦に伸びて入力欄や出力を押し下げるのを防ぐ）
   @include lg-up {
-    max-width: 26rem;
+    max-width: 42rem;
   }
 }
 
-@keyframes loopAccordionOpen {
+@keyframes loopPanelOpen {
   from {
     opacity: 0;
     max-height: 0;
   }
   to {
     opacity: 1;
-    max-height: 360px;
+    // アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
+    max-height: 640px;
   }
-}
-
-.loopToggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-sm;
-  width: 100%;
-  min-height: 40px;
-  padding: $space-sm $space-md $space-2xs;
-  background: none;
-  border: none;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.loopToggleText {
-  display: flex;
-  align-items: center;
-  gap: $space-xs;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  color: $dark-text-primary;
-}
-
-.loopAccordionHint {
-  padding: 0 $space-md $space-sm;
-  font-size: $font-size-2xs;
-  color: $dark-text-muted;
-}
-
-.loopAccordionBody {
-  padding: $space-sm $space-md $space-md;
-  border-top: 1px solid $dark-border-light;
 }
