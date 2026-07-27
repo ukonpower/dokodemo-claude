@@ -33,9 +33,61 @@
   pointer-events: none;
 }
 
+// テキスト選択オーバーレイの起動ボタン。
+// マウス環境では xterm 上を直接ドラッグ選択できるため、
+// タッチ主体の端末（pointer: coarse）でのみ表示する。
+.selectButton {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  background-color: rgba($dark-bg-secondary, 0.7);
+  border: 1px solid $dark-border-light;
+  border-right: none;
+  border-bottom: none;
+  border-radius: $radius-md 0 0 0;
+  color: rgba(white, 0.7);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all $transition-fast $transition-easing;
+  z-index: 20;
+
+  @media (pointer: coarse) {
+    @include flex-center;
+  }
+
+  &:active {
+    background-color: $dark-bg-hover;
+    color: white;
+    opacity: 1;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
 .textOverlay {
   position: absolute;
   inset: 0;
   overflow: auto;
   z-index: 30;
+}
+
+.overlayCloseButton {
+  @include flex-center;
+  position: sticky;
+  top: $space-2xs;
+  float: right;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: $space-2xs;
+  background-color: rgba($dark-bg-hover, 0.9);
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-full;
+  color: $dark-text-primary;
+  cursor: pointer;
+  z-index: 31;
 }

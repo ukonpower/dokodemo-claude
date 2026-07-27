@@ -9,7 +9,9 @@ import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
-import s from './SettingsView.module.scss';
+import { useSectionScrollSpy } from '@/shared/hooks/useSectionScrollSpy';
+import s from './settings-layout.module.scss';
+import v from './SettingsView.module.scss';
 
 type SectionId =
   | 'appearance'
@@ -100,7 +102,10 @@ export function SettingsView() {
 
   // カテゴリナビのスクロールスパイ
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<SectionId>('appearance');
+  const { activeSection, scrollToSection } = useSectionScrollSpy<SectionId>(
+    bodyRef,
+    'settings-'
+  );
 
   useEffect(() => {
     if (!socket) return;
@@ -199,44 +204,6 @@ export function SettingsView() {
     };
   }, [socket]);
 
-  // スクロール位置から現在のカテゴリを判定してナビをハイライト
-  useEffect(() => {
-    const body = bodyRef.current;
-    if (!body) return;
-
-    const handleScroll = () => {
-      const sections = Array.from(
-        body.querySelectorAll<HTMLElement>('[data-section-id]')
-      );
-      const line = body.getBoundingClientRect().top + 120;
-      let current: string | undefined = sections[0]?.dataset.sectionId;
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top <= line) {
-          current = section.dataset.sectionId;
-        }
-      }
-      // 最終セクションが短いと判定線に届かないため、最下部到達時は最終セクションを優先
-      if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4) {
-        current = sections[sections.length - 1]?.dataset.sectionId ?? current;
-      }
-      if (current) setActiveSection(current as SectionId);
-    };
-
-    body.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => body.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToSection = (id: SectionId) => {
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
-    document.getElementById(`settings-${id}`)?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
-
   const handleToggleHooks = (provider: AiProvider) => {
     if (!socket) return;
     const state = provider === 'claude' ? claudeHooks : codexHooks;
@@ -332,8 +299,8 @@ export function SettingsView() {
             ))}
           </nav>
 
-          {/* 設定コンテンツ */}
-          <div className={s.content}>
+          {/* 設定コンテンツ（グリッドの2列目。スタイルは layout 側で決まる） */}
+          <div>
             {/* 表示 */}
             <section
               id="settings-appearance"
@@ -350,7 +317,7 @@ export function SettingsView() {
                     </p>
                   </div>
                   <div className={s.rowControl}>
-                    <div className={s.segmented} role="group" aria-label="フォントサイズ">
+                    <div className={v.segmented} role="group" aria-label="フォントサイズ">
                       {FONT_SIZE_OPTIONS.map(({ preset, label, previewPx }) => (
                         <button
                           key={preset}
@@ -358,14 +325,14 @@ export function SettingsView() {
                             onSettingsChange({ ...settings, fontSizePreset: preset })
                           }
                           aria-pressed={settings.fontSizePreset === preset}
-                          className={`${s.segmentedButton} ${
+                          className={`${v.segmentedButton} ${
                             settings.fontSizePreset === preset
-                              ? s.segmentedButtonActive
+                              ? v.segmentedButtonActive
                               : ''
                           }`}
                         >
                           <span
-                            className={s.fontPreview}
+                            className={v.fontPreview}
                             style={{ fontSize: `${previewPx}px` }}
                             aria-hidden="true"
                           >
@@ -391,7 +358,7 @@ export function SettingsView() {
                       Claude CLI セッション起動時の権限確認の扱い。変更は次回セッション作成時に反映されます
                     </p>
                   </div>
-                  <div className={s.radioGroup} role="radiogroup" aria-label="パーミッションモード">
+                  <div className={v.radioGroup} role="radiogroup" aria-label="パーミッションモード">
                     {PERMISSION_OPTIONS.map(({ value, label, description }) => {
                       const selected = (settings.permissionMode ?? '') === value;
                       return (
@@ -406,12 +373,12 @@ export function SettingsView() {
                                 value === '' ? undefined : value,
                             })
                           }
-                          className={`${s.radioItem} ${selected ? s.radioItemSelected : ''}`}
+                          className={`${v.radioItem} ${selected ? v.radioItemSelected : ''}`}
                         >
-                          <span className={s.radioMark} aria-hidden="true" />
-                          <span className={s.radioText}>
-                            <span className={s.radioLabel}>{label}</span>
-                            <span className={s.radioDesc}>{description}</span>
+                          <span className={v.radioMark} aria-hidden="true" />
+                          <span className={v.radioText}>
+                            <span className={v.radioLabel}>{label}</span>
+                            <span className={v.radioDesc}>{description}</span>
                           </span>
                         </button>
                       );
@@ -433,9 +400,9 @@ export function SettingsView() {
                       aria-label="タブの要約表示"
                       onClick={handleToggleSummary}
                       disabled={summaryEnabled === null}
-                      className={`${s.switch} ${summaryEnabled ? s.switchOn : ''}`}
+                      className={`${v.switch} ${summaryEnabled ? v.switchOn : ''}`}
                     >
-                      <span className={s.switchKnob} />
+                      <span className={v.switchKnob} />
                     </button>
                   </div>
                 </div>
@@ -457,7 +424,7 @@ export function SettingsView() {
                       処理完了時や質問待ち状態になったときにブラウザ通知を送信します
                     </p>
                     {webPush.permissionState === 'denied' && (
-                      <p className={s.deniedWarning}>
+                      <p className={v.deniedWarning}>
                         通知がブロックされています。ブラウザの設定から通知を許可してください
                       </p>
                     )}
@@ -475,7 +442,7 @@ export function SettingsView() {
                   </div>
                   <div className={s.rowControl}>
                     {!webPush.isSupported ? (
-                      <span className={s.notSupportedText}>
+                      <span className={v.notSupportedText}>
                         このブラウザは非対応です
                       </span>
                     ) : (
@@ -624,9 +591,9 @@ export function SettingsView() {
                       切り替え時は追跡ファイルのローカル変更が破棄されます
                     </p>
                   </div>
-                  <div className={s.branchRow}>
+                  <div className={v.branchRow}>
                     <select
-                      className={s.branchSelect}
+                      className={v.branchSelect}
                       value={targetBranch}
                       onChange={e => setSelectedBranch(e.target.value)}
                       disabled={selfBranches.length === 0}

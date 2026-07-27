@@ -37,7 +37,12 @@ import type {
   CommandShortcut,
 } from './terminal';
 import type { PromptQueueItem, PromptLoopPlanning } from './queue';
-import type { FileTreeEntry, FileContent, UploadedFileInfo } from './files';
+import type {
+  FileTreeEntry,
+  FileContent,
+  UploadedFileInfo,
+  FileSource,
+} from './files';
 
 // Socket.IO通信関連の型定義
 export interface ServerToClientEvents {
@@ -468,6 +473,16 @@ export interface ServerToClientEvents {
     rid: string;
     filename: string;
   }) => void;
+  /** アップロードファイルの一括削除結果 */
+  'files-cleared': (data: {
+    success: boolean;
+    message: string;
+    rid: string;
+    /** 削除対象に指定された source（'all' は全件） */
+    source: FileSource | 'all';
+    deletedCount: number;
+    freedBytes: number;
+  }) => void;
 
   // Git差分関連イベント
   'git-diff-summary': (data: { rid: string; summary: GitDiffSummary }) => void;
@@ -790,6 +805,7 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isAutoCommitPush?: boolean;
     isCodexReview?: boolean;
     model?: string;
     loop?: {
@@ -812,6 +828,7 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isAutoCommitPush?: boolean;
     isCodexReview?: boolean;
     model?: string;
     // null: ループ解除 / 値あり: 設定を差し替え（iteration 等の状態は維持）
@@ -879,6 +896,14 @@ export interface ClientToServerEvents {
   // ファイル関連イベント
   'get-files': (data: { rid: string }) => void;
   'delete-file': (data: { rid: string; filename: string }) => void;
+  /**
+   * アップロードファイルの一括削除。
+   * source を指定するとその種別のみ、'all' なら全件を削除する。
+   */
+  'delete-all-files': (data: {
+    rid: string;
+    source: FileSource | 'all';
+  }) => void;
 
   // Git差分関連イベント
   'get-git-diff-summary': (data: { rid: string }) => void;

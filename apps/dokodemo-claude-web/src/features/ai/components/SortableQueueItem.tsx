@@ -11,6 +11,7 @@ import LoopSettingsFields, {
 } from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
 import s from './SortableQueueItem.module.scss';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 // ループ設定の編集用型
 export type EditLoopSettings = LoopSettingsValue;
@@ -28,12 +29,12 @@ interface EditModeContentProps {
   };
   editPrompt: string;
   editSendClearBefore: boolean;
-  editIsAutoCommit: boolean;
+  editAutoCommit: AutoCommitMode;
   editModel: string;
   editLoop: EditLoopSettings | null;
   setEditPrompt: (prompt: string) => void;
   setEditSendClearBefore: (value: boolean) => void;
-  setEditIsAutoCommit: (value: boolean) => void;
+  setEditAutoCommit: (value: AutoCommitMode) => void;
   setEditModel: (value: string) => void;
   setEditLoop: (value: EditLoopSettings | null) => void;
   onCancelEdit: () => void;
@@ -50,12 +51,12 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
   statusStyle,
   editPrompt,
   editSendClearBefore,
-  editIsAutoCommit,
+  editAutoCommit,
   editModel,
   editLoop,
   setEditPrompt,
   setEditSendClearBefore,
-  setEditIsAutoCommit,
+  setEditAutoCommit,
   setEditModel,
   setEditLoop,
   onCancelEdit,
@@ -127,7 +128,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
   // 有効なオプションの数をカウント
   const activeOptionsCount =
     (editSendClearBefore ? 1 : 0) +
-    (editIsAutoCommit ? 1 : 0) +
+    (editAutoCommit !== 'off' ? 1 : 0) +
     (editModel ? 1 : 0) +
     (editLoop ? 1 : 0);
 
@@ -233,26 +234,38 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                 {/* /commit オプション */}
                 <button
                   type="button"
-                  onClick={() => setEditIsAutoCommit(!editIsAutoCommit)}
+                  onClick={() =>
+                    setEditAutoCommit(
+                      editAutoCommit === 'off'
+                        ? 'commit'
+                        : editAutoCommit === 'commit'
+                          ? 'commit-push'
+                          : 'off'
+                    )
+                  }
                   className={s.optionItem}
                 >
                   <div
                     className={`${s.checkbox} ${
-                      editIsAutoCommit
+                      editAutoCommit !== 'off'
                         ? s.checkboxCheckedGreen
                         : s.checkboxUnchecked
                     }`}
                   >
-                    {editIsAutoCommit && (
+                    {editAutoCommit !== 'off' && (
                       <Check className={s.checkIcon} strokeWidth={3} />
                     )}
                   </div>
                   <div className={s.optionText}>
                     <div className={s.optionLabel}>
-                      /commit
+                      {editAutoCommit === 'commit-push'
+                        ? '/commit+push'
+                        : '/commit'}
                     </div>
                     <div className={s.optionDescription}>
-                      完了後に自動コミット
+                      {editAutoCommit === 'commit-push'
+                        ? '完了後にコミットして push'
+                        : '完了後に自動コミット（push しない）'}
                     </div>
                   </div>
                 </button>
@@ -427,7 +440,7 @@ interface SortableQueueItemProps {
   isViewing: boolean;
   editPrompt: string;
   editSendClearBefore: boolean;
-  editIsAutoCommit: boolean;
+  editAutoCommit: AutoCommitMode;
   editModel: string;
   editLoop: EditLoopSettings | null;
   canRemove: boolean;
@@ -445,7 +458,7 @@ interface SortableQueueItemProps {
   onRequeue: (itemId: string) => void;
   setEditPrompt: (prompt: string) => void;
   setEditSendClearBefore: (value: boolean) => void;
-  setEditIsAutoCommit: (value: boolean) => void;
+  setEditAutoCommit: (value: AutoCommitMode) => void;
   setEditModel: (value: string) => void;
   setEditLoop: (value: EditLoopSettings | null) => void;
 }
@@ -460,7 +473,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   isViewing,
   editPrompt,
   editSendClearBefore,
-  editIsAutoCommit,
+  editAutoCommit,
   editModel,
   editLoop,
   canRemove,
@@ -476,7 +489,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
   onRequeue,
   setEditPrompt,
   setEditSendClearBefore,
-  setEditIsAutoCommit,
+  setEditAutoCommit,
   setEditModel,
   setEditLoop,
 }) => {
@@ -589,7 +602,7 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
                 )}
                 {item.isAutoCommit && (
                   <span className={s.viewTag}>
-                    /commit
+                    {item.isAutoCommitPush ? '/commit+push' : '/commit'}
                   </span>
                 )}
                 {item.loop && (
@@ -625,12 +638,12 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
           statusStyle={statusStyle}
           editPrompt={editPrompt}
           editSendClearBefore={editSendClearBefore}
-          editIsAutoCommit={editIsAutoCommit}
+          editAutoCommit={editAutoCommit}
           editModel={editModel}
           editLoop={editLoop}
           setEditPrompt={setEditPrompt}
           setEditSendClearBefore={setEditSendClearBefore}
-          setEditIsAutoCommit={setEditIsAutoCommit}
+          setEditAutoCommit={setEditAutoCommit}
           setEditModel={setEditModel}
           setEditLoop={setEditLoop}
           onCancelEdit={onCancelEdit}

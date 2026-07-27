@@ -723,12 +723,12 @@ app.get('/api/hook-stats', (req, res) => {
 // キューに単一アイテム追加
 app.post('/api/queue/add', async (req, res) => {
   try {
-    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model } = req.body;
+    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model } = req.body;
     if (!repositoryPath || !provider || !prompt) {
       res.status(400).json({ success: false, message: 'repositoryPath, provider, prompt は必須です' });
       return;
     }
-    const item = await processManager.addToPromptQueue(repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model);
+    const item = await processManager.addToPromptQueue(repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model);
     res.json({ success: true, item });
   } catch (error) {
     console.error('[REST API] キュー追加エラー:', error);
@@ -748,7 +748,7 @@ app.post('/api/queue/add-batch', async (req, res) => {
     for (const item of items) {
       const added = await processManager.addToPromptQueue(
         repositoryPath, provider, item.prompt,
-        item.sendClearBefore, item.isAutoCommit, item.model
+        item.sendClearBefore, item.isAutoCommit, item.isAutoCommitPush, item.model
       );
       addedItems.push(added);
     }
@@ -784,13 +784,13 @@ app.get('/api/queue/status', (req, res) => {
 app.put('/api/queue/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model } = req.body;
+    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model } = req.body;
     if (!repositoryPath || !provider) {
       res.status(400).json({ success: false, message: 'repositoryPath, provider は必須です' });
       return;
     }
     const success = await processManager.updatePromptQueue(
-      repositoryPath, provider as AiProvider, itemId, prompt, sendClearBefore, isAutoCommit, model
+      repositoryPath, provider as AiProvider, itemId, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model
     );
     res.json({ success });
   } catch (error) {

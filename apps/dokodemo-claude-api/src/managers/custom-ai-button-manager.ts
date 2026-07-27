@@ -160,6 +160,27 @@ export class CustomAiButtonManager extends EventEmitter {
     return Ok(undefined);
   }
 
+  /**
+   * リポジトリ削除時の後始末用。
+   * 指定リポジトリ固有のボタンをまとめて削除し、削除件数を返す。
+   */
+  async removeByRepository(repositoryPath: string): Promise<number> {
+    const targets = Array.from(this.buttons.values()).filter(
+      (btn) =>
+        btn.scope === 'repository' && btn.repositoryPath === repositoryPath
+    );
+    if (targets.length === 0) return 0;
+
+    for (const btn of targets) {
+      this.buttons.delete(btn.id);
+    }
+    await this.persist();
+    for (const btn of targets) {
+      this.emit('button-deleted', { id: btn.id });
+    }
+    return targets.length;
+  }
+
   async reorder(
     orderedIds: string[]
   ): Promise<Result<void, CustomAiButtonError>> {

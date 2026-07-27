@@ -24,6 +24,7 @@ import { ProjectView } from '@/views/ProjectView';
 import { CodeBrowserView } from '@/views/CodeBrowserView';
 import { DashboardView } from '@/views/DashboardView';
 import { SettingsView } from '@/views/SettingsView';
+import { ProjectSettingsView } from '@/views/ProjectSettingsView';
 
 import ProjectSwitcherModal from '@/features/repo/components/ProjectSwitcherModal';
 import CommandPaletteModal from '@/shared/components/CommandPaletteModal';
@@ -42,8 +43,12 @@ export function AppContent() {
   const gitDiff = useGitDiffContext();
   const gitGraph = useGitGraphContext();
   const fileViewer = useFileViewerContext();
-  const { dashboardMode, setDashboardModeAndPersist, settingsMode } =
-    useNavigationContext();
+  const {
+    dashboardMode,
+    setDashboardModeAndPersist,
+    settingsMode,
+    projectSettingsMode,
+  } = useNavigationContext();
 
   // プロジェクト切り替えポップアップ
   const [isProjectSwitcherOpen, setIsProjectSwitcherOpen] = useState(false);
@@ -73,7 +78,7 @@ export function AppContent() {
   useAppHotkeys({
     onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
     onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
-    // Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
+    // Ctrl+Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
     // （右端でさらに右を押すと provider を選ぶ追加メニューを開く）
     onSwitchAiInstance: (direction) => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
@@ -92,7 +97,7 @@ export function AppContent() {
       }
       aiCli.activateInstance(sorted[targetIndex].instanceId);
     },
-    // Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
+    // Ctrl+Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
     onOpenActiveTabMenu: () => {
       if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
       const active = aiCli.activeInstance;
@@ -162,10 +167,21 @@ export function AppContent() {
   }
 
   // リポジトリが選択されていない場合はホーム画面
+  // （プロジェクト設定は対象リポジトリが要るので、この分岐より後ろに置く）
   if (!repository.currentRepo) {
     return (
       <>
       <HomeView />
+      {overlays}
+      </>
+    );
+  }
+
+  // プロジェクト設定ページ（リポジトリ単位）
+  if (projectSettingsMode) {
+    return (
+      <>
+      <ProjectSettingsView />
       {overlays}
       </>
     );

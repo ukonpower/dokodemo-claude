@@ -3,15 +3,15 @@ import { useEffect, useRef } from 'react';
 export interface UseAppHotkeysOptions {
   onToggleProjectSwitcher: () => void; // Ctrl/Cmd+P
   onToggleCommandPalette: () => void; // Ctrl/Cmd+Shift+P
-  onSwitchAiInstance: (direction: 1 | -1) => void; // Shift+←→
-  onOpenActiveTabMenu: () => void; // Shift+↓
+  onSwitchAiInstance: (direction: 1 | -1) => void; // Ctrl+Shift+←→
+  onOpenActiveTabMenu: () => void; // Ctrl+Shift+↓
 }
 
 /**
  * アプリ全体のキーボードショートカット（Ctrl+P / Cmd+P でプロジェクト切り替え、
  * Ctrl+Shift+P / Cmd+Shift+P でコマンドパレット、
- * Shift+←→ でAIインスタンスタブ切り替え、
- * Shift+↓ で選択中タブのメニューを開く）を管理するカスタムフック
+ * Ctrl+Shift+←→ でAIインスタンスタブ切り替え、
+ * Ctrl+Shift+↓ で選択中タブのメニューを開く）を管理するカスタムフック
  * 副作用専用フック（戻り値なし）
  */
 export function useAppHotkeys(options: UseAppHotkeysOptions): void {
@@ -38,25 +38,20 @@ export function useAppHotkeys(options: UseAppHotkeysOptions): void {
     const handleKey = (e: KeyboardEvent) => {
       if (e.altKey) return;
 
-      // Shift+←→: AIインスタンスタブ切り替え（右端でさらに右なら新規追加）
-      // Shift+↓: 選択中タブのメニューを開く
+      // Ctrl+Shift+←→: AIインスタンスタブ切り替え（右端でさらに右なら新規追加）
+      // Ctrl+Shift+↓: 選択中タブのメニューを開く
+      // Cmd は使わない（macOS の Cmd+Shift+←→ はテキストの行頭/行末選択と衝突するため）。
+      // Ctrl+Shift+矢印は編集の標準操作にも OS 予約にも当たらないので、
+      // テキスト入力中・xterm フォーカス中でも常に横取りしてよい
       if (
+        e.ctrlKey &&
         e.shiftKey &&
-        !e.ctrlKey &&
         !e.metaKey &&
+        !e.altKey &&
         (e.key === 'ArrowLeft' ||
           e.key === 'ArrowRight' ||
           e.key === 'ArrowDown')
       ) {
-        // テキスト編集中は行頭/行末選択のブラウザ既定動作を優先する。
-        // ただし xterm の入力プロキシ textarea は編集ではないので対象にする
-        const t = e.target as HTMLElement | null;
-        const isEditable =
-          t instanceof HTMLInputElement ||
-          (t instanceof HTMLTextAreaElement &&
-            !t.classList.contains('xterm-helper-textarea')) ||
-          t?.isContentEditable;
-        if (isEditable) return;
         e.preventDefault();
         if (e.key === 'ArrowDown') {
           onOpenActiveTabMenuRef.current();

@@ -23,7 +23,10 @@ import {
   X,
 } from 'lucide-react';
 import type { AiProvider } from '@/types';
-import type { CommandSendSettings } from '@/app/hooks/useAppSettings';
+import type {
+  AutoCommitMode,
+  CommandSendSettings,
+} from '@/app/hooks/useAppSettings';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/features/ai/utils/models';
@@ -118,7 +121,7 @@ interface TextInputProps {
   onAddToQueue?: (
     command: string,
     sendClearBefore: boolean,
-    sendCommitAfter: boolean,
+    autoCommit: AutoCommitMode,
     model?: string,
     loop?: {
       judge: 'ai' | 'user' | 'none';
@@ -301,7 +304,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     // ループはキューの上に載る動作なので、キュー扱いする範囲に含める
     const addToQueue = sendMode === 'queue' || sendMode === 'loop';
     const sendClearBefore = sendSettings?.sendClear ?? false;
-    const sendCommitAfter = sendSettings?.sendCommit ?? false;
+    const autoCommit: AutoCommitMode = sendSettings?.autoCommit ?? 'off';
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
 
@@ -489,20 +492,20 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onAddToQueue(
             formatSkillCommand(`/workflow-research ${command}`),
             autoClear,
-            false,
+            'off',
             undefined
           );
           onAddToQueue(
             formatSkillCommand(`/workflow-plan ${command}`),
             false,
-            false,
+            'off',
             undefined
           );
           if (autoReview) {
             onAddToQueue(
               formatSkillCommand(`/dokodemo-claude-tools:workflow-plan-codexreview`),
               false,
-              false,
+              'off',
               undefined
             );
           }
@@ -510,7 +513,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
             onAddToQueue(
               formatSkillCommand(`/workflow-implement`),
               autoClear,
-              false,
+              'off',
               undefined
             );
           }
@@ -557,7 +560,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onAddToQueue(
             finalCommand,
             sendClearBefore,
-            sendCommitAfter,
+            autoCommit,
             model || undefined,
             loopArg
           );
@@ -1061,12 +1064,13 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
 
       // Cmd/Ctrl + ↑ で前の履歴へ、Cmd/Ctrl + ↓ で次の履歴へ
-      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') {
+      // （Ctrl+Shift+矢印はAIインスタンスタブ操作のグローバルショートカットなので素通しする）
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'ArrowUp') {
         e.preventDefault();
         navigateHistoryUp();
         return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowDown') {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'ArrowDown') {
         e.preventDefault();
         navigateHistoryDown();
         return;
@@ -1820,13 +1824,21 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
                     <button
                       type="button"
                       onClick={() =>
-                        handleSettingChange('sendCommit', !sendCommitAfter)
+                        handleSettingChange(
+                          'autoCommit',
+                          autoCommit === 'off'
+                            ? 'commit'
+                            : autoCommit === 'commit'
+                              ? 'commit-push'
+                              : 'off'
+                        )
                       }
                       disabled={disabled}
-                      className={`${s.optionButton} ${sendCommitAfter ? s.active : ''}`}
-                      title="/commit: 完了後に自動コミット"
+                      className={`${s.optionButton} ${autoCommit !== 'off' ? s.active : ''}`}
+                      title="完了後の自動コミット: なし → /commit（push しない） → /commit+push"
                     >
-                      <span className={s.optLabel}>後</span>/commit
+                      <span className={s.optLabel}>後</span>
+                      {autoCommit === 'commit-push' ? '/commit+push' : '/commit'}
                     </button>
                   </div>
 

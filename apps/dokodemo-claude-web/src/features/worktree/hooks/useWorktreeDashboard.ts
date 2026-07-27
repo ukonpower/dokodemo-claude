@@ -10,6 +10,7 @@ import type {
   ClientToServerEvents,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 const MAX_MESSAGES = 5000;
 
@@ -25,7 +26,7 @@ export interface UseWorktreeDashboardReturn {
     prompt: string,
     options: {
       sendClearBefore?: boolean;
-      sendCommitAfter?: boolean;
+      autoCommit?: AutoCommitMode;
       model?: string;
     }
   ) => void;
@@ -248,7 +249,7 @@ export function useWorktreeDashboard(
       prompt: string,
       options: {
         sendClearBefore?: boolean;
-        sendCommitAfter?: boolean;
+        autoCommit?: AutoCommitMode;
         model?: string;
       }
     ) => {
@@ -265,7 +266,8 @@ export function useWorktreeDashboard(
           provider,
           prompt,
           sendClearBefore: options.sendClearBefore,
-          isAutoCommit: options.sendCommitAfter,
+          isAutoCommit: options.autoCommit !== 'off' && !!options.autoCommit,
+          isAutoCommitPush: options.autoCommit === 'commit-push',
           model: options.model,
         });
       }

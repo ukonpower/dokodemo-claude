@@ -1,0 +1,179 @@
+// プロジェクト設定画面の固有スタイル。
+// ヘッダー・ナビ・カード・設定行などの枠組みは settings-layout.module.scss を共有する。
+
+// --- ファイル統計 ---
+
+.fileStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-lg;
+}
+
+.fileStat {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.fileStatValue {
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+}
+
+.fileStatLabel {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+// --- 一覧（カスタム送信ボタン / 同期エントリ） ---
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-2xs $space-sm;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+}
+
+.listItemMain {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  min-width: 0;
+  flex: 1;
+}
+
+.listItemTitle {
+  font-size: $font-size-sm;
+  color: $gray-300;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listItemSub {
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listItemActions {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  flex-shrink: 0;
+}
+
+.emptyText {
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+// --- 入力行（同期パスの追加） ---
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  @include sm-down {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.textInput {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+
+  &::placeholder {
+    color: $gray-500;
+  }
+}
+
+.select {
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+}
+
+// --- 危険な操作 ---
+
+.dangerBox {
+  padding: $space-sm $space-md;
+  background-color: rgba($color-error, 0.08);
+  border: 1px solid rgba($color-error, 0.3);
+  border-radius: $radius;
+}
+
+.dangerTitle {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+}
+
+.dangerIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+.dangerList {
+  margin-top: $space-2xs;
+  padding-left: $space-lg;
+  list-style: disc;
+  font-size: $font-size-xs;
+  color: $gray-400;
+  line-height: 1.8;
+}
+
+// 削除対象のパス（長いのでリストから外して折り返し表示する）
+.dangerPath {
+  margin-top: $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  word-break: break-all;
+}
+
+// 削除確認のためにプロジェクト名を打ち込む欄
+.confirmField {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.confirmLabel {
+  font-size: $font-size-xs;
+  color: $gray-400;
+}
+
+.confirmName {
+  font-family: $font-mono;
+  color: $dark-text-primary;
+}

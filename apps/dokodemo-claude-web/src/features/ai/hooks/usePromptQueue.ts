@@ -7,6 +7,7 @@ import type {
   ClientToServerEvents,
 } from '@/types';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 export interface LoopSettings {
   judge: 'ai' | 'user' | 'none';
@@ -46,7 +47,7 @@ export interface UsePromptQueueReturn {
   addToQueue: (
     command: string,
     sendClearBefore: boolean,
-    sendCommitAfter: boolean,
+    autoCommit: AutoCommitMode,
     model?: string,
     loop?: LoopSettings
   ) => void;
@@ -55,7 +56,7 @@ export interface UsePromptQueueReturn {
     itemId: string,
     prompt: string,
     sendClearBefore: boolean,
-    isAutoCommit: boolean,
+    autoCommit: AutoCommitMode,
     model?: string,
     loop?: LoopSettings | null
   ) => void;
@@ -232,7 +233,7 @@ export function usePromptQueue(
     (
       command: string,
       sendClearBefore: boolean,
-      sendCommitAfter: boolean,
+      autoCommit: AutoCommitMode,
       model?: string,
       loop?: LoopSettings
     ) => {
@@ -252,7 +253,8 @@ export function usePromptQueue(
         provider,
         prompt: command,
         sendClearBefore,
-        isAutoCommit: sendCommitAfter,
+        isAutoCommit: autoCommit !== 'off',
+        isAutoCommitPush: autoCommit === 'commit-push',
         model,
         loop,
       });
@@ -281,7 +283,7 @@ export function usePromptQueue(
       itemId: string,
       prompt: string,
       sendClearBefore: boolean,
-      isAutoCommit: boolean,
+      autoCommit: AutoCommitMode,
       model?: string,
       loop?: LoopSettings | null
     ) => {
@@ -296,7 +298,8 @@ export function usePromptQueue(
         itemId,
         prompt,
         sendClearBefore,
-        isAutoCommit,
+        isAutoCommit: autoCommit !== 'off',
+        isAutoCommitPush: autoCommit === 'commit-push',
         model,
         loop,
       });
