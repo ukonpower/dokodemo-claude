@@ -338,6 +338,7 @@ function WorktreeDashboardCard({
             disableStdin={!canSend}
             cursorBlink={false}
             fontSize={10}
+            showSelectButton={false}
           />
         ) : (
           <div className={s.terminalPlaceholder}>
