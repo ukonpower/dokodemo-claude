@@ -20,6 +20,8 @@ export interface PromptLoopState {
   iteration: number; // 現在の周回番号（1始まり、サーバ側で加算）
   startedAt: number;
   startedAtCommit?: string; // ループ開始時 HEAD（AI 判断の diff 起点）
+  lastHeadCommit?: string; // 直近の送信時点の HEAD（空回り検知の基準）
+  idleRounds?: number; // HEAD が動かないまま連続した周回数（自動コミット有効時のみ計測）
   nextSendAt?: number; // インターバル待機中の次回送信予定 epoch ms
   pendingJudge?: boolean; // この周の送信前に AI 判断が必要
   awaitingUserApproval?: boolean;
@@ -40,6 +42,9 @@ export interface PromptQueueItem {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   sendClearBefore?: boolean; // プロンプト送信前に/clearを実行するか
   isAutoCommit?: boolean; // 完了後に自動的に/commitを実行するか
+  // 自動コミット時に push まで行うか（既定 false = コミットのみ）。
+  // 無人ループでは push が「公開行為」になるため、既定では push しない
+  isAutoCommitPush?: boolean;
   isCodexReview?: boolean; // 完了後にCodexレビューを自動実行するか
   model?: string; // 使用するモデル（例: 'opus', 'sonnet', 'haiku'）
   loop?: PromptLoopState; // 設定されているとループアイテムとして扱う

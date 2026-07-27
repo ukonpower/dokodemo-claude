@@ -805,6 +805,7 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isAutoCommitPush?: boolean;
     isCodexReview?: boolean;
     model?: string;
     loop?: {
@@ -827,6 +828,7 @@ export interface ClientToServerEvents {
     prompt: string;
     sendClearBefore?: boolean;
     isAutoCommit?: boolean;
+    isAutoCommitPush?: boolean;
     isCodexReview?: boolean;
     model?: string;
     // null: ループ解除 / 値あり: 設定を差し替え（iteration 等の状態は維持）

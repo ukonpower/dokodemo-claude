@@ -32,6 +32,7 @@ import DashboardSidebar, {
 import DashboardFilterModal from '@/features/worktree/components/DashboardFilterModal';
 import { useScopedSendSettings } from '@/features/ai/hooks/useScopedSendSettings';
 import s from './DashboardView.module.scss';
+import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
 
 const COLUMN_OPTIONS: Array<'auto' | 1 | 2 | 3 | 4> = ['auto', 1, 2, 3, 4];
 
@@ -323,12 +324,12 @@ export function DashboardView() {
       rid: string,
       command: string,
       sendClearBefore: boolean,
-      sendCommitAfter: boolean,
+      autoCommit: AutoCommitMode,
       model?: string
     ) => {
       dashboard.broadcastPrompt([rid], command, {
         sendClearBefore,
-        sendCommitAfter,
+        autoCommit,
         model,
       });
     },
@@ -372,7 +373,7 @@ export function DashboardView() {
     (
       command: string,
       sendClearBefore: boolean,
-      sendCommitAfter: boolean,
+      autoCommit: AutoCommitMode,
       model?: string
     ) => {
       if (selectedRids.size === 0) {
@@ -382,7 +383,7 @@ export function DashboardView() {
       const rids = Array.from(selectedRids);
       dashboard.broadcastPrompt(rids, command, {
         sendClearBefore,
-        sendCommitAfter,
+        autoCommit,
         model,
       });
       setToast(`${rids.length} 件の worktree のキューに追加しました`);
