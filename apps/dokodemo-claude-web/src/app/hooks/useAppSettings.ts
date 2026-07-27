@@ -6,10 +6,15 @@ import {
 } from '@/app/utils/app-settings';
 
 /**
+ * 送信モード。送信＝即送信、キュー＝送信予約、ループ＝キュー＋繰り返し実行。
+ */
+export type SendMode = 'send' | 'queue' | 'loop';
+
+/**
  * コマンド入力設定の型
  */
 export interface CommandSendSettings {
-  addToQueue: boolean;
+  sendMode: SendMode;
   sendClear: boolean;
   sendCommit: boolean;
   model?: string;
@@ -17,8 +22,7 @@ export interface CommandSendSettings {
   autoTarget?: 'plan' | 'implement';
   autoReview?: boolean;
   autoClear?: boolean;
-  // プロンプトループ設定（キュー ON 時のみ有効）
-  loopEnabled?: boolean;
+  // プロンプトループ設定（sendMode === 'loop' のとき有効）
   loopJudge?: 'ai' | 'user' | 'none';
   loopJudgeEveryN?: number;
   loopIntervalMin?: number; // 分単位（0 = 即時）
@@ -62,20 +66,21 @@ function getRepoSettingsKey(repoPath: string): string {
  * リポジトリ用の設定を読み込む
  */
 function loadSettingsForRepoInternal(repoPath: string): CommandSendSettings {
+  const defaults: CommandSendSettings = {
+    sendMode: 'send',
+    sendClear: false,
+    sendCommit: false,
+  };
   const key = getRepoSettingsKey(repoPath);
   const saved = localStorage.getItem(key);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      return { ...defaults, ...JSON.parse(saved) };
     } catch {
       // パース失敗時はデフォルト値
     }
   }
-  return {
-    addToQueue: false,
-    sendClear: false,
-    sendCommit: false,
-  };
+  return defaults;
 }
 
 /**

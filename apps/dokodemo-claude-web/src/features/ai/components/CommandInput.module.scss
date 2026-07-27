@@ -662,24 +662,18 @@
   gap: $space-xs;
 }
 
-// 修飾グループの下段グリッド。
-// 上段: /clear | /commit（3 等幅セルのうち 2 つを使う。モデルは送信行に移設）、
-// 下段: ループ（全幅）
+// 修飾グループの下段グリッド（/clear | /commit の 2 等幅セル。
+// モデルは送信行、ループ設定はモードタブ選択時のパネルへ移設）
 .optionGrid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: $space-xs;
 
   // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
   @include lg-up {
-    max-width: 26rem;
+    max-width: 18rem;
   }
-}
-
-// 全幅セル（ループ）。グリッドの全カラムをまたぐ
-.optGroupWide {
-  grid-column: 1 / -1;
 }
 
 // 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
@@ -697,7 +691,7 @@
 }
 
 .modeButton {
-  // 即送信 / キューは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
+  // 送信 / キュー / ループは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
   flex: 0 0 auto;
   min-width: 3.5rem;
   display: flex;
@@ -762,43 +756,6 @@
   width: 0.75rem;
   height: 0.75rem;
   flex-shrink: 0;
-}
-
-.toggleTrack {
-  position: relative;
-  width: 1.5rem;
-  height: 0.875rem;
-  border-radius: 9999px;
-  flex-shrink: 0;
-  transition: background-color $transition-normal $transition-easing;
-
-  &.on {
-    background-color: $accent;
-  }
-
-  // チップ地の色（$dark-bg-secondary / $dark-bg-hover）に埋もれないよう
-  // OFF のトラックは 1 段明るいグレーにする
-  &.off {
-    background-color: $dark-border-light;
-  }
-}
-
-.toggleThumb {
-  position: absolute;
-  top: 0.125rem;
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 9999px;
-  background-color: white;
-  transition: all $transition-normal $transition-easing;
-
-  &.on {
-    left: 0.75rem;
-  }
-
-  &.off {
-    left: 0.125rem;
-  }
 }
 
 .optionDivider {
