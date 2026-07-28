@@ -22,6 +22,11 @@ export const DEFAULT_PLANNING_EVERY_N = 5;
 export const DEFAULT_PLANNING_PROMPT =
   'ここまでのループの進捗と現状の課題を整理してください。そのうえで残りの作業の優先順位と進め方を見直し、以降の周回が従うべき方針を簡潔にまとめてください。';
 
+// プランニングプロンプトのサンプル。タップで入力欄に挿入するだけの補助ボタン
+const PLANNING_SAMPLE_PROMPTS = [
+  { label: 'autopilot-plan', prompt: '/dokodemo-claude-tools:autopilot-plan' },
+] as const;
+
 // 判断方式の選択肢とキャプション
 const JUDGE_OPTIONS: {
   value: LoopSettingsValue['judge'];
@@ -316,6 +321,23 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
 
           <div className={`${s.field} ${s.fullSpan}`}>
             <div className={s.fieldLabel}>プロンプト</div>
+            {/* サンプルプロンプト（タップで入力欄に挿入） */}
+            <div className={s.sampleRow}>
+              {PLANNING_SAMPLE_PROMPTS.map((sample) => (
+                <button
+                  key={sample.label}
+                  type="button"
+                  onClick={() =>
+                    onChange({ ...value, planningPrompt: sample.prompt })
+                  }
+                  disabled={disabled}
+                  className={s.sampleChip}
+                  title={`「${sample.prompt}」を入力欄に挿入`}
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
             <textarea
               value={value.planningPrompt}
               onChange={(e) =>
