@@ -1,0 +1,325 @@
+// ループ専用の入力欄。送信モードが「ループ」のときだけ CommandInput と入れ替わる
+.root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  color: $dark-text-secondary;
+}
+
+.headerTitle {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+.headerHint {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+// 未反映の指示件数
+.count {
+  min-width: 16px;
+  margin-left: auto;
+  padding: 0 $space-3xs;
+  border-radius: $radius-full;
+  background-color: $accent;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 16px;
+  text-align: center;
+}
+
+// サンプルプロンプト挿入ボタン列（起動前のみ）
+.sampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-xs;
+}
+
+.sampleChip {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    color: $dark-text-muted;
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.inputRow {
+  display: flex;
+  align-items: stretch;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+  font-family: inherit;
+  resize: vertical;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $accent;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+// 添付系アイコン（スケッチ / ファイル）は操作行の左端に横並び
+.iconRow {
+  display: flex;
+  flex-shrink: 0;
+  gap: $space-2xs;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.uploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-2xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+// 添付・修飾チップ（左）＋ 実行ボタン（右）を 1 行にまとめる
+.actionRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.optionGroup {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: $space-3xs;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  padding: $space-3xs;
+}
+
+.optionButton {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+
+  @include sm-down {
+    min-height: 32px;
+    padding-left: $space-xs;
+    padding-right: $space-xs;
+  }
+
+  &.active {
+    background-color: $accent;
+    color: white;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+// ボタン内の説明ラベル（前 / 後）
+.optLabel {
+  flex-shrink: 0;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
+  opacity: 0.6;
+}
+
+.submitButton {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  min-height: 2.25rem;
+  padding: 0 $space-lg;
+  background-color: $accent;
+  border: 1px solid $accent;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  line-height: 1rem;
+  font-weight: $font-weight-semibold;
+  color: white;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px $accent;
+  }
+}
+
+// 稼働中の「指示を追加」は周回を起こす操作ではないので控えめにする
+.submitSecondary {
+  min-height: auto;
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  color: $dark-text-primary;
+  background-color: transparent;
+  border-color: $dark-border-light;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+  }
+
+  &:focus {
+    box-shadow: none;
+  }
+}
+
+.submitIcon {
+  flex-shrink: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-xs;
+  padding: $space-2xs $space-xs;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+}
+
+// 反映ターンに送信済みの指示は薄く表示して削除させない
+.itemSent {
+  opacity: 0.6;
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.itemStatus {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.itemRemove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    color: $color-error;
+  }
+}
+
+.emptyText {
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+// ループ設定（起動前のみ）。入力欄と区切るため上に境界線を引く
+.settings {
+  padding-top: $space-xs;
+  border-top: 1px solid $dark-border;
+}

@@ -19,7 +19,6 @@ import { useTerminalContext } from '@/features/terminal/providers/TerminalProvid
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useQueueContext } from '@/features/ai/providers/QueueProvider';
 import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
-import { useReviewContext } from '@/features/review/providers/ReviewProvider';
 import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import { openWorkflowFileTab } from '@/app/utils/open-views';
@@ -36,13 +35,16 @@ import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import WorktreeTabs from '@/features/worktree/components/WorktreeTabs';
 import WorktreeOperations from '@/features/worktree/components/WorktreeOperations';
 import PromptQueue from '@/features/ai/components/PromptQueue';
-import { LoopInstructionPanel } from '@/features/ai/components/LoopInstructionPanel';
+import SendModeTabs from '@/features/ai/components/SendModeTabs';
+import LoopComposer, {
+  LoopComposerRef,
+} from '@/features/ai/components/LoopComposer';
 import { ReviewInbox } from '@/features/review/components/ReviewInbox';
 import SidePanel from '@/features/files/components/SidePanel';
 import AiInstanceTabs from '@/features/ai/components/AiInstanceTabs';
 import DrawingCanvas from '@/features/ai/components/DrawingCanvas';
 import s from './ProjectView.module.scss';
-import type { AutoCommitMode } from '@/app/hooks/useAppSettings';
+import type { AutoCommitMode, SendMode } from '@/app/hooks/useAppSettings';
 
 // SidePanel（右列：送信/受信/MD/Git）の折りたたみ状態をリポジトリ単位で保存する。
 // PC（lg 以上・右列配置時）でのみ意味を持ち、CLI を横幅いっぱいに広げるための設定。
@@ -130,18 +132,25 @@ export function ProjectView() {
   } = useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
-  // レビューリクエスト（ループ設定パネルのトリガー表示判定）
-  const { requests: reviewRequests } = useReviewContext();
+  // 送信モード。キュー / ループはプライマリインスタンス専用のため、
+  // 非プライマリでは即送信に丸める。ループのときは汎用の入力欄ではなく
+  // ループ専用の入力欄（LoopComposer）に差し替える
+  const isPrimaryInstance = activeInstance?.isPrimary ?? false;
+  const sendMode: SendMode = isPrimaryInstance ? sendSettings.sendMode : 'send';
+  const isLoopMode = sendMode === 'loop';
 
-  // ループ設定パネルの下に出す操作（レビューリクエスト / ループへの指示）の要否。
-  // どちらも中身が無ければ枠ごと出さない
-  const hasLoopActions =
-    reviewRequests.length > 0 || promptQueue.some((item) => item.loop);
+  const handleSendModeChange = useCallback(
+    (mode: SendMode) => {
+      onSendSettingsChange((prev) => ({ ...prev, sendMode: mode }));
+    },
+    [onSendSettingsChange]
+  );
 
   // ワークフローファイルを別タブで開く
   const onOpenWorkflowFile = openWorkflowFileTab;
   // Refs
   const textInputRef = useRef<TextInputRef>(null);
+  const loopComposerRef = useRef<LoopComposerRef>(null);
   const aiOutputRef = useRef<AiOutputRef>(null);
 
   // AI CLI パネルの全画面表示状態。xterm 単体ではなく、入力欄（CommandInput）と
@@ -213,10 +222,26 @@ export function ProjectView() {
     [onSendCommand]
   );
 
+  // アップロードしたファイルのパスを、いま表示されている入力欄へ挿入する
+  // （ループモードでは LoopComposer が入力欄を担う）
+  const insertFilesToActiveInput = useCallback(
+    (files: File[]) => {
+      if (isLoopMode) {
+        void loopComposerRef.current?.insertFiles(files);
+      } else {
+        void textInputRef.current?.insertFiles(files);
+      }
+    },
+    [isLoopMode]
+  );
+
   // AI ターミナル上にドロップされたファイルをテキストエリアへルーティング
-  const handleAiTerminalFileDrop = useCallback((files: File[]) => {
-    void textInputRef.current?.insertFiles(files);
-  }, []);
+  const handleAiTerminalFileDrop = useCallback(
+    (files: File[]) => {
+      insertFilesToActiveInput(files);
+    },
+    [insertFilesToActiveInput]
+  );
 
   // 赤入れ対象の画像URL（null なら閉じる）
   const [annotateImageUrl, setAnnotateImageUrl] = useState<string | null>(
@@ -228,10 +253,13 @@ export function ProjectView() {
   }, []);
 
   // 赤入れ完了：合成PNGをアップロードしてプロンプト入力欄にパスを挿入
-  const handleAnnotateComplete = useCallback((file: File) => {
-    setAnnotateImageUrl(null);
-    void textInputRef.current?.insertFiles([file]);
-  }, []);
+  const handleAnnotateComplete = useCallback(
+    (file: File) => {
+      setAnnotateImageUrl(null);
+      insertFilesToActiveInput([file]);
+    },
+    [insertFilesToActiveInput]
+  );
 
   const handleAddToQueue = useCallback(
     (
@@ -341,42 +369,68 @@ export function ProjectView() {
                   </div>
 
                   <div className={s.cliInputWrapper}>
-                    <TextInput
-                      ref={textInputRef}
-                      onSendCommand={handleSendCommand}
-                      onSendEscape={onSendEscape}
-                      onAddToQueue={handleAddToQueue}
-                      currentProvider={activeInstance?.provider ?? 'claude'}
-                      currentRepository={currentRepo}
-                      isPrimary={activeInstance?.isPrimary ?? false}
-                      disabled={!isConnected || !currentRepo || !activeInstance}
-                      inputDisabled={!currentRepo || !activeInstance}
-                      autoFocus={false}
-                      sendSettings={sendSettings}
-                      onSendSettingsChange={onSendSettingsChange}
-                      onPasteFile={onPasteFile}
-                      isUploadingFile={isUploadingFile}
-                      uploadProgress={uploadProgress}
-                      onCancelUpload={onCancelUpload}
-                      onOpenWorkflowFile={onOpenWorkflowFile}
-                      loopActions={
-                        hasLoopActions ? (
-                          <>
-                            <ReviewInbox />
-                            <LoopInstructionPanel
-                              onPasteFile={onPasteFile}
-                              isUploadingFile={isUploadingFile}
-                            />
-                          </>
-                        ) : undefined
-                      }
-                    />
+                    {/* 送信モード切替。選んだモードで下の入力欄そのものが入れ替わる */}
+                    {isPrimaryInstance && (
+                      <SendModeTabs
+                        value={sendMode}
+                        onChange={handleSendModeChange}
+                        disabled={
+                          !isConnected || !currentRepo || !activeInstance
+                        }
+                      />
+                    )}
+
+                    {isLoopMode ? (
+                      <LoopComposer
+                        ref={loopComposerRef}
+                        currentRepository={currentRepo}
+                        disabled={
+                          !isConnected || !currentRepo || !activeInstance
+                        }
+                        inputDisabled={!currentRepo || !activeInstance}
+                        sendSettings={sendSettings}
+                        onSendSettingsChange={onSendSettingsChange}
+                        onAddToQueue={handleAddToQueue}
+                        onPasteFile={onPasteFile}
+                        isUploadingFile={isUploadingFile}
+                      />
+                    ) : (
+                      <TextInput
+                        ref={textInputRef}
+                        onSendCommand={handleSendCommand}
+                        onSendEscape={onSendEscape}
+                        onAddToQueue={handleAddToQueue}
+                        currentProvider={activeInstance?.provider ?? 'claude'}
+                        currentRepository={currentRepo}
+                        isPrimary={isPrimaryInstance}
+                        disabled={
+                          !isConnected || !currentRepo || !activeInstance
+                        }
+                        inputDisabled={!currentRepo || !activeInstance}
+                        autoFocus={false}
+                        sendSettings={sendSettings}
+                        onSendSettingsChange={onSendSettingsChange}
+                        onPasteFile={onPasteFile}
+                        isUploadingFile={isUploadingFile}
+                        uploadProgress={uploadProgress}
+                        onCancelUpload={onCancelUpload}
+                        onOpenWorkflowFile={onOpenWorkflowFile}
+                      />
+                    )}
+
+                    {/* レビューリクエストの受信箱（ループ運用中の判断待ちを拾う） */}
+                    {isLoopMode && <ReviewInbox />}
                   </div>
 
                   {/* キーボードボタン（入力欄の下・メイン列内） */}
                   <div className={s.keyboardArea}>
                     <KeyboardButtons
-                      onSendEnter={() => textInputRef.current?.submit()}
+                      onSendEnter={
+                        isLoopMode
+                          ? // ループ中は汎用入力欄が無いので、CLI へ生の Enter を送る
+                            () => handleSendCommand('\r')
+                          : () => textInputRef.current?.submit()
+                      }
                       onExecuteCustomButton={handleSendCommand}
                     />
                   </div>

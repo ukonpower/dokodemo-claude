@@ -596,8 +596,7 @@
 
 .sendOptionsBar {
   min-width: 0;
-  // モード切替（固定サイズ）を上、修飾グループ（モデル/clear/commit/ループ）を
-  // 下段のグリッドに折り返す縦積み構成。
+  // 修飾グループ（/clear・/commit）をグリッドに折り返す縦積み構成。
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -618,9 +617,8 @@
   }
 }
 
-// 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
+// 各修飾グループを共通の「チップ枠」として扱う。
 // これにより折り返してもグループ単位で整い、宙ぶらりんな区切り線が出ない。
-.modeSegment,
 .optGroup {
   display: flex;
   align-items: center;
@@ -630,52 +628,6 @@
   border: 1px solid $dark-border;
   border-radius: $radius;
   padding: $space-3xs;
-}
-
-.modeButton {
-  // 送信 / キュー / ループは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
-  flex: 0 0 auto;
-  min-width: 3.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-2xs;
-  padding: $space-2xs $space-sm;
-  border-radius: $radius;
-  font-size: $font-size-xs;
-  line-height: 1rem;
-  font-weight: $font-weight-medium;
-  white-space: nowrap;
-  touch-action: manipulation;
-  transition: all $transition-fast $transition-easing;
-  background: none;
-  border: none;
-  cursor: pointer;
-
-  @include sm-down {
-    min-height: 32px;
-    padding-left: $space-xs;
-    padding-right: $space-xs;
-  }
-
-  &.active {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-    box-shadow: $shadow-sm;
-  }
-
-  &:not(.active) {
-    color: $dark-text-muted;
-
-    &:hover {
-      color: $dark-text-primary;
-    }
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
 // ボタン内の説明ラベル（前 / 後 / モデル）
@@ -692,12 +644,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.queueIcon {
-  width: 0.75rem;
-  height: 0.75rem;
-  flex-shrink: 0;
 }
 
 .optionDivider {
@@ -1000,80 +946,5 @@
 
   @include sm-up {
     display: inline;
-  }
-}
-
-/* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
-.loopPanel {
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius-md;
-  overflow: hidden;
-  padding: $space-sm $space-md $space-md;
-  transform-origin: top;
-  // ON にした瞬間に上からスライドして現れるアニメーション
-  animation: loopPanelOpen $transition-normal $transition-easing;
-
-  // PC ではフィールドを 2 カラムに並べるため、横幅を composer 幅相当まで広げる
-  // （縦に伸びて入力欄や出力を押し下げるのを防ぐ）
-  @include lg-up {
-    max-width: 42rem;
-  }
-}
-
-@keyframes loopPanelOpen {
-  from {
-    opacity: 0;
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    // アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
-    max-height: 640px;
-  }
-}
-
-/* ループタブのサンプルプロンプト挿入ボタン列 */
-.loopSampleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: $space-xs;
-  margin-bottom: $space-sm;
-}
-
-/* 評価リクエスト / ループへの指示。ループ設定パネルの下に縦積みで並べる */
-.loopActions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: $space-xs;
-
-  // ループ設定パネルと横幅を揃える
-  @include lg-up {
-    max-width: 42rem;
-  }
-}
-
-.loopSampleChip {
-  padding: $space-2xs $space-sm;
-  font-size: $font-size-xs;
-  color: $dark-text-secondary;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: background-color $transition-fast $transition-easing;
-
-  &:hover:not(:disabled) {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-  }
-
-  &:disabled {
-    color: $dark-text-muted;
-    opacity: 0.5;
-    cursor: default;
   }
 }

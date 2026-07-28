@@ -24,7 +24,7 @@ interface LoopStatusBarProps {
  * 5. 待機中（カウントダウン + 今すぐ/停止）
  * 6. 実行中（周回数 + 停止）
  *
- * ループへの指示の入力はコマンドバーの LoopInstructionPanel が担う。
+ * ループへの指示の入力はループ専用入力欄（LoopComposer）が担う。
  * ここでは反映待ち・反映中の状況だけを表示する。
  */
 const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
