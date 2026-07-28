@@ -36,6 +36,7 @@ import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import WorktreeTabs from '@/features/worktree/components/WorktreeTabs';
 import WorktreeOperations from '@/features/worktree/components/WorktreeOperations';
 import PromptQueue from '@/features/ai/components/PromptQueue';
+import { LoopInstructionPanel } from '@/features/ai/components/LoopInstructionPanel';
 import { ReviewInbox } from '@/features/review/components/ReviewInbox';
 import SidePanel from '@/features/files/components/SidePanel';
 import AiInstanceTabs from '@/features/ai/components/AiInstanceTabs';
@@ -129,8 +130,13 @@ export function ProjectView() {
   } = useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
-  // 評価リクエスト（キュー・ループセクション直上のインライン受信箱の表示判定）
+  // レビューリクエスト（ループ設定パネルのトリガー表示判定）
   const { requests: reviewRequests } = useReviewContext();
+
+  // ループ設定パネルの下に出す操作（レビューリクエスト / ループへの指示）の要否。
+  // どちらも中身が無ければ枠ごと出さない
+  const hasLoopActions =
+    reviewRequests.length > 0 || promptQueue.some((item) => item.loop);
 
   // ワークフローファイルを別タブで開く
   const onOpenWorkflowFile = openWorkflowFileTab;
@@ -353,6 +359,17 @@ export function ProjectView() {
                       uploadProgress={uploadProgress}
                       onCancelUpload={onCancelUpload}
                       onOpenWorkflowFile={onOpenWorkflowFile}
+                      loopActions={
+                        hasLoopActions ? (
+                          <>
+                            <ReviewInbox />
+                            <LoopInstructionPanel
+                              onPasteFile={onPasteFile}
+                              isUploadingFile={isUploadingFile}
+                            />
+                          </>
+                        ) : undefined
+                      }
                     />
                   </div>
 
@@ -364,30 +381,19 @@ export function ProjectView() {
                     />
                   </div>
 
-                  {/* 評価リクエスト + キューリスト（デスクトップ: プライマリ時のみ。
-                      評価に応答するとキューへ注入されるため、受信箱をキューの直上に置く） */}
+                  {/* キューリスト（デスクトップ: プライマリ時のみ） */}
                   {activeInstance?.isPrimary &&
-                    (promptQueue.length > 0 ||
-                      loopEndInfo ||
-                      reviewRequests.length > 0) && (
+                    (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.desktopQueue}>
-                      <ReviewInbox />
-                      {(promptQueue.length > 0 || loopEndInfo) && (
-                        <PromptQueue />
-                      )}
+                      <PromptQueue />
                     </div>
                   )}
 
-                  {/* 評価リクエスト + キューリスト（モバイル: プライマリ時のみ） */}
+                  {/* キューリスト（モバイル: プライマリ時のみ） */}
                   {activeInstance?.isPrimary &&
-                    (promptQueue.length > 0 ||
-                      loopEndInfo ||
-                      reviewRequests.length > 0) && (
+                    (promptQueue.length > 0 || loopEndInfo) && (
                     <div className={s.mobileQueue}>
-                      <ReviewInbox />
-                      {(promptQueue.length > 0 || loopEndInfo) && (
-                        <PromptQueue />
-                      )}
+                      <PromptQueue />
                     </div>
                   )}
                 </div>

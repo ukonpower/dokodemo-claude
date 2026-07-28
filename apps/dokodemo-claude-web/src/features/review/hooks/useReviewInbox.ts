@@ -10,7 +10,7 @@ import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useRefreshOnFocus } from '@/shared/hooks/useRefreshOnFocus';
 
 export interface UseReviewInboxReturn {
-  /** 受信箱の評価リクエスト（新しい順） */
+  /** 受信箱のレビューリクエスト（新しい順） */
   requests: ReviewRequest[];
   /** 未応答の件数（入口ボタンのバッジ表示用） */
   pendingCount: number;
@@ -25,7 +25,7 @@ export interface UseReviewInboxReturn {
 }
 
 /**
- * 評価リクエスト受信箱の状態管理。
+ * レビューリクエスト受信箱の状態管理。
  * 受信箱は親リポジトリ単位のため、worktree 表示中でも購読は現在の rid で行い、
  * サーバが返す inboxRid（親の rid）で以後のイベントをフィルタする。
  */

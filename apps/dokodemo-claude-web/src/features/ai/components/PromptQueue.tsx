@@ -47,8 +47,6 @@ const PromptQueue: React.FC = () => {
     requeueItem: onRequeue,
     stopLoop: onStopLoop,
     approveLoopContinuation: onApproveLoop,
-    addLoopFeedback: onAddLoopFeedback,
-    removeLoopFeedback: onRemoveLoopFeedback,
     loopEndInfo,
     dismissLoopEnd: onDismissLoopEnd,
   } = useQueueContext();
@@ -222,8 +220,6 @@ const PromptQueue: React.FC = () => {
           onStopLoop={onStopLoop}
           onApprove={onApproveLoop}
           onForceSend={onForceSend}
-          onAddFeedback={onAddLoopFeedback}
-          onRemoveFeedback={onRemoveLoopFeedback}
         />
       )}
 

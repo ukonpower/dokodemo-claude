@@ -1,0 +1,190 @@
+// ループへの指示パネル（ループ設定パネルの下に常時展開）
+
+.panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  color: $dark-text-secondary;
+}
+
+.headerTitle {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+.headerHint {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+// 未反映の指示件数
+.count {
+  min-width: 16px;
+  margin-left: auto;
+  padding: 0 $space-3xs;
+  border-radius: $radius-full;
+  background-color: $accent;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 16px;
+  text-align: center;
+}
+
+.inputRow {
+  display: flex;
+  align-items: stretch;
+  gap: $space-xs;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-primary;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+  font-family: inherit;
+  resize: vertical;
+
+  &::placeholder {
+    color: $dark-text-muted;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+// スケッチ・アップロード・送信ボタン（入力欄の右）
+.inputActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $space-2xs;
+}
+
+// 添付系アイコン（スケッチ / ファイル）は横並びにして縦を詰める
+.iconRow {
+  display: flex;
+  gap: $space-2xs;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.uploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-2xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.sendButton {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  padding: $space-2xs $space-md;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-xs;
+  padding: $space-2xs $space-xs;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+}
+
+// 反映ターンに送信済みの指示は薄く表示して削除させない
+.itemSent {
+  opacity: 0.6;
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.itemStatus {
+  flex-shrink: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+.itemRemove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    color: $color-error;
+  }
+}
+
+.emptyText {
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}

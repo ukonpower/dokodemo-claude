@@ -9,7 +9,7 @@ import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvid
 const ReviewContext = createContext<UseReviewInboxReturn | null>(null);
 
 /**
- * 評価リクエスト受信箱（useReviewInbox）を提供する Provider。
+ * レビューリクエスト受信箱（useReviewInbox）を提供する Provider。
  */
 export function ReviewProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocketContext();

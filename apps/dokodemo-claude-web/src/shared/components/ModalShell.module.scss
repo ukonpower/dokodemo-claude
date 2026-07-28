@@ -20,6 +20,14 @@
   overflow: hidden;
 }
 
+// 一覧系モーダル用の広幅パネル。狭い画面では通常幅と変わらない
+.panelWide {
+  @include lg-up {
+    max-width: 64rem;
+    max-height: 90vh;
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

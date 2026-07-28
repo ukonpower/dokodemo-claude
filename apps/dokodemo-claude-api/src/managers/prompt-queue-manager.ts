@@ -517,8 +517,8 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * ループへの意見を追加する。意見は loop.feedback に溜まり、
-   * 次のサイクル間で意見反映ターンとしてまとめて送られる。
+   * ループへの指示を追加する。指示は loop.feedback に溜まり、
+   * 次のサイクル間で指示反映ターンとしてまとめて送られる。
    */
   async addLoopFeedback(
     repositoryPath: string,
@@ -536,7 +536,7 @@ export class PromptQueueManager extends EventEmitter {
     }
     const trimmed = text.trim();
     if (!trimmed) {
-      return Err(QueueError.loopBusy('意見が空です'));
+      return Err(QueueError.loopBusy('指示が空です'));
     }
 
     item.loop.feedback = [...(item.loop.feedback ?? []), trimmed];
@@ -554,7 +554,7 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * 未反映の意見を削除する（index = loop.feedback 内の位置）。
+   * 未反映の指示を削除する（index = loop.feedback 内の位置）。
    * 反映ターンに含めて送信済みの分（feedbackActive 件数）は削除できない。
    */
   async removeLoopFeedback(
@@ -570,7 +570,7 @@ export class PromptQueueManager extends EventEmitter {
     }
     const sentCount = item.loop.feedbackActive ?? 0;
     if (index < sentCount || index >= item.loop.feedback.length) {
-      return Err(QueueError.loopBusy('削除できない意見です'));
+      return Err(QueueError.loopBusy('削除できない指示です'));
     }
 
     item.loop.feedback = item.loop.feedback.filter((_, i) => i !== index);
@@ -585,20 +585,20 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * 意見反映ターンのプロンプトを組み立てる。
+   * 指示反映ターンのプロンプトを組み立てる。
    */
   private buildFeedbackPrompt(feedback: string[]): string {
     const list = feedback
       .map((f) => `- ${f.replace(/\n/g, '\n  ')}`)
       .join('\n');
     return [
-      'ループ実行中にユーザーから以下の意見が届きました。',
+      'ループ実行中にユーザーから以下の指示が届きました。',
       '',
       list,
       '',
-      'これらの意見を読み、今後の作業の計画・進め方に反映してください。',
+      'これらの指示を読み、今後の作業の計画・進め方に反映してください。',
       '計画やタスクを管理するファイル（docs/tasks.md 等）を運用している場合は、その内容も更新してください。',
-      'このターンでは意見の反映のみを行い、通常の作業タスクは進めないでください。',
+      'このターンでは指示の反映のみを行い、通常の作業タスクは進めないでください。',
     ].join('\n');
   }
 
@@ -763,7 +763,7 @@ export class PromptQueueManager extends EventEmitter {
       item.loop.nextSendAt = undefined;
       this.clearLoopTimer(repositoryPath, provider);
 
-      // processNextItem と同じ送信差し替え（意見反映 / プランニング / モデル復帰）
+      // processNextItem と同じ送信差し替え（指示反映 / プランニング / モデル復帰）
       if (item.loop.feedback?.length) {
         item.loop.feedbackActive = item.loop.feedback.length;
         sendOverride = {
@@ -1074,8 +1074,8 @@ export class PromptQueueManager extends EventEmitter {
         if (currentItem.loop) {
           const loop = currentItem.loop;
           if (loop.feedbackActive) {
-            // 意見反映ターン完了: 反映済みの意見だけを消す（ターン中に届いた
-            // 意見は持ち越して次の反映ターンへ）。周回は数えず、判断・自動
+            // 指示反映ターン完了: 反映済みの指示だけを消す（ターン中に届いた
+            // 指示は持ち越して次の反映ターンへ）。周回は数えず、判断・自動
             // コミット等も挟まずに次のターンへ戻る
             const remaining = loop.feedback?.slice(loop.feedbackActive);
             loop.feedback = remaining?.length ? remaining : undefined;
@@ -1341,7 +1341,7 @@ export class PromptQueueManager extends EventEmitter {
           item.loop.planningActive = false;
           item.loop.pendingPlanning = true;
         }
-        // 意見反映ターンの送信失敗時は feedback が残っているため、
+        // 指示反映ターンの送信失敗時は feedback が残っているため、
         // フラグだけ倒せば承認後に反映ターンから再開される
         item.loop.feedbackActive = undefined;
         item.loop.lastJudgeReason =
@@ -1468,7 +1468,7 @@ export class PromptQueueManager extends EventEmitter {
       // e. 空回り検知: 自動コミット有効なループなら、周回ごとにコミットが
       //    増えているはず。増えないまま LOOP_IDLE_ROUND_LIMIT 周続いたら、
       //    同じところで足踏みしているとみなして承認待ちに倒す。
-      //    計画ターン・意見反映ターンは実装を伴わないため計測から除外する。
+      //    計画ターン・指示反映ターンは実装を伴わないため計測から除外する。
       if (
         item.isAutoCommit &&
         !item.loop.pendingPlanning &&
@@ -1501,7 +1501,7 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     // ループアイテムの送信内容の差し替え
-    // - 意見反映ターン: 溜まった意見をまとめて反映プロンプトとして送る（最優先）
+    // - 指示反映ターン: 溜まった指示をまとめて反映プロンプトとして送る（最優先）
     // - プランニングターン: 計画プロンプト + プランニング用モデルで 1 ターン送る
     // - モデル復帰: プランニング直後の通常送信で /model default に戻す
     //   （item.model があれば通常送信の /model で戻るため override 不要）
@@ -1896,7 +1896,7 @@ export class PromptQueueManager extends EventEmitter {
         // - 再起動後の自動再開防止のため awaitingUserApproval = true を強制
         //   （pendingJudge は維持し、次の processNextItem で再判定）
         // - プランニングターン実行中に落ちていた場合は予約に戻して再実行
-        // - 意見反映ターン実行中に落ちていた場合は feedback が残っているため、
+        // - 指示反映ターン実行中に落ちていた場合は feedback が残っているため、
         //   フラグだけ倒せば承認後に反映ターンから再実行される
         if (restored.loop) {
           restored.loop = {

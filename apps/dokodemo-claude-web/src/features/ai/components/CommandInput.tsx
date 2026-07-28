@@ -14,11 +14,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileText,
-  ImagePlus,
   Loader,
   Menu,
   Paperclip,
-  Pencil,
   Repeat,
   X,
 } from 'lucide-react';
@@ -36,7 +34,7 @@ import LoopSettingsFields, {
   DEFAULT_PLANNING_PROMPT,
 } from './LoopSettingsFields';
 import type { LoopSettingsValue } from './LoopSettingsFields';
-import DrawingCanvas from './DrawingCanvas';
+import SketchButton from './SketchButton';
 import s from './CommandInput.module.scss';
 
 /** /model コマンドに渡す値へ正規化する（表示名と CLI の受け付ける値の差を吸収） */
@@ -159,6 +157,11 @@ interface TextInputProps {
   onOpenWorkflowFile?: (path: string) => void;
   /** ワークフローコントロール（research/plan/Auto 等）とファイルリンクを非表示にする */
   hideWorkflowControls?: boolean;
+  /**
+   * ループ設定パネルの下に並べる操作（レビューリクエスト・ループへの指示）。
+   * feature をまたぐ部品なので、合成は呼び出し元（views）が行う。
+   */
+  loopActions?: React.ReactNode;
 }
 
 // ワークフロースキルの定義
@@ -217,6 +220,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       onCancelUpload,
       onOpenWorkflowFile,
       hideWorkflowControls = false,
+      loopActions,
     },
     ref
   ) => {
@@ -874,148 +878,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       fileInputRef.current?.click();
     }, []);
 
-    // お絵かきキャンバスの開閉と、写真加筆モードの背景画像
-    const [isDrawingOpen, setIsDrawingOpen] = useState(false);
-    // 写真加筆モードの背景画像 URL（object URL）。白紙スケッチ時は null
-    const [drawingBgUrl, setDrawingBgUrl] = useState<string | null>(null);
-    // 鉛筆ボタンのポップアップメニュー（白紙 / 写真から）
-    const [isSketchMenuOpen, setIsSketchMenuOpen] = useState(false);
-    const [sketchMenuPosition, setSketchMenuPosition] = useState({
-      top: 0,
-      left: 0,
-    });
-    // 鉛筆ボタンへ画像をドラッグ中のハイライト
-    const [isSketchDragOver, setIsSketchDragOver] = useState(false);
-
-    const sketchMenuRef = useRef<HTMLDivElement>(null);
-    const sketchButtonRef = useRef<HTMLButtonElement>(null);
-    const sketchBgInputRef = useRef<HTMLInputElement>(null);
-    // アンマウント時に解放するため、現在の背景 URL を ref にも保持する
-    const drawingBgUrlRef = useRef<string | null>(null);
-    useEffect(() => {
-      drawingBgUrlRef.current = drawingBgUrl;
-    }, [drawingBgUrl]);
-    useEffect(
-      () => () => {
-        if (drawingBgUrlRef.current) URL.revokeObjectURL(drawingBgUrlRef.current);
-      },
-      []
-    );
-
-    // キャンバスを閉じ、背景 object URL を解放する
-    const closeDrawing = useCallback(() => {
-      setIsDrawingOpen(false);
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    }, []);
-
-    // 白紙スケッチを開く
-    const openBlankSketch = useCallback(() => {
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setIsDrawingOpen(true);
-      setIsSketchMenuOpen(false);
-    }, []);
-
-    // 画像ファイルを背景にして加筆モードで開く
-    const openSketchFromFile = useCallback((file: File) => {
-      if (!file.type.startsWith('image/')) return;
-      const url = URL.createObjectURL(file);
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return url;
-      });
-      setIsDrawingOpen(true);
-      setIsSketchMenuOpen(false);
-    }, []);
-
-    // 「写真から加筆」: ネイティブの画像ピッカーを開く
-    const openPhotoSketch = useCallback(() => {
-      setIsSketchMenuOpen(false);
-      sketchBgInputRef.current?.click();
-    }, []);
-
-    // 背景画像の選択時
-    const handleSketchBgSelected = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (file) openSketchFromFile(file);
-      },
-      [openSketchFromFile]
-    );
-
-    // 鉛筆ボタンへの画像ドラッグ＆ドロップ（ドロップした画像に加筆）
-    const handleSketchDragOver = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        if (!e.dataTransfer.types.includes('Files')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(true);
-      },
-      []
-    );
-    const handleSketchDragLeave = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(false);
-      },
-      []
-    );
-    const handleSketchDrop = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(false);
-        const file = Array.from(e.dataTransfer.files).find((f) =>
-          f.type.startsWith('image/')
-        );
-        if (file) openSketchFromFile(file);
-      },
-      [openSketchFromFile]
-    );
-
-    // スケッチ完了時：PNG をアップロードしてパスをカーソル位置に挿入
-    const handleDrawingComplete = useCallback(
-      (file: File) => {
-        closeDrawing();
-        void insertFilesAsPaths([file]);
-      },
-      [closeDrawing, insertFilesAsPaths]
-    );
-
-    // 鉛筆メニューの位置計算（スクロール/リサイズに追随）
-    useEffect(() => {
-      if (!isSketchMenuOpen) return;
-      const updatePosition = () => {
-        if (sketchButtonRef.current) {
-          const rect = sketchButtonRef.current.getBoundingClientRect();
-          setSketchMenuPosition({
-            top: rect.top - 4, // ボタンの上に表示（余白4px）
-            left: clampDropdownLeft(rect.left, 176), // 11rem
-          });
-        }
-      };
-      updatePosition();
-      window.addEventListener('scroll', updatePosition, true);
-      window.addEventListener('resize', updatePosition);
-      return () => {
-        window.removeEventListener('scroll', updatePosition, true);
-        window.removeEventListener('resize', updatePosition);
-      };
-    }, [isSketchMenuOpen]);
-
-    // 外側クリック / Escape で鉛筆メニューを閉じる
-    const closeSketchMenu = useCallback(() => setIsSketchMenuOpen(false), []);
-    useOutsideClose(isSketchMenuOpen, closeSketchMenu, {
-      ignore: [sketchMenuRef, sketchButtonRef],
-    });
-
     // 末尾にパス文字列を追記（必要に応じてスペース区切り）
     const appendPathsToEnd = useCallback((paths: string[]) => {
       if (paths.length === 0) return;
@@ -1281,56 +1143,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onChange={handleFileSelected}
           className={s.hiddenFileInput}
         />
-        <input
-          ref={sketchBgInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleSketchBgSelected}
-          className={s.hiddenFileInput}
+        <SketchButton
+          onComplete={(file) => void insertFilesAsPaths([file])}
+          disabled={disabled || isUploadingFile}
+          className={s.uploadButton}
         />
-        <div className={s.sketchMenuWrapper} ref={sketchMenuRef}>
-          <button
-            type="button"
-            ref={sketchButtonRef}
-            onClick={() => setIsSketchMenuOpen((v) => !v)}
-            onDragOver={handleSketchDragOver}
-            onDragLeave={handleSketchDragLeave}
-            onDrop={handleSketchDrop}
-            disabled={disabled || isUploadingFile}
-            className={`${s.uploadButton} ${isSketchDragOver ? s.sketchDragOver : ''}`}
-            title="スケッチを描いて添付（写真をドロップで加筆）"
-            aria-label="スケッチを描いて添付"
-          >
-            <Pencil className={s.uploadIcon} />
-          </button>
-          {isSketchMenuOpen && (
-            <div
-              className={s.sketchMenu}
-              style={{
-                top: `${sketchMenuPosition.top}px`,
-                left: `${sketchMenuPosition.left}px`,
-                transform: 'translateY(-100%)',
-              }}
-            >
-              <button
-                type="button"
-                className={s.sketchMenuItem}
-                onClick={openBlankSketch}
-              >
-                <FileText size={14} strokeWidth={2} />
-                <span>白紙から</span>
-              </button>
-              <button
-                type="button"
-                className={s.sketchMenuItem}
-                onClick={openPhotoSketch}
-              >
-                <ImagePlus size={14} strokeWidth={2} />
-                <span>写真から加筆</span>
-              </button>
-            </div>
-          )}
-        </div>
         <button
           type="button"
           onClick={handleUploadClick}
@@ -1892,13 +1709,10 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           </div>
         )}
 
-        {/* お絵かきキャンバス（白紙スケッチ / 写真加筆） */}
-        <DrawingCanvas
-          isOpen={isDrawingOpen}
-          backgroundImageUrl={drawingBgUrl}
-          onClose={closeDrawing}
-          onComplete={handleDrawingComplete}
-        />
+        {/* レビューリクエスト / ループへの指示（ループ設定パネルの下） */}
+        {onAddToQueue && isPrimary && loopEnabled && loopActions && (
+          <div className={s.loopActions}>{loopActions}</div>
+        )}
       </div>
     );
   }

@@ -26,7 +26,7 @@ function resolveAttachmentUrl(url: string): string {
 }
 
 /**
- * 評価リクエスト 1 件のカード。
+ * レビューリクエスト 1 件のカード。
  * 狙い → 提示物（画像 / URL）→ 応答（選択肢・一言・そもそも）を縦に並べ、
  * スマホでも最小の操作で返せることを優先する。
  */
@@ -129,7 +129,7 @@ export function ReviewRequestCard({
             placeholder={
               request.choices.length > 0
                 ? '一言（選択に添える／単体で送る）'
-                : '一言で評価を返す'
+                : '一言でレビューを返す'
             }
             rows={2}
           />
@@ -147,7 +147,7 @@ export function ReviewRequestCard({
               variant="ghost"
               onClick={handleFundamental}
               disabled={!comment.trim()}
-              title="提示物への評価ではなく、方向性レベルの相談として送る"
+              title="提示物へのレビューではなく、方向性レベルの相談として送る"
             >
               <MessageCircleQuestion size={14} aria-hidden />
               そもそも相談

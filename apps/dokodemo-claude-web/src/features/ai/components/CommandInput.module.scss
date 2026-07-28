@@ -554,64 +554,6 @@
   height: 1.125rem;
 }
 
-// 鉛筆ボタン + 「白紙 / 写真から」ポップアップメニュー
-.sketchMenuWrapper {
-  position: relative;
-  display: flex;
-}
-
-// 鉛筆ボタンへ画像をドラッグ中のハイライト
-.sketchDragOver {
-  color: $accent;
-  border-color: $accent;
-  background-color: $dark-bg-hover;
-}
-
-.sketchMenu {
-  position: fixed;
-  width: 11rem;
-  padding: $space-2xs;
-  display: flex;
-  flex-direction: column;
-  gap: $space-3xs;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius;
-  box-shadow: $shadow-lg;
-  z-index: 9999;
-}
-
-.sketchMenuItem {
-  display: flex;
-  align-items: center;
-  gap: $space-sm;
-  width: 100%;
-  padding: $space-sm;
-  border-radius: $radius;
-  // SP はタップ主体なので一回り大きく、sm-up 以上では従来の xs に戻す
-  font-size: $font-size-sm;
-  line-height: 1rem;
-  text-align: left;
-  color: $dark-text-primary;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-
-  @include sm-up {
-    font-size: $font-size-xs;
-  }
-
-  svg {
-    flex-shrink: 0;
-    color: $dark-text-muted;
-  }
-
-  &:hover {
-    background-color: $dark-bg-hover;
-  }
-}
-
 .sendSection {
   display: flex;
   flex-direction: column;
@@ -1095,8 +1037,22 @@
 .loopSampleRow {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: $space-xs;
   margin-bottom: $space-sm;
+}
+
+/* 評価リクエスト / ループへの指示。ループ設定パネルの下に縦積みで並べる */
+.loopActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $space-xs;
+
+  // ループ設定パネルと横幅を揃える
+  @include lg-up {
+    max-width: 42rem;
+  }
 }
 
 .loopSampleChip {
