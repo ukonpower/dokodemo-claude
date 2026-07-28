@@ -597,7 +597,8 @@ export async function createReviewRequest(
     ?.sendNotification({
       title: `📝 [${repoName}] 評価リクエスト #${request.id}`,
       body: request.aim.slice(0, 150),
-      url: `/?repo=${encodeURIComponent(parentRepoPath)}&view=review`,
+      // 受信箱はプロジェクトビューのキューセクション直上にインライン表示される
+      url: `/?repo=${encodeURIComponent(parentRepoPath)}`,
       eventType: 'ReviewRequest',
     })
     .catch((err) => {

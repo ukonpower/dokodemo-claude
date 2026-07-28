@@ -1,6 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import {
-  Inbox,
   LayoutDashboard,
   PanelRightClose,
   PanelRightOpen,
@@ -37,6 +36,7 @@ import RepositorySwitcher from '@/features/repo/components/RepositorySwitcher';
 import WorktreeTabs from '@/features/worktree/components/WorktreeTabs';
 import WorktreeOperations from '@/features/worktree/components/WorktreeOperations';
 import PromptQueue from '@/features/ai/components/PromptQueue';
+import { ReviewInbox } from '@/features/review/components/ReviewInbox';
 import SidePanel from '@/features/files/components/SidePanel';
 import AiInstanceTabs from '@/features/ai/components/AiInstanceTabs';
 import DrawingCanvas from '@/features/ai/components/DrawingCanvas';
@@ -122,16 +122,15 @@ export function ProjectView() {
     openBlockedUrl: onOpenBlockedUrl,
   } = useEditorLauncherContext();
 
-  // ダッシュボード切替・プロジェクト設定・評価リクエスト受信箱
+  // ダッシュボード切替・プロジェクト設定
   const {
     setDashboardModeAndPersist,
     openProjectSettings: onOpenProjectSettings,
-    openReviewInbox: onOpenReviewInbox,
   } = useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
 
-  // 評価リクエストの未応答件数（入口ボタンのバッジ表示）
-  const { pendingCount: reviewPendingCount } = useReviewContext();
+  // 評価リクエスト（キュー・ループセクション直上のインライン受信箱の表示判定）
+  const { requests: reviewRequests } = useReviewContext();
 
   // ワークフローファイルを別タブで開く
   const onOpenWorkflowFile = openWorkflowFileTab;
@@ -272,24 +271,6 @@ export function ProjectView() {
                 <WorktreeTabs compact={true} />
                 <button
                   type="button"
-                  onClick={onOpenReviewInbox}
-                  className={s.reviewInboxButton}
-                  title="評価リクエストの受信箱を開く"
-                  aria-label="評価リクエストの受信箱を開く"
-                >
-                  <Inbox
-                    size={16}
-                    className={s.dashboardButtonIcon}
-                    aria-hidden
-                  />
-                  {reviewPendingCount > 0 && (
-                    <span className={s.reviewInboxBadge}>
-                      {reviewPendingCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
                   onClick={onOpenDashboard}
                   className={s.dashboardButton}
                   title="ワークツリーダッシュボードを開く"
@@ -383,19 +364,30 @@ export function ProjectView() {
                     />
                   </div>
 
-                  {/* キューリスト（デスクトップ: プライマリ時のみ。ループ終了バナーがある間も表示） */}
+                  {/* 評価リクエスト + キューリスト（デスクトップ: プライマリ時のみ。
+                      評価に応答するとキューへ注入されるため、受信箱をキューの直上に置く） */}
                   {activeInstance?.isPrimary &&
-                    (promptQueue.length > 0 || loopEndInfo) && (
+                    (promptQueue.length > 0 ||
+                      loopEndInfo ||
+                      reviewRequests.length > 0) && (
                     <div className={s.desktopQueue}>
-                      <PromptQueue />
+                      <ReviewInbox />
+                      {(promptQueue.length > 0 || loopEndInfo) && (
+                        <PromptQueue />
+                      )}
                     </div>
                   )}
 
-                  {/* キューリスト（モバイル: プライマリ時のみ。ループ終了バナーがある間も表示） */}
+                  {/* 評価リクエスト + キューリスト（モバイル: プライマリ時のみ） */}
                   {activeInstance?.isPrimary &&
-                    (promptQueue.length > 0 || loopEndInfo) && (
+                    (promptQueue.length > 0 ||
+                      loopEndInfo ||
+                      reviewRequests.length > 0) && (
                     <div className={s.mobileQueue}>
-                      <PromptQueue />
+                      <ReviewInbox />
+                      {(promptQueue.length > 0 || loopEndInfo) && (
+                        <PromptQueue />
+                      )}
                     </div>
                   )}
                 </div>

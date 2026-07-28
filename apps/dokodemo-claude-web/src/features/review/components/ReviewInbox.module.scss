@@ -1,6 +1,53 @@
-// 評価リクエスト一覧
+// 評価リクエストの受信箱（キュー直上の 1 行トリガー + モーダル）
 
-.root {
+// 1 行トリガー
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  margin-bottom: $space-xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.triggerIcon {
+  flex-shrink: 0;
+}
+
+.triggerTitle {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}
+
+.pendingBadge {
+  min-width: 18px;
+  padding: 0 $space-2xs;
+  border-radius: $radius-full;
+  background-color: $accent;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 18px;
+  text-align: center;
+}
+
+.answeredCount {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+// モーダル内の一覧
+.modalBody {
   display: flex;
   flex-direction: column;
   gap: $space-md;

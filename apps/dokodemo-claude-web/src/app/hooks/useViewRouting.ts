@@ -27,9 +27,6 @@ export interface UseViewRoutingReturn {
   projectSettingsMode: boolean;
   openProjectSettings: () => void;
   closeProjectSettings: () => void;
-  reviewInboxMode: boolean;
-  openReviewInbox: () => void;
-  closeReviewInbox: () => void;
 }
 
 /**
@@ -69,11 +66,6 @@ export function useViewRouting(
     () => initialViewFromUrl === 'project-settings'
   );
 
-  // 評価リクエスト受信箱の表示状態（?view=review）。一時的な遷移先なので永続化しない
-  const [reviewInboxMode, setReviewInboxMode] = useState<boolean>(
-    () => initialViewFromUrl === 'review'
-  );
-
   // currentRepoの参照
   const currentRepoRef = useRef(repository.currentRepo);
   useEffect(() => {
@@ -97,28 +89,18 @@ export function useViewRouting(
       if (viewFromUrl === 'settings') {
         setSettingsMode(true);
         setProjectSettingsMode(false);
-        setReviewInboxMode(false);
         return;
       }
 
       if (viewFromUrl === 'project-settings') {
         setSettingsMode(false);
         setProjectSettingsMode(true);
-        setReviewInboxMode(false);
         return;
       }
 
-      if (viewFromUrl === 'review') {
-        setSettingsMode(false);
-        setProjectSettingsMode(false);
-        setReviewInboxMode(true);
-        return;
-      }
-
-      // settings 系・受信箱以外へ遷移する場合はそれらを閉じる
+      // settings 系以外へ遷移する場合はそれらを閉じる
       setSettingsMode(false);
       setProjectSettingsMode(false);
-      setReviewInboxMode(false);
 
       if (viewFromUrl === 'graph') {
         setDashboardMode(false);
@@ -231,26 +213,6 @@ export function useViewRouting(
     window.history.pushState({}, '', url.toString());
   }, [dashboardMode]);
 
-  // 評価リクエスト受信箱を開く（URL に ?view=review を積む）
-  const openReviewInbox = useCallback(() => {
-    setReviewInboxMode(true);
-    const url = new URL(window.location.href);
-    url.searchParams.set('view', 'review');
-    window.history.pushState({}, '', url.toString());
-  }, []);
-
-  // 受信箱を閉じて元のビューへ戻る
-  const closeReviewInbox = useCallback(() => {
-    setReviewInboxMode(false);
-    const url = new URL(window.location.href);
-    if (dashboardMode) {
-      url.searchParams.set('view', 'dashboard');
-    } else if (url.searchParams.get('view') === 'review') {
-      url.searchParams.delete('view');
-    }
-    window.history.pushState({}, '', url.toString());
-  }, [dashboardMode]);
-
   return {
     dashboardMode,
     setDashboardModeAndPersist,
@@ -260,8 +222,5 @@ export function useViewRouting(
     projectSettingsMode,
     openProjectSettings,
     closeProjectSettings,
-    reviewInboxMode,
-    openReviewInbox,
-    closeReviewInbox,
   };
 }

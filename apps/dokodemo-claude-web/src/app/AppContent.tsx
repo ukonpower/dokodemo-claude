@@ -25,7 +25,6 @@ import { CodeBrowserView } from '@/views/CodeBrowserView';
 import { DashboardView } from '@/views/DashboardView';
 import { SettingsView } from '@/views/SettingsView';
 import { ProjectSettingsView } from '@/views/ProjectSettingsView';
-import { ReviewInboxView } from '@/views/ReviewInboxView';
 
 import ProjectSwitcherModal from '@/features/repo/components/ProjectSwitcherModal';
 import CommandPaletteModal from '@/shared/components/CommandPaletteModal';
@@ -49,7 +48,6 @@ export function AppContent() {
     setDashboardModeAndPersist,
     settingsMode,
     projectSettingsMode,
-    reviewInboxMode,
   } = useNavigationContext();
 
   // プロジェクト切り替えポップアップ
@@ -184,16 +182,6 @@ export function AppContent() {
     return (
       <>
       <ProjectSettingsView />
-      {overlays}
-      </>
-    );
-  }
-
-  // 評価リクエスト受信箱（リポジトリ単位）
-  if (reviewInboxMode) {
-    return (
-      <>
-      <ReviewInboxView />
       {overlays}
       </>
     );
