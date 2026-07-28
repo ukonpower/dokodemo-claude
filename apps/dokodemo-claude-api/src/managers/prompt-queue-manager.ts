@@ -24,17 +24,23 @@ const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 // 毎周コミットが積まれる前提のループでしか判定できないため、自動コミット有効時のみ働く。
 const LOOP_IDLE_ROUND_LIMIT = 3;
 
-// コールドスタート（CLI 新規起動）時は起動完了を待ってからプロンプトを送るが、
-// それでも TUI 入力ハンドラの初期化と Enter の到達が競合して取りこぼされる
-// ことが稀にある。保険として Enter をこの間隔で 1 回追加送信する。
-// 入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
-const COLD_START_ENTER_RETRY_MS = 600;
+// TUI の再描画（起動直後・/clear や /model の実行直後）と入力の到達が競合すると、
+// 文字や Enter が取りこぼされることが稀にある。保険として Enter をこの間隔で
+// 1 回追加送信する。入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
+const ENTER_RETRY_MS = 600;
 
-// 送信から指定時間内に UserPromptSubmit hook が発火しなければ、CLI に届かなかった
-// or 本文が TUI ダイアログ（スラッシュコマンド等）に飲まれたと判断し、currentItem を
-// completed として次に進める。最長経路（/clear + /model + cold-start）の所要時間
-// 約 4.1s に対して十分な grace を取った 6s。
-const SEND_WATCHDOG_FROM_READY_MS = 6000;
+// /clear・/model 実行後、次の入力を打ち込むまでの静定待ち。
+// スラッシュコマンド実行直後は TUI が再描画中で入力を取りこぼしやすい
+// （/model 切替直後にプロンプトが飲まれ UserPromptSubmit が来ない実績あり）。
+const SLASH_SETTLE_MS = 900;
+
+// プロンプトの最終 Enter 送信後、この時間内に UserPromptSubmit hook が発火しなければ
+// 取りこぼしを疑う。1 回目は Enter 再送で救済を試み（入力欄に本文が残ったまま
+// Enter だけ取りこぼされたケースを回収）、2 回目も未達なら CLI に届かなかった
+// or 本文が TUI ダイアログに飲まれたと判断して倒す。
+// カスタムスラッシュコマンドは展開後に UserPromptSubmit が発火するため、
+// 展開・hook POST の遅延も見込んだ値にしている。
+const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
 
 /**
  * AIセッションとのやり取りを抽象化するインターフェース
@@ -1154,17 +1160,19 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * 送信後 SEND_WATCHDOG_FROM_READY_MS 以内に UserPromptSubmit hook が発火しない
-   * ケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ / PTY write 失敗等）
-   * を検出して currentItem を completed として次へ進める。Stop hook 経路や
-   * forceSendItem / cancelCurrentItem / removeFromQueue で先に状態が変わって
-   * いれば全部 no-op に倒す。
+   * 送信完了（最終 Enter）後 SEND_WATCHDOG_AFTER_SEND_MS 以内に UserPromptSubmit
+   * hook が発火しないケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ /
+   * PTY write 失敗等）を検出する。1 回目（attempt=0）は Enter 再送で救済を試みて
+   * 同じ時間だけ再監視し、2 回目も未達なら currentItem を completed として次へ
+   * 進める（ループアイテムは承認待ちに倒す）。Stop hook 経路や forceSendItem /
+   * cancelCurrentItem / removeFromQueue で先に状態が変わっていれば全部 no-op に倒す。
    */
   private scheduleSendWatchdog(
     repositoryPath: string,
     provider: AiProvider,
     itemId: string,
-    generation: number
+    generation: number,
+    attempt = 0
   ): void {
     setTimeout(async () => {
       const key = this.getQueueKey(repositoryPath, provider);
@@ -1186,6 +1194,30 @@ export class PromptQueueManager extends EventEmitter {
 
       const item = state.queue.find((i) => i.id === itemId);
       if (!item || item.status !== 'processing') return;
+
+      // 1 回目: 本文が入力欄に残ったまま Enter だけ取りこぼされた可能性がある。
+      // Enter を再送して救済を試み、同じ時間だけ再監視する
+      // （入力欄が空なら空 Enter は無害。救済で送信されれば次回は aiBusy で no-op）。
+      if (attempt === 0) {
+        console.warn(
+          `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} の UserPromptSubmit を確認できないため Enter を再送して再監視します`
+        );
+        const session = this.aiSessionAdapter?.getSession(
+          repositoryPath,
+          provider
+        );
+        if (session) {
+          this.aiSessionAdapter?.sendCommand(session.id, '\r');
+        }
+        this.scheduleSendWatchdog(
+          repositoryPath,
+          provider,
+          itemId,
+          generation,
+          attempt + 1
+        );
+        return;
+      }
 
       // ループアイテムを completed で終わらせると再投入経路が無く黙って死ぬため、
       // 安全側として承認待ちの pending に戻して停止する（フック未達や送信取り
@@ -1235,7 +1267,7 @@ export class PromptQueueManager extends EventEmitter {
       this.emitQueueUpdated(repositoryPath, provider, state);
 
       await this.processNextItem(repositoryPath, provider);
-    }, SEND_WATCHDOG_FROM_READY_MS);
+    }, SEND_WATCHDOG_AFTER_SEND_MS);
   }
 
   /**
@@ -1416,7 +1448,7 @@ export class PromptQueueManager extends EventEmitter {
         sendOverride
       );
 
-      // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
+      // 送信完了から SEND_WATCHDOG_AFTER_SEND_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
       // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
       this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
@@ -1472,18 +1504,37 @@ export class PromptQueueManager extends EventEmitter {
       );
       return;
     }
-    setTimeout(() => {
-      this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-      if (coldStart) {
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-        }, COLD_START_ENTER_RETRY_MS);
-      }
-    }, 300);
+    await this.sleep(300);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    // 再描画との競合による Enter 取りこぼし対策で 1 回だけ再送する
+    await this.sleep(ENTER_RETRY_MS);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
-   * アイテムのコマンドを送信。
+   * /clear・/model 等の前置きスラッシュコマンドを 1 つ実行する。
+   * Enter 取りこぼし対策の再送と、実行直後の TUI 再描画の静定待ちまで含む
+   * （静定を待たずに次の入力を打ち込むと取りこぼされることがある）。
+   */
+  private async runPrefixSlashCommand(
+    sessionId: string,
+    command: string
+  ): Promise<void> {
+    this.aiSessionAdapter?.sendCommand(sessionId, command);
+    await this.sleep(500);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    await this.sleep(ENTER_RETRY_MS);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    await this.sleep(SLASH_SETTLE_MS);
+  }
+
+  /**
+   * アイテムのコマンドを送信。最終 Enter の送信まで完了してから resolve する
+   * （呼び出し側はこの完了時点を起点に送信ウォッチドッグを仕掛ける）。
    * override はプランニングターン等でアイテム本来の prompt / model / clear 設定を
    * 差し替えて送るための一時指定（アイテム自体は変更しない）。
    */
@@ -1499,75 +1550,31 @@ export class PromptQueueManager extends EventEmitter {
     const model = override?.model ?? item.model;
     const sendClearBefore = override?.skipClear ? false : item.sendClearBefore;
 
-    const sendPromptWithEnter = (delay: number = 0) => {
-      setTimeout(() => {
-        const ok = this.aiSessionAdapter?.sendCommand(sessionId, prompt);
-        if (ok === false) {
-          // PTY が死んでいる。watchdog (6s) を待たずに即時で失敗扱いにする
-          void this.handleSendFailure(
-            item.repositoryPath,
-            item.provider,
-            item.id
-          );
-          return;
-        }
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-          // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
-          if (coldStart) {
-            setTimeout(() => {
-              this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-            }, COLD_START_ENTER_RETRY_MS);
-          }
-        }, 500);
-      }, delay);
-    };
-
-    // sendClearBeforeフラグがtrueの場合
     if (sendClearBefore) {
-      this.aiSessionAdapter.sendCommand(sessionId, '/clear');
+      await this.runPrefixSlashCommand(sessionId, '/clear');
+    }
 
-      setTimeout(() => {
-        this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-      }, 500);
+    if (model) {
+      const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
+      this.currentModels.set(
+        this.getQueueKey(item.repositoryPath, item.provider),
+        model
+      );
+      await this.runPrefixSlashCommand(sessionId, `/model ${modelValue}`);
+    }
 
-      if (model) {
-        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-        this.currentModels.set(
-          this.getQueueKey(item.repositoryPath, item.provider),
-          model
-        );
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, `/model ${modelValue}`);
-          setTimeout(() => {
-            this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-          }, 500);
-        }, 1500);
-
-        sendPromptWithEnter(3000);
-      } else {
-        sendPromptWithEnter(1500);
-      }
-    } else {
-      // 通常のプロンプト送信
-      if (model) {
-        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-        this.currentModels.set(
-          this.getQueueKey(item.repositoryPath, item.provider),
-          model
-        );
-        this.aiSessionAdapter.sendCommand(sessionId, `/model ${modelValue}`);
-
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-        }, 500);
-
-        sendPromptWithEnter(1500);
-      } else {
-        // モデル指定も /clear も無い最短経路。コールドスタート時の Enter
-        // 取りこぼし対策も含めるため sendPromptWithEnter に集約する
-        sendPromptWithEnter(0);
-      }
+    const ok = this.aiSessionAdapter?.sendCommand(sessionId, prompt);
+    if (ok === false) {
+      // PTY が死んでいる。watchdog を待たずに即時で失敗扱いにする
+      void this.handleSendFailure(item.repositoryPath, item.provider, item.id);
+      return;
+    }
+    await this.sleep(500);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
+    if (coldStart) {
+      await this.sleep(ENTER_RETRY_MS);
+      this.aiSessionAdapter?.sendCommand(sessionId, '\r');
     }
   }
 
