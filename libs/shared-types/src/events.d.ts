@@ -913,6 +913,20 @@ export interface ClientToServerEvents {
     itemId: string;
     approved: boolean;
   }) => void;
+  // ループへの意見を追加（次のサイクル間の意見反映ターンでまとめて反映される）
+  'add-loop-feedback': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+    text: string;
+  }) => void;
+  // 未反映の意見を削除（index = loop.feedback 内の位置）
+  'remove-loop-feedback': (data: {
+    rid: string;
+    provider: AiProvider;
+    itemId: string;
+    index: number;
+  }) => void;
 
   // ファイル関連イベント
   'get-files': (data: { rid: string }) => void;

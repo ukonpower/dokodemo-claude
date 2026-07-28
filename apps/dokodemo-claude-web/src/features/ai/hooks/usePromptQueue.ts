@@ -69,6 +69,8 @@ export interface UsePromptQueueReturn {
   requeueItem: (itemId: string) => void;
   stopLoop: (itemId: string) => void;
   approveLoopContinuation: (itemId: string, approved: boolean) => void;
+  addLoopFeedback: (itemId: string, text: string) => void;
+  removeLoopFeedback: (itemId: string, index: number) => void;
 
   // ループ終了情報（AI 判断の理由バナー表示用）
   loopEndInfo: LoopEndInfo | null;
@@ -420,6 +422,30 @@ export function usePromptQueue(
     [socket, currentRepo]
   );
 
+  const addLoopFeedback = useCallback(
+    (itemId: string, text: string) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      const provider = currentProviderRef.current;
+      if (!provider) return;
+      socket.emit('add-loop-feedback', { rid, provider, itemId, text });
+    },
+    [socket, currentRepo]
+  );
+
+  const removeLoopFeedback = useCallback(
+    (itemId: string, index: number) => {
+      if (!socket || !currentRepo) return;
+      const rid = repositoryIdMap.getRid(currentRepo);
+      if (!rid) return;
+      const provider = currentProviderRef.current;
+      if (!provider) return;
+      socket.emit('remove-loop-feedback', { rid, provider, itemId, index });
+    },
+    [socket, currentRepo]
+  );
+
   const dismissLoopEnd = useCallback(() => {
     setLoopEndInfo(null);
   }, []);
@@ -450,6 +476,8 @@ export function usePromptQueue(
     requeueItem,
     stopLoop,
     approveLoopContinuation,
+    addLoopFeedback,
+    removeLoopFeedback,
     loopEndInfo,
     dismissLoopEnd,
     clearState,

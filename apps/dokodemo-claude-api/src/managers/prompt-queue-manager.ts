@@ -517,6 +517,92 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * ループへの意見を追加する。意見は loop.feedback に溜まり、
+   * 次のサイクル間で意見反映ターンとしてまとめて送られる。
+   */
+  async addLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    text: string
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    if (!item.loop) {
+      return Err(QueueError.loopBusy('対象はループアイテムではありません'));
+    }
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return Err(QueueError.loopBusy('意見が空です'));
+    }
+
+    item.loop.feedback = [...(item.loop.feedback ?? []), trimmed];
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    // 送信待ちで止まっている場合（キュー空 + 非処理中）はここから反映ターンが動き出す。
+    // インターバル待機・承認待ち等のゲートは processNextItem 側で判定される
+    if (!state.isProcessing && !state.isPaused) {
+      void this.processNextItem(repositoryPath, provider);
+    }
+
+    return Ok(undefined);
+  }
+
+  /**
+   * 未反映の意見を削除する（index = loop.feedback 内の位置）。
+   * 反映ターンに含めて送信済みの分（feedbackActive 件数）は削除できない。
+   */
+  async removeLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    index: number
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item?.loop?.feedback) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    const sentCount = item.loop.feedbackActive ?? 0;
+    if (index < sentCount || index >= item.loop.feedback.length) {
+      return Err(QueueError.loopBusy('削除できない意見です'));
+    }
+
+    item.loop.feedback = item.loop.feedback.filter((_, i) => i !== index);
+    if (item.loop.feedback.length === 0) {
+      item.loop.feedback = undefined;
+    }
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    return Ok(undefined);
+  }
+
+  /**
+   * 意見反映ターンのプロンプトを組み立てる。
+   */
+  private buildFeedbackPrompt(feedback: string[]): string {
+    const list = feedback
+      .map((f) => `- ${f.replace(/\n/g, '\n  ')}`)
+      .join('\n');
+    return [
+      'ループ実行中にユーザーから以下の意見が届きました。',
+      '',
+      list,
+      '',
+      'これらの意見を読み、今後の作業の計画・進め方に反映してください。',
+      '計画やタスクを管理するファイル（docs/tasks.md 等）を運用している場合は、その内容も更新してください。',
+      'このターンでは意見の反映のみを行い、通常の作業タスクは進めないでください。',
+    ].join('\n');
+  }
+
+  /**
    * 定期プランニング設定の正規化。model / prompt が空なら「設定なし」として扱う。
    */
   private normalizeLoopPlanning(
@@ -677,8 +763,14 @@ export class PromptQueueManager extends EventEmitter {
       item.loop.nextSendAt = undefined;
       this.clearLoopTimer(repositoryPath, provider);
 
-      // processNextItem と同じ送信差し替え（プランニングターン / モデル復帰）
-      if (item.loop.pendingPlanning && item.loop.planning) {
+      // processNextItem と同じ送信差し替え（意見反映 / プランニング / モデル復帰）
+      if (item.loop.feedback?.length) {
+        item.loop.feedbackActive = item.loop.feedback.length;
+        sendOverride = {
+          prompt: this.buildFeedbackPrompt(item.loop.feedback),
+          skipClear: true,
+        };
+      } else if (item.loop.pendingPlanning && item.loop.planning) {
         item.loop.pendingPlanning = false;
         item.loop.planningActive = true;
         sendOverride = {
@@ -981,7 +1073,22 @@ export class PromptQueueManager extends EventEmitter {
         // （周回ごとに completed を積まない）
         if (currentItem.loop) {
           const loop = currentItem.loop;
-          if (loop.planningActive) {
+          if (loop.feedbackActive) {
+            // 意見反映ターン完了: 反映済みの意見だけを消す（ターン中に届いた
+            // 意見は持ち越して次の反映ターンへ）。周回は数えず、判断・自動
+            // コミット等も挟まずに次のターンへ戻る
+            const remaining = loop.feedback?.slice(loop.feedbackActive);
+            loop.feedback = remaining?.length ? remaining : undefined;
+            loop.feedbackActive = undefined;
+            shouldAutoCommit = false;
+            shouldCodexReview = false;
+            currentItem.status = 'pending';
+            const idx = state.queue.indexOf(currentItem);
+            if (idx !== -1) {
+              state.queue.splice(idx, 1);
+              state.queue.push(currentItem);
+            }
+          } else if (loop.planningActive) {
             // プランニングターン完了: 周回は数えず、判断・自動コミット等も挟まずに
             // 即時で次の作業ターンへ戻る（計画は同一セッションの文脈に残っている）
             loop.planningActive = false;
@@ -1234,6 +1341,9 @@ export class PromptQueueManager extends EventEmitter {
           item.loop.planningActive = false;
           item.loop.pendingPlanning = true;
         }
+        // 意見反映ターンの送信失敗時は feedback が残っているため、
+        // フラグだけ倒せば承認後に反映ターンから再開される
+        item.loop.feedbackActive = undefined;
         item.loop.lastJudgeReason =
           '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
         state.isProcessing = false;
@@ -1358,8 +1468,12 @@ export class PromptQueueManager extends EventEmitter {
       // e. 空回り検知: 自動コミット有効なループなら、周回ごとにコミットが
       //    増えているはず。増えないまま LOOP_IDLE_ROUND_LIMIT 周続いたら、
       //    同じところで足踏みしているとみなして承認待ちに倒す。
-      //    計画ターンは実装を伴わないため計測から除外する。
-      if (item.isAutoCommit && !item.loop.pendingPlanning) {
+      //    計画ターン・意見反映ターンは実装を伴わないため計測から除外する。
+      if (
+        item.isAutoCommit &&
+        !item.loop.pendingPlanning &&
+        !item.loop.feedback?.length
+      ) {
         const head = this.getHeadCommit(repositoryPath);
         if (head) {
           if (item.loop.lastHeadCommit === head) {
@@ -1387,6 +1501,7 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     // ループアイテムの送信内容の差し替え
+    // - 意見反映ターン: 溜まった意見をまとめて反映プロンプトとして送る（最優先）
     // - プランニングターン: 計画プロンプト + プランニング用モデルで 1 ターン送る
     // - モデル復帰: プランニング直後の通常送信で /model default に戻す
     //   （item.model があれば通常送信の /model で戻るため override 不要）
@@ -1394,7 +1509,14 @@ export class PromptQueueManager extends EventEmitter {
       | { prompt?: string; model?: string; skipClear?: boolean }
       | undefined;
     if (item.loop) {
-      if (item.loop.pendingPlanning && item.loop.planning) {
+      if (item.loop.feedback?.length) {
+        item.loop.feedbackActive = item.loop.feedback.length;
+        sendOverride = {
+          prompt: this.buildFeedbackPrompt(item.loop.feedback),
+          // 直前の作業ターンの文脈を踏まえて反映するため /clear は挟まない
+          skipClear: true,
+        };
+      } else if (item.loop.pendingPlanning && item.loop.planning) {
         item.loop.pendingPlanning = false;
         item.loop.planningActive = true;
         sendOverride = {
@@ -1774,6 +1896,8 @@ export class PromptQueueManager extends EventEmitter {
         // - 再起動後の自動再開防止のため awaitingUserApproval = true を強制
         //   （pendingJudge は維持し、次の processNextItem で再判定）
         // - プランニングターン実行中に落ちていた場合は予約に戻して再実行
+        // - 意見反映ターン実行中に落ちていた場合は feedback が残っているため、
+        //   フラグだけ倒せば承認後に反映ターンから再実行される
         if (restored.loop) {
           restored.loop = {
             ...restored.loop,
@@ -1782,6 +1906,7 @@ export class PromptQueueManager extends EventEmitter {
             planningActive: undefined,
             pendingPlanning:
               restored.loop.pendingPlanning || restored.loop.planningActive,
+            feedbackActive: undefined,
           };
         }
         return restored;

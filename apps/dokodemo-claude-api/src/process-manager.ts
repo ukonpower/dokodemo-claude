@@ -960,6 +960,36 @@ export class ProcessManager extends EventEmitter {
     return result.ok;
   }
 
+  async addLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    text: string
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.addLoopFeedback(
+      repositoryPath,
+      provider,
+      itemId,
+      text
+    );
+    return result.ok;
+  }
+
+  async removeLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    index: number
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.removeLoopFeedback(
+      repositoryPath,
+      provider,
+      itemId,
+      index
+    );
+    return result.ok;
+  }
+
   async resetPromptQueue(
     repositoryPath: string,
     provider: AiProvider

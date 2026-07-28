@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader, Repeat } from 'lucide-react';
+import { Loader, MessageSquarePlus, Repeat, X } from 'lucide-react';
 import type { PromptQueueItem } from '@/types';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { resolveModelLabel } from '@/features/ai/utils/models';
@@ -11,6 +11,8 @@ interface LoopStatusBarProps {
   onForceSend?: (itemId: string) => void;
   onStopLoop?: (itemId: string) => void;
   onApprove?: (itemId: string, approved: boolean) => void;
+  onAddFeedback?: (itemId: string, text: string) => void;
+  onRemoveFeedback?: (itemId: string, index: number) => void;
 }
 
 /**
@@ -19,9 +21,13 @@ interface LoopStatusBarProps {
  * 表示状態は優先順に:
  * 1. 確認待ち（警告色 + 継続/終了ボタン）
  * 2. AI 判断中（スピナー）
- * 3. プランニング中（スピナー + モデル名）
- * 4. 待機中（カウントダウン + 今すぐ/停止）
- * 5. 実行中（周回数 + 停止）
+ * 3. 意見反映中（スピナー + 件数）
+ * 4. プランニング中（スピナー + モデル名）
+ * 5. 待機中（カウントダウン + 今すぐ/停止）
+ * 6. 実行中（周回数 + 停止）
+ *
+ * 意見パネル（折りたたみ式）からループへの意見を送れる。意見は次の
+ * サイクル間の「意見反映ターン」でまとめて計画・進め方に反映される。
  */
 const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   loopItem,
@@ -29,6 +35,8 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   onForceSend,
   onStopLoop,
   onApprove,
+  onAddFeedback,
+  onRemoveFeedback,
 }) => {
   const loop = loopItem.loop;
   const nextSendAt = loop?.nextSendAt;
@@ -36,6 +44,9 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   const [now, setNow] = useState<number>(() => 0);
   // AI 判断理由の展開状態（モバイルでは hover が使えないためタップで切り替える）
   const [isReasonExpanded, setIsReasonExpanded] = useState(false);
+  // 意見パネルの開閉と入力中テキスト
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
 
   // カウントダウン更新: nextSendAt がセットされている間だけ 1 秒おきに now を更新
   useEffect(() => {
@@ -59,11 +70,27 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
 
   // 状態判定（優先順）
   const isAwaitingApproval = !!loop.awaitingUserApproval;
+  const isReflecting =
+    !isAwaitingApproval && !isJudging && !!loop.feedbackActive;
   const isPlanning =
-    !isAwaitingApproval && !isJudging && !!loop.planningActive;
+    !isAwaitingApproval && !isJudging && !isReflecting && !!loop.planningActive;
   const isCountingDown =
-    !isAwaitingApproval && !isJudging && !isPlanning && remainingSec > 0;
+    !isAwaitingApproval &&
+    !isJudging &&
+    !isReflecting &&
+    !isPlanning &&
+    remainingSec > 0;
   // isRunning は上記いずれでもない場合
+
+  const feedbackCount = loop.feedback?.length ?? 0;
+  const sentFeedbackCount = loop.feedbackActive ?? 0;
+
+  const submitFeedback = () => {
+    const text = feedbackText.trim();
+    if (!text || !onAddFeedback) return;
+    onAddFeedback(loopItem.id, text);
+    setFeedbackText('');
+  };
 
   return (
     <div
@@ -89,6 +116,13 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
                 AI 判断中 ({loop.iteration - 1}周目完了後)
               </span>
             </>
+          ) : isReflecting ? (
+            <>
+              <Loader size={12} className={s.spinIcon} />
+              <span className={s.text}>
+                意見反映中 ({sentFeedbackCount}件)
+              </span>
+            </>
           ) : isPlanning ? (
             <>
               <Loader size={12} className={s.spinIcon} />
@@ -100,7 +134,11 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
           ) : isCountingDown ? (
             <span className={s.text}>
               {loop.iteration}周目 · 次回送信まで {remainingText}
-              {loop.pendingPlanning ? ' · 次はプランニング' : ''}
+              {feedbackCount > 0
+                ? ' · 次は意見反映'
+                : loop.pendingPlanning
+                  ? ' · 次はプランニング'
+                  : ''}
             </span>
           ) : (
             <span className={s.text}>
@@ -137,6 +175,19 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
               今すぐ
             </button>
           )}
+          {onAddFeedback && (
+            <button
+              type="button"
+              onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
+              className={`${s.actionButton} ${s.feedbackToggle} ${
+                isFeedbackOpen ? s.feedbackToggleOpen : ''
+              }`}
+              title="ループへの意見を送る（次のサイクル間で反映）"
+            >
+              <MessageSquarePlus size={14} />
+              意見{feedbackCount > 0 ? ` ${feedbackCount}` : ''}
+            </button>
+          )}
           {!isAwaitingApproval && onStopLoop && (
             <button
               type="button"
@@ -148,6 +199,63 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
           )}
         </div>
       </div>
+
+      {isFeedbackOpen && (
+        <div className={s.feedbackPanel}>
+          <div className={s.feedbackInputRow}>
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  submitFeedback();
+                }
+              }}
+              placeholder="ループへの意見（次のサイクル間でまとめて計画に反映）"
+              className={s.feedbackInput}
+              rows={2}
+            />
+            <button
+              type="button"
+              onClick={submitFeedback}
+              disabled={!feedbackText.trim()}
+              className={s.feedbackSendButton}
+            >
+              送信
+            </button>
+          </div>
+          {loop.feedback && loop.feedback.length > 0 && (
+            <div className={s.feedbackList}>
+              {loop.feedback.map((text, index) => {
+                const isSent = index < sentFeedbackCount;
+                return (
+                  <div
+                    key={`${index}-${text}`}
+                    className={`${s.feedbackItem} ${isSent ? s.feedbackItemSent : ''}`}
+                  >
+                    <span className={s.feedbackItemText}>{text}</span>
+                    {isSent ? (
+                      <span className={s.feedbackItemStatus}>反映中</span>
+                    ) : (
+                      onRemoveFeedback && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveFeedback(loopItem.id, index)}
+                          className={s.feedbackItemRemove}
+                          title="この意見を削除"
+                        >
+                          <X size={12} />
+                        </button>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {loop.lastJudgeReason && (
         <button

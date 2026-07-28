@@ -30,6 +30,12 @@ export interface PromptLoopState {
   pendingPlanning?: boolean; // 次の送信はプランニングターン
   planningActive?: boolean; // プランニングターン実行中
   modelRestorePending?: boolean; // プランニング後、次の通常送信でモデルを default に戻す
+  // ループ実行中にユーザーが送った未反映の意見。次のサイクル間で
+  // 「意見反映ターン」を 1 回差し込み、まとめて計画・進め方に反映させる
+  feedback?: string[];
+  // 意見反映ターン実行中（値 = このターンに含めた意見の件数）。
+  // 完了時に先頭からこの件数だけ feedback を消し、ターン中に届いた意見は持ち越す
+  feedbackActive?: number;
 }
 
 // プロンプトキュー関連の型定義
