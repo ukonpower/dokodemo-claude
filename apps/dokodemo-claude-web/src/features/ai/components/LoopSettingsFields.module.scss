@@ -237,6 +237,36 @@
   grid-column: 1 / -1;
 }
 
+// サンプルプロンプト挿入ボタン列（プランニングプロンプト用）
+.sampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.sampleChip {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    color: $dark-text-muted;
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
 // AI 判断の判定基準テキストエリア
 .criteriaTextarea {
   width: 100%;
