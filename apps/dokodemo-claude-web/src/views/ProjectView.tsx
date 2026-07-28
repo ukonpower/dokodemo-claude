@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import {
+  Inbox,
   LayoutDashboard,
   PanelRightClose,
   PanelRightOpen,
@@ -19,6 +20,7 @@ import { useTerminalContext } from '@/features/terminal/providers/TerminalProvid
 import { useWorktreeContext } from '@/features/worktree/providers/WorktreeProvider';
 import { useQueueContext } from '@/features/ai/providers/QueueProvider';
 import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
+import { useReviewContext } from '@/features/review/providers/ReviewProvider';
 import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import { openWorkflowFileTab } from '@/app/utils/open-views';
@@ -120,10 +122,16 @@ export function ProjectView() {
     openBlockedUrl: onOpenBlockedUrl,
   } = useEditorLauncherContext();
 
-  // ダッシュボード切替・プロジェクト設定
-  const { setDashboardModeAndPersist, openProjectSettings: onOpenProjectSettings } =
-    useNavigationContext();
+  // ダッシュボード切替・プロジェクト設定・評価リクエスト受信箱
+  const {
+    setDashboardModeAndPersist,
+    openProjectSettings: onOpenProjectSettings,
+    openReviewInbox: onOpenReviewInbox,
+  } = useNavigationContext();
   const onOpenDashboard = () => setDashboardModeAndPersist(true);
+
+  // 評価リクエストの未応答件数（入口ボタンのバッジ表示）
+  const { pendingCount: reviewPendingCount } = useReviewContext();
 
   // ワークフローファイルを別タブで開く
   const onOpenWorkflowFile = openWorkflowFileTab;
@@ -262,6 +270,24 @@ export function ProjectView() {
               <>
                 <div className={s.branchDivider} />
                 <WorktreeTabs compact={true} />
+                <button
+                  type="button"
+                  onClick={onOpenReviewInbox}
+                  className={s.reviewInboxButton}
+                  title="評価リクエストの受信箱を開く"
+                  aria-label="評価リクエストの受信箱を開く"
+                >
+                  <Inbox
+                    size={16}
+                    className={s.dashboardButtonIcon}
+                    aria-hidden
+                  />
+                  {reviewPendingCount > 0 && (
+                    <span className={s.reviewInboxBadge}>
+                      {reviewPendingCount}
+                    </span>
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={onOpenDashboard}

@@ -129,6 +129,51 @@
   flex-shrink: 0;
 }
 
+// 評価リクエスト受信箱ボタン。dashboardButton と並ぶ同型のボタンで、
+// 右端寄せ（margin-left: auto）はこちらが担い、後続の dashboardButton は隣に置く
+.reviewInboxButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  margin-left: auto;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    border-color: $dark-border-light;
+  }
+}
+
+.reviewInboxButton + .dashboardButton {
+  margin-left: 0;
+}
+
+// 未応答件数バッジ
+.reviewInboxBadge {
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-300;
+  background-color: $gray-800;
+  border-radius: $radius-full;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 $space-xs;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 // Claude CLI セクション
 // SidePanel は lg 未満では縦積み最下部（自身の max-height でスクロール）、
 // lg 以上では右列に置かれるため、cliSection 側で高さ加算する必要はない

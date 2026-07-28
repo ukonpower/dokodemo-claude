@@ -1,0 +1,20 @@
+// 評価リクエスト一覧
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-500;
+}

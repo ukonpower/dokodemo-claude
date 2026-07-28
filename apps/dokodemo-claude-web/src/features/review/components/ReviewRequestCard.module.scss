@@ -1,0 +1,169 @@
+// 評価リクエスト 1 件のカード
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+}
+
+.cardAnswered {
+  opacity: 0.7;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  min-width: 0;
+}
+
+.requestId {
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+  flex-shrink: 0;
+}
+
+.aim {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: $font-size-2xs;
+  color: $gray-500;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+// --- 提示物 ---
+
+.imageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: $space-xs;
+}
+
+.imageItem {
+  position: relative;
+  display: block;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  overflow: hidden;
+  background-color: $dark-bg-tertiary;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 20rem;
+    object-fit: contain;
+  }
+}
+
+.imageLabel {
+  position: absolute;
+  top: $space-3xs;
+  left: $space-3xs;
+  padding: 0 $space-xs;
+  font-size: $font-size-2xs;
+  color: $gray-300;
+  background-color: rgba(black, 0.6);
+  border-radius: $radius-sm;
+}
+
+.urlList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.urlItem {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3xs;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+// --- 問い・応答 ---
+
+.question {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+  overflow-wrap: anywhere;
+}
+
+.responseArea {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.commentInput {
+  width: 100%;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-sm;
+  font-family: $font-sans;
+  color: $dark-text-primary;
+  background-color: $dark-bg-tertiary;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  resize: vertical;
+
+  &::placeholder {
+    color: $gray-500;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $dark-border-light;
+  }
+}
+
+.commentActions {
+  display: flex;
+  gap: $space-xs;
+}
+
+// --- 応答済み表示 ---
+
+.answered {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-xs;
+  font-size: $font-size-xs;
+}
+
+.answeredKind {
+  color: $gray-300;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
+.answeredComment {
+  color: $dark-text-secondary;
+  overflow-wrap: anywhere;
+}
