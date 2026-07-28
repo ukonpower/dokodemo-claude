@@ -156,14 +156,11 @@
   }
 }
 
-// 定期プランニング有効時の子設定（左ボーダーでネストを表現）
+// 定期プランニング有効時の子設定（親と左端を揃え、ラベル色でネストを表現）
 .subGroup {
   display: flex;
   flex-direction: column;
   gap: $space-sm;
-  margin-left: $space-2xs;
-  padding-left: $space-md;
-  border-left: 2px solid $dark-border-light;
 
   .fieldLabel {
     color: $dark-text-muted;
