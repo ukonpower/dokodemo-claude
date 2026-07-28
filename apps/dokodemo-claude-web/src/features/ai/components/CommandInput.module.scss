@@ -1090,3 +1090,34 @@
     max-height: 640px;
   }
 }
+
+/* ループタブのサンプルプロンプト挿入ボタン列 */
+.loopSampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+  margin-bottom: $space-sm;
+}
+
+.loopSampleChip {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-primary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    color: $dark-text-muted;
+    opacity: 0.5;
+    cursor: default;
+  }
+}

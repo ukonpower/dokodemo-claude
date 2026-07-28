@@ -171,6 +171,12 @@ const WORKFLOW_SKILLS = [
   { value: 'worktree', label: 'Worktree', command: '/dokodemo-claude-tools:worktree-manage' },
 ] as const;
 
+// ループタブのサンプルプロンプト。タップで入力欄に挿入するだけの補助ボタン
+// （スキルコマンドを手入力する手間を省く。設定には触らない）
+const LOOP_SAMPLE_PROMPTS = [
+  { label: 'autopilot', prompt: '/dokodemo-claude-tools:autopilot' },
+] as const;
+
 // Worktree スキルはワークフローパイプライン（research→plan→...）とは別枠として
 // Auto の右側に独立配置するため、メインのスキルグループとは分けて扱う
 const WORKTREE_SKILL = WORKFLOW_SKILLS.find(
@@ -1851,6 +1857,21 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         {/* ループ設定パネル（ループ ON の間だけ送信バー直下に表示） */}
         {onAddToQueue && isPrimary && loopEnabled && (
           <div className={s.loopPanel}>
+            {/* サンプルプロンプト（タップで入力欄に挿入） */}
+            <div className={s.loopSampleRow}>
+              {LOOP_SAMPLE_PROMPTS.map((sample) => (
+                <button
+                  key={sample.label}
+                  type="button"
+                  onClick={() => setCommand(sample.prompt)}
+                  disabled={disabled}
+                  className={s.loopSampleChip}
+                  title={`「${sample.prompt}」を入力欄に挿入`}
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
             <LoopSettingsFields
               value={{
                 judge: loopJudge,
