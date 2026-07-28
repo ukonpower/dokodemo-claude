@@ -303,6 +303,71 @@ const TOOL_DEFS = [
     },
   },
 
+  // --- review ---
+  {
+    name: 'review_request',
+    description:
+      '実装結果へのユーザー評価を依頼する「評価リクエスト」を発行する。Web UI の受信箱に届き、' +
+      'ユーザーが選択肢・コメントで応答すると、その内容が発行元リポジトリの AI キューへプロンプトとして注入される。' +
+      '見た目・触り心地（UI/UX）に影響する変更を実装したサイクルの終わりに使う。評価を待ってブロックせず、発行したら次の作業へ進んでよい。' +
+      '「どう思う？」の丸投げは禁止。選択肢で答えられる問いまで整形して発行すること。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        rid: {
+          type: 'string',
+          description:
+            '発行元リポジトリの rid（repository_id ツールで取得）。worktree の wtid でもよく、受信箱は親リポジトリ単位に集約され、応答は発行元のキューへ戻る',
+        },
+        aim: {
+          type: 'string',
+          description: '狙い: このサイクルで何を改善しようとしたか（1〜2行）',
+        },
+        question: {
+          type: 'string',
+          description: '問い: ユーザーに何を判断してほしいか',
+        },
+        choices: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            '応答の選択肢（例: ["A案", "B案", "どちらも不採用"]）。ユーザーが最小コストで返せるよう可能な限り指定する',
+        },
+        images: {
+          type: 'array',
+          description:
+            '提示物の画像（スクリーンショット等）。ローカルの絶対パスで指定。恒久領域へコピーされ、一括削除でも消えない',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: '画像ファイルの絶対パス' },
+              label: { type: 'string', description: '「案A」等のラベル（任意）' },
+            },
+            required: ['path'],
+          },
+        },
+        urls: {
+          type: 'array',
+          description: '提示物の URL（触って確認できる実機 URL 等）',
+          items: {
+            type: 'object',
+            properties: {
+              url: { type: 'string' },
+              label: { type: 'string', description: 'リンクのラベル（任意）' },
+            },
+            required: ['url'],
+          },
+        },
+        provider: {
+          type: 'string',
+          enum: ['claude', 'codex'],
+          description: "応答プロンプトを積むキューのプロバイダ（既定 'claude'）",
+        },
+      },
+      required: ['rid', 'aim', 'question'],
+    },
+  },
+
   // --- preview ---
   {
     name: 'preview_upload',
@@ -447,6 +512,30 @@ async function dispatch(
           source:
             args.source === 'user' || args.source === 'claude'
               ? (args.source as FileSource)
+              : undefined,
+        },
+        deps
+      );
+    case 'review_request':
+      return actions.createReviewRequest(
+        str(args.rid),
+        {
+          aim: str(args.aim),
+          question: str(args.question),
+          choices: Array.isArray(args.choices)
+            ? (args.choices as unknown[]).filter(
+                (c): c is string => typeof c === 'string'
+              )
+            : undefined,
+          images: Array.isArray(args.images)
+            ? (args.images as { path: string; label?: string }[])
+            : undefined,
+          urls: Array.isArray(args.urls)
+            ? (args.urls as { url: string; label?: string }[])
+            : undefined,
+          provider:
+            args.provider === 'codex' || args.provider === 'claude'
+              ? (args.provider as AiProvider)
               : undefined,
         },
         deps

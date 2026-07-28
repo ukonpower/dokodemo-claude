@@ -25,6 +25,7 @@ import {
   WorktreeSyncManager,
   WorktreeSortOrderManager,
   WorktreeMemoManager,
+  ReviewRequestManager,
   AISessionManager,
   PortDetector,
   type ActiveAiSession,
@@ -56,6 +57,7 @@ export class ProcessManager extends EventEmitter {
   public readonly worktreeSyncManager: WorktreeSyncManager;
   public readonly worktreeSortOrderManager: WorktreeSortOrderManager;
   public readonly worktreeMemoManager: WorktreeMemoManager;
+  public readonly reviewRequestManager: ReviewRequestManager;
 
   public readonly portDetector: PortDetector;
 
@@ -156,6 +158,11 @@ export class ProcessManager extends EventEmitter {
 
     // WorktreeMemoManager: ワークツリーごとのメモを保持
     this.worktreeMemoManager = new WorktreeMemoManager(this.persistenceService);
+
+    // ReviewRequestManager: 評価リクエスト（受信箱）を保持
+    this.reviewRequestManager = new ReviewRequestManager(
+      this.persistenceService
+    );
 
     // PromptQueueManager: プライマリインスタンスのセッションを返すアダプター
     this.promptQueueManager = new PromptQueueManager(this.persistenceService, {
@@ -362,6 +369,7 @@ export class ProcessManager extends EventEmitter {
     await this.worktreeSyncManager.initialize();
     await this.worktreeSortOrderManager.initialize();
     await this.worktreeMemoManager.initialize();
+    await this.reviewRequestManager.initialize();
 
     this.startProcessMonitoring();
     this.portDetector.start();

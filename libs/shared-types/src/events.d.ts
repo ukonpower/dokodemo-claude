@@ -43,6 +43,7 @@ import type {
   UploadedFileInfo,
   FileSource,
 } from './files';
+import type { ReviewRequest, ReviewResponseKind } from './review';
 
 // Socket.IO通信関連の型定義
 export interface ServerToClientEvents {
@@ -484,6 +485,26 @@ export interface ServerToClientEvents {
     freedBytes: number;
   }) => void;
 
+  // 評価リクエスト関連イベント
+  // rid はリクエスト時の echo、inboxRid は受信箱の実体（親リポジトリの rid）。
+  // worktree の rid で購読しても親の受信箱が返り、以後の created/updated イベントは
+  // inboxRid で届くため、クライアントは inboxRid でフィルタする。
+  'review-requests-list': (data: {
+    rid: string;
+    inboxRid: string;
+    requests: ReviewRequest[];
+  }) => void;
+  'review-request-created': (data: {
+    rid: string;
+    request: ReviewRequest;
+  }) => void;
+  /** 応答の反映結果（応答済みへの更新・削除の通知にも使う） */
+  'review-request-updated': (data: {
+    rid: string;
+    request: ReviewRequest;
+  }) => void;
+  'review-request-deleted': (data: { rid: string; requestId: string }) => void;
+
   // Git差分関連イベント
   'git-diff-summary': (data: { rid: string; summary: GitDiffSummary }) => void;
   'git-diff-detail': (data: {
@@ -904,6 +925,18 @@ export interface ClientToServerEvents {
     rid: string;
     source: FileSource | 'all';
   }) => void;
+
+  // 評価リクエスト関連イベント
+  'review-get-requests': (data: { rid: string }) => void;
+  /** 評価リクエストへの応答。応答内容は発行元リポジトリの AI キューに注入される */
+  'review-respond': (data: {
+    rid: string;
+    requestId: string;
+    kind: ReviewResponseKind;
+    choice?: string;
+    comment?: string;
+  }) => void;
+  'review-delete-request': (data: { rid: string; requestId: string }) => void;
 
   // Git差分関連イベント
   'get-git-diff-summary': (data: { rid: string }) => void;

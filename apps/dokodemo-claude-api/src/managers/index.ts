@@ -8,6 +8,11 @@ export { WorktreeSyncManager } from './worktree-sync-manager.js';
 export { WorktreeSortOrderManager } from './worktree-sort-order-manager.js';
 export { WorktreeMemoManager } from './worktree-memo-manager.js';
 export {
+  ReviewRequestManager,
+  toPublicReviewRequest,
+  type StoredReviewRequest,
+} from './review-request-manager.js';
+export {
   PortDetector,
   type DetectedPort,
   type PortDetectorTarget,
