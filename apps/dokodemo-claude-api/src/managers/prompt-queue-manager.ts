@@ -46,9 +46,16 @@ const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
 // PTY 出力から確認する。/model・/clear 直後の TUI 再描画と打鍵が競合して本文ごと
 // 飲まれた場合、watchdog の Enter 再送では救えず（空の入力欄に Enter しても何も
 // 起きない）承認待ちに倒すしかなかった。打鍵時刻以降の出力デルタに目印（本文の
-// 先頭/末尾数文字）が現れるかを見て、現れなければ 1 回だけ本文を打ち直す。
-const ECHO_CHECK_FIRST_DELAY_MS = 500; // 打鍵から最初の確認までの待ち（従来の Enter 前待ちを兼ねる）
-const ECHO_CHECK_RETRY_DELAY_MS = 700; // 目印未達時の再確認までの待ち
+// 先頭/末尾数文字）が現れるかを見て、現れなければ本文を打ち直す。
+//
+// 打ち直しは間隔を漸増させながら粘る。/model 実行直後の CLI には打鍵を
+// まるごと破棄する時間帯が十数秒続くことがあり（2026-07-29 実測: /model
+// claude-fable-5 の実行完了後、打ち直しも watchdog の Enter 再送もすべて
+// 無反応のまま消え、その後 CLI は空の入力欄でアイドルに戻っていた）、
+// 1 回の打ち直しでは破棄時間帯より先に諦めてしまうため。
+const ECHO_CHECK_FIRST_DELAY_MS = 500; // 打鍵から最初の確認までの待ちの基準値（従来の Enter 前待ちを兼ねる）
+const ECHO_CHECK_RETRY_DELAY_MS = 700; // 目印未達時の再確認までの待ちの基準値
+const ECHO_RETYPE_LIMIT = 3; // 打ち直し回数の上限（計 4 回打鍵・確認時間は計 12 秒程度）
 const ECHO_NEEDLE_LENGTH = 16; // 目印の長さ（正規化後の文字数）
 
 /**
@@ -1677,7 +1684,9 @@ export class PromptQueueManager extends EventEmitter {
 
   /**
    * 本文を打鍵し、入力欄への到達を「打鍵時刻以降の出力デルタ」で確認する。
-   * 到達を確認できなければ 1 回だけ本文を打ち直す（Enter はまだ送らない）。
+   * 到達を確認できなければ間隔を漸増させながら本文を打ち直す（Enter はまだ
+   * 送らない）。/model 直後などに CLI が打鍵を破棄し続ける時間帯（十数秒）を
+   * またいで粘るための漸増で、後の試行ほど長く待ってから確認する。
    * 長文は CLI がペーストプレースホルダ（[Pasted text #N +M lines]）表示に
    * 置き換えることがあるため、それも到達とみなす。
    * 戻り値は PTY write が成功したか（false はセッション死亡）。打ち直し上限まで
@@ -1696,17 +1705,21 @@ export class PromptQueueManager extends EventEmitter {
     const headNeedle = normalized.slice(0, ECHO_NEEDLE_LENGTH);
     const tailNeedle = normalized.slice(-ECHO_NEEDLE_LENGTH);
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt <= ECHO_RETYPE_LIMIT; attempt++) {
       const typedAt = Date.now();
       const ok = this.aiSessionAdapter.sendCommand(sessionId, text);
       if (!ok) return false;
-      await this.sleep(ECHO_CHECK_FIRST_DELAY_MS);
+
+      // 後の試行ほど待ちを伸ばす（1.2s → 2.4s → 3.6s → 4.8s ≈ 計 12s）
+      const scale = attempt + 1;
+      await this.sleep(ECHO_CHECK_FIRST_DELAY_MS * scale);
 
       // 目印が短すぎて照合の信頼性が無い場合は従来どおり時間待ちのみで進む
       if (headNeedle.length < 4) return true;
 
-      for (let check = 0; check < 2; check++) {
-        if (check > 0) await this.sleep(ECHO_CHECK_RETRY_DELAY_MS);
+      let confirmed = false;
+      for (let check = 0; check < 2 && !confirmed; check++) {
+        if (check > 0) await this.sleep(ECHO_CHECK_RETRY_DELAY_MS * scale);
         const delta = this.normalizeForEchoCheck(
           this.aiSessionAdapter.getPrimaryOutputSince(
             repositoryPath,
@@ -1714,22 +1727,21 @@ export class PromptQueueManager extends EventEmitter {
             typedAt
           )
         );
-        if (
+        confirmed =
           delta.includes(headNeedle) ||
           delta.includes(tailNeedle) ||
-          delta.includes('Pastedtext')
-        ) {
-          return true;
-        }
+          delta.includes('Pastedtext');
       }
-      if (attempt === 0) {
+      if (confirmed) return true;
+
+      if (attempt < ECHO_RETYPE_LIMIT) {
         console.warn(
-          '[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します'
+          `[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します（${attempt + 1}/${ECHO_RETYPE_LIMIT}回目）`
         );
       }
     }
     console.warn(
-      '[PromptQueueManager] 打鍵確認: 打ち直し後も到達を確認できませんでした（watchdog に委ねて送信を続行します）'
+      '[PromptQueueManager] 打鍵確認: 打ち直し上限まで到達を確認できませんでした（watchdog に委ねて送信を続行します）'
     );
     return true;
   }
