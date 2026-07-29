@@ -42,6 +42,15 @@ const SLASH_SETTLE_MS = 900;
 // 展開・hook POST の遅延も見込んだ値にしている。
 const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
 
+// 打鍵確認（echo 確認）: 本文打鍵後、Enter 送信前に「入力欄へ本文が到達したか」を
+// PTY 出力から確認する。/model・/clear 直後の TUI 再描画と打鍵が競合して本文ごと
+// 飲まれた場合、watchdog の Enter 再送では救えず（空の入力欄に Enter しても何も
+// 起きない）承認待ちに倒すしかなかった。打鍵時刻以降の出力デルタに目印（本文の
+// 先頭/末尾数文字）が現れるかを見て、現れなければ 1 回だけ本文を打ち直す。
+const ECHO_CHECK_FIRST_DELAY_MS = 500; // 打鍵から最初の確認までの待ち（従来の Enter 前待ちを兼ねる）
+const ECHO_CHECK_RETRY_DELAY_MS = 700; // 目印未達時の再確認までの待ち
+const ECHO_NEEDLE_LENGTH = 16; // 目印の長さ（正規化後の文字数）
+
 /**
  * AIセッションとのやり取りを抽象化するインターフェース
  */
@@ -94,6 +103,17 @@ export interface QueueAiSessionAdapter {
    * 実装側で ANSI 除去と末尾行トリミングを行う。
    */
   getPrimaryOutputTail(repositoryPath: string, provider: AiProvider): string;
+
+  /**
+   * プライマリセッションの出力のうち、指定時刻以降に受信した分を ANSI 除去して
+   * 返す（打鍵確認に使う。打鍵より古い出力＝前周回の同一プロンプトの残骸を
+   * 照合対象から外すため、時刻で絞る）。
+   */
+  getPrimaryOutputSince(
+    repositoryPath: string,
+    provider: AiProvider,
+    sinceTimestampMs: number
+  ): string;
 }
 
 export class PromptQueueManager extends EventEmitter {
@@ -114,7 +134,8 @@ export class PromptQueueManager extends EventEmitter {
   private sendGenerations: Map<string, number> = new Map();
 
   // セッションへ最後に適用した /model の値（キー = queueKey）。
-  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になる。
+  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になるほか、
+  // 同じ値なら /model 送信をスキップする判定（冗長送信の削減）にも使う。
   private currentModels: Map<string, string> = new Map();
 
   constructor(
@@ -153,6 +174,15 @@ export class PromptQueueManager extends EventEmitter {
    */
   getCurrentModel(repositoryPath: string, provider: AiProvider): string | undefined {
     return this.currentModels.get(this.getQueueKey(repositoryPath, provider));
+  }
+
+  /**
+   * /model 適用キャッシュの無効化。Web UI からユーザーが手動で /model を送った等、
+   * キュー外の経路でセッションのモデルが変わりうるときに呼ぶ。
+   * 次回のキュー送信ではスキップ判定が効かず /model を必ず再適用する。
+   */
+  invalidateCurrentModel(repositoryPath: string, provider: AiProvider): void {
+    this.currentModels.delete(this.getQueueKey(repositoryPath, provider));
   }
 
   /**
@@ -1638,16 +1668,85 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * echo 確認用の正規化。TUI の折り返し・入力欄の罫線・空白を除き、
+   * 「打鍵した文字列そのもの」が出力に現れたかだけを比較できるようにする。
+   */
+  private normalizeForEchoCheck(s: string): string {
+    return s.replace(/[\s│┃]/g, '');
+  }
+
+  /**
+   * 本文を打鍵し、入力欄への到達を「打鍵時刻以降の出力デルタ」で確認する。
+   * 到達を確認できなければ 1 回だけ本文を打ち直す（Enter はまだ送らない）。
+   * 長文は CLI がペーストプレースホルダ（[Pasted text #N +M lines]）表示に
+   * 置き換えることがあるため、それも到達とみなす。
+   * 戻り値は PTY write が成功したか（false はセッション死亡）。打ち直し上限まで
+   * 到達を確認できなかった場合も true を返して Enter へ進む（最終防衛線は
+   * 送信 watchdog）。
+   */
+  private async typeWithEchoCheck(
+    sessionId: string,
+    repositoryPath: string,
+    provider: AiProvider,
+    text: string
+  ): Promise<boolean> {
+    if (!this.aiSessionAdapter) return false;
+
+    const normalized = this.normalizeForEchoCheck(text);
+    const headNeedle = normalized.slice(0, ECHO_NEEDLE_LENGTH);
+    const tailNeedle = normalized.slice(-ECHO_NEEDLE_LENGTH);
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const typedAt = Date.now();
+      const ok = this.aiSessionAdapter.sendCommand(sessionId, text);
+      if (!ok) return false;
+      await this.sleep(ECHO_CHECK_FIRST_DELAY_MS);
+
+      // 目印が短すぎて照合の信頼性が無い場合は従来どおり時間待ちのみで進む
+      if (headNeedle.length < 4) return true;
+
+      for (let check = 0; check < 2; check++) {
+        if (check > 0) await this.sleep(ECHO_CHECK_RETRY_DELAY_MS);
+        const delta = this.normalizeForEchoCheck(
+          this.aiSessionAdapter.getPrimaryOutputSince(
+            repositoryPath,
+            provider,
+            typedAt
+          )
+        );
+        if (
+          delta.includes(headNeedle) ||
+          delta.includes(tailNeedle) ||
+          delta.includes('Pastedtext')
+        ) {
+          return true;
+        }
+      }
+      if (attempt === 0) {
+        console.warn(
+          '[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します'
+        );
+      }
+    }
+    console.warn(
+      '[PromptQueueManager] 打鍵確認: 打ち直し後も到達を確認できませんでした（watchdog に委ねて送信を続行します）'
+    );
+    return true;
+  }
+
+  /**
    * /clear・/model 等の前置きスラッシュコマンドを 1 つ実行する。
-   * Enter 取りこぼし対策の再送と、実行直後の TUI 再描画の静定待ちまで含む
+   * 打鍵確認（未達なら打ち直し）・Enter 取りこぼし対策の再送・実行直後の
+   * TUI 再描画の静定待ちまで含む
    * （静定を待たずに次の入力を打ち込むと取りこぼされることがある）。
    */
   private async runPrefixSlashCommand(
     sessionId: string,
+    repositoryPath: string,
+    provider: AiProvider,
     command: string
   ): Promise<void> {
-    this.aiSessionAdapter?.sendCommand(sessionId, command);
-    await this.sleep(500);
+    await this.typeWithEchoCheck(sessionId, repositoryPath, provider, command);
     this.aiSessionAdapter?.sendCommand(sessionId, '\r');
     await this.sleep(ENTER_RETRY_MS);
     this.aiSessionAdapter?.sendCommand(sessionId, '\r');
@@ -1671,27 +1770,49 @@ export class PromptQueueManager extends EventEmitter {
     const prompt = override?.prompt ?? item.prompt;
     const model = override?.model ?? item.model;
     const sendClearBefore = override?.skipClear ? false : item.sendClearBefore;
+    const { repositoryPath, provider } = item;
 
     if (sendClearBefore) {
-      await this.runPrefixSlashCommand(sessionId, '/clear');
+      await this.runPrefixSlashCommand(
+        sessionId,
+        repositoryPath,
+        provider,
+        '/clear'
+      );
     }
 
     if (model) {
-      const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-      this.currentModels.set(
-        this.getQueueKey(item.repositoryPath, item.provider),
-        model
-      );
-      await this.runPrefixSlashCommand(sessionId, `/model ${modelValue}`);
+      const key = this.getQueueKey(repositoryPath, provider);
+      // 冗長な /model のスキップ: 前回適用した値と同じなら送らない。
+      // /model 実行直後の TUI 再描画は後続打鍵を飲む主要なリスク源のため、
+      // モデルが実際に変わるターンだけ送って露出回数を減らす。
+      // コールドスタート時は新規 CLI の状態が不明なので必ず送る。
+      const alreadyApplied =
+        !coldStart && this.currentModels.get(key) === model;
+      this.currentModels.set(key, model);
+      if (!alreadyApplied) {
+        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
+        await this.runPrefixSlashCommand(
+          sessionId,
+          repositoryPath,
+          provider,
+          `/model ${modelValue}`
+        );
+      }
     }
 
-    const ok = this.aiSessionAdapter?.sendCommand(sessionId, prompt);
-    if (ok === false) {
+    // 打鍵確認込みで本文を打ち込む（Enter 前待ちの 500ms は確認処理が兼ねる）
+    const ok = await this.typeWithEchoCheck(
+      sessionId,
+      repositoryPath,
+      provider,
+      prompt
+    );
+    if (!ok) {
       // PTY が死んでいる。watchdog を待たずに即時で失敗扱いにする
-      void this.handleSendFailure(item.repositoryPath, item.provider, item.id);
+      void this.handleSendFailure(repositoryPath, provider, item.id);
       return;
     }
-    await this.sleep(500);
     this.aiSessionAdapter?.sendCommand(sessionId, '\r');
     // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
     if (coldStart) {

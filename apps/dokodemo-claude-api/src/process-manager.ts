@@ -38,6 +38,19 @@ interface AiExecutionState {
   status: AiExecutionStatus;
 }
 
+// AI 出力履歴の ANSI エスケープ除去（キューアダプターの出力参照系で共用）。
+// ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex
+// で警告になるため、new RegExp + String.fromCharCode で組み立てる
+const ANSI_ESC = String.fromCharCode(0x1b);
+const ANSI_BEL = String.fromCharCode(0x07);
+const ANSI_REGEX = new RegExp(
+  `${ANSI_ESC}\\[[0-9;?]*[A-Za-z]|${ANSI_ESC}\\][^${ANSI_BEL}]*${ANSI_BEL}`,
+  'g'
+);
+function stripAnsi(s: string): string {
+  return s.replace(ANSI_REGEX, '');
+}
+
 interface PersistedSelectedProvider {
   repositoryPath: string;
   provider: AiProvider;
@@ -223,20 +236,31 @@ export class ProcessManager extends EventEmitter {
           provider
         );
         // ANSI 除去 + 末尾 200 行 + 8000 文字上限
-        // ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex
-        // で警告になるため、new RegExp + String.fromCharCode で組み立てる
-        const ESC = String.fromCharCode(0x1b);
-        const BEL = String.fromCharCode(0x07);
-        const ansiRegex = new RegExp(
-          `${ESC}\\[[0-9;?]*[A-Za-z]|${ESC}\\][^${BEL}]*${BEL}`,
-          'g'
-        );
-        const stripAnsi = (s: string): string => s.replace(ansiRegex, '');
         const lines = history.map((h) => stripAnsi(h.content));
         const tailLines = lines.slice(-200).join('\n');
         return tailLines.length > 8000
           ? tailLines.slice(-8000)
           : tailLines;
+      },
+      getPrimaryOutputSince: (
+        repositoryPath: string,
+        provider: AiProvider,
+        sinceTimestampMs: number
+      ) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary) return '';
+        const history = this.aiSessionManager.getOutputHistory(
+          primary.instanceId,
+          provider
+        );
+        const text = history
+          .filter((h) => h.timestamp >= sinceTimestampMs)
+          .map((h) => stripAnsi(h.content))
+          .join('\n');
+        // 打鍵直後の数秒分のデルタが対象なので通常は小さいが、上限だけ設ける
+        return text.length > 16000 ? text.slice(-16000) : text;
       },
     });
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
