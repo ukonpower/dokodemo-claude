@@ -254,6 +254,9 @@ export class PromptQueueManager extends EventEmitter {
         judgeCriteria?: string;
         planning?: PromptLoopPlanning;
       };
+      // ループアイテムより手前に挿入する（評価応答の反映ターン等、
+      // 次のループ周回より先に処理させたいプロンプト用）
+      insertBeforeLoop?: boolean;
     }
   ): Promise<Result<PromptQueueItem, QueueError>> {
     try {
@@ -297,7 +300,16 @@ export class PromptQueueManager extends EventEmitter {
         loop,
       };
 
-      state.queue.push(item);
+      // insertBeforeLoop: 待機中（pending）のループアイテムがあればその手前に挿入する。
+      // 処理中のループアイテムは順序に影響しないため対象外（末尾 push でよい）
+      const loopIndex = options?.insertBeforeLoop
+        ? state.queue.findIndex((i) => i.loop && i.status === 'pending')
+        : -1;
+      if (loopIndex !== -1) {
+        state.queue.splice(loopIndex, 0, item);
+      } else {
+        state.queue.push(item);
+      }
 
       await this.persistQueues();
 

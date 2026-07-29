@@ -42,7 +42,10 @@ export function ReviewInbox() {
   // モーダルを開いた直後にスクロールで合わせる対象（プレビュー行から開いたとき）
   const [focusId, setFocusId] = useState<string | null>(null);
 
-  const pending = requests.filter((r) => r.status === 'pending');
+  // ブロッキング発行（応答までループ停止）は優先して返してほしいので先頭に寄せる
+  const pending = requests
+    .filter((r) => r.status === 'pending')
+    .sort((a, b) => Number(b.blocking === true) - Number(a.blocking === true));
   const answered = requests.filter((r) => r.status === 'answered');
 
   useEffect(() => {
@@ -103,7 +106,17 @@ export function ReviewInbox() {
                   </span>
                 )}
                 <span className={s.previewMain}>
-                  <span className={s.previewQuestion}>{request.question}</span>
+                  <span className={s.previewQuestion}>
+                    {request.blocking && (
+                      <span
+                        className={s.blockingBadge}
+                        title="このリクエストに応答するまで発行元のキュー・ループは停止しています"
+                      >
+                        ループ停止中
+                      </span>
+                    )}
+                    {request.question}
+                  </span>
                   <span className={s.previewMeta}>
                     {request.aim}
                     <span className={s.previewTime}>

@@ -60,6 +60,14 @@ export function ReviewRequestCard({
       <div className={s.cardHeader}>
         <span className={s.requestId}>#{request.id}</span>
         <span className={s.aim}>{request.aim}</span>
+        {request.blocking && isPending && (
+          <span
+            className={s.blockingBadge}
+            title="このリクエストに応答するまで発行元のキュー・ループは停止しています"
+          >
+            ループ停止中
+          </span>
+        )}
         <span className={s.meta}>{formatDateTime(request.createdAt)}</span>
         <IconButton size="xs" label="このリクエストを削除" onClick={onDelete}>
           <Trash2 />

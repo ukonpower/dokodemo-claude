@@ -546,6 +546,11 @@ export interface CreateReviewRequestInput {
   urls?: { url: string; label?: string }[];
   /** 応答プロンプトを積むキューのプロバイダ（既定 'claude'） */
   provider?: AiProvider;
+  /**
+   * ブロッキング発行: 応答が来るまで発行元キュー（ループ含む）を一時停止する。
+   * 「後続の作業全体が評価結果に依存し、進むと手戻りになる」ときだけ使う
+   */
+  blocking?: boolean;
 }
 
 export async function createReviewRequest(
@@ -579,15 +584,23 @@ export async function createReviewRequest(
     attachments.push({ type: 'url', url: entry.url, label: entry.label });
   }
 
+  const provider: AiProvider = input.provider === 'codex' ? 'codex' : 'claude';
   const result = await processManager.reviewRequestManager.create(prid, {
     aim: input.aim,
     question: input.question,
     attachments,
     choices: (input.choices ?? []).filter((c) => typeof c === 'string' && c !== ''),
     sourcePath: resolved,
-    provider: input.provider === 'codex' ? 'codex' : 'claude',
+    provider,
+    blocking: input.blocking === true,
   });
   if (!result.ok) throw new ActionError(500, result.error.message);
+
+  // ブロッキング発行: 応答が届くまで発行元キューを一時停止する
+  // （実行中のターンはそのまま完走し、次のアイテム／ループ周回から止まる）
+  if (input.blocking === true) {
+    await processManager.pausePromptQueue(resolved, provider);
+  }
 
   const request = toPublicReviewRequest(result.value);
   io.emit('review-request-created', { rid: prid, request });
@@ -674,10 +687,30 @@ export async function respondReviewRequest(
   }
 
   const prompt = buildReviewResponsePrompt(stored, input);
-  try {
-    await processManager.addToPromptQueue(targetPath, stored.provider, prompt);
-  } catch (e) {
-    throw new ActionError(500, `応答のキュー注入に失敗しました: ${String(e)}`);
+  // 反映ターンが次のループ周回より先に走るよう、ループアイテムの手前に挿入する
+  const addResult = await processManager.promptQueueManager.addToQueue(
+    targetPath,
+    stored.provider,
+    prompt,
+    { insertBeforeLoop: true }
+  );
+  if (!addResult.ok) {
+    throw new ActionError(
+      500,
+      `応答のキュー注入に失敗しました: ${addResult.error.message}`
+    );
+  }
+
+  // ブロッキング発行への応答: 同じ発行元に未回答のブロッキング発行が
+  // 残っていなければ、発行時に止めたキューを再開する
+  if (stored.blocking === true) {
+    const stillBlocked = processManager.reviewRequestManager.hasPendingBlocking(
+      stored.sourcePath,
+      stored.provider
+    );
+    if (!stillBlocked) {
+      await processManager.resumePromptQueue(targetPath, stored.provider);
+    }
   }
 
   io.emit('review-request-updated', {
@@ -703,6 +736,23 @@ export async function deleteReviewRequest(
     rid,
     removed.attachments.filter((a) => a.type === 'image').map((a) => a.url)
   );
+
+  // 未回答のブロッキング発行を削除した場合、止まったままにならないよう
+  // （他に未回答のブロッキング発行が無ければ）発行元キューを再開する
+  if (removed.status === 'pending' && removed.blocking === true) {
+    const stillBlocked =
+      deps.processManager.reviewRequestManager.hasPendingBlocking(
+        removed.sourcePath,
+        removed.provider
+      );
+    if (!stillBlocked) {
+      await deps.processManager.resumePromptQueue(
+        removed.sourcePath,
+        removed.provider
+      );
+    }
+  }
+
   deps.io.emit('review-request-deleted', { rid, requestId });
   return { success: true, rid, requestId };
 }

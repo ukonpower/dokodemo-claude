@@ -38,6 +38,21 @@
   line-height: 1rem;
 }
 
+// ブロッキング発行（応答までキュー・ループが停止中）の表示
+.blockingBadge {
+  display: inline-block;
+  margin-right: $space-2xs;
+  padding: 0 $space-2xs;
+  border: 1px solid $color-warning-border;
+  border-radius: $radius-full;
+  background-color: $color-warning-bg;
+  color: $color-warning;
+  font-size: $font-size-2xs;
+  line-height: 1rem;
+  white-space: nowrap;
+  vertical-align: text-bottom;
+}
+
 .openAllButton {
   margin-left: auto;
   padding: $space-3xs $space-xs;

@@ -310,7 +310,8 @@ const TOOL_DEFS = [
       '実装結果へのユーザー評価を依頼する「評価リクエスト」を発行する。Web UI の受信箱に届き、' +
       'ユーザーが選択肢・コメントで応答すると、その内容が発行元リポジトリの AI キューへプロンプトとして注入される。' +
       '見た目・触り心地（UI/UX）に影響する変更を実装したサイクルの終わりに使う。評価を待ってブロックせず、発行したら次の作業へ進んでよい。' +
-      '「どう思う？」の丸投げは禁止。選択肢で答えられる問いまで整形して発行すること。',
+      '「どう思う？」の丸投げは禁止。選択肢で答えられる問いまで整形して発行すること。' +
+      '例外として、後続の作業全体が評価結果に依存するときだけ blocking: true で発行する（応答までキューとループが一時停止する）。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -362,6 +363,12 @@ const TOOL_DEFS = [
           type: 'string',
           enum: ['claude', 'codex'],
           description: "応答プロンプトを積むキューのプロバイダ（既定 'claude'）",
+        },
+        blocking: {
+          type: 'boolean',
+          description:
+            'ブロッキング発行（既定 false）。true にすると応答が届くまで発行元キュー（ループ含む）が一時停止し、応答と同時に自動再開される。' +
+            '「後続の作業全体が評価結果に依存し、進むと手戻りになる」ときだけ使う。通常の評価は false のまま発行し、待たずに次の作業へ進む。',
         },
       },
       required: ['rid', 'aim', 'question'],
@@ -537,6 +544,7 @@ async function dispatch(
             args.provider === 'codex' || args.provider === 'claude'
               ? (args.provider as AiProvider)
               : undefined,
+          blocking: args.blocking === true,
         },
         deps
       );

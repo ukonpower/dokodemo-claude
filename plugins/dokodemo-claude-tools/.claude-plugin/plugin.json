@@ -1,6 +1,6 @@
 {
   "name": "dokodemo-claude-tools",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "dokodemo-claude の統合ツールセット（MCP 経由の worktree/terminal/prompt/preview, workflow, git, autopilot 無人開発ループなど）",
   "author": {
     "name": "dokodemo-claude"

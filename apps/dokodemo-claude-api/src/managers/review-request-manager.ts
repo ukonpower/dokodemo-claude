@@ -46,6 +46,7 @@ export function toPublicReviewRequest(
     status: stored.status,
     createdAt: stored.createdAt,
     response: stored.response,
+    blocking: stored.blocking,
   };
 }
 
@@ -86,6 +87,27 @@ export class ReviewRequestManager {
     return (this.requests.get(rid) ?? []).find((r) => r.id === requestId);
   }
 
+  /**
+   * 同じ発行元（sourcePath × provider）に未回答のブロッキング発行が残っているか。
+   * ブロッキング発行の応答・削除時、キュー再開の可否判定に使う。
+   */
+  hasPendingBlocking(sourcePath: string, provider: AiProvider): boolean {
+    for (const list of this.requests.values()) {
+      if (
+        list.some(
+          (r) =>
+            r.status === 'pending' &&
+            r.blocking === true &&
+            r.sourcePath === sourcePath &&
+            r.provider === provider
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   async create(
     rid: string,
     input: {
@@ -95,6 +117,7 @@ export class ReviewRequestManager {
       choices: string[];
       sourcePath: string;
       provider: AiProvider;
+      blocking?: boolean;
     }
   ): Promise<Result<StoredReviewRequest, PersistenceError>> {
     const seq = (this.counters.get(rid) ?? 0) + 1;
@@ -111,6 +134,7 @@ export class ReviewRequestManager {
       createdAt: Date.now(),
       sourcePath: input.sourcePath,
       provider: input.provider,
+      blocking: input.blocking || undefined,
     };
 
     const list = this.requests.get(rid) ?? [];

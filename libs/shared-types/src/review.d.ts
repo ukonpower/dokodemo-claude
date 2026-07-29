@@ -30,4 +30,6 @@ export interface ReviewRequest {
   status: ReviewRequestStatus;
   createdAt: number;
   response?: ReviewResponse;
+  // 応答が来るまで発行元キュー（ループ含む）を一時停止するブロッキング発行か
+  blocking?: boolean;
 }
