@@ -228,6 +228,37 @@
   }
 }
 
+// PC の広い設置場所（twoColumnOnPc 指定時）向けの行レイアウト調整。
+// space-between のままだとラベルと入力がセルの両端に離れて対応が読み取りにくいため、
+// ラベルを固定幅の列にして入力をすぐ右隣に寄せる
+$loop-label-width: 7em;
+
+.wideOnPc {
+  @include lg-up {
+    .rowField,
+    .rowFieldOnPc,
+    .toggleRow {
+      justify-content: flex-start;
+
+      .fieldLabel {
+        width: $loop-label-width;
+        flex-shrink: 0;
+      }
+    }
+
+    // セレクトは右端まで伸ばさず、ラベル隣で一定幅に収める
+    .rowField .selectInput,
+    .rowFieldOnPc .selectInput {
+      flex: 0 1 240px;
+    }
+
+    // キャプションも入力の開始位置に揃えてラベル列と分離する
+    .fieldCaption {
+      padding-left: calc(#{$loop-label-width} + #{$space-md});
+    }
+  }
+}
+
 // 2 カラム時に 1 行を占有するフィールド（テキストエリア）
 // 縦積み（flex）時は grid-column が無視されるため 1 カラムには影響しない
 .fullSpan {

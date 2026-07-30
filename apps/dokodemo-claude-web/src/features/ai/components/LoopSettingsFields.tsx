@@ -147,7 +147,11 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   const twoColumnClass = twoColumnOnPc ? s.twoColumnOnPc : '';
 
   return (
-    <div className={`${s.root} ${disabled ? s.disabled : ''}`}>
+    <div
+      className={`${s.root} ${twoColumnOnPc ? s.wideOnPc : ''} ${
+        disabled ? s.disabled : ''
+      }`}
+    >
       {/* 主要フィールド群（PC 2 カラム時はここがグリッドになる） */}
       <div className={`${s.fieldGroup} ${twoColumnClass}`}>
         {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
