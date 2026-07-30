@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { HelpCircle, Minus, Plus } from 'lucide-react';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
+import Collapse from '@/shared/components/Collapse';
 import s from './LoopSettingsFields.module.scss';
 
 // ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準・定期プランニング）
@@ -110,33 +111,48 @@ const Stepper: React.FC<StepperProps> = ({
 
 interface ToggleFieldProps {
   label: string;
-  caption: string;
   checked: boolean;
   disabled?: boolean;
   onToggle: () => void;
+  /** ラベル横に置く「?」ボタン（説明の開閉） */
+  hintButton?: React.ReactNode;
+  /** 「?」で開く説明文 */
+  hint?: React.ReactNode;
 }
 
-// ラベル＋トグル＋キャプションの 1 セクション見出し（継続の判断・定期プランニング共通）
+/**
+ * ラベル＋トグルの 1 セクション見出し（継続の判断・定期プランニング共通）。
+ * 「?」ボタンを内側に置くためラベル行自体はボタンにせず、
+ * トグル本体だけをボタンにする（button の入れ子は不正なため）
+ */
 const ToggleField: React.FC<ToggleFieldProps> = ({
   label,
-  caption,
   checked,
   disabled,
   onToggle,
+  hintButton,
+  hint,
 }) => (
   <div className={s.field}>
-    <button
-      type="button"
-      onClick={onToggle}
-      disabled={disabled}
-      className={s.toggleRow}
-    >
-      <span className={s.fieldLabel}>{label}</span>
-      <div className={`${s.toggleTrack} ${checked ? s.on : s.off}`}>
-        <div className={`${s.toggleThumb} ${checked ? s.on : s.off}`} />
-      </div>
-    </button>
-    <div className={s.fieldCaption}>{caption}</div>
+    <div className={s.toggleRow}>
+      <span className={`${s.fieldLabel} ${s.sectionLabel}`}>
+        {label}
+        {hintButton}
+      </span>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-pressed={checked}
+        aria-label={label}
+        className={s.toggleButton}
+      >
+        <span className={`${s.toggleTrack} ${checked ? s.on : s.off}`}>
+          <span className={`${s.toggleThumb} ${checked ? s.on : s.off}`} />
+        </span>
+      </button>
+    </div>
+    {hint}
   </div>
 );
 
@@ -179,20 +195,50 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   // 2 カラム指定時のみグリッド化するクラス（既定は縦積みのまま）
   const twoColumnClass = twoColumnOnPc ? s.twoColumnOnPc : '';
 
+  // 各フィールドの説明文。常時出すと画面が説明文で埋まるので、
+  // ラベル横の「?」を押したときだけ開く（開くのは同時に 1 つ）
+  const hints: Record<string, string> = {
+    workModel: '周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま',
+    judge: 'オフの間は停止するまで繰り返し送信します',
+    judgeMode: selectedJudgeMode?.caption ?? '',
+    planning: 'N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します',
+  };
+  const [openHint, setOpenHint] = useState<string | null>(null);
+  const hintButton = (key: keyof typeof hints) => (
+    <button
+      type="button"
+      onClick={() => setOpenHint(openHint === key ? null : key)}
+      className={`${s.hintButton} ${openHint === key ? s.hintOpen : ''}`}
+      title={hints[key]}
+      aria-label="説明を表示"
+      aria-expanded={openHint === key}
+    >
+      <HelpCircle size={12} />
+    </button>
+  );
+  const hintText = (key: keyof typeof hints) => (
+    <Collapse open={openHint === key}>
+      <div className={s.fieldCaption}>{hints[key]}</div>
+    </Collapse>
+  );
+
   return (
     <div
       className={`${s.root} ${twoColumnOnPc ? s.wideOnPc : ''} ${
         disabled ? s.disabled : ''
       }`}
     >
-      {/* 主要フィールド群（PC 2 カラム時はここがグリッドになる） */}
-      <div className={`${s.fieldGroup} ${twoColumnClass}`}>
+      {/* 基本設定（PC 2 カラム時はここがグリッドになる） */}
+      <div className={`${s.section} ${s.fieldGroup} ${twoColumnClass}`}>
         {/* 作業モデル（各周回で使うモデル。キューの「モデル」設定と共有） */}
         {onWorkModelChange && (
           <div className={s.field}>
             {/* 2 カラム時は隣の「継続の判断」と入力の上端を揃えるため 1 行に並べる */}
             <div className={twoColumnOnPc ? s.rowFieldOnPc : ''}>
-              <div className={s.fieldLabel}>作業モデル</div>
+              <div className={s.fieldLabel}>
+                作業モデル
+                {hintButton('workModel')}
+              </div>
               <select
                 value={workModel ?? ''}
                 onChange={(e) => onWorkModelChange(e.target.value)}
@@ -211,9 +257,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
                 ))}
               </select>
             </div>
-            <div className={s.fieldCaption}>
-              周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま
-            </div>
+            {hintText('workModel')}
           </div>
         )}
 
@@ -231,160 +275,167 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
       </div>
 
       {/* 継続の判断（トグルで有効化。OFF = 停止するまで無限に繰り返し） */}
-      <ToggleField
-        label="継続の判断"
-        caption="オフの間は停止するまで繰り返し送信します"
-        checked={value.judge !== 'none'}
-        disabled={disabled}
-        onToggle={() =>
-          onChange({
-            ...value,
-            judge: value.judge === 'none' ? 'ai' : 'none',
-          })
-        }
-      />
+      <div className={s.section}>
+        <ToggleField
+          label="継続の判断"
+          checked={value.judge !== 'none'}
+          disabled={disabled}
+          onToggle={() =>
+            onChange({
+              ...value,
+              judge: value.judge === 'none' ? 'ai' : 'none',
+            })
+          }
+          hintButton={hintButton('judge')}
+          hint={hintText('judge')}
+        />
 
-      {value.judge !== 'none' && (
-        <div className={`${s.subGroup} ${twoColumnClass}`}>
-          <div className={s.field}>
+        <Collapse open={value.judge !== 'none'}>
+          <div className={`${s.subGroup} ${twoColumnClass}`}>
+            <div className={s.field}>
+              <div className={s.rowField}>
+                <div className={s.fieldLabel}>
+                  方式
+                  {hintButton('judgeMode')}
+                </div>
+                <select
+                  value={value.judge}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      judge: e.target.value as LoopSettingsValue['judge'],
+                    })
+                  }
+                  disabled={disabled}
+                  className={`${s.selectInput} ${s.selectSlim}`}
+                >
+                  {JUDGE_MODE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {hintText('judgeMode')}
+            </div>
+
             <div className={s.rowField}>
-              <div className={s.fieldLabel}>方式</div>
+              <div className={s.fieldLabel}>判断間隔</div>
+              <Stepper
+                value={value.judgeEveryN}
+                min={1}
+                suffix="周ごと"
+                disabled={disabled}
+                onChange={(n) => onChange({ ...value, judgeEveryN: n })}
+              />
+            </div>
+
+            {/* AI 判断の判定基準（任意・2 カラム時は全幅） */}
+            {value.judge === 'ai' && (
+              <div className={`${s.field} ${s.fullSpan}`}>
+                <div className={s.fieldLabel}>判定基準（任意）</div>
+                <textarea
+                  value={value.judgeCriteria}
+                  onChange={(e) =>
+                    onChange({ ...value, judgeCriteria: e.target.value })
+                  }
+                  disabled={disabled}
+                  placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
+                  rows={2}
+                  className={s.criteriaTextarea}
+                />
+              </div>
+            )}
+          </div>
+        </Collapse>
+      </div>
+
+      {/* 定期プランニング（トグルで有効化、子設定はラベル色でネスト） */}
+      <div className={s.section}>
+        <ToggleField
+          label="定期プランニング"
+          checked={value.planningEnabled}
+          disabled={disabled}
+          onToggle={() =>
+            onChange({ ...value, planningEnabled: !value.planningEnabled })
+          }
+          hintButton={hintButton('planning')}
+          hint={hintText('planning')}
+        />
+
+        <Collapse open={value.planningEnabled}>
+          <div className={`${s.subGroup} ${twoColumnClass}`}>
+            <div className={s.rowField}>
+              <div className={s.fieldLabel}>間隔</div>
+              <Stepper
+                value={value.planningEveryN}
+                min={1}
+                suffix="周ごと"
+                disabled={disabled}
+                onChange={(n) => onChange({ ...value, planningEveryN: n })}
+              />
+            </div>
+
+            <div className={s.rowField}>
+              <div className={s.fieldLabel}>モデル</div>
               <select
-                value={value.judge}
+                value={value.planningModel}
                 onChange={(e) =>
-                  onChange({
-                    ...value,
-                    judge: e.target.value as LoopSettingsValue['judge'],
-                  })
+                  onChange({ ...value, planningModel: e.target.value })
                 }
                 disabled={disabled}
                 className={`${s.selectInput} ${s.selectSlim}`}
               >
-                {JUDGE_MODE_OPTIONS.map((opt) => (
+                {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
+                {value.planningModel &&
+                  !planningModelOptions.some(
+                    (o) => o.value === value.planningModel
+                  ) && (
+                    <option value={value.planningModel}>
+                      {value.planningModel}
+                    </option>
+                  )}
+                {planningModelOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
             </div>
-            {selectedJudgeMode && (
-              <div className={s.fieldCaption}>{selectedJudgeMode.caption}</div>
-            )}
-          </div>
 
-          <div className={s.rowField}>
-            <div className={s.fieldLabel}>判断間隔</div>
-            <Stepper
-              value={value.judgeEveryN}
-              min={1}
-              suffix="周ごと"
-              disabled={disabled}
-              onChange={(n) => onChange({ ...value, judgeEveryN: n })}
-            />
-          </div>
-
-          {/* AI 判断の判定基準（任意・2 カラム時は全幅） */}
-          {value.judge === 'ai' && (
             <div className={`${s.field} ${s.fullSpan}`}>
-              <div className={s.fieldLabel}>判定基準（任意）</div>
+              <div className={s.fieldLabel}>プロンプト</div>
+              {/* サンプルプロンプト（タップで入力欄に挿入） */}
+              <div className={s.sampleRow}>
+                {PLANNING_SAMPLE_PROMPTS.map((sample) => (
+                  <button
+                    key={sample.label}
+                    type="button"
+                    onClick={() =>
+                      onChange({ ...value, planningPrompt: sample.prompt })
+                    }
+                    disabled={disabled}
+                    className={s.sampleChip}
+                    title={`「${sample.prompt}」を入力欄に挿入`}
+                  >
+                    {sample.label}
+                  </button>
+                ))}
+              </div>
               <textarea
-                value={value.judgeCriteria}
+                value={value.planningPrompt}
                 onChange={(e) =>
-                  onChange({ ...value, judgeCriteria: e.target.value })
+                  onChange({ ...value, planningPrompt: e.target.value })
                 }
                 disabled={disabled}
-                placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
-                rows={2}
+                placeholder={DEFAULT_PLANNING_PROMPT}
+                rows={3}
                 className={s.criteriaTextarea}
               />
             </div>
-          )}
-        </div>
-      )}
-
-      {/* 定期プランニング（トグルで有効化、子設定はラベル色でネスト） */}
-      <ToggleField
-        label="定期プランニング"
-        caption="N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します"
-        checked={value.planningEnabled}
-        disabled={disabled}
-        onToggle={() =>
-          onChange({ ...value, planningEnabled: !value.planningEnabled })
-        }
-      />
-
-      {value.planningEnabled && (
-        <div className={`${s.subGroup} ${twoColumnClass}`}>
-          <div className={s.rowField}>
-            <div className={s.fieldLabel}>間隔</div>
-            <Stepper
-              value={value.planningEveryN}
-              min={1}
-              suffix="周ごと"
-              disabled={disabled}
-              onChange={(n) => onChange({ ...value, planningEveryN: n })}
-            />
           </div>
-
-          <div className={s.rowField}>
-            <div className={s.fieldLabel}>モデル</div>
-            <select
-              value={value.planningModel}
-              onChange={(e) =>
-                onChange({ ...value, planningModel: e.target.value })
-              }
-              disabled={disabled}
-              className={`${s.selectInput} ${s.selectSlim}`}
-            >
-              {/* 選択肢に無い値（削除済みカスタムモデル等）もそのまま表示する */}
-              {value.planningModel &&
-                !planningModelOptions.some(
-                  (o) => o.value === value.planningModel
-                ) && (
-                  <option value={value.planningModel}>
-                    {value.planningModel}
-                  </option>
-                )}
-              {planningModelOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={`${s.field} ${s.fullSpan}`}>
-            <div className={s.fieldLabel}>プロンプト</div>
-            {/* サンプルプロンプト（タップで入力欄に挿入） */}
-            <div className={s.sampleRow}>
-              {PLANNING_SAMPLE_PROMPTS.map((sample) => (
-                <button
-                  key={sample.label}
-                  type="button"
-                  onClick={() =>
-                    onChange({ ...value, planningPrompt: sample.prompt })
-                  }
-                  disabled={disabled}
-                  className={s.sampleChip}
-                  title={`「${sample.prompt}」を入力欄に挿入`}
-                >
-                  {sample.label}
-                </button>
-              ))}
-            </div>
-            <textarea
-              value={value.planningPrompt}
-              onChange={(e) =>
-                onChange({ ...value, planningPrompt: e.target.value })
-              }
-              disabled={disabled}
-              placeholder={DEFAULT_PLANNING_PROMPT}
-              rows={3}
-              className={s.criteriaTextarea}
-            />
-          </div>
-        </div>
-      )}
+        </Collapse>
+      </div>
     </div>
   );
 };

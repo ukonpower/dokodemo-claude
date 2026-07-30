@@ -1,0 +1,45 @@
+// 開閉アニメーション。grid-template-rows の 0fr → 1fr で
+// 中身の実高さに追従させる（max-height の当て推量が要らない）
+.root {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  // 閉じ切ってから hidden にして、閉じている間のフォーカスを防ぐ
+  visibility: hidden;
+  transition:
+    grid-template-rows $transition-slow $transition-easing,
+    opacity $transition-fast $transition-easing,
+    visibility 0s linear $transition-slow;
+}
+
+.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows $transition-slow $transition-easing,
+    opacity $transition-normal $transition-easing,
+    visibility 0s;
+}
+
+.inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+// 中身を少し上から降ろして「開いた」ことを分かりやすくする
+.content {
+  transform: translateY(-$space-sm);
+  transition: transform $transition-slow $transition-easing;
+
+  .open & {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .content {
+    transition: none;
+  }
+}

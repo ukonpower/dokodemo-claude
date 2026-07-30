@@ -1,12 +1,24 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: $space-sm;
+  gap: $space-md;
 }
 
 .disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+// 設定のまとまり（基本 / 継続の判断 / 定期プランニング）。
+// 間隔だけだと境目が読み取れないので、2 つ目以降に区切り線を引く
+.section {
+  display: flex;
+  flex-direction: column;
+
+  & + & {
+    padding-top: $space-md;
+    border-top: 1px solid $dark-border-light;
+  }
 }
 
 // 主要フィールドをまとめるラッパー（既定は .root と同じ縦積み）
@@ -22,9 +34,37 @@
   gap: $space-2xs;
 }
 
+// ラベルは「?」ボタンを内側に抱えるので 1 行の flex
 .fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: $space-3xs;
   font-size: $font-size-xs;
   color: $dark-text-secondary;
+}
+
+// セクションの見出し（トグル行のラベル）。中の設定ラベルより一段強くする
+.sectionLabel {
+  color: $dark-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+// ラベル横の「?」。説明文を常時表示せずここに畳む
+.hintButton {
+  @include flex-center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover,
+  &.hintOpen {
+    color: $dark-text-secondary;
+  }
 }
 
 // ラベル左・入力右の 1 行レイアウト（ステッパー・スリムなセレクト用）
@@ -106,7 +146,7 @@
   padding-right: $space-xs;
 }
 
-// 定期プランニングの有効/無効トグル行
+// セクション見出しの有効/無効トグル行（行自体はボタンにしない）
 .toggleRow {
   display: flex;
   align-items: center;
@@ -114,14 +154,29 @@
   gap: $space-md;
   width: 100%;
   min-height: 24px;
-  padding: 0;
+}
+
+// トグル本体。見た目のトラックは小さいので余白でタップ領域を稼ぎ、
+// 見た目の位置が変わらないよう同じ分だけ負のマージンで戻す
+.toggleButton {
+  @include flex-center;
+  flex-shrink: 0;
+  padding: $space-2xs $space-sm;
+  margin-top: -$space-2xs;
+  margin-right: -$space-sm;
+  margin-bottom: -$space-2xs;
   background: none;
   border: none;
   cursor: pointer;
   touch-action: manipulation;
+
+  &:disabled {
+    cursor: default;
+  }
 }
 
 .toggleTrack {
+  display: block;
   position: relative;
   width: 1.5rem;
   height: 0.875rem;
@@ -139,6 +194,7 @@
 }
 
 .toggleThumb {
+  display: block;
   position: absolute;
   top: 0.125rem;
   width: 0.625rem;
@@ -156,15 +212,14 @@
   }
 }
 
-// 定期プランニング有効時の子設定（親と左端を揃え、ラベル色でネストを表現）
+// トグル有効時に開く子設定（親と左端を揃え、見出しとの差はラベルの強さで表現）。
+// 見出しとの間隔はここで取る（Collapse は閉じたとき高さ 0 になるため、
+// 親側の gap で空けると閉じている間も隙間が残る）
 .subGroup {
   display: flex;
   flex-direction: column;
   gap: $space-sm;
-
-  .fieldLabel {
-    color: $dark-text-muted;
-  }
+  padding-top: $space-md;
 }
 
 // rowField 内で使う幅控えめのセレクト
@@ -231,8 +286,8 @@
 // PC の広い設置場所（twoColumnOnPc 指定時）向けの行レイアウト調整。
 // space-between のままだとラベルと入力がセルの両端に離れて対応が読み取りにくいため、
 // ラベルを固定幅の列にして入力をすぐ右隣に寄せる
-// （最長ラベル「定期プランニング」8 文字が折り返さない幅）
-$loop-label-width: 8.5em;
+// （最長ラベル「定期プランニング」8 文字＋「?」ボタンが折り返さない幅）
+$loop-label-width: 10em;
 
 .wideOnPc {
   @include lg-up {
@@ -252,6 +307,11 @@ $loop-label-width: 8.5em;
     .rowField .selectInput,
     .rowFieldOnPc .selectInput {
       flex: 0 1 240px;
+    }
+
+    // ラベル列の直後（セレクト等と同じ開始位置）にトグルを置く
+    .toggleButton {
+      margin-left: -$space-sm;
     }
 
     // キャプションも入力の開始位置に揃えてラベル列と分離する
