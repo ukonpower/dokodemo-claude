@@ -27,13 +27,12 @@ const PLANNING_SAMPLE_PROMPTS = [
   { label: 'autopilot-plan', prompt: '/dokodemo-claude-tools:autopilot-plan' },
 ] as const;
 
-// 判断方式の選択肢とキャプション
-const JUDGE_OPTIONS: {
-  value: LoopSettingsValue['judge'];
+// 継続判断が有効なときの方式（トグル OFF = 'none' は選択肢に出さない）
+const JUDGE_MODE_OPTIONS: {
+  value: Exclude<LoopSettingsValue['judge'], 'none'>;
   label: string;
   caption: string;
 }[] = [
-  { value: 'none', label: '無限', caption: '停止するまで繰り返し送信します' },
   { value: 'ai', label: 'AI 判断', caption: 'AI が継続するか判断します' },
   { value: 'user', label: '確認', caption: '周回ごとに継続確認を求めます' },
 ];
@@ -109,6 +108,38 @@ const Stepper: React.FC<StepperProps> = ({
   );
 };
 
+interface ToggleFieldProps {
+  label: string;
+  caption: string;
+  checked: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}
+
+// ラベル＋トグル＋キャプションの 1 セクション見出し（継続の判断・定期プランニング共通）
+const ToggleField: React.FC<ToggleFieldProps> = ({
+  label,
+  caption,
+  checked,
+  disabled,
+  onToggle,
+}) => (
+  <div className={s.field}>
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      className={s.toggleRow}
+    >
+      <span className={s.fieldLabel}>{label}</span>
+      <div className={`${s.toggleTrack} ${checked ? s.on : s.off}`}>
+        <div className={`${s.toggleThumb} ${checked ? s.on : s.off}`} />
+      </div>
+    </button>
+    <div className={s.fieldCaption}>{caption}</div>
+  </div>
+);
+
 interface LoopSettingsFieldsProps {
   value: LoopSettingsValue;
   disabled?: boolean;
@@ -138,7 +169,9 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   onWorkModelChange,
   twoColumnOnPc,
 }) => {
-  const selectedOption = JUDGE_OPTIONS.find((o) => o.value === value.judge);
+  const selectedJudgeMode = JUDGE_MODE_OPTIONS.find(
+    (o) => o.value === value.judge
+  );
   const intervalMin = Math.floor(value.intervalSec / 60);
   // プランニングのモデル選択肢（「未指定」は除外。モデル指定が本機能の目的のため）
   const { options: modelOptions } = useModelOptions();
@@ -184,47 +217,6 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
           </div>
         )}
 
-        {/* 継続の判断（プルダウン） */}
-        <div className={s.field}>
-          <div className={s.rowField}>
-            <div className={s.fieldLabel}>継続の判断</div>
-            <select
-              value={value.judge}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  judge: e.target.value as LoopSettingsValue['judge'],
-                })
-              }
-              disabled={disabled}
-              className={`${s.selectInput} ${s.selectSlim}`}
-            >
-              {JUDGE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {selectedOption && (
-            <div className={s.fieldCaption}>{selectedOption.caption}</div>
-          )}
-        </div>
-
-        {/* 判断間隔（判断ありの場合のみ） */}
-        {value.judge !== 'none' && (
-          <div className={s.rowField}>
-            <div className={s.fieldLabel}>判断間隔</div>
-            <Stepper
-              value={value.judgeEveryN}
-              min={1}
-              suffix="周ごと"
-              disabled={disabled}
-              onChange={(n) => onChange({ ...value, judgeEveryN: n })}
-            />
-          </div>
-        )}
-
         {/* 再送までの待機時間 */}
         <div className={s.rowField}>
           <div className={s.fieldLabel}>再送待機</div>
@@ -236,52 +228,90 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             onChange={(n) => onChange({ ...value, intervalSec: n * 60 })}
           />
         </div>
+      </div>
 
-        {/* AI 判断の判定基準（任意・2 カラム時は全幅） */}
-        {value.judge === 'ai' && (
-          <div className={`${s.field} ${s.fullSpan}`}>
-            <div className={s.fieldLabel}>判定基準（任意）</div>
-            <textarea
-              value={value.judgeCriteria}
-              onChange={(e) =>
-                onChange({ ...value, judgeCriteria: e.target.value })
-              }
+      {/* 継続の判断（トグルで有効化。OFF = 停止するまで無限に繰り返し） */}
+      <ToggleField
+        label="継続の判断"
+        caption="オフの間は停止するまで繰り返し送信します"
+        checked={value.judge !== 'none'}
+        disabled={disabled}
+        onToggle={() =>
+          onChange({
+            ...value,
+            judge: value.judge === 'none' ? 'ai' : 'none',
+          })
+        }
+      />
+
+      {value.judge !== 'none' && (
+        <div className={`${s.subGroup} ${twoColumnClass}`}>
+          <div className={s.field}>
+            <div className={s.rowField}>
+              <div className={s.fieldLabel}>方式</div>
+              <select
+                value={value.judge}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    judge: e.target.value as LoopSettingsValue['judge'],
+                  })
+                }
+                disabled={disabled}
+                className={`${s.selectInput} ${s.selectSlim}`}
+              >
+                {JUDGE_MODE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedJudgeMode && (
+              <div className={s.fieldCaption}>{selectedJudgeMode.caption}</div>
+            )}
+          </div>
+
+          <div className={s.rowField}>
+            <div className={s.fieldLabel}>判断間隔</div>
+            <Stepper
+              value={value.judgeEveryN}
+              min={1}
+              suffix="周ごと"
               disabled={disabled}
-              placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
-              rows={2}
-              className={s.criteriaTextarea}
+              onChange={(n) => onChange({ ...value, judgeEveryN: n })}
             />
           </div>
-        )}
-      </div>
 
-      {/* 定期プランニング（トグルで有効化、子設定は左ボーダーでネスト） */}
-      <div className={s.field}>
-        <button
-          type="button"
-          onClick={() =>
-            onChange({ ...value, planningEnabled: !value.planningEnabled })
-          }
-          disabled={disabled}
-          className={s.toggleRow}
-        >
-          <span className={s.fieldLabel}>定期プランニング</span>
-          <div
-            className={`${s.toggleTrack} ${
-              value.planningEnabled ? s.on : s.off
-            }`}
-          >
-            <div
-              className={`${s.toggleThumb} ${
-                value.planningEnabled ? s.on : s.off
-              }`}
-            />
-          </div>
-        </button>
-        <div className={s.fieldCaption}>
-          N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します
+          {/* AI 判断の判定基準（任意・2 カラム時は全幅） */}
+          {value.judge === 'ai' && (
+            <div className={`${s.field} ${s.fullSpan}`}>
+              <div className={s.fieldLabel}>判定基準（任意）</div>
+              <textarea
+                value={value.judgeCriteria}
+                onChange={(e) =>
+                  onChange({ ...value, judgeCriteria: e.target.value })
+                }
+                disabled={disabled}
+                placeholder="例: 全テストが通ったら終了。空欄ならループプロンプト自体を目標として判定"
+                rows={2}
+                className={s.criteriaTextarea}
+              />
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* 定期プランニング（トグルで有効化、子設定はラベル色でネスト） */}
+      <ToggleField
+        label="定期プランニング"
+        caption="N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します"
+        checked={value.planningEnabled}
+        disabled={disabled}
+        onToggle={() =>
+          onChange({ ...value, planningEnabled: !value.planningEnabled })
+        }
+      />
 
       {value.planningEnabled && (
         <div className={`${s.subGroup} ${twoColumnClass}`}>

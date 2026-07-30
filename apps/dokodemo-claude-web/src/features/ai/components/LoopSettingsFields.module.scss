@@ -231,7 +231,8 @@
 // PC の広い設置場所（twoColumnOnPc 指定時）向けの行レイアウト調整。
 // space-between のままだとラベルと入力がセルの両端に離れて対応が読み取りにくいため、
 // ラベルを固定幅の列にして入力をすぐ右隣に寄せる
-$loop-label-width: 7em;
+// （最長ラベル「定期プランニング」8 文字が折り返さない幅）
+$loop-label-width: 8.5em;
 
 .wideOnPc {
   @include lg-up {
@@ -243,6 +244,7 @@ $loop-label-width: 7em;
       .fieldLabel {
         width: $loop-label-width;
         flex-shrink: 0;
+        white-space: nowrap;
       }
     }
 
