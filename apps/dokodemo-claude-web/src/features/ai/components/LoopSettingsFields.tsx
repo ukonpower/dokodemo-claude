@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { HelpCircle, Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import Collapse from '@/shared/components/Collapse';
+import HintTooltip from '@/shared/components/HintTooltip';
 import s from './LoopSettingsFields.module.scss';
 
 // ループ設定の値（判断方式・判断間隔・再送待機秒数・AI 判定基準・定期プランニング）
@@ -114,10 +115,8 @@ interface ToggleFieldProps {
   checked: boolean;
   disabled?: boolean;
   onToggle: () => void;
-  /** ラベル横に置く「?」ボタン（説明の開閉） */
-  hintButton?: React.ReactNode;
-  /** 「?」で開く説明文 */
-  hint?: React.ReactNode;
+  /** ラベル横の「?」で出す説明文 */
+  hint: string;
 }
 
 /**
@@ -130,29 +129,25 @@ const ToggleField: React.FC<ToggleFieldProps> = ({
   checked,
   disabled,
   onToggle,
-  hintButton,
   hint,
 }) => (
-  <div className={s.field}>
-    <div className={s.toggleRow}>
-      <span className={`${s.fieldLabel} ${s.sectionLabel}`}>
-        {label}
-        {hintButton}
+  <div className={s.toggleRow}>
+    <span className={`${s.fieldLabel} ${s.sectionLabel}`}>
+      {label}
+      <HintTooltip text={hint} />
+    </span>
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      aria-pressed={checked}
+      aria-label={label}
+      className={s.toggleButton}
+    >
+      <span className={`${s.toggleTrack} ${checked ? s.on : s.off}`}>
+        <span className={`${s.toggleThumb} ${checked ? s.on : s.off}`} />
       </span>
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={disabled}
-        aria-pressed={checked}
-        aria-label={label}
-        className={s.toggleButton}
-      >
-        <span className={`${s.toggleTrack} ${checked ? s.on : s.off}`}>
-          <span className={`${s.toggleThumb} ${checked ? s.on : s.off}`} />
-        </span>
-      </button>
-    </div>
-    {hint}
+    </button>
   </div>
 );
 
@@ -195,33 +190,6 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
   // 2 カラム指定時のみグリッド化するクラス（既定は縦積みのまま）
   const twoColumnClass = twoColumnOnPc ? s.twoColumnOnPc : '';
 
-  // 各フィールドの説明文。常時出すと画面が説明文で埋まるので、
-  // ラベル横の「?」を押したときだけ開く（開くのは同時に 1 つ）
-  const hints: Record<string, string> = {
-    workModel: '周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま',
-    judge: 'オフの間は停止するまで繰り返し送信します',
-    judgeMode: selectedJudgeMode?.caption ?? '',
-    planning: 'N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します',
-  };
-  const [openHint, setOpenHint] = useState<string | null>(null);
-  const hintButton = (key: keyof typeof hints) => (
-    <button
-      type="button"
-      onClick={() => setOpenHint(openHint === key ? null : key)}
-      className={`${s.hintButton} ${openHint === key ? s.hintOpen : ''}`}
-      title={hints[key]}
-      aria-label="説明を表示"
-      aria-expanded={openHint === key}
-    >
-      <HelpCircle size={12} />
-    </button>
-  );
-  const hintText = (key: keyof typeof hints) => (
-    <Collapse open={openHint === key}>
-      <div className={s.fieldCaption}>{hints[key]}</div>
-    </Collapse>
-  );
-
   return (
     <div
       className={`${s.root} ${twoColumnOnPc ? s.wideOnPc : ''} ${
@@ -237,7 +205,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             <div className={twoColumnOnPc ? s.rowFieldOnPc : ''}>
               <div className={s.fieldLabel}>
                 作業モデル
-                {hintButton('workModel')}
+                <HintTooltip text="周回ごとの作業ターンで使うモデル。未指定なら現在のモデルのまま" />
               </div>
               <select
                 value={workModel ?? ''}
@@ -257,7 +225,6 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
                 ))}
               </select>
             </div>
-            {hintText('workModel')}
           </div>
         )}
 
@@ -286,8 +253,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
               judge: value.judge === 'none' ? 'ai' : 'none',
             })
           }
-          hintButton={hintButton('judge')}
-          hint={hintText('judge')}
+          hint="オフの間は停止するまで繰り返し送信します"
         />
 
         <Collapse open={value.judge !== 'none'}>
@@ -296,7 +262,9 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
               <div className={s.rowField}>
                 <div className={s.fieldLabel}>
                   方式
-                  {hintButton('judgeMode')}
+                  {selectedJudgeMode && (
+                    <HintTooltip text={selectedJudgeMode.caption} />
+                  )}
                 </div>
                 <select
                   value={value.judge}
@@ -316,7 +284,6 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
                   ))}
                 </select>
               </div>
-              {hintText('judgeMode')}
             </div>
 
             <div className={s.rowField}>
@@ -359,8 +326,7 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
           onToggle={() =>
             onChange({ ...value, planningEnabled: !value.planningEnabled })
           }
-          hintButton={hintButton('planning')}
-          hint={hintText('planning')}
+          hint="N 周ごとに指定モデルで計画ターンを 1 回挟み、進め方を見直します"
         />
 
         <Collapse open={value.planningEnabled}>

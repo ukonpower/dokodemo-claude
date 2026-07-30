@@ -319,9 +319,7 @@
 }
 
 // ループ設定（起動前のみ）。入力欄と区切るため上に境界線を引く
-// （線の強さと余白は設定内のセクション区切りに合わせる）
 .settings {
-  margin-top: $space-2xs;
   padding-top: $space-md;
-  border-top: 1px solid $dark-border-light;
+  border-top: 1px solid $dark-border;
 }

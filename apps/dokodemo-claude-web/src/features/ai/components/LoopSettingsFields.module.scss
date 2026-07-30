@@ -1,7 +1,8 @@
+// セクション間はまとまりが読み取れるだけの余白を空ける（区切り線は引かない）
 .root {
   display: flex;
   flex-direction: column;
-  gap: $space-md;
+  gap: $space-lg;
 }
 
 .disabled {
@@ -9,16 +10,10 @@
   pointer-events: none;
 }
 
-// 設定のまとまり（基本 / 継続の判断 / 定期プランニング）。
-// 間隔だけだと境目が読み取れないので、2 つ目以降に区切り線を引く
+// 設定のまとまり（基本 / 継続の判断 / 定期プランニング）
 .section {
   display: flex;
   flex-direction: column;
-
-  & + & {
-    padding-top: $space-md;
-    border-top: 1px solid $dark-border-light;
-  }
 }
 
 // 主要フィールドをまとめるラッパー（既定は .root と同じ縦積み）
@@ -49,23 +44,6 @@
   font-weight: $font-weight-medium;
 }
 
-// ラベル横の「?」。説明文を常時表示せずここに畳む
-.hintButton {
-  @include flex-center;
-  flex-shrink: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  color: $dark-text-muted;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: color $transition-fast $transition-easing;
-
-  &:hover,
-  &.hintOpen {
-    color: $dark-text-secondary;
-  }
-}
 
 // ラベル左・入力右の 1 行レイアウト（ステッパー・スリムなセレクト用）
 .rowField {
@@ -78,11 +56,6 @@
   .fieldLabel {
     flex-shrink: 0;
   }
-}
-
-.fieldCaption {
-  font-size: $font-size-2xs;
-  color: $dark-text-muted;
 }
 
 // 数値ステッパー
@@ -312,11 +285,6 @@ $loop-label-width: 10em;
     // ラベル列の直後（セレクト等と同じ開始位置）にトグルを置く
     .toggleButton {
       margin-left: -$space-sm;
-    }
-
-    // キャプションも入力の開始位置に揃えてラベル列と分離する
-    .fieldCaption {
-      padding-left: calc(#{$loop-label-width} + #{$space-md});
     }
   }
 }
