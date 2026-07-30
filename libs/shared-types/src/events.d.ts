@@ -834,6 +834,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      reviewBlocking?: 'ai' | 'always' | 'never';
       planning?: PromptLoopPlanning;
     };
   }) => void;
@@ -858,6 +859,7 @@ export interface ClientToServerEvents {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      reviewBlocking?: 'ai' | 'always' | 'never';
       planning?: PromptLoopPlanning;
     } | null;
   }) => void;

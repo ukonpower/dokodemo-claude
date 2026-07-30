@@ -252,6 +252,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: PromptLoopPlanning;
       };
       // ループアイテムより手前に挿入する（評価応答の反映ターン等、
