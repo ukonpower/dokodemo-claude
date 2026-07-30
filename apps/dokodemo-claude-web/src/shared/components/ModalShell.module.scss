@@ -20,10 +20,12 @@
   overflow: hidden;
 }
 
-// wide の overlay はスマホで余白を消し、パネルを全画面化する
+// wide の overlay はスマホで余白を消し、パネルを全画面化する。
+// 上部固定のリポジトリタブバー（z-index: 50）に閉じるボタンが隠れないよう前面に出す
 .overlayWide {
   @include sm-down {
     padding: 0;
+    z-index: 60;
   }
 }
 
