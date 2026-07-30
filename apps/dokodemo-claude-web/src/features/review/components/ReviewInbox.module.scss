@@ -195,6 +195,92 @@
   color: $gray-500;
 }
 
+// --- 未回答一覧のアコーディオン（1 行に畳み、押した件だけ展開する） ---
+
+.accordionItem {
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  background-color: $dark-bg-secondary;
+  overflow: hidden;
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding-right: $space-2xs;
+}
+
+.accordionRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-sm;
+  border: none;
+  background: none;
+  color: $dark-text-secondary;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.rowId {
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.rowQuestion {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  @include truncate;
+}
+
+.rowTime {
+  flex-shrink: 0;
+  font-size: $font-size-2xs;
+  color: $gray-500;
+}
+
+// 回答済みセクションの開閉トグル（デフォルトは畳んで情報量を抑える）
+.answeredToggle {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-3xs 0;
+  border: none;
+  background: none;
+  color: $gray-500;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform $transition-fast $transition-easing;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
 // セクションが空のときのプレースホルダ
 .emptyText {
   margin: 0;

@@ -13,6 +13,8 @@ interface ReviewRequestCardProps {
     payload: { choice?: string; comment?: string }
   ) => void;
   onDelete: () => void;
+  /** アコーディオン行の中に埋め込む表示（枠とメタ行を行側に任せて省く） */
+  embedded?: boolean;
 }
 
 function formatDateTime(timestamp: number): string {
@@ -27,13 +29,14 @@ function resolveAttachmentUrl(url: string): string {
 
 /**
  * レビューリクエスト 1 件のカード。
- * 狙い → 提示物（画像 / URL）→ 応答（選択肢・一言・そもそも）を縦に並べ、
- * スマホでも最小の操作で返せることを優先する。
+ * メタ行（ID・時刻・削除）→ 狙い → 提示物（画像 / URL）→ 問い → 応答、の順に
+ * 情報の強弱をつけて縦に並べ、スマホでも最小の操作で返せることを優先する。
  */
 export function ReviewRequestCard({
   request,
   onRespond,
   onDelete,
+  embedded = false,
 }: ReviewRequestCardProps) {
   const [comment, setComment] = useState('');
   const isPending = request.status === 'pending';
@@ -56,23 +59,28 @@ export function ReviewRequestCard({
   };
 
   return (
-    <div className={`${s.card} ${isPending ? '' : s.cardAnswered}`}>
-      <div className={s.cardHeader}>
-        <span className={s.requestId}>#{request.id}</span>
-        <span className={s.aim}>{request.aim}</span>
-        {request.blocking && isPending && (
-          <span
-            className={s.blockingBadge}
-            title="このリクエストに応答するまで発行元のキュー・ループは停止しています"
-          >
-            ループ停止中
-          </span>
-        )}
-        <span className={s.meta}>{formatDateTime(request.createdAt)}</span>
-        <IconButton size="xs" label="このリクエストを削除" onClick={onDelete}>
-          <Trash2 />
-        </IconButton>
-      </div>
+    <div
+      className={`${s.card} ${embedded ? s.cardEmbedded : ''} ${isPending ? '' : s.cardAnswered}`}
+    >
+      {!embedded && (
+        <div className={s.cardHeader}>
+          <span className={s.requestId}>#{request.id}</span>
+          {request.blocking && isPending && (
+            <span
+              className={s.blockingBadge}
+              title="このリクエストに応答するまで発行元のキュー・ループは停止しています"
+            >
+              ループ停止中
+            </span>
+          )}
+          <span className={s.meta}>{formatDateTime(request.createdAt)}</span>
+          <IconButton size="xs" label="このリクエストを削除" onClick={onDelete}>
+            <Trash2 />
+          </IconButton>
+        </div>
+      )}
+
+      <p className={s.aim}>{request.aim}</p>
 
       {images.length > 0 && (
         <div className={s.imageGrid}>
@@ -122,7 +130,8 @@ export function ReviewRequestCard({
                 <Button
                   key={choice}
                   size="sm"
-                  variant="primary"
+                  variant="ghost"
+                  className={s.choiceButton}
                   onClick={() => handleChoice(choice)}
                 >
                   {choice}
@@ -145,20 +154,20 @@ export function ReviewRequestCard({
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleComment}
-              disabled={!comment.trim()}
-            >
-              一言だけ送る
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
               onClick={handleFundamental}
               disabled={!comment.trim()}
               title="提示物へのレビューではなく、方向性レベルの相談として送る"
             >
               <MessageCircleQuestion size={14} aria-hidden />
               そもそも相談
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleComment}
+              disabled={!comment.trim()}
+            >
+              一言だけ送る
             </Button>
           </div>
         </div>

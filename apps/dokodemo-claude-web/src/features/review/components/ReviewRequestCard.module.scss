@@ -8,16 +8,30 @@
   background-color: $dark-bg-secondary;
   border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
+
+  // スマホは横幅が貴重なので余白を詰めて提示物を大きく見せる
+  @include sm-down {
+    padding: $space-sm;
+  }
 }
 
 .cardAnswered {
   opacity: 0.7;
 }
 
+// アコーディオン行の中身として使う場合（枠・メタ行は行側が持つ）
+.cardEmbedded {
+  border: none;
+  border-top: 1px solid $dark-border;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+// メタ情報だけの控えめな 1 行（ID・ブロッキング表示・時刻・削除）
 .cardHeader {
   display: flex;
   align-items: center;
-  gap: $space-sm;
+  gap: $space-xs;
   min-width: 0;
 }
 
@@ -28,16 +42,8 @@
   flex-shrink: 0;
 }
 
-.aim {
-  flex: 1;
-  min-width: 0;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
-  color: $dark-text-primary;
-  overflow-wrap: anywhere;
-}
-
 .meta {
+  margin-left: auto;
   font-size: $font-size-2xs;
   color: $gray-500;
   flex-shrink: 0;
@@ -55,6 +61,14 @@
   font-size: $font-size-2xs;
   line-height: 1rem;
   white-space: nowrap;
+}
+
+// 狙い（文脈の説明。問いより弱く出す）
+.aim {
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+  overflow-wrap: anywhere;
 }
 
 // --- 提示物 ---
@@ -115,9 +129,13 @@
 
 // --- 問い・応答 ---
 
+// 問いは回答操作の直前に太字で置き、提示物とは罫線で区切る
 .question {
   margin: 0;
+  padding-top: $space-sm;
+  border-top: 1px solid $dark-border;
   font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   overflow-wrap: anywhere;
 }
@@ -128,10 +146,27 @@
   gap: $space-xs;
 }
 
+// 選択肢は等幅グリッドで揃える（少数なら横いっぱいに分け合い、多数なら折り返す）
 .choices {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
   gap: $space-xs;
+}
+
+// 全部をアクセント色にせず、落ち着いた面のボタンに統一する
+.choices .choiceButton {
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-tertiary;
+  border-color: $dark-border-light;
+  color: $dark-text-primary;
+  white-space: normal;
+  overflow-wrap: anywhere;
+
+  &:hover:not(:disabled) {
+    border-color: $accent;
+    background-color: $dark-bg-hover;
+  }
 }
 
 .commentInput {
@@ -157,6 +192,7 @@
 
 .commentActions {
   display: flex;
+  justify-content: flex-end;
   gap: $space-xs;
 }
 

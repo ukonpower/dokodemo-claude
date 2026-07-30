@@ -20,11 +20,39 @@
   overflow: hidden;
 }
 
-// 一覧系モーダル用の広幅パネル。狭い画面では通常幅と変わらない
+// wide の overlay はスマホで余白を消し、パネルを全画面化する
+.overlayWide {
+  @include sm-down {
+    padding: 0;
+  }
+}
+
+// 一覧系モーダル用の広幅パネル。PC では広げ、スマホでは全画面で情報量を確保する
 .panelWide {
   @include lg-up {
     max-width: 64rem;
     max-height: 90vh;
+  }
+
+  @include sm-down {
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+
+    .header {
+      padding: $space-md $space-md;
+    }
+
+    .content {
+      padding: $space-md $space-sm;
+    }
+
+    .footer {
+      padding: $space-md $space-md;
+    }
   }
 }
 

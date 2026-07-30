@@ -39,7 +39,10 @@ const ModalShell: React.FC<ModalShellProps> = ({
   }, [onClose]);
 
   return (
-    <div className={s.overlay} {...overlayProps}>
+    <div
+      className={`${s.overlay} ${size === 'wide' ? s.overlayWide : ''}`}
+      {...overlayProps}
+    >
       <div
         className={`${s.panel} ${size === 'wide' ? s.panelWide : ''}`}
         role="dialog"

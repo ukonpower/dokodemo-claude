@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Inbox, ImageOff } from 'lucide-react';
+import { Inbox, ImageOff, ChevronRight, Trash2 } from 'lucide-react';
+import IconButton from '@/shared/components/IconButton';
 import ModalShell from '@/shared/components/ModalShell';
 import { BACKEND_URL } from '@/shared/utils/backend-url';
 import { useReviewContext } from '@/features/review/providers/ReviewProvider';
@@ -41,6 +42,10 @@ export function ReviewInbox() {
   const [isOpen, setIsOpen] = useState(false);
   // モーダルを開いた直後にスクロールで合わせる対象（プレビュー行から開いたとき）
   const [focusId, setFocusId] = useState<string | null>(null);
+  // 未回答一覧はアコーディオン。一度に展開するのは 1 件だけにして情報量を抑える
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // 回答済みは普段見返さないので、開くまで畳んで情報量を抑える
+  const [showAnswered, setShowAnswered] = useState(false);
 
   // ブロッキング発行（応答までループ停止）は優先して返してほしいので先頭に寄せる
   const pending = requests
@@ -59,6 +64,8 @@ export function ReviewInbox() {
 
   const openModal = (requestId?: string) => {
     setFocusId(requestId ?? null);
+    // プレビュー行から開いたときはその件だけ展開した状態で始める
+    setExpandedId(requestId ?? null);
     setIsOpen(true);
   };
 
@@ -153,39 +160,100 @@ export function ReviewInbox() {
             <div className={s.section}>
               <h3 className={s.sectionTitle}>未回答（{pending.length}）</h3>
               {pending.length > 0 ? (
-                pending.map((request) => (
-                  <div key={request.id} id={`review-card-${request.id}`}>
-                    <ReviewRequestCard
-                      request={request}
-                      onRespond={(kind, payload) =>
-                        respond(request.id, kind, payload)
-                      }
-                      onDelete={() => deleteRequest(request.id)}
-                    />
-                  </div>
-                ))
+                pending.map((request) => {
+                  const isExpanded = expandedId === request.id;
+                  return (
+                    <div
+                      key={request.id}
+                      id={`review-card-${request.id}`}
+                      className={s.accordionItem}
+                    >
+                      <div className={s.accordionHeader}>
+                        <button
+                          type="button"
+                          className={s.accordionRow}
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : request.id)
+                          }
+                        >
+                          <ChevronRight
+                            size={14}
+                            aria-hidden
+                            className={`${s.chevron} ${isExpanded ? s.chevronOpen : ''}`}
+                          />
+                          <span className={s.rowId}>#{request.id}</span>
+                          {request.blocking && (
+                            <span
+                              className={s.blockingBadge}
+                              title="このリクエストに応答するまで発行元のキュー・ループは停止しています"
+                            >
+                              ループ停止中
+                            </span>
+                          )}
+                          <span className={s.rowQuestion}>
+                            {request.question}
+                          </span>
+                          <span className={s.rowTime}>
+                            {formatRelative(request.createdAt)}
+                          </span>
+                        </button>
+                        <IconButton
+                          size="xs"
+                          label="このリクエストを削除"
+                          onClick={() => deleteRequest(request.id)}
+                        >
+                          <Trash2 />
+                        </IconButton>
+                      </div>
+                      {isExpanded && (
+                        <ReviewRequestCard
+                          request={request}
+                          embedded
+                          onRespond={(kind, payload) =>
+                            respond(request.id, kind, payload)
+                          }
+                          onDelete={() => deleteRequest(request.id)}
+                        />
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <p className={s.emptyText}>未回答のリクエストはありません</p>
               )}
             </div>
 
             <div className={s.section}>
-              <h3 className={s.sectionTitle}>回答済み（{answered.length}）</h3>
-              {answered.length > 0 ? (
-                answered.map((request) => (
-                  <div key={request.id} id={`review-card-${request.id}`}>
-                    <ReviewRequestCard
-                      request={request}
-                      onRespond={(kind, payload) =>
-                        respond(request.id, kind, payload)
-                      }
-                      onDelete={() => deleteRequest(request.id)}
-                    />
-                  </div>
-                ))
-              ) : (
-                <p className={s.emptyText}>回答済みのリクエストはありません</p>
-              )}
+              <button
+                type="button"
+                className={s.answeredToggle}
+                onClick={() => setShowAnswered((v) => !v)}
+              >
+                <ChevronRight
+                  size={14}
+                  aria-hidden
+                  className={`${s.chevron} ${showAnswered ? s.chevronOpen : ''}`}
+                />
+                回答済み（{answered.length}）
+              </button>
+              {showAnswered &&
+                (answered.length > 0 ? (
+                  answered.map((request) => (
+                    <div key={request.id} id={`review-card-${request.id}`}>
+                      <ReviewRequestCard
+                        request={request}
+                        onRespond={(kind, payload) =>
+                          respond(request.id, kind, payload)
+                        }
+                        onDelete={() => deleteRequest(request.id)}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className={s.emptyText}>
+                    回答済みのリクエストはありません
+                  </p>
+                ))}
             </div>
           </div>
         </ModalShell>
