@@ -36,11 +36,28 @@ const SLASH_SETTLE_MS = 900;
 
 // プロンプトの最終 Enter 送信後、この時間内に UserPromptSubmit hook が発火しなければ
 // 取りこぼしを疑う。1 回目は Enter 再送で救済を試み（入力欄に本文が残ったまま
-// Enter だけ取りこぼされたケースを回収）、2 回目も未達なら CLI に届かなかった
-// or 本文が TUI ダイアログに飲まれたと判断して倒す。
+// Enter だけ取りこぼされたケースを回収）、それでも未達なら送信全体の再送信
+// （SEND_RESEND_LIMIT 回まで）→ 最後は承認待ち/completed に倒す。
 // カスタムスラッシュコマンドは展開後に UserPromptSubmit が発火するため、
 // 展開・hook POST の遅延も見込んだ値にしている。
 const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
+
+// 送信ウォッチドッグの「送信全体の再送信」の上限回数。Enter 再送で救えない
+// 取りこぼし（/model 後の打鍵破棄窓に打鍵が全部飲まれた等）を、承認待ちに
+// 倒す前に /model の再適用込みでアイテム送信全体をやり直して自己回復を試みる。
+const SEND_RESEND_LIMIT = 2;
+
+// UserPromptSubmit hook が来ないまま「実行中らしき出力」を検知した場合の
+// 再監視回数の上限（間隔は SEND_WATCHDOG_AFTER_SEND_MS）。hook の取りこぼし・
+// 遅延が疑われる状況で、実行中のセッションへ再打鍵して別プロンプトを重ねる
+// 事故を防ぐため、出力が動いている間は再送信せず監視だけを続ける。
+const SEND_ACTIVITY_WAIT_LIMIT = 10;
+
+// 「実行中らしさ」を PTY 出力から判定する目印（小文字比較）。
+// Claude CLI / Codex CLI とも実行中はステータス行に interrupt 案内を出し続け、
+// spinner 更新で継続的に再描画されるため、直近ウィンドウの出力デルタに
+// この文字列が含まれるかで「今まさに実行中か」を判定できる。
+const OUTPUT_ACTIVITY_MARKERS = ['esc to interrupt'];
 
 // 打鍵確認（echo 確認）: 本文打鍵後、Enter 送信前に「入力欄へ本文が到達したか」を
 // PTY 出力から確認する。/model・/clear 直後の TUI 再描画と打鍵が競合して本文ごと
@@ -52,10 +69,13 @@ const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
 // まるごと破棄する時間帯が十数秒続くことがあり（2026-07-29 実測: /model
 // claude-fable-5 の実行完了後、打ち直しも watchdog の Enter 再送もすべて
 // 無反応のまま消え、その後 CLI は空の入力欄でアイドルに戻っていた）、
-// 1 回の打ち直しでは破棄時間帯より先に諦めてしまうため。
+// 回数上限ではなく時間予算で粘る（破棄窓の実測十数秒＋余裕）。
+// 打ち直しの前には入力欄をクリア（Ctrl+U）し、「実は前の打鍵が届いていたが
+// echo 確認に失敗していた」ケースで本文が二重に連結されるのを防ぐ。
 const ECHO_CHECK_FIRST_DELAY_MS = 500; // 打鍵から最初の確認までの待ちの基準値（従来の Enter 前待ちを兼ねる）
 const ECHO_CHECK_RETRY_DELAY_MS = 700; // 目印未達時の再確認までの待ちの基準値
-const ECHO_RETYPE_LIMIT = 3; // 打ち直し回数の上限（計 4 回打鍵・確認時間は計 12 秒程度）
+const ECHO_RETYPE_BUDGET_MS = 30000; // 打ち直しを続ける時間予算
+const ECHO_RETYPE_DELAY_SCALE_MAX = 4; // 待ち時間の漸増上限（基準値×この倍率まで）
 const ECHO_NEEDLE_LENGTH = 16; // 目印の長さ（正規化後の文字数）
 
 /**
@@ -875,7 +895,13 @@ export class PromptQueueManager extends EventEmitter {
       );
 
       // processNextItem と同じく送信ウォッチドッグを仕掛ける
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
+      this.scheduleSendWatchdog(
+        repositoryPath,
+        provider,
+        item.id,
+        generation,
+        sendOverride
+      );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -1317,19 +1343,49 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * 直近ウィンドウの PTY 出力に「実行中らしさ」の目印があるかを判定する。
+   * UserPromptSubmit hook が来ていないのに実は実行が始まっている
+   * （hook の取りこぼし・遅延）ケースを検出し、実行中セッションへの
+   * 再打鍵（誤送信）を防ぐために使う。
+   */
+  private hasRecentOutputActivity(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    const delta =
+      this.aiSessionAdapter?.getPrimaryOutputSince(
+        repositoryPath,
+        provider,
+        Date.now() - SEND_WATCHDOG_AFTER_SEND_MS
+      ) ?? '';
+    const lower = delta.toLowerCase();
+    return OUTPUT_ACTIVITY_MARKERS.some((m) => lower.includes(m));
+  }
+
+  /**
    * 送信完了（最終 Enter）後 SEND_WATCHDOG_AFTER_SEND_MS 以内に UserPromptSubmit
    * hook が発火しないケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ /
-   * PTY write 失敗等）を検出する。1 回目（attempt=0）は Enter 再送で救済を試みて
-   * 同じ時間だけ再監視し、2 回目も未達なら currentItem を completed として次へ
-   * 進める（ループアイテムは承認待ちに倒す）。Stop hook 経路や forceSendItem /
-   * cancelCurrentItem / removeFromQueue で先に状態が変わっていれば全部 no-op に倒す。
+   * PTY write 失敗等）を検出し、段階的に自己回復を試みる:
+   *   1. attempt=0: Enter 再送（本文が入力欄に残ったまま Enter だけ落ちたケース）
+   *   2. 実行中らしき出力を検知したら再送信せず監視継続（hook 取りこぼし疑い。
+   *      SEND_ACTIVITY_WAIT_LIMIT 回まで）
+   *   3. resendCount < SEND_RESEND_LIMIT: /model 再適用込みで送信全体をやり直す
+   *   4. 上限到達: currentItem を completed として次へ進める（ループアイテムは
+   *      承認待ちに倒す）
+   * Stop hook 経路や forceSendItem / cancelCurrentItem / removeFromQueue で先に
+   * 状態が変わっていれば全部 no-op に倒す。
+   * override は送信時の差し替え内容（プランニング等）。再送信で同じ内容を
+   * 送り直すために引き回す。
    */
   private scheduleSendWatchdog(
     repositoryPath: string,
     provider: AiProvider,
     itemId: string,
     generation: number,
-    attempt = 0
+    override?: { prompt?: string; model?: string; skipClear?: boolean },
+    attempt = 0,
+    resendCount = 0,
+    activityWaits = 0
   ): void {
     setTimeout(async () => {
       const key = this.getQueueKey(repositoryPath, provider);
@@ -1371,9 +1427,74 @@ export class PromptQueueManager extends EventEmitter {
           provider,
           itemId,
           generation,
-          attempt + 1
+          override,
+          attempt + 1,
+          resendCount,
+          activityWaits
         );
         return;
+      }
+
+      // hook は来ていないが出力が動いている＝実は実行中の可能性が高い。
+      // ここで再送信すると実行中のセッションへ別プロンプトを重ねてしまうため、
+      // 監視だけ継続する（上限を超えたら hook 側の異常として下の失敗処理へ）。
+      if (this.hasRecentOutputActivity(repositoryPath, provider)) {
+        if (activityWaits < SEND_ACTIVITY_WAIT_LIMIT) {
+          if (activityWaits === 0) {
+            console.warn(
+              `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} は UserPromptSubmit 未達のまま実行中らしき出力を検知しました（hook の取りこぼし疑い）。再送信せず監視を続けます`
+            );
+          }
+          this.scheduleSendWatchdog(
+            repositoryPath,
+            provider,
+            itemId,
+            generation,
+            override,
+            attempt,
+            resendCount,
+            activityWaits + 1
+          );
+          return;
+        }
+      } else if (resendCount < SEND_RESEND_LIMIT) {
+        // Enter 再送で救えなかった＝本文ごと取りこぼされた可能性が高い。
+        // /model の適用キャッシュを無効化して（取りこぼしがモデル未適用を
+        // 疑わせるため）、送信全体をやり直す。
+        const session = this.aiSessionAdapter?.getSession(
+          repositoryPath,
+          provider
+        );
+        if (session) {
+          console.warn(
+            `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} の送信全体をやり直します（${resendCount + 1}/${SEND_RESEND_LIMIT}回目）`
+          );
+          this.invalidateCurrentModel(repositoryPath, provider);
+          const newGeneration = this.bumpSendGeneration(
+            repositoryPath,
+            provider
+          );
+          try {
+            await this.sendItemCommands(session.id, item, false, override);
+            this.scheduleSendWatchdog(
+              repositoryPath,
+              provider,
+              itemId,
+              newGeneration,
+              override,
+              0,
+              resendCount + 1,
+              0
+            );
+            return;
+          } catch (error) {
+            console.error(
+              '[PromptQueueManager] 送信ウォッチドッグ: 再送信に失敗しました:',
+              error
+            );
+            // 下の失敗処理へフォールスルー
+          }
+        }
       }
 
       // ループアイテムを completed で終わらせると再投入経路が無く黙って死ぬため、
@@ -1395,7 +1516,9 @@ export class PromptQueueManager extends EventEmitter {
         // フラグだけ倒せば承認後に反映ターンから再開される
         item.loop.feedbackActive = undefined;
         item.loop.lastJudgeReason =
-          '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
+          activityWaits >= SEND_ACTIVITY_WAIT_LIMIT
+            ? '⚠ プロンプト受付（UserPromptSubmit hook）が届かないまま実行中らしき出力が続いています。フックが別インスタンスに向いていないか設定を確認してください。'
+            : `⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした（自動再送 ${resendCount} 回も未達）。フック設定や送信の取りこぼしを確認してください。`;
         state.isProcessing = false;
         state.currentItemId = undefined;
         await this.persistQueues();
@@ -1623,7 +1746,13 @@ export class PromptQueueManager extends EventEmitter {
       // 送信完了から SEND_WATCHDOG_AFTER_SEND_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
       // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
+      this.scheduleSendWatchdog(
+        repositoryPath,
+        provider,
+        item.id,
+        generation,
+        sendOverride
+      );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -1699,10 +1828,12 @@ export class PromptQueueManager extends EventEmitter {
    * 本文を打鍵し、入力欄への到達を「打鍵時刻以降の出力デルタ」で確認する。
    * 到達を確認できなければ間隔を漸増させながら本文を打ち直す（Enter はまだ
    * 送らない）。/model 直後などに CLI が打鍵を破棄し続ける時間帯（十数秒）を
-   * またいで粘るための漸増で、後の試行ほど長く待ってから確認する。
+   * またいで粘るため、回数ではなく時間予算（ECHO_RETYPE_BUDGET_MS）で粘る。
+   * 打ち直しの前には入力欄をクリア（Ctrl+U）して、echo 確認の見落としで
+   * 実は届いていた本文に重ねて打ってしまう二重連結を防ぐ。
    * 長文は CLI がペーストプレースホルダ（[Pasted text #N +M lines]）表示に
    * 置き換えることがあるため、それも到達とみなす。
-   * 戻り値は PTY write が成功したか（false はセッション死亡）。打ち直し上限まで
+   * 戻り値は PTY write が成功したか（false はセッション死亡）。時間予算まで
    * 到達を確認できなかった場合も true を返して Enter へ進む（最終防衛線は
    * 送信 watchdog）。
    */
@@ -1718,13 +1849,23 @@ export class PromptQueueManager extends EventEmitter {
     const headNeedle = normalized.slice(0, ECHO_NEEDLE_LENGTH);
     const tailNeedle = normalized.slice(-ECHO_NEEDLE_LENGTH);
 
-    for (let attempt = 0; attempt <= ECHO_RETYPE_LIMIT; attempt++) {
+    const startedAt = Date.now();
+    for (let attempt = 0; ; attempt++) {
+      if (attempt > 0) {
+        // 入力欄のクリア（Ctrl+U = 行頭まで削除）。空欄への送信は無害。
+        // 複数行状態への保険で数回送る（破棄窓の中なら丸ごと無視されるだけ）。
+        for (let i = 0; i < 3; i++) {
+          this.aiSessionAdapter.sendCommand(sessionId, '\x15');
+          await this.sleep(80);
+        }
+      }
+
       const typedAt = Date.now();
       const ok = this.aiSessionAdapter.sendCommand(sessionId, text);
       if (!ok) return false;
 
-      // 後の試行ほど待ちを伸ばす（1.2s → 2.4s → 3.6s → 4.8s ≈ 計 12s）
-      const scale = attempt + 1;
+      // 後の試行ほど待ちを伸ばす（上限 ECHO_RETYPE_DELAY_SCALE_MAX 倍）
+      const scale = Math.min(attempt + 1, ECHO_RETYPE_DELAY_SCALE_MAX);
       await this.sleep(ECHO_CHECK_FIRST_DELAY_MS * scale);
 
       // 目印が短すぎて照合の信頼性が無い場合は従来どおり時間待ちのみで進む
@@ -1747,14 +1888,13 @@ export class PromptQueueManager extends EventEmitter {
       }
       if (confirmed) return true;
 
-      if (attempt < ECHO_RETYPE_LIMIT) {
-        console.warn(
-          `[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します（${attempt + 1}/${ECHO_RETYPE_LIMIT}回目）`
-        );
-      }
+      if (Date.now() - startedAt >= ECHO_RETYPE_BUDGET_MS) break;
+      console.warn(
+        `[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します（${attempt + 1}回目、経過 ${Math.round((Date.now() - startedAt) / 1000)}s）`
+      );
     }
     console.warn(
-      '[PromptQueueManager] 打鍵確認: 打ち直し上限まで到達を確認できませんでした（watchdog に委ねて送信を続行します）'
+      '[PromptQueueManager] 打鍵確認: 時間予算内に到達を確認できませんでした（watchdog に委ねて送信を続行します）'
     );
     return true;
   }
