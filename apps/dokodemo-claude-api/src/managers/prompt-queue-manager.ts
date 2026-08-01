@@ -35,12 +35,27 @@ const ENTER_RETRY_MS = 600;
 const SLASH_SETTLE_MS = 900;
 
 // プロンプトの最終 Enter 送信後、この時間内に UserPromptSubmit hook が発火しなければ
-// 取りこぼしを疑う。1 回目は Enter 再送で救済を試み（入力欄に本文が残ったまま
-// Enter だけ取りこぼされたケースを回収）、それでも未達なら送信全体の再送信
-// （SEND_RESEND_LIMIT 回まで）→ 最後は承認待ち/completed に倒す。
+// 取りこぼしを疑い、送信全体の再送信（SEND_RESEND_LIMIT 回まで）→ 最後は
+// 承認待ち/completed に倒す。
 // カスタムスラッシュコマンドは展開後に UserPromptSubmit が発火するため、
 // 展開・hook POST の遅延も見込んだ値にしている。
+// 注意: かつてあった「Enter だけ再送」の救済は廃止した。CLI 内部のメッセージ
+// キューにプロンプトが滞留している場合、空 Enter は「キュー済みメッセージの
+// 割り込み送信」操作になり、実行中ターンを中断して事故を起こす（2026-08-02 実測）。
+// Enter 取りこぼしの救済は、入力欄クリア込みの全体再送信が兼ねる。
 const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
+
+// 送信前アイドルゲート: CLI が実行中に打鍵・Enter すると、プロンプトは実行されず
+// CLI 内部のメッセージキューに滞留する。以後は「Stop hook で完了扱い→実は
+// キューの古いプロンプトが走り出しただけ」という 1 周先行のズレが恒久化する
+// （2026-08-02 実測: ループ開始時に CLI が実行中で、40 周ズレたまま走行）。
+// 送信はアイドルを確認できるまで見送る。
+const SEND_GATE_RETRY_MS = 5000; // 見送り後の再チェック間隔（Stop hook 再トリガの保険）
+
+// 実行ステータスが running でも、PTY 出力がこの時間まったく無ければ stale
+// （Stop の取りこぼし・順序レースで running が残った）とみなす。実行中の CLI は
+// spinner の再描画で継続的に出力を出し続けるため、長い無出力＝実行していない。
+const STATUS_DESYNC_SILENCE_MS = 20000;
 
 // 送信ウォッチドッグの「送信全体の再送信」の上限回数。Enter 再送で救えない
 // 取りこぼし（/model 後の打鍵破棄窓に打鍵が全部飲まれた等）を、承認待ちに
@@ -126,6 +141,16 @@ export interface QueueAiSessionAdapter {
   isPrimaryAiBusy(repositoryPath: string, provider: AiProvider): boolean;
 
   /**
+   * プライマリAIが running へ遷移した時刻（ms）。running でなければ null。
+   * 送信ウォッチドッグが「この送信に対する UserPromptSubmit か、それ以前から
+   * 残っている stale な running か」を判別するのに使う。
+   */
+  getPrimaryRunningSince(
+    repositoryPath: string,
+    provider: AiProvider
+  ): number | null;
+
+  /**
    * プライマリセッションの出力末尾を取得（ループ AI 判断の入力に使う）。
    * 実装側で ANSI 除去と末尾行トリミングを行う。
    */
@@ -151,6 +176,11 @@ export class PromptQueueManager extends EventEmitter {
 
   // ループのインターバル待機用タイマー（キー = queueKey）
   private loopTimers: Map<string, NodeJS.Timeout> = new Map();
+
+  // 送信前アイドルゲートの再チェックタイマー（キー = queueKey）。
+  // CLI が実行中で送信を見送ったときの保険。通常は実行中ターンの Stop hook が
+  // processNextItem を再トリガするため、これは Stop を取りこぼした場合の救済。
+  private sendGateTimers: Map<string, NodeJS.Timeout> = new Map();
 
   // AI 判断の abort（キー = queueKey）
   private loopJudgeAborts: Map<string, AbortController> = new Map();
@@ -816,6 +846,17 @@ export class PromptQueueManager extends EventEmitter {
       );
     }
 
+    // 送信前アイドルゲート: 実行中の CLI へ強制送信すると、プロンプトが CLI
+    // 内部キューに滞留して周回の対応関係が壊れるため拒否する
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      return Err(
+        QueueError.addFailed(
+          repositoryPath,
+          'AI が実行中のため送信できません。完了を待ってから再実行してください'
+        )
+      );
+    }
+
     // ループアイテムの場合: 承認待ち / 判断中は強制送信できない。
     // インターバル待機中はタイマーとカウントダウンをクリアして即送信へ
     let sendOverride:
@@ -887,6 +928,7 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
+      const sendStartedAt = Date.now();
       await this.sendItemCommands(
         session.id,
         item,
@@ -900,7 +942,8 @@ export class PromptQueueManager extends EventEmitter {
         provider,
         item.id,
         generation,
-        sendOverride
+        sendOverride,
+        sendStartedAt
       );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
@@ -1331,6 +1374,10 @@ export class PromptQueueManager extends EventEmitter {
       clearTimeout(timer);
     }
     this.loopTimers.clear();
+    for (const timer of this.sendGateTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.sendGateTimers.clear();
     for (const controller of this.loopJudgeAborts.values()) {
       controller.abort();
     }
@@ -1363,13 +1410,69 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * 実行ステータス（hook 由来）で running、かつ PTY 出力が実際に動いているか。
+   * running でも STATUS_DESYNC_SILENCE_MS 出力が静止していれば stale
+   * （Stop の取りこぼし・順序レースの残骸）とみなして false を返す。
+   */
+  private isPrimaryActuallyBusy(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    if (!this.aiSessionAdapter) return false;
+    if (!this.aiSessionAdapter.isPrimaryAiBusy(repositoryPath, provider)) {
+      return false;
+    }
+    const recentOutput = this.aiSessionAdapter.getPrimaryOutputSince(
+      repositoryPath,
+      provider,
+      Date.now() - STATUS_DESYNC_SILENCE_MS
+    );
+    return recentOutput.trim().length > 0;
+  }
+
+  /**
+   * 送信前アイドルゲート: プライマリ CLI がプロンプト送信を受けられる状態か。
+   * 実行中に打鍵すると CLI 内部キューへの滞留（1 周先行ズレ）が起きるため、
+   * 実行中マーカー・実行ステータスのどちらかが実行中を示す間は送信しない。
+   */
+  private isPrimarySessionIdle(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    return (
+      !this.hasRecentOutputActivity(repositoryPath, provider) &&
+      !this.isPrimaryActuallyBusy(repositoryPath, provider)
+    );
+  }
+
+  /**
+   * アイドルゲートで送信を見送った後の再チェックを予約する。
+   * 既に予約済みなら何もしない（Stop hook 由来の processNextItem と重複してもよい）。
+   */
+  private scheduleSendGateRetry(
+    repositoryPath: string,
+    provider: AiProvider
+  ): void {
+    const key = this.getQueueKey(repositoryPath, provider);
+    if (this.sendGateTimers.has(key)) return;
+    const timer = setTimeout(() => {
+      this.sendGateTimers.delete(key);
+      void this.processNextItem(repositoryPath, provider);
+    }, SEND_GATE_RETRY_MS);
+    this.sendGateTimers.set(key, timer);
+  }
+
+  /**
    * 送信完了（最終 Enter）後 SEND_WATCHDOG_AFTER_SEND_MS 以内に UserPromptSubmit
    * hook が発火しないケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ /
    * PTY write 失敗等）を検出し、段階的に自己回復を試みる:
-   *   1. attempt=0: Enter 再送（本文が入力欄に残ったまま Enter だけ落ちたケース）
+   *   1. 今回の送信以降に running へ遷移していれば送信成功（Stop を待つ）。
+   *      送信より前からの running は stale（順序レースの残骸）として無視する
    *   2. 実行中らしき出力を検知したら再送信せず監視継続（hook 取りこぼし疑い。
    *      SEND_ACTIVITY_WAIT_LIMIT 回まで）
    *   3. resendCount < SEND_RESEND_LIMIT: /model 再適用込みで送信全体をやり直す
+   *      （入力欄クリア込みなので Enter 取りこぼし・本文残留のどちらも救える。
+   *      空 Enter の再送はキュー済みメッセージの割り込み送信になるため行わない）
    *   4. 上限到達: currentItem を completed として次へ進める（ループアイテムは
    *      承認待ちに倒す）
    * Stop hook 経路や forceSendItem / cancelCurrentItem / removeFromQueue で先に
@@ -1382,8 +1485,8 @@ export class PromptQueueManager extends EventEmitter {
     provider: AiProvider,
     itemId: string,
     generation: number,
-    override?: { prompt?: string; model?: string; skipClear?: boolean },
-    attempt = 0,
+    override: { prompt?: string; model?: string; skipClear?: boolean } | undefined,
+    sendStartedAt: number,
     resendCount = 0,
     activityWaits = 0
   ): void {
@@ -1398,42 +1501,18 @@ export class PromptQueueManager extends EventEmitter {
       if (state.currentItemId !== itemId) return;
       if (!state.isProcessing) return;
 
-      // UserPromptSubmit が発火していれば primary は running 状態。送信成功と
-      // 判断して何もしない（Stop hook の到達を待つ）。
-      const aiBusy =
-        this.aiSessionAdapter?.isPrimaryAiBusy(repositoryPath, provider) ??
-        false;
-      if (aiBusy) return;
+      // 今回の送信開始以降に UserPromptSubmit が発火していれば送信成功と判断して
+      // 何もしない（Stop hook の到達を待つ）。running でも遷移時刻が送信開始より
+      // 古い場合は、前のターンの残骸（Stop 取りこぼし・順序レース）なので
+      // 成功とはみなさず、下の救済フローへ進む。
+      const runningSince = this.aiSessionAdapter?.getPrimaryRunningSince(
+        repositoryPath,
+        provider
+      );
+      if (runningSince != null && runningSince >= sendStartedAt) return;
 
       const item = state.queue.find((i) => i.id === itemId);
       if (!item || item.status !== 'processing') return;
-
-      // 1 回目: 本文が入力欄に残ったまま Enter だけ取りこぼされた可能性がある。
-      // Enter を再送して救済を試み、同じ時間だけ再監視する
-      // （入力欄が空なら空 Enter は無害。救済で送信されれば次回は aiBusy で no-op）。
-      if (attempt === 0) {
-        console.warn(
-          `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} の UserPromptSubmit を確認できないため Enter を再送して再監視します`
-        );
-        const session = this.aiSessionAdapter?.getSession(
-          repositoryPath,
-          provider
-        );
-        if (session) {
-          this.aiSessionAdapter?.sendCommand(session.id, '\r');
-        }
-        this.scheduleSendWatchdog(
-          repositoryPath,
-          provider,
-          itemId,
-          generation,
-          override,
-          attempt + 1,
-          resendCount,
-          activityWaits
-        );
-        return;
-      }
 
       // hook は来ていないが出力が動いている＝実は実行中の可能性が高い。
       // ここで再送信すると実行中のセッションへ別プロンプトを重ねてしまうため、
@@ -1451,7 +1530,7 @@ export class PromptQueueManager extends EventEmitter {
             itemId,
             generation,
             override,
-            attempt,
+            sendStartedAt,
             resendCount,
             activityWaits + 1
           );
@@ -1474,6 +1553,7 @@ export class PromptQueueManager extends EventEmitter {
             repositoryPath,
             provider
           );
+          const newSendStartedAt = Date.now();
           try {
             await this.sendItemCommands(session.id, item, false, override);
             this.scheduleSendWatchdog(
@@ -1482,7 +1562,7 @@ export class PromptQueueManager extends EventEmitter {
               itemId,
               newGeneration,
               override,
-              0,
+              newSendStartedAt,
               resendCount + 1,
               0
             );
@@ -1637,7 +1717,21 @@ export class PromptQueueManager extends EventEmitter {
         return;
       }
       item.loop.nextSendAt = undefined;
+    }
 
+    // 送信前アイドルゲート: CLI が実行中（別ターン走行中・手動操作中など）に
+    // 打鍵すると、プロンプトが CLI 内部キューに滞留して周回の対応関係が壊れる。
+    // アイドルを確認できるまで送信しない。実行中ターンの Stop hook が
+    // processNextItem を再トリガするのが本線で、タイマーは取りこぼしの保険。
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      console.warn(
+        `[PromptQueueManager] CLI が実行中のため ${item.id} の送信を見送ります（アイドル確認後に再開）`
+      );
+      this.scheduleSendGateRetry(repositoryPath, provider);
+      return;
+    }
+
+    if (item.loop) {
       // e. 空回り検知: 自動コミット有効なループなら、周回ごとにコミットが
       //    増えているはず。増えないまま LOOP_IDLE_ROUND_LIMIT 周続いたら、
       //    同じところで足踏みしているとみなして承認待ちに倒す。
@@ -1736,6 +1830,7 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
+      const sendStartedAt = Date.now();
       await this.sendItemCommands(
         session.id,
         item,
@@ -1751,7 +1846,8 @@ export class PromptQueueManager extends EventEmitter {
         provider,
         item.id,
         generation,
-        sendOverride
+        sendOverride,
+        sendStartedAt
       );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);

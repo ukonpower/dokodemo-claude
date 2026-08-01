@@ -80,6 +80,11 @@ export class ProcessManager extends EventEmitter {
 
   // 実行状態: instanceId キー
   private aiExecutionStates: Map<string, AiExecutionState> = new Map();
+
+  // running へ遷移した時刻（キー = instanceId）。
+  // Stop(completed) と UserPromptSubmit(running) がほぼ同時に届く順序レースの
+  // 判定と、キュー側の「この送信に対する UserPromptSubmit か」の判別に使う。
+  private aiRunningSetAt: Map<string, number> = new Map();
   private selectedProviders: Map<string, PersistedSelectedProvider> = new Map();
   private processesDir: string;
   private selectedProvidersFile = 'repo-provider-preferences.json';
@@ -225,6 +230,18 @@ export class ProcessManager extends EventEmitter {
         if (!primary || primary.provider !== provider) return false;
         return this.getAiExecutionStatus(primary.instanceId) === 'running';
       },
+      getPrimaryRunningSince: (
+        repositoryPath: string,
+        provider: AiProvider
+      ) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary || primary.provider !== provider) return null;
+        if (this.getAiExecutionStatus(primary.instanceId) !== 'running')
+          return null;
+        return this.aiRunningSetAt.get(primary.instanceId) ?? null;
+      },
       getPrimaryOutputTail: (repositoryPath: string, provider: AiProvider) => {
         const primary = this.aiSessionManager.getPrimaryInstance(
           repositoryPath
@@ -350,8 +367,29 @@ export class ProcessManager extends EventEmitter {
   }
 
   setAiExecutionStatus(instanceId: string, status: AiExecutionStatus): void {
+    // running の時刻は同値遷移でも更新する（連続 UserPromptSubmit 対応）
+    if (status === 'running') {
+      this.aiRunningSetAt.set(instanceId, Date.now());
+    }
+
     const current = this.aiExecutionStates.get(instanceId)?.status ?? 'idle';
     if (current === status) return;
+
+    // Stop(completed) と UserPromptSubmit(running) の順序レース対策:
+    // 前のターンの Stop hook が、次のターンの UserPromptSubmit より後に届くと
+    // 「実行中なのにアイドル表示」になり、キューの送信ゲート・ウォッチドッグが
+    // 誤動作する（2026-08-02 実測: 誤アイドル判定 → 空 Enter → 割り込み送信）。
+    // running 直後の completed は後着した前ターンの Stop とみなして無視する
+    // （誤って running が残っても、キュー側が出力静止を見て stale 判定で自己回復する）。
+    if (status === 'completed') {
+      const runningAt = this.aiRunningSetAt.get(instanceId);
+      if (runningAt !== undefined && Date.now() - runningAt < 1200) {
+        console.warn(
+          `[ProcessManager] running 直後の completed 遷移をスキップ（Stop 後着の疑い）: ${instanceId}`
+        );
+        return;
+      }
+    }
 
     if (status === 'idle') {
       this.aiExecutionStates.delete(instanceId);
