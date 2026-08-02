@@ -585,6 +585,15 @@ export async function createReviewRequest(
   }
 
   const provider: AiProvider = input.provider === 'codex' ? 'codex' : 'claude';
+
+  // 発行元キューのループ設定 reviewBlocking で AI の blocking 指定を上書きする。
+  // 'always': 常にブロッキング / 'never': 常に非ブロッキング / 'ai'・未設定: AI の指定に従う
+  const policy =
+    processManager.promptQueueManager.getLoopReviewBlocking(resolved, provider) ??
+    'ai';
+  const blocking =
+    policy === 'always' ? true : policy === 'never' ? false : input.blocking === true;
+
   const result = await processManager.reviewRequestManager.create(prid, {
     aim: input.aim,
     question: input.question,
@@ -592,13 +601,13 @@ export async function createReviewRequest(
     choices: (input.choices ?? []).filter((c) => typeof c === 'string' && c !== ''),
     sourcePath: resolved,
     provider,
-    blocking: input.blocking === true,
+    blocking,
   });
   if (!result.ok) throw new ActionError(500, result.error.message);
 
   // ブロッキング発行: 応答が届くまで発行元キューを一時停止する
   // （実行中のターンはそのまま完走し、次のアイテム／ループ周回から止まる）
-  if (input.blocking === true) {
+  if (blocking) {
     await processManager.pausePromptQueue(resolved, provider);
   }
 

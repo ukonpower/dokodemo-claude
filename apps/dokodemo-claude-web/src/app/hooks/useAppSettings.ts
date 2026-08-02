@@ -35,6 +35,8 @@ export interface CommandSendSettings {
   loopJudgeEveryN?: number;
   loopIntervalMin?: number; // 分単位（0 = 即時）
   loopJudgeCriteria?: string; // AI 判断時の判定基準（終了条件）
+  // 評価リクエスト発行時にループを停止するかのポリシー（既定 'ai' = AI の指定に従う）
+  loopReviewBlocking?: 'ai' | 'always' | 'never';
   // 定期プランニング（N 周ごとに強いモデルで計画ターンを 1 回差し込む）
   loopPlanningEnabled?: boolean;
   loopPlanningEveryN?: number;

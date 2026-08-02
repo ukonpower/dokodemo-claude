@@ -14,6 +14,8 @@ export interface LoopSettings {
   judgeEveryN: number;
   intervalSec: number;
   judgeCriteria?: string;
+  // 評価リクエスト発行時にループを停止するかのポリシー
+  reviewBlocking?: 'ai' | 'always' | 'never';
   // 定期プランニング: N 周ごとに強いモデルで計画ターンを 1 回差し込む
   planning?: {
     everyN: number;

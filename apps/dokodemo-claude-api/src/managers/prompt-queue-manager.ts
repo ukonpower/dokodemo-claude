@@ -174,6 +174,11 @@ export class PromptQueueManager extends EventEmitter {
 
   private aiSessionAdapter: QueueAiSessionAdapter | null = null;
 
+  // 未回答のブロッキング評価リクエストが残っているかの判定（ReviewRequestManager を注入）
+  private blockingReviewChecker:
+    | ((repositoryPath: string, provider: AiProvider) => boolean)
+    | null = null;
+
   // ループのインターバル待機用タイマー（キー = queueKey）
   private loopTimers: Map<string, NodeJS.Timeout> = new Map();
 
@@ -210,6 +215,17 @@ export class PromptQueueManager extends EventEmitter {
    */
   setAiSessionAdapter(adapter: QueueAiSessionAdapter): void {
     this.aiSessionAdapter = adapter;
+  }
+
+  /**
+   * 未回答のブロッキング評価リクエストが残っているかの判定関数を設定する。
+   * 設定されている間、resumeQueue はこの判定が true の間は再開を拒否する
+   * （ループ停止→再開始やユーザーの再開操作でブロック状態が失われるのを防ぐ）
+   */
+  setBlockingReviewChecker(
+    checker: (repositoryPath: string, provider: AiProvider) => boolean
+  ): void {
+    this.blockingReviewChecker = checker;
   }
 
   /**
@@ -329,6 +345,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(options.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(options.loop.intervalSec)),
           judgeCriteria: options.loop.judgeCriteria?.trim() || undefined,
+          reviewBlocking: options.loop.reviewBlocking,
           planning: this.normalizeLoopPlanning(options.loop.planning),
           iteration: 1,
           startedAt: now,
@@ -449,6 +466,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: PromptLoopPlanning;
       } | null;
     }
@@ -502,6 +520,7 @@ export class PromptQueueManager extends EventEmitter {
           Math.floor(updates.loop.intervalSec)
         );
         item.loop.judgeCriteria = updates.loop.judgeCriteria?.trim() || undefined;
+        item.loop.reviewBlocking = updates.loop.reviewBlocking;
         item.loop.planning = this.normalizeLoopPlanning(updates.loop.planning);
         if (!item.loop.planning) {
           // プランニング解除時は予約中のプランニングターンも取り消す
@@ -519,6 +538,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(updates.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(updates.loop.intervalSec)),
           judgeCriteria: updates.loop.judgeCriteria?.trim() || undefined,
+          reviewBlocking: updates.loop.reviewBlocking,
           planning: this.normalizeLoopPlanning(updates.loop.planning),
           iteration: 1,
           startedAt: Date.now(),
@@ -1072,6 +1092,13 @@ export class PromptQueueManager extends EventEmitter {
     repositoryPath: string,
     provider: AiProvider
   ): Promise<Result<void, QueueError>> {
+    // 未回答のブロッキング評価リクエストが残っている間は再開しない。
+    // ループの停止→再開始・ユーザーの再開操作・サーバ再起動のどの経路でも、
+    // 応答（または発行の削除）まで一時停止を維持する
+    if (this.blockingReviewChecker?.(repositoryPath, provider)) {
+      return Err(QueueError.blockedByReview(repositoryPath));
+    }
+
     const state = this.getOrCreateQueueState(repositoryPath, provider);
     state.isPaused = false;
 
@@ -1124,6 +1151,18 @@ export class PromptQueueManager extends EventEmitter {
   getQueue(repositoryPath: string, provider: AiProvider): PromptQueueItem[] {
     const state = this.getQueueState(repositoryPath, provider);
     return state?.queue || [];
+  }
+
+  /**
+   * キューに登録されているループアイテムの reviewBlocking ポリシーを返す。
+   * ループが無い、または未設定なら undefined（呼び出し側で 'ai' 扱い）
+   */
+  getLoopReviewBlocking(
+    repositoryPath: string,
+    provider: AiProvider
+  ): 'ai' | 'always' | 'never' | undefined {
+    const state = this.getQueueState(repositoryPath, provider);
+    return state?.queue.find((i) => i.loop)?.loop?.reviewBlocking;
   }
 
   /**

@@ -280,6 +280,11 @@ export class ProcessManager extends EventEmitter {
         return text.length > 16000 ? text.slice(-16000) : text;
       },
     });
+    // 未回答のブロッキング評価リクエストが残っている間、キュー再開を拒否する判定を注入
+    this.promptQueueManager.setBlockingReviewChecker(
+      (repositoryPath, provider) =>
+        this.reviewRequestManager.hasPendingBlocking(repositoryPath, provider)
+    );
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
       this.emit('prompt-queue-updated', data)
     );
@@ -828,6 +833,7 @@ export class ProcessManager extends EventEmitter {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      reviewBlocking?: 'ai' | 'always' | 'never';
       planning?: PromptLoopPlanning;
     }
   ): Promise<PromptQueueItem> {
@@ -973,6 +979,7 @@ export class ProcessManager extends EventEmitter {
           judgeEveryN: number;
           intervalSec: number;
           judgeCriteria?: string;
+          reviewBlocking?: 'ai' | 'always' | 'never';
           planning?: PromptLoopPlanning;
         }
       | null

@@ -272,6 +272,7 @@ export function ProjectView() {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: { everyN: number; model: string; prompt: string };
       }
     ) => {

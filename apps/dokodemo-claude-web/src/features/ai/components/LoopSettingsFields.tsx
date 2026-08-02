@@ -11,6 +11,8 @@ export interface LoopSettingsValue {
   judgeEveryN: number;
   intervalSec: number;
   judgeCriteria: string;
+  // 評価リクエスト発行時にループを停止するかのポリシー
+  reviewBlocking: 'ai' | 'always' | 'never';
   // 定期プランニング（N 周ごとに強いモデルで計画ターンを 1 回差し込む）
   planningEnabled: boolean;
   planningEveryN: number;
@@ -28,6 +30,16 @@ export const DEFAULT_PLANNING_PROMPT =
 const PLANNING_SAMPLE_PROMPTS = [
   { label: 'autopilot-plan', prompt: '/dokodemo-claude-tools:autopilot-plan' },
 ] as const;
+
+// 評価リクエスト発行時の停止ポリシーの選択肢
+const REVIEW_BLOCKING_OPTIONS: {
+  value: LoopSettingsValue['reviewBlocking'];
+  label: string;
+}[] = [
+  { value: 'ai', label: 'AIに任せる' },
+  { value: 'always', label: '常に停止' },
+  { value: 'never', label: '停止しない' },
+];
 
 // 継続判断が有効なときの方式（トグル OFF = 'none' は選択肢に出さない）
 const JUDGE_MODE_OPTIONS: {
@@ -238,6 +250,32 @@ const LoopSettingsFields: React.FC<LoopSettingsFieldsProps> = ({
             disabled={disabled}
             onChange={(n) => onChange({ ...value, intervalSec: n * 60 })}
           />
+        </div>
+
+        {/* 評価リクエスト発行時にループを停止するか */}
+        <div className={s.rowField}>
+          <div className={s.fieldLabel}>
+            評価での停止
+            <HintTooltip text="AIが評価リクエスト（受信箱への確認依頼）を出したとき、回答が届くまでループを止めるか。「AIに任せる」は後続が評価結果に依存するとAIが判断したときだけ止まります" />
+          </div>
+          <select
+            value={value.reviewBlocking}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                reviewBlocking: e.target
+                  .value as LoopSettingsValue['reviewBlocking'],
+              })
+            }
+            disabled={disabled}
+            className={`${s.selectInput} ${s.selectSlim}`}
+          >
+            {REVIEW_BLOCKING_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

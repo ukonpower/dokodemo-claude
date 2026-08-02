@@ -61,6 +61,7 @@ interface LoopComposerProps {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      reviewBlocking?: 'ai' | 'always' | 'never';
       planning?: { everyN: number; model: string; prompt: string };
     }
   ) => void;
@@ -211,6 +212,7 @@ const LoopComposer = forwardRef<LoopComposerRef, LoopComposerProps>(
       judgeEveryN: Math.max(1, sendSettings?.loopJudgeEveryN ?? 1),
       intervalSec: Math.max(0, sendSettings?.loopIntervalMin ?? 0) * 60,
       judgeCriteria: sendSettings?.loopJudgeCriteria ?? '',
+      reviewBlocking: sendSettings?.loopReviewBlocking ?? 'ai',
       planningEnabled: sendSettings?.loopPlanningEnabled ?? false,
       planningEveryN: Math.max(
         1,
@@ -238,6 +240,7 @@ const LoopComposer = forwardRef<LoopComposerRef, LoopComposerProps>(
           loopJudgeEveryN: next.judgeEveryN,
           loopIntervalMin: Math.round(next.intervalSec / 60),
           loopJudgeCriteria: next.judgeCriteria,
+          loopReviewBlocking: next.reviewBlocking,
           loopPlanningEnabled: next.planningEnabled,
           loopPlanningEveryN: next.planningEveryN,
           loopPlanningModel: next.planningModel,
@@ -256,6 +259,7 @@ const LoopComposer = forwardRef<LoopComposerRef, LoopComposerProps>(
         judgeEveryN: loopSettings.judgeEveryN,
         intervalSec: loopSettings.intervalSec,
         judgeCriteria: loopSettings.judgeCriteria.trim() || undefined,
+        reviewBlocking: loopSettings.reviewBlocking,
         planning: loopSettings.planningEnabled
           ? {
               everyN: loopSettings.planningEveryN,
