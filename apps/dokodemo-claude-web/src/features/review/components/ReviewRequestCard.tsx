@@ -189,6 +189,14 @@ export function ReviewRequestCard({
             <span className={s.meta}>
               {formatDateTime(request.response.respondedAt)}
             </span>
+            {!request.reflected && (
+              <span
+                className={s.unreflectedBadge}
+                title="発行元の AI の手が空き次第、反映ターンとして自動で届けられます"
+              >
+                AIへ反映待ち
+              </span>
+            )}
           </div>
         )
       )}

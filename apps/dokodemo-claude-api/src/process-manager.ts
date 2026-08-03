@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import path from 'path';
 import {
   CommandShortcut,
@@ -15,6 +15,8 @@ import {
 } from './types/index.js';
 
 import { PersistenceService } from './services/persistence-service.js';
+import { repositoryIdManager } from './services/repository-id-manager.js';
+import { toPublicReviewRequest } from './managers/review-request-manager.js';
 import {
   ShortcutManager,
   TerminalManager,
@@ -285,6 +287,46 @@ export class ProcessManager extends EventEmitter {
       (repositoryPath, provider) =>
         this.reviewRequestManager.hasPendingBlocking(repositoryPath, provider)
     );
+    // 評価応答の反映ターン: 実体は review-requests.json、キューは配達役に徹する。
+    // 配達先は発行元パス（worktree が消えていたら親リポジトリへフォールバック）
+    const resolveReviewDeliveryPath = (request: {
+      rid: string;
+      sourcePath: string;
+    }): string => {
+      if (existsSync(request.sourcePath)) return request.sourcePath;
+      return repositoryIdManager.getPath(request.rid) ?? request.sourcePath;
+    };
+    this.promptQueueManager.setReviewReflectionAdapter({
+      listUnreflected: (repositoryPath, provider) =>
+        this.reviewRequestManager
+          .listUnreflected()
+          .filter(
+            (r) =>
+              r.provider === provider &&
+              r.response !== undefined &&
+              resolveReviewDeliveryPath(r) === repositoryPath
+          )
+          .map((r) => ({
+            rid: r.rid,
+            requestId: r.id,
+            aim: r.aim,
+            question: r.question,
+            response: {
+              kind: r.response!.kind,
+              choice: r.response!.choice,
+              comment: r.response!.comment,
+            },
+          })),
+      markReflected: async (refs) => {
+        const updated = await this.reviewRequestManager.markReflected(refs);
+        for (const request of updated) {
+          this.emit('review-request-updated', {
+            rid: request.rid,
+            request: toPublicReviewRequest(request),
+          });
+        }
+      },
+    });
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
       this.emit('prompt-queue-updated', data)
     );

@@ -32,4 +32,6 @@ export interface ReviewRequest {
   response?: ReviewResponse;
   // 応答が来るまで発行元キュー（ループ含む）を一時停止するブロッキング発行か
   blocking?: boolean;
+  // 応答を反映ターンとして発行元 AI へ配達済みか（answered のときだけ意味を持つ）
+  reflected?: boolean;
 }

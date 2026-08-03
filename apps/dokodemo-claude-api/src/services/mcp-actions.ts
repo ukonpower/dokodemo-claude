@@ -636,29 +636,6 @@ export interface RespondReviewRequestInput {
   comment?: string;
 }
 
-/** 応答内容から発行元キューへ注入するプロンプトを組み立てる */
-function buildReviewResponsePrompt(
-  request: { id: string; aim: string; question: string },
-  input: RespondReviewRequestInput
-): string {
-  const header = `[評価リクエスト #${request.id}「${request.aim}」への応答]`;
-  if (input.kind === 'fundamental') {
-    return (
-      `${header}\n` +
-      `提示物への評価ではなく、方向性レベルの相談が届きました:\n\n` +
-      `${input.comment ?? ''}\n\n` +
-      `プロジェクトに goal / direction 文書があれば読み込み、前提から対話・整理してください。`
-    );
-  }
-  const lines = [header, `問い: ${request.question}`];
-  if (input.choice) lines.push(`選択: ${input.choice}`);
-  if (input.comment) lines.push(`コメント: ${input.comment}`);
-  lines.push(
-    'この評価を記録（feedback ログ等があれば追記）し、必要な修正があればタスク化して対応してください。'
-  );
-  return lines.join('\n');
-}
-
 export async function respondReviewRequest(
   rid: string,
   requestId: string,
@@ -686,28 +663,15 @@ export async function respondReviewRequest(
   if (!result.ok) throw new ActionError(400, result.error.message);
   const stored = result.value;
 
-  // 注入先は発行元。worktree が既に消えている場合は親リポジトリへフォールバック
+  // 配達先は発行元。worktree が既に消えている場合は親リポジトリへフォールバック
+  // （応答の実体は review-requests.json に残り、反映ターンはキューを経由せず
+  // 配達のたびに組み立て直されるため、キュー操作で応答が失われることはない）
   const parentRepoPath = repositoryIdManager.getPath(rid) ?? stored.sourcePath;
   let targetPath = stored.sourcePath;
   try {
     await access(stored.sourcePath);
   } catch {
     targetPath = parentRepoPath;
-  }
-
-  const prompt = buildReviewResponsePrompt(stored, input);
-  // 反映ターンが次のループ周回より先に走るよう、ループアイテムの手前に挿入する
-  const addResult = await processManager.promptQueueManager.addToQueue(
-    targetPath,
-    stored.provider,
-    prompt,
-    { insertBeforeLoop: true }
-  );
-  if (!addResult.ok) {
-    throw new ActionError(
-      500,
-      `応答のキュー注入に失敗しました: ${addResult.error.message}`
-    );
   }
 
   // ブロッキング発行への応答: 同じ発行元に未回答のブロッキング発行が
@@ -721,6 +685,13 @@ export async function respondReviewRequest(
       await processManager.resumePromptQueue(targetPath, stored.provider);
     }
   }
+
+  // AI の手が空いていれば即座に反映ターンを配達する
+  // （処理中・一時停止中なら Stop hook 着弾時・キュー再開時に配達される）
+  await processManager.promptQueueManager.triggerReviewReflection(
+    targetPath,
+    stored.provider
+  );
 
   io.emit('review-request-updated', {
     rid,

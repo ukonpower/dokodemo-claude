@@ -47,6 +47,7 @@ export function toPublicReviewRequest(
     createdAt: stored.createdAt,
     response: stored.response,
     blocking: stored.blocking,
+    reflected: stored.reflected,
   };
 }
 
@@ -85,6 +86,41 @@ export class ReviewRequestManager {
 
   get(rid: string, requestId: string): StoredReviewRequest | undefined {
     return (this.requests.get(rid) ?? []).find((r) => r.id === requestId);
+  }
+
+  /**
+   * 応答済みだが反映ターン未配達のリクエストを全 rid 横断で返す。
+   * 配達先（発行元パス × プロバイダ）への絞り込みは呼び出し側で行う。
+   */
+  listUnreflected(): StoredReviewRequest[] {
+    const result: StoredReviewRequest[] = [];
+    for (const list of this.requests.values()) {
+      for (const r of list) {
+        if (r.status === 'answered' && !r.reflected) result.push(r);
+      }
+    }
+    return result.sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /**
+   * 反映ターンとして配達済みのリクエストに reflected を立てる。
+   * 更新できたリクエストを返す（呼び出し側でクライアントへ配信するため）。
+   */
+  async markReflected(
+    refs: { rid: string; requestId: string }[]
+  ): Promise<StoredReviewRequest[]> {
+    const updated: StoredReviewRequest[] = [];
+    for (const ref of refs) {
+      const request = this.get(ref.rid, ref.requestId);
+      if (request && request.status === 'answered' && !request.reflected) {
+        request.reflected = true;
+        updated.push(request);
+      }
+    }
+    if (updated.length > 0) {
+      await this.persist();
+    }
+    return updated;
   }
 
   /**

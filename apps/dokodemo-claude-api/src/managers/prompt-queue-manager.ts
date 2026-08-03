@@ -168,6 +168,37 @@ export interface QueueAiSessionAdapter {
   ): string;
 }
 
+/**
+ * 反映ターンで配達する評価応答 1 件分。
+ * 実体は ReviewRequestManager が永続化しており、キューは配達のたびに
+ * ここから組み立て直す（キューアイテムとして抱え込まない）。
+ */
+export interface ReviewReflectionEntry {
+  rid: string;
+  requestId: string;
+  aim: string;
+  question: string;
+  response: {
+    kind: 'choice' | 'comment' | 'fundamental';
+    choice?: string;
+    comment?: string;
+  };
+}
+
+/**
+ * 評価応答の反映ターンの取得・確定を抽象化するインターフェース
+ * （ReviewRequestManager を注入。配達先の解決も注入側で行う）
+ */
+export interface ReviewReflectionAdapter {
+  /** 配達先（repositoryPath × provider）宛の未反映応答を古い順で返す */
+  listUnreflected(
+    repositoryPath: string,
+    provider: AiProvider
+  ): ReviewReflectionEntry[];
+  /** 反映ターンの完了時に呼ぶ。対象リクエストへ reflected を立てる */
+  markReflected(refs: { rid: string; requestId: string }[]): Promise<void>;
+}
+
 export class PromptQueueManager extends EventEmitter {
   private queues: Map<string, PromptQueueState> = new Map();
   private queueCounter = 0;
@@ -178,6 +209,17 @@ export class PromptQueueManager extends EventEmitter {
   private blockingReviewChecker:
     | ((repositoryPath: string, provider: AiProvider) => boolean)
     | null = null;
+
+  // 評価応答の反映ターンの取得・確定（ReviewRequestManager を注入）
+  private reviewReflectionAdapter: ReviewReflectionAdapter | null = null;
+
+  // 送信中の反映ターンが含む応答の参照（キー = queueKey）。
+  // Stop hook 着弾時に reflected を立てる対象。プロセスが落ちた場合は
+  // reflected が立たないまま残るため、次の機会に同じ応答が再配達される。
+  private reviewReflectInFlight: Map<
+    string,
+    { rid: string; requestId: string }[]
+  > = new Map();
 
   // ループのインターバル待機用タイマー（キー = queueKey）
   private loopTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -226,6 +268,15 @@ export class PromptQueueManager extends EventEmitter {
     checker: (repositoryPath: string, provider: AiProvider) => boolean
   ): void {
     this.blockingReviewChecker = checker;
+  }
+
+  /**
+   * 評価応答の反映ターンアダプターを設定する。
+   * 設定されている間、キューは送信の手前で毎回「未反映の応答が無いか」を確認し、
+   * あればキューアイテムより先に反映ターンとして配達する。
+   */
+  setReviewReflectionAdapter(adapter: ReviewReflectionAdapter): void {
+    this.reviewReflectionAdapter = adapter;
   }
 
   /**
@@ -321,9 +372,6 @@ export class PromptQueueManager extends EventEmitter {
         reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: PromptLoopPlanning;
       };
-      // ループアイテムより手前に挿入する（評価応答の反映ターン等、
-      // 次のループ周回より先に処理させたいプロンプト用）
-      insertBeforeLoop?: boolean;
     }
   ): Promise<Result<PromptQueueItem, QueueError>> {
     try {
@@ -368,16 +416,7 @@ export class PromptQueueManager extends EventEmitter {
         loop,
       };
 
-      // insertBeforeLoop: 待機中（pending）のループアイテムがあればその手前に挿入する。
-      // 処理中のループアイテムは順序に影響しないため対象外（末尾 push でよい）
-      const loopIndex = options?.insertBeforeLoop
-        ? state.queue.findIndex((i) => i.loop && i.status === 'pending')
-        : -1;
-      if (loopIndex !== -1) {
-        state.queue.splice(loopIndex, 0, item);
-      } else {
-        state.queue.push(item);
-      }
+      state.queue.push(item);
 
       await this.persistQueues();
 
@@ -720,6 +759,123 @@ export class PromptQueueManager extends EventEmitter {
       '計画やタスクを管理するファイル（docs/tasks.md 等）を運用している場合は、その内容も更新してください。',
       'このターンでは指示の反映のみを行い、通常の作業タスクは進めないでください。',
     ].join('\n');
+  }
+
+  /**
+   * 評価応答の反映ターンのプロンプトを組み立てる。未反映の応答をまとめて 1 ターンで送る。
+   */
+  private buildReviewReflectionPrompt(
+    entries: ReviewReflectionEntry[]
+  ): string {
+    const sections = entries.map((e) => {
+      const lines = [`[評価リクエスト #${e.requestId}「${e.aim}」への応答]`];
+      if (e.response.kind === 'fundamental') {
+        lines.push(
+          '提示物への評価ではなく、方向性レベルの相談が届きました:',
+          '',
+          e.response.comment ?? ''
+        );
+      } else {
+        lines.push(`問い: ${e.question}`);
+        if (e.response.choice) lines.push(`選択: ${e.response.choice}`);
+        if (e.response.comment) lines.push(`コメント: ${e.response.comment}`);
+      }
+      return lines.join('\n');
+    });
+
+    const tail = [
+      'これらの評価を記録（feedback ログ等があれば追記）し、評価待ちのタスクがあれば完了または再着手へ動かし、必要な修正があればタスク化して対応してください。',
+    ];
+    if (entries.some((e) => e.response.kind === 'fundamental')) {
+      tail.push(
+        '方向性レベルの相談については、プロジェクトに goal / direction 文書があれば読み込み、前提から対話・整理してください。'
+      );
+    }
+    return [...sections, tail.join('\n')].join('\n\n');
+  }
+
+  /**
+   * 未反映の評価応答があれば反映ターンを開始する。開始したら true。
+   * 配達できる状態でない（アダプター未設定・応答なし・CLI 実行中）なら false を
+   * 返し、呼び出し側は通常のキュー処理を続ける。
+   * 反映済みのマークは Stop hook 着弾時（= ターン完了時）に行うため、
+   * 送信後にプロセスが落ちても応答が失われることはない（再配達される）。
+   */
+  private async maybeStartReviewReflection(
+    repositoryPath: string,
+    provider: AiProvider,
+    state: PromptQueueState
+  ): Promise<boolean> {
+    if (!this.reviewReflectionAdapter || !this.aiSessionAdapter) return false;
+
+    const entries = this.reviewReflectionAdapter.listUnreflected(
+      repositoryPath,
+      provider
+    );
+    if (entries.length === 0) return false;
+
+    // 実行中の CLI への打鍵は誤送信のもと（キューアイテムと同じ送信前アイドルゲート）
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      this.scheduleSendGateRetry(repositoryPath, provider);
+      return false;
+    }
+
+    const key = this.getQueueKey(repositoryPath, provider);
+    state.isProcessing = true;
+    state.currentItemId = 'review-reflect';
+    this.reviewReflectInFlight.set(
+      key,
+      entries.map((e) => ({ rid: e.rid, requestId: e.requestId }))
+    );
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    try {
+      const session = await this.aiSessionAdapter.ensureSession(
+        repositoryPath,
+        provider
+      );
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
+
+      const ok = await this.typeWithEchoCheck(
+        session.id,
+        repositoryPath,
+        provider,
+        this.buildReviewReflectionPrompt(entries)
+      );
+      if (!ok) {
+        throw new Error('PTY への書き込みに失敗しました');
+      }
+      this.aiSessionAdapter.sendCommand(session.id, '\r');
+      if (session.coldStart) {
+        await this.sleep(ENTER_RETRY_MS);
+        this.aiSessionAdapter.sendCommand(session.id, '\r');
+      }
+      return true;
+    } catch (error) {
+      console.error('[PromptQueueManager] 反映ターンの送信エラー:', error);
+      // 巻き戻す。reflected は立っていないため、次の機会に再配達される
+      this.reviewReflectInFlight.delete(key);
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+      await this.persistQueues();
+      this.emitQueueUpdated(repositoryPath, provider, state);
+      return false;
+    }
+  }
+
+  /**
+   * 評価応答の到着を配達機会としてキュー処理を促す（応答直後の即時配達用）。
+   * 処理中・一時停止中は何もしない（Stop hook 着弾時・キュー再開時に配達される）
+   */
+  async triggerReviewReflection(
+    repositoryPath: string,
+    provider: AiProvider
+  ): Promise<void> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    if (!state.isProcessing && !state.isPaused) {
+      await this.processNextItem(repositoryPath, provider);
+    }
   }
 
   /**
@@ -1178,6 +1334,27 @@ export class PromptQueueManager extends EventEmitter {
       (item) => item.status === 'pending'
     );
     if (!state.currentItemId && !hasPendingItems) {
+      // キューは空でも、未反映の評価応答が残っていれば反映ターンを起動する
+      // （直送プロンプトのターン終了 = AI の手が空いた瞬間を配達機会にする）
+      await this.processNextItem(repositoryPath, provider);
+      return;
+    }
+
+    // 評価応答の反映ターン完了: 配達済みをマークして次の処理へ
+    if (state.currentItemId === 'review-reflect') {
+      const key = this.getQueueKey(repositoryPath, provider);
+      const refs = this.reviewReflectInFlight.get(key) ?? [];
+      this.reviewReflectInFlight.delete(key);
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+
+      if (refs.length > 0 && this.reviewReflectionAdapter) {
+        await this.reviewReflectionAdapter.markReflected(refs);
+      }
+      await this.persistQueues();
+      this.emitQueueUpdated(repositoryPath, provider, state);
+
+      await this.processNextItem(repositoryPath, provider);
       return;
     }
 
@@ -1721,14 +1898,21 @@ export class PromptQueueManager extends EventEmitter {
 
     const state = this.getOrCreateQueueState(repositoryPath, provider);
 
+    if (state.isProcessing || state.isPaused) {
+      return;
+    }
+
+    // 未反映の評価応答があれば、キューアイテムより先に反映ターンとして配達する。
+    // 実体は ReviewRequestManager の永続データなので、キューをクリアしても
+    // 配達は失われず、次にここを通ったときに再配達される
+    if (await this.maybeStartReviewReflection(repositoryPath, provider, state)) {
+      return;
+    }
+
     const pendingItems = state.queue.filter(
       (item) => item.status === 'pending'
     );
     if (pendingItems.length === 0) {
-      return;
-    }
-
-    if (state.isProcessing || state.isPaused) {
       return;
     }
 

@@ -1163,6 +1163,11 @@ processManager.on('ai-instance-closed', (data: { instanceId: string; repositoryP
   io.emit('ai-instance-closed', { rid, instanceId: data.instanceId });
 });
 
+// 反映ターン完了時の reflected 更新をクライアントへ配信する
+processManager.on('review-request-updated', (data) => {
+  io.emit('review-request-updated', data);
+});
+
 processManager.on('prompt-queue-updated', (data) => {
   const rid = repositoryIdManager.tryGetId(data.repositoryPath);
   emitToRepositoryClients(data.repositoryPath, 'prompt-queue-updated', {

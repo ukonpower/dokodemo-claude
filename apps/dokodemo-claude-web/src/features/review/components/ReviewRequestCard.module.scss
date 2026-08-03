@@ -216,3 +216,16 @@
   color: $dark-text-secondary;
   overflow-wrap: anywhere;
 }
+
+// 応答が発行元 AI へまだ配達されていない（反映ターン待ち）表示
+.unreflectedBadge {
+  flex-shrink: 0;
+  padding: 0 $space-2xs;
+  border: 1px solid $color-warning-border;
+  border-radius: $radius-full;
+  background-color: $color-warning-bg;
+  color: $color-warning;
+  font-size: $font-size-2xs;
+  line-height: 1rem;
+  white-space: nowrap;
+}
