@@ -14,7 +14,6 @@ import {
   Check,
   Trash2,
   Download,
-  ExternalLink,
   Inbox,
   Upload,
   Play,
@@ -262,7 +261,14 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
   }, []);
 
   const handleItemClick = useCallback((file: UploadedFileInfo) => {
-    if (file.type === 'other') return;
+    if (file.type === 'other') {
+      if (isTouchDevice.current && activeItemId !== file.id) {
+        setActiveItemId(file.id);
+      } else {
+        handleOpenInBrowser(file);
+      }
+      return;
+    }
     if (file.type === 'markdown') {
       if (isTouchDevice.current && activeItemId !== file.id) {
         setActiveItemId(file.id);
@@ -278,7 +284,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
     } else {
       openLightbox(idx);
     }
-  }, [activeItemId, openLightbox, getLightboxIndex]);
+  }, [activeItemId, openLightbox, getLightboxIndex, handleOpenInBrowser]);
 
   const closeLightbox = useCallback(() => { setLightboxOpen(false); }, []);
   const closeMarkdownLightbox = useCallback(() => { setMarkdownFile(null); }, []);
@@ -365,9 +371,6 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
         {/* ファイルサムネイル */}
         {files.map((file) => {
           const isActive = activeItemId === file.id;
-          const isMedia = file.type === 'image' || file.type === 'video';
-          const isMarkdown = file.type === 'markdown';
-          const isClickable = isMedia || isMarkdown;
           const displayName = getDisplayName(file.filename);
           const tooltip = file.title
             ? `${file.title}\n${displayName}`
@@ -380,7 +383,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
           >
             <button
               onClick={() => handleItemClick(file)}
-              className={`${s.thumbnailButton} ${isClickable ? s.thumbnailButtonMedia : s.thumbnailButtonOther}`}
+              className={`${s.thumbnailButton} ${s.thumbnailButtonMedia}`}
               aria-label={`${file.title || displayName}`}
             >
               {file.type === 'video' ? (
@@ -427,10 +430,8 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
 
             {/* ホバーオーバーレイ */}
             <div
-              onClick={() => { if (isClickable) handleItemClick(file); }}
-              className={`${s.hoverOverlay} ${
-                isClickable ? s.hoverOverlayMedia : ''
-              } ${
+              onClick={() => handleItemClick(file)}
+              className={`${s.hoverOverlay} ${s.hoverOverlayMedia} ${
                 isActive ? s.hoverOverlayActive : s.hoverOverlayInactive
               }`}
             />
@@ -452,14 +453,6 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
                 ) : (
                   <CopyIcon className={s.actionIcon} strokeWidth={2} />
                 )}
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleOpenInBrowser(file); }}
-                className={`${s.actionButton} ${s.previewButton}`}
-                title="ブラウザで開く"
-                aria-label="ブラウザで開く"
-              >
-                <ExternalLink className={s.actionIcon} strokeWidth={2} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
