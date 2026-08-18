@@ -14,6 +14,7 @@ import {
   Check,
   Trash2,
   Download,
+  ExternalLink,
   Inbox,
   Upload,
   Play,
@@ -221,6 +222,15 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    },
+    [rid]
+  );
+
+  // download=1 なしの URL を新規タブで開き、ブラウザの inline 表示に任せる
+  const handleOpenInBrowser = useCallback(
+    (file: UploadedFileInfo) => {
+      const url = `${BACKEND_URL}/api/media/${encodeURIComponent(rid)}/${encodeURIComponent(file.filename)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     },
     [rid]
   );
@@ -442,6 +452,14 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
                 ) : (
                   <CopyIcon className={s.actionIcon} strokeWidth={2} />
                 )}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleOpenInBrowser(file); }}
+                className={`${s.actionButton} ${s.previewButton}`}
+                title="ブラウザで開く"
+                aria-label="ブラウザで開く"
+              >
+                <ExternalLink className={s.actionIcon} strokeWidth={2} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDownload(file); }}
