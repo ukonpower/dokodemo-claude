@@ -639,6 +639,8 @@
 // 送信行に置くモデルチップ。送信ボタンを押し出さないよう幅の上限を決め、
 // 溢れる分は .optValue の省略記号で丸める
 .modelChip {
+  display: flex;
+  align-items: center;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 12rem;
@@ -649,6 +651,7 @@
 
   .modelDropdownWrapper {
     flex: 0 1 auto;
+    width: 100%;
   }
 }
 
@@ -809,6 +812,9 @@
   min-width: 0;
 }
 
+// 隣接するアップロード/送信ボタンと同じ高さ・輪郭の「押せる」枠に揃える。
+// 背景と同化しないよう境界は $dark-border-light、文字は muted より一段明るい
+// $dark-text-secondary（muted は非アクティブ状態の色で disabled に見えるため）
 .modelButton {
   width: 100%;
   min-width: 0;
@@ -816,19 +822,19 @@
   align-items: center;
   justify-content: center;
   gap: $space-2xs;
+  min-height: 2.25rem;
   padding: $space-2xs $space-sm;
-  border-radius: $radius;
+  border-radius: $radius-md;
   font-size: $font-size-xs;
   line-height: 1rem;
   transition: all $transition-fast $transition-easing;
-  background: none;
-  border: none;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
   cursor: pointer;
   white-space: nowrap;
   touch-action: manipulation;
 
   @include sm-down {
-    min-height: 32px;
     padding-left: $space-xs;
     padding-right: $space-xs;
   }
@@ -839,11 +845,17 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
       color: $dark-text-primary;
+      background-color: $dark-bg-hover;
     }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 

@@ -1344,7 +1344,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     // 現在のモデルとして出すと実態とズレるため）ので、チップに値は出さない。
     // キューでは送信時に適用される「モデル指定」なので選択中の値を表示する。
     const modelSelector = (
-      <div className={`${s.optGroup} ${s.modelChip}`}>
+      <div className={s.modelChip}>
         <div className={s.modelDropdownWrapper} ref={modelDropdownRef}>
           <button
             ref={modelButtonRef}
