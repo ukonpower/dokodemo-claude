@@ -204,6 +204,33 @@
   }
 }
 
+// 削除実行中のタブ: 控えめにトーンダウンし、クリック等の操作を受け付けない
+// （pointer-events で内側のリンク・メニューもまとめて無効化する）
+.tabWrapper.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+// span 要素に .menuButton を当てて同寸表示するため、明示的に flex にする
+.deletingSpinnerWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.deletingSpinner {
+  animation: spin 1s linear infinite;
+  color: $gray-400;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .tabButton {
   display: flex;
   align-items: center;
