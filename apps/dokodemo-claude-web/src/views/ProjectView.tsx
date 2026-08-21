@@ -93,9 +93,16 @@ export function ProjectView() {
   const { terminal } = useTerminalContext();
   const { terminals } = terminal;
 
-  // ワークツリー関連（削除中オーバーレイ表示・BranchSelector への受け渡し用）
-  const { isDeletingWorktree, deletingWorktreePath, worktrees } =
+  // ワークツリー関連（削除エラートースト表示・BranchSelector への受け渡し用）
+  const { worktreeDeleteError, clearWorktreeDeleteError, worktrees } =
     useWorktreeContext();
+
+  // ワークツリー削除エラーのトーストは一定時間で自動的に消す
+  useEffect(() => {
+    if (!worktreeDeleteError) return;
+    const timer = setTimeout(clearWorktreeDeleteError, 5000);
+    return () => clearTimeout(timer);
+  }, [worktreeDeleteError, clearWorktreeDeleteError]);
 
   // プロンプトキュー関連（キューの有無はキューリストの表示切替に使用）
   const {
@@ -520,23 +527,14 @@ export function ProjectView() {
       {/* リポジトリ切り替えメニュー */}
       <RepositorySwitcher />
 
-      {/* ワークツリー削除中オーバーレイ */}
-      {isDeletingWorktree && (
-        <div className={s.worktreeOverlay}>
-          <div className={s.worktreeCard}>
-            <div className={s.worktreeSpinnerWrap}>
-              <Loader2 className={s.worktreeSpinner} />
-            </div>
-            <p className={s.worktreeTitle}>ワークツリーを削除中...</p>
-            <p className={s.worktreeSubtitle}>
-              関連するセッション、ターミナル、キューを終了しています
-            </p>
-            {deletingWorktreePath && (
-              <p className={s.worktreePath}>
-                {deletingWorktreePath.split('/').pop()}
-              </p>
-            )}
-          </div>
+      {/* ワークツリー削除エラートースト（クリックでも閉じられる） */}
+      {worktreeDeleteError && (
+        <div
+          className={s.deleteErrorToast}
+          role="alert"
+          onClick={clearWorktreeDeleteError}
+        >
+          {worktreeDeleteError.message}
         </div>
       )}
 

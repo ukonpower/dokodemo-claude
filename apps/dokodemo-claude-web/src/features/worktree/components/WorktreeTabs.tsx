@@ -7,6 +7,7 @@ import {
   GitMerge,
   Trash2,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import {
@@ -101,6 +102,7 @@ interface SortableWorktreeTabProps {
   wt: GitWorktree;
   isActive: boolean;
   isMenuOpen: boolean;
+  isDeleting: boolean;
   compact: boolean;
   isConnected: boolean;
   onSwitch: (path: string) => void;
@@ -111,12 +113,14 @@ interface SortableWorktreeTabProps {
 }
 
 /**
- * ドラッグ&ドロップで並び替え可能なブランチワークツリータブ
+ * ドラッグ&ドロップで並び替え可能なブランチワークツリータブ。
+ * 削除実行中はトーンダウン表示にし、クリック・メニュー・ドラッグを受け付けない。
  */
 function SortableWorktreeTab({
   wt,
   isActive,
   isMenuOpen,
+  isDeleting,
   compact,
   isConnected,
   onSwitch,
@@ -129,7 +133,7 @@ function SortableWorktreeTab({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: wt.path });
+  } = useSortable({ id: wt.path, disabled: isDeleting });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -144,13 +148,23 @@ function SortableWorktreeTab({
       style={style}
       {...attributes}
       {...listeners}
-      className={`${s.tabWrapper} ${compact ? s.compactStyle : s.normalStyle} ${isActive ? s.active : ''}`}
+      className={`${s.tabWrapper} ${compact ? s.compactStyle : s.normalStyle} ${isActive ? s.active : ''} ${isDeleting ? s.deleting : ''}`}
     >
       <a
         href={`?repo=${encodeURIComponent(wt.path)}`}
         draggable={false}
-        title={wt.memo ? `${wt.branch}\n${wt.memo}` : wt.branch}
+        title={
+          isDeleting
+            ? `${wt.branch}（削除中...）`
+            : wt.memo
+              ? `${wt.branch}\n${wt.memo}`
+              : wt.branch
+        }
         onClick={(e) => {
+          if (isDeleting) {
+            e.preventDefault();
+            return;
+          }
           if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
             return;
           }
@@ -177,15 +191,25 @@ function SortableWorktreeTab({
         </span>
       </a>
 
-      {/* 3点リーダーメニュー */}
-      <button
-        onClick={(e) => onMenuClick(e, wt)}
-        disabled={!isConnected}
-        className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
-        title="ワークツリー操作"
-      >
-        <MoreVertical size={compact ? 12 : 16} />
-      </button>
+      {isDeleting ? (
+        // 削除中スピナー（メニューボタンと同寸で置き換え、レイアウトを崩さない）
+        <span
+          className={`${s.menuButton} ${s.deletingSpinnerWrap} ${compact ? s.compact : s.normal}`}
+          aria-label="削除中"
+        >
+          <Loader2 size={compact ? 12 : 16} className={s.deletingSpinner} />
+        </span>
+      ) : (
+        // 3点リーダーメニュー
+        <button
+          onClick={(e) => onMenuClick(e, wt)}
+          disabled={!isConnected}
+          className={`${s.menuButton} ${compact ? s.compact : s.normal} ${isMenuOpen ? s.open : ''}`}
+          title="ワークツリー操作"
+        >
+          <MoreVertical size={compact ? 12 : 16} />
+        </button>
+      )}
     </div>
   );
 }
@@ -210,7 +234,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
     reorderWorktrees: onReorderWorktrees,
     deleteWorktree: onDeleteWorktree,
     mergeWorktree: onMergeWorktree,
-    isDeletingWorktree,
+    deletingWorktreePaths,
     worktreeCreateSuccessNonce,
     clearWorktreeCreateError: onClearWorktreeCreateError,
   } = useWorktreeContext();
@@ -316,7 +340,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
     if (targetWorktree) {
       onDeleteWorktree(targetWorktree.path, deleteBranchToo);
       // 親リポジトリへの切り替えはworktree-deletedイベント受信時に行う
-      // 削除中状態はApp.tsx側で管理（isDeletingWorktree）
+      // 削除中状態はuseWorktrees側で管理（deletingWorktreePaths）
       setShowDeleteConfirm(false);
       setTargetWorktree(null);
       setDeleteBranchToo(false);
@@ -448,6 +472,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   wt={wt}
                   isActive={isWorktreeActive(wt)}
                   isMenuOpen={menuOpenPath === wt.path}
+                  isDeleting={deletingWorktreePaths.includes(wt.path)}
                   compact={compact}
                   isConnected={isConnected}
                   onSwitch={handleSwitchAndRemember}
@@ -496,7 +521,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                 </button>
                 <button
                   onClick={() => handleDeleteClick(wt)}
-                  disabled={isDeletingWorktree}
+                  disabled={deletingWorktreePaths.includes(wt.path)}
                   className={`${s.menuItem} ${s.deleteItem}`}
                 >
                   <Trash2 className={s.menuItemIcon} />
@@ -576,10 +601,10 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
               </button>
               <button
                 onClick={handleConfirmDelete}
-                disabled={isDeletingWorktree}
+                disabled={deletingWorktreePaths.includes(targetWorktree.path)}
                 className={`${s.confirmButton} ${s.danger}`}
               >
-                {isDeletingWorktree ? '削除中...' : '削除する'}
+                削除する
               </button>
             </div>
           </div>

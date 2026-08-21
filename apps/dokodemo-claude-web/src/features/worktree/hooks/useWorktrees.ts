@@ -62,8 +62,11 @@ export interface UseWorktreesReturn {
   } | null;
   worktreeCreateError: { message: string } | null;
   worktreeCreateSuccessNonce: number;
-  isDeletingWorktree: boolean;
-  deletingWorktreePath: string | null;
+  // 削除実行中のワークツリーパス一覧（タブ側で「削除中」表示に使う）
+  deletingWorktreePaths: string[];
+  // 削除失敗時のエラー（トースト表示用）
+  worktreeDeleteError: { message: string } | null;
+  clearWorktreeDeleteError: () => void;
 
   // ワークツリーアクション
   createWorktree: (
@@ -117,10 +120,12 @@ export function useWorktrees(
     conflictFiles?: string[];
     errorDetails?: string;
   } | null>(null);
-  const [isDeletingWorktree, setIsDeletingWorktree] = useState(false);
-  const [deletingWorktreePath, setDeletingWorktreePath] = useState<
-    string | null
-  >(null);
+  const [deletingWorktreePaths, setDeletingWorktreePaths] = useState<string[]>(
+    []
+  );
+  const [worktreeDeleteError, setWorktreeDeleteError] = useState<{
+    message: string;
+  } | null>(null);
   const [worktreeCreateError, setWorktreeCreateError] = useState<{
     message: string;
   } | null>(null);
@@ -211,11 +216,22 @@ export function useWorktrees(
       const logFn = data.success ? console.log : console.error;
       logFn(data.message);
 
-      setIsDeletingWorktree(false);
-      setDeletingWorktreePath(null);
+      // 対象タブの「削除中」表示を解除する（パス不明時はスピナーが残らないよう全解除）
+      if (data.worktreePath) {
+        const finishedPath = data.worktreePath;
+        setDeletingWorktreePaths((prev) =>
+          prev.filter((p) => p !== finishedPath)
+        );
+      } else {
+        setDeletingWorktreePaths([]);
+      }
+
+      if (!data.success) {
+        setWorktreeDeleteError({ message: data.message });
+      }
 
       if (data.success) {
-        const deletedPath = (data as { worktreePath?: string }).worktreePath;
+        const deletedPath = data.worktreePath;
         if (deletedPath) {
           recentlyDeletedWorktreesRef.current.add(deletedPath);
           setTimeout(() => {
@@ -350,6 +366,10 @@ export function useWorktrees(
     setWorktreeCreateError(null);
   }, []);
 
+  const clearWorktreeDeleteError = useCallback(() => {
+    setWorktreeDeleteError(null);
+  }, []);
+
   const requestWorktreeSyncConfig = useCallback(() => {
     if (!socket) return;
     const repoPath = parentRepoPath || currentRepo;
@@ -394,8 +414,9 @@ export function useWorktrees(
   const deleteWorktree = useCallback(
     (worktreePath: string, deleteBranch: boolean = false) => {
       if (socket && parentRepoPath) {
-        setIsDeletingWorktree(true);
-        setDeletingWorktreePath(worktreePath);
+        setDeletingWorktreePaths((prev) =>
+          prev.includes(worktreePath) ? prev : [...prev, worktreePath]
+        );
 
         const worktree = worktrees.find((wt) => wt.path === worktreePath);
         const branchName = worktree?.branch;
@@ -482,6 +503,8 @@ export function useWorktrees(
   const clearState = useCallback(() => {
     setWorktrees([]);
     setParentRepoPath('');
+    setDeletingWorktreePaths([]);
+    setWorktreeDeleteError(null);
     setWorktreeCreateError(null);
     setWorktreeSyncConfig(null);
     setWorktreeSyncCandidates(null);
@@ -493,8 +516,9 @@ export function useWorktrees(
     mergeError,
     worktreeCreateError,
     worktreeCreateSuccessNonce,
-    isDeletingWorktree,
-    deletingWorktreePath,
+    deletingWorktreePaths,
+    worktreeDeleteError,
+    clearWorktreeDeleteError,
     createWorktree,
     deleteWorktree,
     mergeWorktree,

@@ -468,6 +468,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         success: false,
         message: `ワークツリー削除エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         wtid,
+        worktreePath,
       });
     }
   });
