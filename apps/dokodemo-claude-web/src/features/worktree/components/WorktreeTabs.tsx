@@ -505,44 +505,43 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
             if (!wt) return null;
             const isDeleting = deletingWorktreePaths.includes(wt.path);
 
-            // 2段目: 削除確認（メニューを閉じずに同じ位置で中身だけ差し替える）
+            // 2段目: 削除範囲の選択（メニューを閉じずに同じ位置で中身だけ差し替える）。
+            // 「削除するか」はもう決まっているので、問うのは「どこまで消すか」だけにする
             if (menuStep === 'deleteConfirm') {
               return (
-                <>
+                <div className={s.confirmPanel}>
                   <div className={s.confirmHeader}>
-                    <p className={s.confirmTitle}>削除しますか？</p>
-                    <p className={s.confirmBranch} title={wt.branch}>
+                    <span className={s.confirmBranch} title={wt.branch}>
                       {wt.branch}
-                    </p>
-                    <p className={s.confirmNote}>
-                      CLIセッション・ターミナル・キューも終了します
-                    </p>
+                    </span>
+                    <span className={s.confirmNote}>
+                      セッション・ターミナル・キューも終了します
+                    </span>
                   </div>
-                  <div className={s.menuSeparator} />
-                  <button
-                    onClick={() => handleConfirmDelete(wt, false)}
-                    disabled={isDeleting}
-                    className={`${s.menuItem} ${s.deleteItem}`}
-                  >
-                    <Trash2 className={s.menuItemIcon} />
-                    削除
-                  </button>
-                  <button
-                    onClick={() => handleConfirmDelete(wt, true)}
-                    disabled={isDeleting}
-                    className={`${s.menuItem} ${s.deleteItem}`}
-                  >
-                    <Trash2 className={s.menuItemIcon} />
-                    ブランチごと削除
-                  </button>
+                  <div className={s.confirmActions}>
+                    <button
+                      onClick={() => handleConfirmDelete(wt, false)}
+                      disabled={isDeleting}
+                      className={s.dangerRow}
+                    >
+                      ワークツリーだけ削除
+                    </button>
+                    <button
+                      onClick={() => handleConfirmDelete(wt, true)}
+                      disabled={isDeleting}
+                      className={`${s.dangerRow} ${s.withBranch}`}
+                    >
+                      ブランチごと削除
+                    </button>
+                  </div>
                   <button
                     onClick={() => setMenuStep('actions')}
-                    className={`${s.menuItem} ${s.cancelItem}`}
+                    className={s.backRow}
                   >
-                    <ArrowLeft className={s.menuItemIcon} />
-                    キャンセル
+                    <ArrowLeft className={s.backIcon} />
+                    戻る
                   </button>
-                </>
+                </div>
               );
             }
 

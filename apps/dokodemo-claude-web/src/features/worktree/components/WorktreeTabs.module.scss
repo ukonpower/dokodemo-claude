@@ -466,45 +466,130 @@
   z-index: 9999;
   min-width: 140px;
 
-  // 削除確認（2段目）はブランチ名と注意書きが入るぶん幅を広げる
+  // 削除範囲の選択（2段目）。ヘッダーが地色を持つので自前の上下 padding は外す
   &.confirmMenu {
-    min-width: 13rem;
-    max-width: 18rem;
+    width: 15rem;
+    max-width: 20rem;
+    padding: 0;
+    overflow: hidden;
   }
 }
 
+// --- 2段目: 削除範囲の選択 ---
+
+.confirmPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+// 対象の提示
 .confirmHeader {
-  padding: $space-sm $space-lg $space-2xs;
+  padding: $space-sm $space-md;
 }
 
-.confirmTitle {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
-  line-height: 1.25rem;
-  color: $dark-text-primary;
-  margin: 0;
-}
-
+// 消える対象を「囲まれた一個のモノ」として見せる。取り消し線が効くのはこの形のとき
 .confirmBranch {
   @include truncate;
+  display: inline-block;
+  max-width: 100%;
+  padding: $space-3xs $space-2xs;
   font-family: $font-mono;
   font-size: $font-size-xs;
-  line-height: 1.2;
-  color: $color-error;
-  margin: $space-3xs 0 0;
+  line-height: 1.3;
+  color: $gray-200;
+  background-color: rgba($gray-900, 0.6);
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
 }
 
 .confirmNote {
+  display: block;
+  margin-top: $space-2xs;
   font-size: $font-size-2xs;
   line-height: 1.4;
-  color: $gray-500;
-  margin: $space-2xs 0 0;
+  color: $gray-400;
 }
 
-.menuSeparator {
-  height: 1px;
-  margin: $space-2xs 0;
-  background-color: $dark-border-light;
+.confirmActions {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid $dark-border-focus;
+}
+
+// 2択の差は「だけ」と「ごと」の対で担う。アイコンは両方同じ絵になるため置かない
+.dangerRow {
+  width: 100%;
+  padding: $space-sm $space-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.4;
+  text-align: left;
+  color: $color-error;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    outline: none;
+    color: $red-400;
+    background-color: rgba($color-error, 0.14);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.backRow {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  padding: $space-xs $space-md;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  color: $gray-500;
+  background: none;
+  border: none;
+  border-top: 1px solid $dark-border-focus;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    color: $gray-200;
+    background-color: rgba($gray-700, 0.5);
+  }
+}
+
+.backIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+// 「ブランチごと削除」を狙っている間だけ、余分に消える対象そのものを赤く落として見せる。
+// 2択の差分を文章で説明せずに済ませるための表示
+.confirmPanel:has(.withBranch:hover) .confirmBranch,
+.confirmPanel:has(.withBranch:focus-visible) .confirmBranch {
+  color: $color-error;
+  background-color: rgba($color-error, 0.12);
+  text-decoration: line-through;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirmBranch,
+  .dangerRow,
+  .backRow {
+    transition: none;
+  }
 }
 
 .menuItem {
@@ -534,10 +619,6 @@
 
   &.deleteItem {
     color: $color-error;
-  }
-
-  &.cancelItem {
-    color: $gray-400;
   }
 }
 
