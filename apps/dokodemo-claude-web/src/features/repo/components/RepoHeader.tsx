@@ -20,22 +20,37 @@ import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import { openFileViewerTab } from '@/app/utils/open-views';
 import s from './RepoHeader.module.scss';
 
+/**
+ * ヘッダーに出す名前を、所属プロジェクト名と現在地（ワークツリー名）に分けて返す。
+ * ワークツリー名だけではどのプロジェクトのものか判別できないため併記する。
+ */
 function getRepoTitle(
   repositories: GitRepository[],
   currentRepo: string
-): string {
+): { project: string; worktree?: string } {
   const repoInfo = repositories.find((r) => r.path === currentRepo);
   if (
     repoInfo?.isWorktree &&
     repoInfo.parentRepoName &&
     repoInfo.worktreeBranch
   ) {
-    return `${repoInfo.parentRepoName} - ${repoInfo.worktreeBranch}`;
+    return {
+      project: repoInfo.parentRepoName,
+      worktree: repoInfo.worktreeBranch,
+    };
+  }
+  // ワークツリーは repositories に載らない（repository-handlers の削除処理コメント参照）ため、
+  // backend の getWorktreeInfo と同じ構造 {親}/.dokodemo-worktrees/{プロジェクト名}/{ブランチ} から拾う
+  const worktreeMatch = currentRepo.match(
+    /\/\.dokodemo-worktrees\/([^/]+)\/(.+)$/
+  );
+  if (worktreeMatch) {
+    return { project: worktreeMatch[1], worktree: worktreeMatch[2] };
   }
   if (repoInfo?.name) {
-    return repoInfo.name;
+    return { project: repoInfo.name };
   }
-  return currentRepo.split('/').pop() || 'プロジェクト';
+  return { project: currentRepo.split('/').pop() || 'プロジェクト' };
 }
 
 /**
@@ -50,6 +65,7 @@ export function RepoHeader() {
   // リポジトリ
   const { repository } = useRepositoryContext();
   const { repositories, currentRepo } = repository;
+  const repoTitle = getRepoTitle(repositories, currentRepo);
 
   // AI CLI（セッション ID 表示用）
   const { aiCli } = useAiContext();
@@ -125,8 +141,16 @@ export function RepoHeader() {
                 >
                   {copiedPath ? (
                     <span className={s.copiedText}>コピーしました!</span>
+                  ) : repoTitle.worktree ? (
+                    <>
+                      <span className={s.titleProject}>
+                        {repoTitle.project}
+                      </span>
+                      <span className={s.titleSeparator}>/</span>
+                      <span className={s.titleName}>{repoTitle.worktree}</span>
+                    </>
                   ) : (
-                    getRepoTitle(repositories, currentRepo)
+                    <span className={s.titleName}>{repoTitle.project}</span>
                   )}
                 </h1>
                 {remoteUrl && (

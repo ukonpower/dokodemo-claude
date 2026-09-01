@@ -6,7 +6,7 @@ import {
   Plus,
   GitMerge,
   Trash2,
-  AlertTriangle,
+  ArrowLeft,
   Loader2,
 } from 'lucide-react';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
@@ -241,13 +241,17 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // メニューの表示段階。削除はモーダルを開かず、同じメニュー内で確認段階へ切り替える
+  const [menuStep, setMenuStep] = useState<'actions' | 'deleteConfirm'>(
+    'actions'
+  );
+  // 削除確認段階のオプション。既定はワークツリーのみ削除（ブランチは残す）
+  const [deleteBranch, setDeleteBranch] = useState(false);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [targetWorktree, setTargetWorktree] = useState<GitWorktree | null>(
     null
   );
   const [isMerging, setIsMerging] = useState(false);
-  const [deleteBranchToo, setDeleteBranchToo] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
     top: number;
     left: number;
@@ -292,6 +296,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
   const closeTabMenu = useCallback(() => {
     setMenuOpenPath(null);
     setMenuPosition(null);
+    setMenuStep('actions');
   }, []);
   useOutsideClose(!!menuOpenPath, closeTabMenu, {
     ignore: [menuRef],
@@ -312,8 +317,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
   ) => {
     e.stopPropagation();
     if (menuOpenPath === wt.path) {
-      setMenuOpenPath(null);
-      setMenuPosition(null);
+      closeTabMenu();
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
       setMenuPosition({
@@ -321,30 +325,21 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
         left: rect.left,
       });
       setMenuOpenPath(wt.path);
+      setMenuStep('actions');
     }
-  };
-
-  const handleDeleteClick = (wt: GitWorktree) => {
-    setTargetWorktree(wt);
-    setShowDeleteConfirm(true);
-    setMenuOpenPath(null);
   };
 
   const handleMergeClick = (wt: GitWorktree) => {
     setTargetWorktree(wt);
     setShowMergeConfirm(true);
-    setMenuOpenPath(null);
+    closeTabMenu();
   };
 
-  const handleConfirmDelete = () => {
-    if (targetWorktree) {
-      onDeleteWorktree(targetWorktree.path, deleteBranchToo);
-      // 親リポジトリへの切り替えはworktree-deletedイベント受信時に行う
-      // 削除中状態はuseWorktrees側で管理（deletingWorktreePaths）
-      setShowDeleteConfirm(false);
-      setTargetWorktree(null);
-      setDeleteBranchToo(false);
-    }
+  const handleConfirmDelete = (wt: GitWorktree, deleteBranch: boolean) => {
+    onDeleteWorktree(wt.path, deleteBranch);
+    // 親リポジトリへの切り替えはworktree-deletedイベント受信時に行う
+    // 削除中状態はuseWorktrees側で管理（deletingWorktreePaths）
+    closeTabMenu();
   };
 
   const handleConfirmMerge = () => {
@@ -501,7 +496,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
       {menuOpenPath && menuPosition && createPortal(
         <div
           ref={menuRef}
-          className={s.portalMenu}
+          className={`${s.portalMenu} ${menuStep === 'deleteConfirm' ? s.confirmMenu : ''}`}
           style={{
             top: menuPosition.top,
             left: menuPosition.left,
@@ -510,6 +505,49 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
           {(() => {
             const wt = worktrees.find((w) => w.path === menuOpenPath);
             if (!wt) return null;
+            const isDeleting = deletingWorktreePaths.includes(wt.path);
+
+            // 2段目: 削除の確認（メニューを閉じずに同じ位置で中身だけ差し替える）。
+            // 「どこまで消すか」は2択を並べず、既定＝ワークツリーのみ + 追加分をチェックで足す形にする
+            if (menuStep === 'deleteConfirm') {
+              return (
+                <div className={s.confirmPanel}>
+                  <div className={s.confirmHeader}>
+                    <span className={s.confirmBranch} title={wt.branch}>
+                      {wt.branch}
+                    </span>
+                    <span className={s.confirmNote}>
+                      セッション・ターミナル・キューも終了します
+                    </span>
+                  </div>
+                  <label className={s.branchOption}>
+                    <input
+                      type="checkbox"
+                      checked={deleteBranch}
+                      onChange={(e) => setDeleteBranch(e.target.checked)}
+                      disabled={isDeleting}
+                      className={s.branchCheckbox}
+                    />
+                    ブランチも削除する
+                  </label>
+                  <button
+                    onClick={() => handleConfirmDelete(wt, deleteBranch)}
+                    disabled={isDeleting}
+                    className={s.dangerRow}
+                  >
+                    削除
+                  </button>
+                  <button
+                    onClick={() => setMenuStep('actions')}
+                    className={s.backRow}
+                  >
+                    <ArrowLeft className={s.backIcon} />
+                    戻る
+                  </button>
+                </div>
+              );
+            }
+
             return (
               <>
                 <button
@@ -520,8 +558,11 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   マージ
                 </button>
                 <button
-                  onClick={() => handleDeleteClick(wt)}
-                  disabled={deletingWorktreePaths.includes(wt.path)}
+                  onClick={() => {
+                    setDeleteBranch(false);
+                    setMenuStep('deleteConfirm');
+                  }}
+                  disabled={isDeleting}
                   className={`${s.menuItem} ${s.deleteItem}`}
                 >
                   <Trash2 className={s.menuItemIcon} />
@@ -542,73 +583,6 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
             onClearWorktreeCreateError();
           }}
         />
-      )}
-
-      {/* 削除確認モーダル */}
-      {showDeleteConfirm && targetWorktree && (
-        <div className={s.modalOverlay}>
-          <div className={s.modalContent}>
-            <div className={s.modalHeader}>
-              <div className={`${s.modalIconWrapper} ${s.danger}`}>
-                <AlertTriangle className={`${s.modalIcon} ${s.danger}`} />
-              </div>
-              <div className={s.modalHeaderText}>
-                <h3 className={s.modalTitle}>ワークツリーを削除</h3>
-                <p className={s.modalDescription}>
-                  ワークツリー「
-                  <span className={s.modalBranchName}>
-                    {targetWorktree.branch}
-                  </span>
-                  」を削除しますか？
-                </p>
-              </div>
-            </div>
-
-            <div className={`${s.warningBox} ${s.warning}`}>
-              <p className={s.warningTitle}>注意</p>
-              <ul className={`${s.warningList} ${s.warning}`}>
-                <li>関連するCLIセッション、ターミナル、キューも終了します</li>
-                <li>未コミットの変更は失われる可能性があります</li>
-              </ul>
-            </div>
-
-            <label className={s.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={deleteBranchToo}
-                onChange={(e) => setDeleteBranchToo(e.target.checked)}
-                className={s.checkbox}
-              />
-              <span className={s.checkboxText}>
-                ブランチ「
-                <span className={s.modalBranchName}>
-                  {targetWorktree.branch}
-                </span>
-                」も削除する
-              </span>
-            </label>
-
-            <div className={s.modalFooter}>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setTargetWorktree(null);
-                  setDeleteBranchToo(false);
-                }}
-                className={s.cancelButton}
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                disabled={deletingWorktreePaths.includes(targetWorktree.path)}
-                className={`${s.confirmButton} ${s.danger}`}
-              >
-                削除する
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* マージ確認モーダル */}
