@@ -513,10 +513,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
               return (
                 <div className={s.confirmPanel}>
                   <div className={s.confirmHeader}>
-                    <span
-                      className={`${s.confirmBranch} ${deleteBranch ? s.branchDoomed : ''}`}
-                      title={wt.branch}
-                    >
+                    <span className={s.confirmBranch} title={wt.branch}>
                       {wt.branch}
                     </span>
                     <span className={s.confirmNote}>

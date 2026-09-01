@@ -487,7 +487,7 @@
   padding: $space-sm $space-md;
 }
 
-// 消える対象を「囲まれた一個のモノ」として見せる。危険色の反転が効くのはこの形のとき
+// 消える対象を「囲まれた一個のモノ」として見せる
 .confirmBranch {
   @include truncate;
   display: inline-block;
@@ -499,8 +499,6 @@
   color: $gray-200;
   background-color: rgba($gray-900, 0.6);
   border-radius: $radius;
-  transition: color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing;
 }
 
 .confirmNote {
@@ -602,14 +600,7 @@
   flex-shrink: 0;
 }
 
-// チェックが入っている間は、ブランチが消える側に回ったことを対象そのもので示す
-.branchDoomed {
-  color: $color-error;
-  background-color: rgba($color-error, 0.12);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .confirmBranch,
   .branchOption,
   .dangerRow,
   .backRow {
