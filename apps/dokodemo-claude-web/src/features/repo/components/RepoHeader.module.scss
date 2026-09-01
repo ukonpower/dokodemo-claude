@@ -93,11 +93,14 @@
 }
 
 .repoTitle {
+  display: flex;
+  align-items: baseline;
+  gap: $space-2xs;
+  overflow: hidden;
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   color: $dark-text-primary;
   min-width: 0;
-  @include truncate;
   cursor: pointer;
   transition: color $transition-fast ease;
 
@@ -109,6 +112,25 @@
   &:hover {
     color: $dark-text-secondary;
   }
+}
+
+// 所属を示す添え字なので、現在地（ワークツリー名／プロジェクト名）より弱く出す
+.titleProject {
+  @include truncate;
+  flex: 0 1 auto;
+  font-weight: $font-weight-normal;
+  color: $dark-text-secondary;
+}
+
+.titleSeparator {
+  flex-shrink: 0;
+  color: $gray-500;
+}
+
+// 現在地の名前。プロジェクト名と同時に縮む（長い方から詰まる）
+.titleName {
+  @include truncate;
+  flex: 0 1 auto;
 }
 
 .copiedText {
