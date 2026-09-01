@@ -59,6 +59,7 @@ import {
 } from './services/repository-id-manager.js';
 import { fileManager } from './services/file-manager.js';
 import { registerFileRoutes } from './handlers/file-upload-handlers.js';
+import { registerReviewRoutes } from './handlers/review-handlers.js';
 import { PersistenceService } from './services/persistence-service.js';
 import { getCertificates } from './services/cert-service.js';
 import {
@@ -249,6 +250,9 @@ app.use(express.json());
 
 // ファイルアップロードREST APIルートを登録
 registerFileRoutes(app, io);
+
+// 評価リクエスト添付画像の配信ルートを登録
+registerReviewRoutes(app);
 
 // 証明書配信エンドポイント（端末で証明書インストール用）
 // ルートCA証明書を配信（端末の信頼ストアに登録することで全サイト信頼可能）
@@ -1157,6 +1161,11 @@ processManager.on('ai-instance-closed', (data: { instanceId: string; repositoryP
   const rid = repositoryIdManager.tryGetId(data.repositoryPath) || '';
   aiActivitySummaryService.clearInstance(data.instanceId);
   io.emit('ai-instance-closed', { rid, instanceId: data.instanceId });
+});
+
+// 反映ターン完了時の reflected 更新をクライアントへ配信する
+processManager.on('review-request-updated', (data) => {
+  io.emit('review-request-updated', data);
 });
 
 processManager.on('prompt-queue-updated', (data) => {

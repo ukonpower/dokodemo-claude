@@ -156,6 +156,12 @@ export class QueueError extends AppError {
   static loopBusy(reason: string): QueueError {
     return new QueueError(`ループ操作を実行できません: ${reason}`);
   }
+
+  static blockedByReview(repositoryPath: string): QueueError {
+    return new QueueError(
+      `未回答のブロッキング評価リクエストがあるため再開できません: ${repositoryPath}`
+    );
+  }
 }
 
 /**

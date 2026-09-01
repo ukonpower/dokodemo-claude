@@ -91,6 +91,7 @@ const PromptQueue: React.FC = () => {
             judgeEveryN: item.loop.judgeEveryN,
             intervalSec: item.loop.intervalSec,
             judgeCriteria: item.loop.judgeCriteria ?? '',
+            reviewBlocking: item.loop.reviewBlocking ?? 'ai',
             planningEnabled: !!item.loop.planning,
             planningEveryN:
               item.loop.planning?.everyN ?? DEFAULT_PLANNING_EVERY_N,
@@ -124,6 +125,7 @@ const PromptQueue: React.FC = () => {
           judgeEveryN: editLoop.judgeEveryN,
           intervalSec: editLoop.intervalSec,
           judgeCriteria: editLoop.judgeCriteria,
+          reviewBlocking: editLoop.reviewBlocking,
           planning: editLoop.planningEnabled
             ? {
                 everyN: editLoop.planningEveryN,

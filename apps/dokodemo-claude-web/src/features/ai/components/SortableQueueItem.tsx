@@ -298,6 +298,7 @@ const EditModeContent: React.FC<EditModeContentProps> = ({
                             judgeEveryN: 1,
                             intervalSec: 0,
                             judgeCriteria: '',
+                            reviewBlocking: 'ai',
                             planningEnabled: false,
                             planningEveryN: DEFAULT_PLANNING_EVERY_N,
                             planningModel: DEFAULT_PLANNING_MODEL,

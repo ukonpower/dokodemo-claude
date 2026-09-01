@@ -554,64 +554,6 @@
   height: 1.125rem;
 }
 
-// 鉛筆ボタン + 「白紙 / 写真から」ポップアップメニュー
-.sketchMenuWrapper {
-  position: relative;
-  display: flex;
-}
-
-// 鉛筆ボタンへ画像をドラッグ中のハイライト
-.sketchDragOver {
-  color: $accent;
-  border-color: $accent;
-  background-color: $dark-bg-hover;
-}
-
-.sketchMenu {
-  position: fixed;
-  width: 11rem;
-  padding: $space-2xs;
-  display: flex;
-  flex-direction: column;
-  gap: $space-3xs;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius;
-  box-shadow: $shadow-lg;
-  z-index: 9999;
-}
-
-.sketchMenuItem {
-  display: flex;
-  align-items: center;
-  gap: $space-sm;
-  width: 100%;
-  padding: $space-sm;
-  border-radius: $radius;
-  // SP はタップ主体なので一回り大きく、sm-up 以上では従来の xs に戻す
-  font-size: $font-size-sm;
-  line-height: 1rem;
-  text-align: left;
-  color: $dark-text-primary;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-
-  @include sm-up {
-    font-size: $font-size-xs;
-  }
-
-  svg {
-    flex-shrink: 0;
-    color: $dark-text-muted;
-  }
-
-  &:hover {
-    background-color: $dark-bg-hover;
-  }
-}
-
 .sendSection {
   display: flex;
   flex-direction: column;
@@ -657,8 +599,7 @@
 
 .sendOptionsBar {
   min-width: 0;
-  // モード切替（固定サイズ）を上、修飾グループ（モデル/clear/commit/ループ）を
-  // 下段のグリッドに折り返す縦積み構成。
+  // 修飾グループ（/clear・/commit）をグリッドに折り返す縦積み構成。
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -679,9 +620,8 @@
   }
 }
 
-// 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
+// 各修飾グループを共通の「チップ枠」として扱う。
 // これにより折り返してもグループ単位で整い、宙ぶらりんな区切り線が出ない。
-.modeSegment,
 .optGroup {
   display: flex;
   align-items: center;
@@ -691,52 +631,6 @@
   border: 1px solid $dark-border;
   border-radius: $radius;
   padding: $space-3xs;
-}
-
-.modeButton {
-  // 送信 / キュー / ループは固定サイズの等幅タブにする（グリッド幅に応じて伸縮しない）
-  flex: 0 0 auto;
-  min-width: 3.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-2xs;
-  padding: $space-2xs $space-sm;
-  border-radius: $radius;
-  font-size: $font-size-xs;
-  line-height: 1rem;
-  font-weight: $font-weight-medium;
-  white-space: nowrap;
-  touch-action: manipulation;
-  transition: all $transition-fast $transition-easing;
-  background: none;
-  border: none;
-  cursor: pointer;
-
-  @include sm-down {
-    min-height: 32px;
-    padding-left: $space-xs;
-    padding-right: $space-xs;
-  }
-
-  &.active {
-    background-color: $dark-bg-hover;
-    color: $dark-text-primary;
-    box-shadow: $shadow-sm;
-  }
-
-  &:not(.active) {
-    color: $dark-text-muted;
-
-    &:hover {
-      color: $dark-text-primary;
-    }
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 }
 
 // ボタン内の説明ラベル（前 / 後 / モデル）
@@ -753,12 +647,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.queueIcon {
-  width: 0.75rem;
-  height: 0.75rem;
-  flex-shrink: 0;
 }
 
 .optionDivider {
@@ -1070,35 +958,5 @@
 
   @include sm-up {
     display: inline;
-  }
-}
-
-/* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
-.loopPanel {
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius-md;
-  overflow: hidden;
-  padding: $space-sm $space-md $space-md;
-  transform-origin: top;
-  // ON にした瞬間に上からスライドして現れるアニメーション
-  animation: loopPanelOpen $transition-normal $transition-easing;
-
-  // PC ではフィールドを 2 カラムに並べるため、横幅を composer 幅相当まで広げる
-  // （縦に伸びて入力欄や出力を押し下げるのを防ぐ）
-  @include lg-up {
-    max-width: 42rem;
-  }
-}
-
-@keyframes loopPanelOpen {
-  from {
-    opacity: 0;
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    // アニメ中に中身が切れないよう、定期プランニング ON 時の実高さを賄う値にする
-    max-height: 640px;
   }
 }

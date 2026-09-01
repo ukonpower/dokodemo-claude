@@ -10,6 +10,11 @@ interface ModalShellProps {
   children: React.ReactNode;
   /** 任意のフッター領域（ボタン列など） */
   footer?: React.ReactNode;
+  /**
+   * パネル幅。'wide' は PC（lg 以上）でのみ広げる。
+   * カードを並べる一覧系（レビューリクエストなど）で横幅を活かすため。
+   */
+  size?: 'default' | 'wide';
 }
 
 /**
@@ -21,6 +26,7 @@ const ModalShell: React.FC<ModalShellProps> = ({
   onClose,
   children,
   footer,
+  size = 'default',
 }) => {
   const overlayProps = useOverlayClose(onClose);
 
@@ -33,9 +39,12 @@ const ModalShell: React.FC<ModalShellProps> = ({
   }, [onClose]);
 
   return (
-    <div className={s.overlay} {...overlayProps}>
+    <div
+      className={`${s.overlay} ${size === 'wide' ? s.overlayWide : ''}`}
+      {...overlayProps}
+    >
       <div
-        className={s.panel}
+        className={`${s.panel} ${size === 'wide' ? s.panelWide : ''}`}
         role="dialog"
         aria-modal="true"
       >

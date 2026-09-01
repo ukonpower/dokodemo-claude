@@ -1,0 +1,68 @@
+// 送信モード切替タブ（送信 / キュー / ループ）。入力欄の上に単独で置く
+.root {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: fit-content;
+  gap: $space-3xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border;
+  border-radius: $radius;
+  padding: $space-3xs;
+}
+
+.button {
+  // 3 モードを固定サイズの等幅タブにする
+  flex: 0 0 auto;
+  min-width: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  @include sm-down {
+    min-height: 32px;
+    padding-left: $space-xs;
+    padding-right: $space-xs;
+  }
+
+  &.active {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+    box-shadow: $shadow-sm;
+  }
+
+  &:not(.active) {
+    color: $dark-text-muted;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}

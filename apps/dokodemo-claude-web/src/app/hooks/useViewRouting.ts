@@ -98,7 +98,7 @@ export function useViewRouting(
         return;
       }
 
-      // settings 系以外へ遷移する場合は設定ページを閉じる
+      // settings 系以外へ遷移する場合はそれらを閉じる
       setSettingsMode(false);
       setProjectSettingsMode(false);
 

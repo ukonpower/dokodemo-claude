@@ -14,12 +14,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   FileText,
-  ImagePlus,
   Loader,
-  Menu,
   Paperclip,
-  Pencil,
-  Repeat,
   X,
 } from 'lucide-react';
 import type { AiProvider } from '@/types';
@@ -30,13 +26,7 @@ import type {
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/features/ai/utils/models';
-import LoopSettingsFields, {
-  DEFAULT_PLANNING_MODEL,
-  DEFAULT_PLANNING_EVERY_N,
-  DEFAULT_PLANNING_PROMPT,
-} from './LoopSettingsFields';
-import type { LoopSettingsValue } from './LoopSettingsFields';
-import DrawingCanvas from './DrawingCanvas';
+import SketchButton from './SketchButton';
 import s from './CommandInput.module.scss';
 
 /** /model コマンドに渡す値へ正規化する（表示名と CLI の受け付ける値の差を吸収） */
@@ -122,14 +112,7 @@ interface TextInputProps {
     command: string,
     sendClearBefore: boolean,
     autoCommit: AutoCommitMode,
-    model?: string,
-    loop?: {
-      judge: 'ai' | 'user' | 'none';
-      judgeEveryN: number;
-      intervalSec: number;
-      judgeCriteria?: string;
-      planning?: { everyN: number; model: string; prompt: string };
-    }
+    model?: string
   ) => void;
   /** 現在のプロバイダー */
   currentProvider?: AiProvider;
@@ -299,29 +282,16 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [tempCommand, setTempCommand] = useState<string>(''); // 履歴を遡る前の一時入力
 
     // sendSettingsの値を使用（propsが渡されていない場合はローカルstate）
-    // 非プライマリではキュー/ループを使えないため、送信モードを即送信に丸める
+    // 非プライマリではキューを使えないため、送信モードを即送信に丸める。
+    // ループモードのときはこのコンポーネント自体が描画されない（views 側で
+    // LoopComposer に差し替わる）ため、ここで扱うのは送信 / キューのみ。
     const sendMode = isPrimary ? (sendSettings?.sendMode ?? 'send') : 'send';
-    // ループはキューの上に載る動作なので、キュー扱いする範囲に含める
-    const addToQueue = sendMode === 'queue' || sendMode === 'loop';
+    const addToQueue = sendMode === 'queue';
     const sendClearBefore = sendSettings?.sendClear ?? false;
     const autoCommit: AutoCommitMode = sendSettings?.autoCommit ?? 'off';
     const model = sendSettings?.model ?? '';
     const rawWorkflowSkill = sendSettings?.workflowSkill ?? '';
 
-    // ループ設定（ループモード時のみ有効）
-    const loopEnabled = sendMode === 'loop';
-    const loopJudge = sendSettings?.loopJudge ?? 'none';
-    const loopJudgeEveryN = Math.max(1, sendSettings?.loopJudgeEveryN ?? 1);
-    const loopIntervalMin = Math.max(0, sendSettings?.loopIntervalMin ?? 0);
-    const loopJudgeCriteria = sendSettings?.loopJudgeCriteria ?? '';
-    const loopPlanningEnabled = sendSettings?.loopPlanningEnabled ?? false;
-    const loopPlanningEveryN = Math.max(
-      1,
-      sendSettings?.loopPlanningEveryN ?? DEFAULT_PLANNING_EVERY_N
-    );
-    const loopPlanningModel =
-      sendSettings?.loopPlanningModel || DEFAULT_PLANNING_MODEL;
-    const loopPlanningPrompt = sendSettings?.loopPlanningPrompt ?? '';
     // 非プライマリでは Auto ワークフローを使えないため、auto を空に丸める
     const workflowSkill =
       !isPrimary && rawWorkflowSkill === 'auto' ? '' : rawWorkflowSkill;
@@ -352,23 +322,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         onSendSettingsChange({
           ...sendSettings,
           [key]: value,
-        });
-      }
-    };
-
-    // ループ設定フィールドの変更を送信設定のキーへ展開して反映
-    const handleLoopSettingsChange = (next: LoopSettingsValue) => {
-      if (onSendSettingsChange && sendSettings) {
-        onSendSettingsChange({
-          ...sendSettings,
-          loopJudge: next.judge,
-          loopJudgeEveryN: next.judgeEveryN,
-          loopIntervalMin: Math.round(next.intervalSec / 60),
-          loopJudgeCriteria: next.judgeCriteria,
-          loopPlanningEnabled: next.planningEnabled,
-          loopPlanningEveryN: next.planningEveryN,
-          loopPlanningModel: next.planningModel,
-          loopPlanningPrompt: next.planningPrompt,
         });
       }
     };
@@ -540,29 +493,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
 
         // キュー追加モードの場合
         if (addToQueue && onAddToQueue) {
-          const loopArg = loopEnabled
-            ? {
-                judge: loopJudge,
-                judgeEveryN: loopJudgeEveryN,
-                intervalSec: loopIntervalMin * 60,
-                judgeCriteria: loopJudgeCriteria.trim() || undefined,
-                planning: loopPlanningEnabled
-                  ? {
-                      everyN: loopPlanningEveryN,
-                      model: loopPlanningModel,
-                      // 空欄ならデフォルトの計画プロンプトを使う
-                      prompt:
-                        loopPlanningPrompt.trim() || DEFAULT_PLANNING_PROMPT,
-                    }
-                  : undefined,
-              }
-            : undefined;
           onAddToQueue(
             finalCommand,
             sendClearBefore,
             autoCommit,
-            model || undefined,
-            loopArg
+            model || undefined
           );
         } else {
           // 通常のコマンド送信
@@ -868,148 +803,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       fileInputRef.current?.click();
     }, []);
 
-    // お絵かきキャンバスの開閉と、写真加筆モードの背景画像
-    const [isDrawingOpen, setIsDrawingOpen] = useState(false);
-    // 写真加筆モードの背景画像 URL（object URL）。白紙スケッチ時は null
-    const [drawingBgUrl, setDrawingBgUrl] = useState<string | null>(null);
-    // 鉛筆ボタンのポップアップメニュー（白紙 / 写真から）
-    const [isSketchMenuOpen, setIsSketchMenuOpen] = useState(false);
-    const [sketchMenuPosition, setSketchMenuPosition] = useState({
-      top: 0,
-      left: 0,
-    });
-    // 鉛筆ボタンへ画像をドラッグ中のハイライト
-    const [isSketchDragOver, setIsSketchDragOver] = useState(false);
-
-    const sketchMenuRef = useRef<HTMLDivElement>(null);
-    const sketchButtonRef = useRef<HTMLButtonElement>(null);
-    const sketchBgInputRef = useRef<HTMLInputElement>(null);
-    // アンマウント時に解放するため、現在の背景 URL を ref にも保持する
-    const drawingBgUrlRef = useRef<string | null>(null);
-    useEffect(() => {
-      drawingBgUrlRef.current = drawingBgUrl;
-    }, [drawingBgUrl]);
-    useEffect(
-      () => () => {
-        if (drawingBgUrlRef.current) URL.revokeObjectURL(drawingBgUrlRef.current);
-      },
-      []
-    );
-
-    // キャンバスを閉じ、背景 object URL を解放する
-    const closeDrawing = useCallback(() => {
-      setIsDrawingOpen(false);
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    }, []);
-
-    // 白紙スケッチを開く
-    const openBlankSketch = useCallback(() => {
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setIsDrawingOpen(true);
-      setIsSketchMenuOpen(false);
-    }, []);
-
-    // 画像ファイルを背景にして加筆モードで開く
-    const openSketchFromFile = useCallback((file: File) => {
-      if (!file.type.startsWith('image/')) return;
-      const url = URL.createObjectURL(file);
-      setDrawingBgUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return url;
-      });
-      setIsDrawingOpen(true);
-      setIsSketchMenuOpen(false);
-    }, []);
-
-    // 「写真から加筆」: ネイティブの画像ピッカーを開く
-    const openPhotoSketch = useCallback(() => {
-      setIsSketchMenuOpen(false);
-      sketchBgInputRef.current?.click();
-    }, []);
-
-    // 背景画像の選択時
-    const handleSketchBgSelected = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (file) openSketchFromFile(file);
-      },
-      [openSketchFromFile]
-    );
-
-    // 鉛筆ボタンへの画像ドラッグ＆ドロップ（ドロップした画像に加筆）
-    const handleSketchDragOver = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        if (!e.dataTransfer.types.includes('Files')) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(true);
-      },
-      []
-    );
-    const handleSketchDragLeave = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(false);
-      },
-      []
-    );
-    const handleSketchDrop = useCallback(
-      (e: React.DragEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSketchDragOver(false);
-        const file = Array.from(e.dataTransfer.files).find((f) =>
-          f.type.startsWith('image/')
-        );
-        if (file) openSketchFromFile(file);
-      },
-      [openSketchFromFile]
-    );
-
-    // スケッチ完了時：PNG をアップロードしてパスをカーソル位置に挿入
-    const handleDrawingComplete = useCallback(
-      (file: File) => {
-        closeDrawing();
-        void insertFilesAsPaths([file]);
-      },
-      [closeDrawing, insertFilesAsPaths]
-    );
-
-    // 鉛筆メニューの位置計算（スクロール/リサイズに追随）
-    useEffect(() => {
-      if (!isSketchMenuOpen) return;
-      const updatePosition = () => {
-        if (sketchButtonRef.current) {
-          const rect = sketchButtonRef.current.getBoundingClientRect();
-          setSketchMenuPosition({
-            top: rect.top - 4, // ボタンの上に表示（余白4px）
-            left: clampDropdownLeft(rect.left, 176), // 11rem
-          });
-        }
-      };
-      updatePosition();
-      window.addEventListener('scroll', updatePosition, true);
-      window.addEventListener('resize', updatePosition);
-      return () => {
-        window.removeEventListener('scroll', updatePosition, true);
-        window.removeEventListener('resize', updatePosition);
-      };
-    }, [isSketchMenuOpen]);
-
-    // 外側クリック / Escape で鉛筆メニューを閉じる
-    const closeSketchMenu = useCallback(() => setIsSketchMenuOpen(false), []);
-    useOutsideClose(isSketchMenuOpen, closeSketchMenu, {
-      ignore: [sketchMenuRef, sketchButtonRef],
-    });
-
     // 末尾にパス文字列を追記（必要に応じてスペース区切り）
     const appendPathsToEnd = useCallback((paths: string[]) => {
       if (paths.length === 0) return;
@@ -1275,56 +1068,11 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           onChange={handleFileSelected}
           className={s.hiddenFileInput}
         />
-        <input
-          ref={sketchBgInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleSketchBgSelected}
-          className={s.hiddenFileInput}
+        <SketchButton
+          onComplete={(file) => void insertFilesAsPaths([file])}
+          disabled={disabled || isUploadingFile}
+          className={s.uploadButton}
         />
-        <div className={s.sketchMenuWrapper} ref={sketchMenuRef}>
-          <button
-            type="button"
-            ref={sketchButtonRef}
-            onClick={() => setIsSketchMenuOpen((v) => !v)}
-            onDragOver={handleSketchDragOver}
-            onDragLeave={handleSketchDragLeave}
-            onDrop={handleSketchDrop}
-            disabled={disabled || isUploadingFile}
-            className={`${s.uploadButton} ${isSketchDragOver ? s.sketchDragOver : ''}`}
-            title="スケッチを描いて添付（写真をドロップで加筆）"
-            aria-label="スケッチを描いて添付"
-          >
-            <Pencil className={s.uploadIcon} />
-          </button>
-          {isSketchMenuOpen && (
-            <div
-              className={s.sketchMenu}
-              style={{
-                top: `${sketchMenuPosition.top}px`,
-                left: `${sketchMenuPosition.left}px`,
-                transform: 'translateY(-100%)',
-              }}
-            >
-              <button
-                type="button"
-                className={s.sketchMenuItem}
-                onClick={openBlankSketch}
-              >
-                <FileText size={14} strokeWidth={2} />
-                <span>白紙から</span>
-              </button>
-              <button
-                type="button"
-                className={s.sketchMenuItem}
-                onClick={openPhotoSketch}
-              >
-                <ImagePlus size={14} strokeWidth={2} />
-                <span>写真から加筆</span>
-              </button>
-            </div>
-          )}
-        </div>
         <button
           type="button"
           onClick={handleUploadClick}
@@ -1762,46 +1510,9 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               </div>
             </div>
 
-            {/* オプション: 送信モード切替＋修飾グリッド（全幅） */}
+            {/* オプション: 修飾グリッド（全幅） */}
             <div className={s.sendOptionsBar}>
-              {/* 送信モード切替（送信 / キュー / ループ）タブ */}
-              <div
-                className={s.modeSegment}
-                role="group"
-                aria-label="送信モード"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleSettingChange('sendMode', 'send')}
-                  disabled={disabled}
-                  className={`${s.modeButton} ${sendMode === 'send' ? s.active : ''}`}
-                  title="送信: 入力をそのまま AI へ送る"
-                >
-                  送信
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSettingChange('sendMode', 'queue')}
-                  disabled={disabled}
-                  className={`${s.modeButton} ${sendMode === 'queue' ? s.active : ''}`}
-                  title="キュー: 送信予約リストに追加（clear / commit の設定が使える）"
-                >
-                  <Menu className={s.queueIcon} />
-                  キュー
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSettingChange('sendMode', 'loop')}
-                  disabled={disabled}
-                  className={`${s.modeButton} ${sendMode === 'loop' ? s.active : ''}`}
-                  title="ループ: キューに追加し、完了後に同じプロンプトを繰り返し送信"
-                >
-                  <Repeat className={s.queueIcon} />
-                  ループ
-                </button>
-              </div>
-
-              {/* キュー/ループ共通のオプション（即送信では使えないため非表示） */}
+              {/* キューのオプション（即送信では使えないため非表示） */}
               {addToQueue && (
                 <div className={s.optionGrid}>
                   {/* /clear（送信前） */}
@@ -1847,37 +1558,6 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               </div>
           </div>
         )}
-
-        {/* ループ設定パネル（ループ ON の間だけ送信バー直下に表示） */}
-        {onAddToQueue && isPrimary && loopEnabled && (
-          <div className={s.loopPanel}>
-            <LoopSettingsFields
-              value={{
-                judge: loopJudge,
-                judgeEveryN: loopJudgeEveryN,
-                intervalSec: loopIntervalMin * 60,
-                judgeCriteria: loopJudgeCriteria,
-                planningEnabled: loopPlanningEnabled,
-                planningEveryN: loopPlanningEveryN,
-                planningModel: loopPlanningModel,
-                planningPrompt: loopPlanningPrompt,
-              }}
-              disabled={disabled}
-              onChange={handleLoopSettingsChange}
-              workModel={model}
-              onWorkModelChange={(v) => handleSettingChange('model', v)}
-              twoColumnOnPc
-            />
-          </div>
-        )}
-
-        {/* お絵かきキャンバス（白紙スケッチ / 写真加筆） */}
-        <DrawingCanvas
-          isOpen={isDrawingOpen}
-          backgroundImageUrl={drawingBgUrl}
-          onClose={closeDrawing}
-          onComplete={handleDrawingComplete}
-        />
       </div>
     );
   }
