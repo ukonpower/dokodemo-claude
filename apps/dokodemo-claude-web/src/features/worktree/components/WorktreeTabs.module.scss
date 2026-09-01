@@ -466,7 +466,7 @@
   z-index: 9999;
   min-width: 140px;
 
-  // 削除範囲の選択（2段目）。ヘッダーが地色を持つので自前の上下 padding は外す
+  // 削除の確認（2段目）。ヘッダーが地色を持つので自前の上下 padding は外す
   &.confirmMenu {
     width: 15rem;
     max-width: 20rem;
@@ -475,7 +475,7 @@
   }
 }
 
-// --- 2段目: 削除範囲の選択 ---
+// --- 2段目: 削除の確認 ---
 
 .confirmPanel {
   display: flex;
@@ -511,13 +511,39 @@
   color: $gray-400;
 }
 
-.confirmActions {
+// 追加で消えるものだけをチェックで足す。行全体を label にしてタップ領域を広く取る
+.branchOption {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-xs $space-md;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  color: $gray-300;
+  cursor: pointer;
   border-top: 1px solid $dark-border-focus;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover,
+  &:focus-within {
+    background-color: rgba($gray-700, 0.5);
+  }
 }
 
-// 2択の差は「だけ」と「ごと」の対で担う。アイコンは両方同じ絵になるため置かない
+// チェックすると消える範囲が増えるので、アクセントは危険色に合わせる
+.branchCheckbox {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: $color-error;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
 .dangerRow {
   width: 100%;
   padding: $space-sm $space-md;
@@ -528,6 +554,7 @@
   color: $color-error;
   background: none;
   border: none;
+  border-top: 1px solid $dark-border-focus;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;
@@ -575,10 +602,8 @@
   flex-shrink: 0;
 }
 
-// 「ブランチごと削除」を狙っている間だけ、余分に消える対象そのものを赤く落として見せる。
-// 2択の差分を文章で説明せずに済ませるための表示
-.confirmPanel:has(.withBranch:hover) .confirmBranch,
-.confirmPanel:has(.withBranch:focus-visible) .confirmBranch {
+// チェックが入っている間は、ブランチが消える側に回ったことを対象そのもので示す
+.branchDoomed {
   color: $color-error;
   background-color: rgba($color-error, 0.12);
   text-decoration: line-through;
@@ -586,6 +611,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .confirmBranch,
+  .branchOption,
   .dangerRow,
   .backRow {
     transition: none;

@@ -245,6 +245,8 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
   const [menuStep, setMenuStep] = useState<'actions' | 'deleteConfirm'>(
     'actions'
   );
+  // 削除確認段階のオプション。既定はワークツリーのみ削除（ブランチは残す）
+  const [deleteBranch, setDeleteBranch] = useState(false);
   const [showMergeConfirm, setShowMergeConfirm] = useState(false);
   const [targetWorktree, setTargetWorktree] = useState<GitWorktree | null>(
     null
@@ -505,35 +507,39 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
             if (!wt) return null;
             const isDeleting = deletingWorktreePaths.includes(wt.path);
 
-            // 2段目: 削除範囲の選択（メニューを閉じずに同じ位置で中身だけ差し替える）。
-            // 「削除するか」はもう決まっているので、問うのは「どこまで消すか」だけにする
+            // 2段目: 削除の確認（メニューを閉じずに同じ位置で中身だけ差し替える）。
+            // 「どこまで消すか」は2択を並べず、既定＝ワークツリーのみ + 追加分をチェックで足す形にする
             if (menuStep === 'deleteConfirm') {
               return (
                 <div className={s.confirmPanel}>
                   <div className={s.confirmHeader}>
-                    <span className={s.confirmBranch} title={wt.branch}>
+                    <span
+                      className={`${s.confirmBranch} ${deleteBranch ? s.branchDoomed : ''}`}
+                      title={wt.branch}
+                    >
                       {wt.branch}
                     </span>
                     <span className={s.confirmNote}>
                       セッション・ターミナル・キューも終了します
                     </span>
                   </div>
-                  <div className={s.confirmActions}>
-                    <button
-                      onClick={() => handleConfirmDelete(wt, false)}
+                  <label className={s.branchOption}>
+                    <input
+                      type="checkbox"
+                      checked={deleteBranch}
+                      onChange={(e) => setDeleteBranch(e.target.checked)}
                       disabled={isDeleting}
-                      className={s.dangerRow}
-                    >
-                      ワークツリーだけ削除
-                    </button>
-                    <button
-                      onClick={() => handleConfirmDelete(wt, true)}
-                      disabled={isDeleting}
-                      className={`${s.dangerRow} ${s.withBranch}`}
-                    >
-                      ブランチごと削除
-                    </button>
-                  </div>
+                      className={s.branchCheckbox}
+                    />
+                    ブランチも削除する
+                  </label>
+                  <button
+                    onClick={() => handleConfirmDelete(wt, deleteBranch)}
+                    disabled={isDeleting}
+                    className={s.dangerRow}
+                  >
+                    削除
+                  </button>
                   <button
                     onClick={() => setMenuStep('actions')}
                     className={s.backRow}
@@ -555,7 +561,10 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   マージ
                 </button>
                 <button
-                  onClick={() => setMenuStep('deleteConfirm')}
+                  onClick={() => {
+                    setDeleteBranch(false);
+                    setMenuStep('deleteConfirm');
+                  }}
                   disabled={isDeleting}
                   className={`${s.menuItem} ${s.deleteItem}`}
                 >
