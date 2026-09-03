@@ -12,7 +12,7 @@ import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
 import { useAiContext } from '@/features/ai/providers/AiProvider';
 import {
   useGitDiffContext,
-  useGitGraphContext,
+  useGitActionsContext,
 } from '@/features/git/providers/GitProvider';
 import { useFileViewerContext } from '@/features/files/providers/FilesProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
@@ -41,7 +41,7 @@ export function AppContent() {
   const appSettings = useAppSettingsContext();
   const { aiCli, aiInstanceTabsRef, primaryProvider } = useAiContext();
   const gitDiff = useGitDiffContext();
-  const gitGraph = useGitGraphContext();
+  const gitActions = useGitActionsContext();
   const fileViewer = useFileViewerContext();
   const {
     dashboardMode,
@@ -81,7 +81,7 @@ export function AppContent() {
     // Ctrl+Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
     // （右端でさらに右を押すと provider を選ぶ追加メニューを開く）
     onSwitchAiInstance: (direction) => {
-      if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
+      if (dashboardMode || fileViewer.isActive) return;
       const sorted = [...aiCli.aiInstances].sort((a, b) => a.order - b.order);
       if (sorted.length === 0) return;
       const currentIndex = sorted.findIndex(
@@ -99,7 +99,7 @@ export function AppContent() {
     },
     // Ctrl+Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
     onOpenActiveTabMenu: () => {
-      if (dashboardMode || gitGraph.isActive || fileViewer.isActive) return;
+      if (dashboardMode || fileViewer.isActive) return;
       const active = aiCli.activeInstance;
       if (active) aiInstanceTabsRef.current?.openTabMenu(active.instanceId);
     },
@@ -123,7 +123,7 @@ export function AppContent() {
   // コマンドパレットを開いたら push 先選択用に remote 一覧を取得しておく
   useEffect(() => {
     if (isCommandPaletteOpen && repository.currentRepo) {
-      gitGraph.requestRemotes();
+      gitActions.requestRemotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCommandPaletteOpen, repository.currentRepo]);
@@ -133,12 +133,12 @@ export function AppContent() {
     () =>
       buildCommands({
         currentRepo: repository.currentRepo,
-        gitGraph,
+        gitActions,
         dashboardMode,
         setDashboardMode: setDashboardModeAndPersist,
         openFileViewer: openFileViewerTab,
       }),
-    [gitGraph, repository.currentRepo, dashboardMode, setDashboardModeAndPersist]
+    [gitActions, repository.currentRepo, dashboardMode, setDashboardModeAndPersist]
   );
 
   const commandPalette = (
@@ -187,7 +187,7 @@ export function AppContent() {
     );
   }
 
-  // 統合コード/git ブラウザ（変更ファイル / ツリー / グラフ を 1 画面に集約）
+  // 統合コード/git ブラウザ（変更ファイル / ファイルツリー を 1 画面に集約）
   if (fileViewer.isActive) {
     return (
       <>

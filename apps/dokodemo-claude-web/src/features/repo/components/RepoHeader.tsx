@@ -5,7 +5,6 @@ import {
   ExternalLink,
   FolderOpen,
   Github,
-  GitFork,
   Loader2,
   Settings,
 } from 'lucide-react';
@@ -14,7 +13,6 @@ import IconButton from '@/shared/components/IconButton';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useAiContext } from '@/features/ai/providers/AiProvider';
-import { useGitGraphContext } from '@/features/git/providers/GitProvider';
 import { useEditorLauncherContext } from '@/features/repo/providers/EditorLauncherProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import { openFileViewerTab } from '@/app/utils/open-views';
@@ -73,7 +71,6 @@ export function RepoHeader() {
 
   // ツールボタン
   const onOpenFileViewer = openFileViewerTab;
-  const { openGraphView: onOpenGraphView } = useGitGraphContext();
   const { openSettings: onOpenSettings } = useNavigationContext();
 
   // エディタ起動
@@ -176,14 +173,6 @@ export function RepoHeader() {
                 disabled={!isConnected}
               >
                 <FolderOpen />
-              </IconButton>
-
-              <IconButton
-                label="Git Graphを開く"
-                onClick={onOpenGraphView}
-                disabled={!isConnected}
-              >
-                <GitFork />
               </IconButton>
 
               {hasEditorButton && primaryEditor && (

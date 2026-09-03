@@ -103,7 +103,7 @@ function ColorsView() {
       <section className={s.section}>
         <h3 className={s.sectionTitle}>プリミティブパレット</h3>
         <p className={s.sectionDesc}>
-          装飾的に多色が必要な場面（GitGraph のブランチ色など）でのみ直接参照する。
+          装飾的に多色が必要な場面でのみ直接参照する。
         </p>
         {paletteFamilies.map((family) => (
           <div key={family} className={s.paletteRow}>
