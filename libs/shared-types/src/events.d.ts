@@ -16,13 +16,7 @@ import type {
   CodeServer,
   SelfBranch,
 } from './repo';
-import type {
-  GitBranch,
-  GitDiffSummary,
-  GitDiffDetail,
-  GitGraphData,
-  GitGraphCommitDetail,
-} from './git';
+import type { GitBranch, GitDiffSummary, GitDiffDetail } from './git';
 import type {
   GitWorktree,
   WorktreeCreateRequest,
@@ -493,26 +487,14 @@ export interface ServerToClientEvents {
   }) => void;
   'git-diff-error': (data: { rid: string; message: string }) => void;
 
-  // Git Graph関連イベント
-  'git-graph': (data: { rid: string; graph: GitGraphData }) => void;
-  'git-graph-commit-detail': (data: {
+  // Git操作（pull / push / fetch）関連イベント
+  'git-action-result': (data: {
     rid: string;
-    hash: string;
-    detail: GitGraphCommitDetail;
-  }) => void;
-  'git-graph-file-diff': (data: {
-    rid: string;
-    hash: string;
-    detail: GitDiffDetail;
-  }) => void; // GitDiffDetail は既存型
-  'git-graph-error': (data: { rid: string; message: string }) => void;
-  'git-graph-action-result': (data: {
-    rid: string;
-    action: 'checkout' | 'merge' | 'pull' | 'push' | 'fetch';
+    action: 'pull' | 'push' | 'fetch';
     success: boolean;
     message: string;
   }) => void;
-  'git-graph-remotes-result': (data: {
+  'git-remotes-result': (data: {
     rid: string;
     remotes: string[];
   }) => void;
@@ -909,41 +891,16 @@ export interface ClientToServerEvents {
   'get-git-diff-summary': (data: { rid: string }) => void;
   'get-git-diff-detail': (data: { rid: string; filename: string }) => void;
 
-  // Git Graph関連イベント
-  'get-git-graph': (data: {
-    rid: string;
-    branches: string[] | null;
-    maxCommits: number;
-  }) => void;
-  'get-git-graph-commit-detail': (data: { rid: string; hash: string }) => void;
-  'get-git-graph-file-diff': (data: {
-    rid: string;
-    hash: string;
-    filename: string;
-    oldFilename?: string;
-  }) => void;
-  'git-graph-checkout': (data: {
-    rid: string;
-    kind: 'branch' | 'remote' | 'commit';
-    name: string; // ブランチ名 / リモートブランチ名 / コミット hash
-    localName?: string; // kind='remote' 時に作成するローカルブランチ名
-  }) => void;
-  'git-graph-merge': (data: {
-    rid: string;
-    target: string; // ブランチ名 or コミット hash
-    noFF: boolean;
-    squash: boolean;
-    noCommit: boolean;
-  }) => void;
-  'git-graph-remotes': (data: { rid: string }) => void;
-  'git-graph-pull': (data: { rid: string }) => void;
-  'git-graph-push': (data: {
+  // Git操作（pull / push / fetch）関連イベント
+  'git-remotes': (data: { rid: string }) => void;
+  'git-pull': (data: { rid: string }) => void;
+  'git-push': (data: {
     rid: string;
     remote?: string; // push 先 remote 名（未指定なら upstream 追跡先へ）
     force?: boolean;
     setUpstream?: boolean;
   }) => void;
-  'git-graph-fetch': (data: { rid: string; prune?: boolean }) => void;
+  'git-fetch': (data: { rid: string; prune?: boolean }) => void;
 
   // AI Hooks設定関連イベント
   'check-hooks-status': (data: { provider: AiProvider }) => void;

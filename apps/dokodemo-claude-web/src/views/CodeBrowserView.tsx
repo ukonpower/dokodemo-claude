@@ -1,36 +1,31 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { ArrowLeft, GitCompare, FolderTree, GitFork } from 'lucide-react';
+import { ArrowLeft, GitCompare, FolderTree } from 'lucide-react';
 import FileTree from '@/features/files/components/FileTree';
 import FileContentViewer from '@/features/files/components/FileContentViewer';
 import DiffSummary from '@/features/git/components/DiffSummary';
-import GitGraphView from './GitGraphView';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
-import {
-  useGitDiffContext,
-  useGitGraphContext,
-} from '@/features/git/providers/GitProvider';
+import { useGitDiffContext } from '@/features/git/providers/GitProvider';
 import { useFileViewerContext } from '@/features/files/providers/FilesProvider';
 import s from './CodeBrowserView.module.scss';
 
 /** 左サイドバーの表示モード */
-export type CodeBrowserMode = 'changes' | 'tree' | 'graph';
+export type CodeBrowserMode = 'changes' | 'tree';
 
 const MODES: { id: CodeBrowserMode; label: string; icon: typeof GitCompare }[] = [
   { id: 'tree', label: 'ツリー', icon: FolderTree },
   { id: 'changes', label: '変更', icon: GitCompare },
-  { id: 'graph', label: 'グラフ', icon: GitFork },
 ];
 
 /**
  * 初期モードは常にファイルツリー。
- * 差分（変更）やグラフは「ユーザーが明示的に切り替えたとき」だけ表示する位置づけなので、
+ * 差分（変更）は「ユーザーが明示的に切り替えたとき」だけ表示する位置づけなので、
  * 前回モードの永続化・復元は行わない（deep-link の ?mode= だけを尊重する）。
  */
 function readInitialMode(): CodeBrowserMode {
   const params = new URLSearchParams(window.location.search);
   const fromUrl = params.get('mode');
-  if (fromUrl === 'changes' || fromUrl === 'tree' || fromUrl === 'graph') {
+  if (fromUrl === 'changes' || fromUrl === 'tree') {
     return fromUrl;
   }
   return 'tree';
@@ -38,44 +33,27 @@ function readInitialMode(): CodeBrowserMode {
 
 /**
  * 統合コード/git ブラウザ（VSCode の diff タブに近い 2 ペイン）。
- * 左サイドバーで「変更ファイル / ファイルツリー / グラフ」を切り替え、
- * 右ペインに選択したファイルの内容・差分・コミット差分を共通表示する。
+ * 左サイドバーで「変更ファイル / ファイルツリー」を切り替え、
+ * 右ペインに選択したファイルの内容・差分を共通表示する。
  * AI/ターミナルのプロジェクトビューとは別ブラウザタブで開く。
  */
 export function CodeBrowserView() {
   const { repository } = useRepositoryContext();
   const fileViewer = useFileViewerContext();
   const gitDiff = useGitDiffContext();
-  const gitGraph = useGitGraphContext();
 
   const { currentRepo } = repository;
   const rid = repositoryIdMap.getRid(currentRepo) || '';
 
-  // リポジトリ表示名の導出（worktree の場合、グラフ側は「親リポ / ブランチ」で表示）
   const repoInfo = repository.repositories.find(
     (r) => r.path === currentRepo
   );
   const repoName = repoInfo?.name || '';
-  const graphRepoName =
-    repoInfo?.isWorktree &&
-    repoInfo?.parentRepoName &&
-    repoInfo?.worktreeBranch
-      ? `${repoInfo.parentRepoName} / ${repoInfo.worktreeBranch}`
-      : repoInfo?.name ||
-        currentRepo.split('/').filter(Boolean).pop() ||
-        '';
 
   const [mode, setMode] = useState<CodeBrowserMode>(readInitialMode);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 680;
   const showFileOnMobile = isMobile && fileViewer.selectedFilePath !== null;
-
-  // グラフモードのときだけグラフデータを購読する
-  const { syncActive } = gitGraph;
-  useEffect(() => {
-    syncActive(mode === 'graph');
-    return () => syncActive(false);
-  }, [mode, syncActive]);
 
   // モード切替（URL にのみ反映。次回オープン時はツリーへ戻す）
   const changeMode = useCallback((next: CodeBrowserMode) => {
@@ -89,7 +67,7 @@ export function CodeBrowserView() {
   useEffect(() => {
     const handlePopState = () => {
       const p = new URLSearchParams(window.location.search).get('mode');
-      if (p === 'changes' || p === 'tree' || p === 'graph') setMode(p);
+      if (p === 'changes' || p === 'tree') setMode(p);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -243,51 +221,37 @@ export function CodeBrowserView() {
         {modeTabs}
       </div>
 
-      {/* コンテンツ */}
-      {mode === 'graph' ? (
-        <div className={s.graphArea}>
-          <GitGraphView
-            gitGraph={gitGraph}
-            repoName={graphRepoName}
-            rid={rid}
-            embedded
-          />
-        </div>
-      ) : (
-        <>
-          {/* モバイル: 上下分割 */}
-          <div className={s.mobileContent}>
-            {!fileViewer.isFullScreen && (
-              <div
-                className={
-                  showFileOnMobile ? s.mobileListCompact : s.mobileListFull
-                }
-              >
-                {listPanel}
-              </div>
-            )}
-            {showFileOnMobile && (
-              <div
-                className={
-                  fileViewer.isFullScreen
-                    ? s.mobileFileContentFullScreen
-                    : s.mobileFileContent
-                }
-              >
-                {contentPane(true)}
-              </div>
-            )}
+      {/* モバイル: 上下分割 */}
+      <div className={s.mobileContent}>
+        {!fileViewer.isFullScreen && (
+          <div
+            className={
+              showFileOnMobile ? s.mobileListCompact : s.mobileListFull
+            }
+          >
+            {listPanel}
           </div>
+        )}
+        {showFileOnMobile && (
+          <div
+            className={
+              fileViewer.isFullScreen
+                ? s.mobileFileContentFullScreen
+                : s.mobileFileContent
+            }
+          >
+            {contentPane(true)}
+          </div>
+        )}
+      </div>
 
-          {/* デスクトップ: 左右分割 */}
-          <div className={s.desktopContent}>
-            {!fileViewer.isFullScreen && (
-              <div className={s.desktopList}>{listPanel}</div>
-            )}
-            <div className={s.desktopFileContent}>{contentPane(false)}</div>
-          </div>
-        </>
-      )}
+      {/* デスクトップ: 左右分割 */}
+      <div className={s.desktopContent}>
+        {!fileViewer.isFullScreen && (
+          <div className={s.desktopList}>{listPanel}</div>
+        )}
+        <div className={s.desktopFileContent}>{contentPane(false)}</div>
+      </div>
     </div>
   );
 }
