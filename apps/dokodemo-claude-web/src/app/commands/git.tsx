@@ -1,4 +1,4 @@
-import { GitPullRequest, Upload, Download, RefreshCw } from 'lucide-react';
+import { GitPullRequest, Upload, Download } from 'lucide-react';
 import type { CommandProvider, CommandPaletteCommand } from './types';
 
 // Git 系のコマンドパレット項目。リポジトリ選択中ならどのビューでも pull/push/fetch を出す。
@@ -6,9 +6,9 @@ export const gitCommands: CommandProvider = (ctx) => {
   const cmds: CommandPaletteCommand[] = [];
   if (!ctx.currentRepo) return cmds;
 
-  const { gitGraph } = ctx;
-  const disabled = gitGraph.actionInProgress;
-  const remotes = gitGraph.remotes;
+  const { gitActions } = ctx;
+  const disabled = gitActions.actionInProgress;
+  const remotes = gitActions.remotes;
 
   // push 系コマンドを生成する。remote が 2 つ以上なら宛先ピッカー（サブメニュー）を出し、
   // 0/1 個ならそのまま実行する（0 個は upstream 追跡先へ暗黙 push）。
@@ -21,7 +21,7 @@ export const gitCommands: CommandProvider = (ctx) => {
   ): CommandPaletteCommand => {
     const runFor = (remote?: string) => {
       if (confirmMessage && !window.confirm(confirmMessage)) return;
-      gitGraph.push({ ...pushOpts, remote });
+      gitActions.push({ ...pushOpts, remote });
     };
     const base = {
       id: idBase,
@@ -55,7 +55,7 @@ export const gitCommands: CommandProvider = (ctx) => {
       category: 'Git',
       icon: <Download size={14} />,
       disabled,
-      run: () => gitGraph.pull(),
+      run: () => gitActions.pull(),
     },
     makePush('git.push', 'Git: Push', '現在のブランチを push', {}),
     makePush(
@@ -78,7 +78,7 @@ export const gitCommands: CommandProvider = (ctx) => {
       category: 'Git',
       icon: <GitPullRequest size={14} />,
       disabled,
-      run: () => gitGraph.fetch(),
+      run: () => gitActions.fetch(),
     },
     {
       id: 'git.fetch.prune',
@@ -87,22 +87,9 @@ export const gitCommands: CommandProvider = (ctx) => {
       category: 'Git',
       icon: <GitPullRequest size={14} />,
       disabled,
-      run: () => gitGraph.fetch({ prune: true }),
+      run: () => gitActions.fetch({ prune: true }),
     }
   );
-
-  // グラフ再取得はグラフ表示中のみ意味があるので、その時だけ出す
-  if (gitGraph.isActive) {
-    cmds.push({
-      id: 'git.refresh',
-      label: 'Git: Refresh Graph',
-      description: 'グラフを再取得',
-      category: 'Git Graph',
-      icon: <RefreshCw size={14} />,
-      disabled,
-      run: () => gitGraph.refresh(),
-    });
-  }
 
   return cmds;
 };

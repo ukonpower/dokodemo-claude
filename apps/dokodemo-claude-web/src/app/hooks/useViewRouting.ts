@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UseRepositoryReturn } from '@/features/repo/hooks/useRepository';
 import type { UseGitDiffReturn } from '@/features/git/hooks/useGitDiff';
 import type { UseFileViewerReturn } from '@/features/files/hooks/useFileViewer';
-import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
 
 /**
  * localStorage に保存するダッシュボードモードのキーを生成する
@@ -15,7 +14,6 @@ export interface UseViewRoutingOptions {
   repository: UseRepositoryReturn;
   gitDiff: UseGitDiffReturn;
   fileViewer: UseFileViewerReturn;
-  gitGraph: UseGitGraphReturn;
 }
 
 export interface UseViewRoutingReturn {
@@ -37,7 +35,7 @@ export interface UseViewRoutingReturn {
 export function useViewRouting(
   options: UseViewRoutingOptions
 ): UseViewRoutingReturn {
-  const { initialRepo, initialViewFromUrl, repository, gitDiff, fileViewer, gitGraph } =
+  const { initialRepo, initialViewFromUrl, repository, gitDiff, fileViewer } =
     options;
 
   // ダッシュボードビューモードの状態管理
@@ -102,17 +100,6 @@ export function useViewRouting(
       setSettingsMode(false);
       setProjectSettingsMode(false);
 
-      if (viewFromUrl === 'graph') {
-        setDashboardMode(false);
-        gitDiff.handleDiffViewBack();
-        fileViewer.clearState();
-        gitGraph.syncActive(true);
-        return;
-      }
-
-      // graph 以外へ遷移する場合は graph ビューを閉じる
-      gitGraph.syncActive(false);
-
       if (viewFromUrl === 'files') {
         // ファイルビュワーのpopstate対応はフック内で状態管理
         setDashboardMode(false);
@@ -132,7 +119,7 @@ export function useViewRouting(
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [repository, gitDiff, fileViewer, gitGraph]);
+  }, [repository, gitDiff, fileViewer]);
 
   // リポジトリ切り替え時にダッシュボードモードを localStorage から復元
   useEffect(() => {

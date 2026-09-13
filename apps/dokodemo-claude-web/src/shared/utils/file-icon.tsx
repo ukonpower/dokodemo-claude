@@ -70,7 +70,7 @@ interface FileIconProps {
 
 /**
  * ファイル種別アイコン（拡張子ベース）。
- * diff / gitgraph のファイル一覧で共通利用する。
+ * diff のファイル一覧等で共通利用する。
  */
 export const FileIcon: React.FC<FileIconProps> = ({ filename, size = 14 }) => {
   const { Icon, color } = getFileIconDef(filename);

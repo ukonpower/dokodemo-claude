@@ -4,23 +4,19 @@ import {
   type UseViewRoutingReturn,
 } from '@/app/hooks/useViewRouting';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
-import {
-  useGitDiffContext,
-  useGitGraphContext,
-} from '@/features/git/providers/GitProvider';
+import { useGitDiffContext } from '@/features/git/providers/GitProvider';
 import { useFileViewerContext } from '@/features/files/providers/FilesProvider';
 
 const NavigationContext = createContext<UseViewRoutingReturn | null>(null);
 
 /**
  * ビュールーティング（useViewRouting）の戻り値を提供する Provider。
- * useViewRouting は repository / gitDiff / fileViewer / gitGraph を引数に取るため、
+ * useViewRouting は repository / gitDiff / fileViewer を引数に取るため、
  * AppProviders の内側（AppContent 直上）に置き、各 context から値を集めて渡す。
  */
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const { repository } = useRepositoryContext();
   const gitDiff = useGitDiffContext();
-  const gitGraph = useGitGraphContext();
   const fileViewer = useFileViewerContext();
 
   // URLからリポジトリ・初期ビューを取得
@@ -35,7 +31,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     repository,
     gitDiff,
     fileViewer,
-    gitGraph,
   });
 
   return (

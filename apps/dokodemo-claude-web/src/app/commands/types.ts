@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { UseGitGraphReturn } from '@/features/git/hooks/useGitGraph';
+import type { UseGitActionsReturn } from '@/features/git/hooks/useGitActions';
 
 // コマンドパレットに表示する1コマンド。
 // children を持つコマンドは実行せずサブメニューへ遷移する（run は無視される）
@@ -18,7 +18,7 @@ export interface CommandPaletteCommand {
 // コマンドが増えて必要になったら App.tsx が組み立てるこの型へフィールドを足す。
 export interface CommandContext {
   currentRepo: string;
-  gitGraph: UseGitGraphReturn;
+  gitActions: UseGitActionsReturn;
   dashboardMode: boolean;
   setDashboardMode: (next: boolean) => void;
   openFileViewer: () => void;

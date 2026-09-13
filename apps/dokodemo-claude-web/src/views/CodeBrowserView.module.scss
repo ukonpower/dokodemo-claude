@@ -76,13 +76,6 @@
   }
 }
 
-// グラフモード（GitGraphView をそのまま埋め込む）
-.graphArea {
-  flex: 1 1 0%;
-  overflow: hidden;
-  min-height: 0;
-}
-
 // モバイルレイアウト
 .mobileContent {
   flex: 1 1 0%;
