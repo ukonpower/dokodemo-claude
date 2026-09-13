@@ -4,6 +4,7 @@
 // value は Claude CLI の /model にそのまま渡す実値。空文字は「未指定」を表す。
 // API key が必要なモデルは含めず、Claude Code CLI（ログイン済み前提）で使えるものだけを載せる。
 // [1m] は Claude Code の fast mode 表記で、id は素の Opus ID を使い label にのみ付ける。
+// alias（バージョン指定なしの opus / sonnet / fable）は CLI 側で常に最新版に解決される。
 
 export type ModelSource = 'builtin' | 'custom';
 
@@ -19,11 +20,15 @@ export interface ModelOption {
 // 組み込みモデル（表示順）。API key 不要のもののみ。
 export const BUILTIN_MODEL_OPTIONS: ModelOption[] = [
   { value: '', label: '未指定', source: 'builtin' },
+  { value: 'opus', label: 'Opus [1m]', source: 'builtin' },
+  { value: 'sonnet', label: 'Sonnet', source: 'builtin' },
+  { value: 'fable', label: 'Fable', source: 'builtin' },
   { value: 'claude-opus-5', label: 'Opus 5 [1m]', source: 'builtin' },
   { value: 'claude-opus-4-8', label: 'Opus 4.8 [1m]', source: 'builtin' },
   { value: 'claude-opus-4-7', label: 'Opus 4.7 [1m]', source: 'builtin' },
   { value: 'claude-sonnet-5', label: 'Sonnet 5', source: 'builtin' },
   { value: 'claude-sonnet-4-5', label: 'Sonnet 4', source: 'builtin' },
+  { value: 'claude-fable-5-1', label: 'Fable 5.1', source: 'builtin' },
   { value: 'claude-fable-5', label: 'Fable 5', source: 'builtin' },
 ];
 
