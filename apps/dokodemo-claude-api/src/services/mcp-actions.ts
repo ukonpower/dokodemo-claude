@@ -3,7 +3,7 @@
 // REST ハンドラと MCP ハンドラの双方から同一プロセス内で直接呼ぶ。HTTP 往復や fetch は挟まない。
 
 import { extname, basename } from 'path';
-import { readFile } from 'fs/promises';
+import { access, readFile } from 'fs/promises';
 import type { ProcessManager } from '../process-manager.js';
 import type { ActiveTerminal } from '../managers/terminal-manager.js';
 import type { TypedServer } from '../handlers/types.js';
@@ -11,6 +11,8 @@ import type {
   AiProvider,
   FileSource,
   GitRepository,
+  ReviewAttachment,
+  ReviewResponseKind,
   WorktreeSyncEntry,
 } from '../types/index.js';
 import { repositoryIdManager } from './repository-id-manager.js';
@@ -27,6 +29,9 @@ import {
 import { emitIdMappingUpdated } from '../handlers/id-mapping-helpers.js';
 import { stripAnsi } from '../utils/strip-ansi.js';
 import { savePreviewFile } from '../handlers/file-upload-handlers.js';
+import { toPublicReviewRequest } from '../managers/review-request-manager.js';
+import { saveReviewImage, deleteReviewImages } from './review-media.js';
+import { getWebPushService } from './web-push-service.js';
 
 /**
  * アクションが失敗したときに投げる共通エラー。
@@ -522,6 +527,214 @@ export async function uploadPreview(
   });
   if (!result.success) throw new ActionError(400, result.message);
   return { success: true, message: result.message, file: result.file };
+}
+
+// ---------------------------------------------------------------------------
+// review（評価リクエスト。docs/feedback-loop.md の「3. 評価リクエスト」）
+// ---------------------------------------------------------------------------
+
+export interface CreateReviewRequestInput {
+  /** 狙い: このサイクルで何を改善しようとしたか（1〜2行） */
+  aim: string;
+  /** 問い: 何を判断してほしいか */
+  question: string;
+  /** 選択肢。省略時は自由記述のみで応答 */
+  choices?: string[];
+  /** 提示物: ローカル画像の絶対パス（恒久領域へコピーされる） */
+  images?: { path: string; label?: string }[];
+  /** 提示物: 実機 URL 等 */
+  urls?: { url: string; label?: string }[];
+  /** 応答プロンプトを積むキューのプロバイダ（既定 'claude'） */
+  provider?: AiProvider;
+  /**
+   * ブロッキング発行: 応答が来るまで発行元キュー（ループ含む）を一時停止する。
+   * 「後続の作業全体が評価結果に依存し、進むと手戻りになる」ときだけ使う
+   */
+  blocking?: boolean;
+}
+
+export async function createReviewRequest(
+  rid: string,
+  input: CreateReviewRequestInput,
+  deps: ActionDeps
+): Promise<object> {
+  const { processManager, io } = deps;
+  if (!input.aim || !input.question) {
+    throw new ActionError(400, 'aim（狙い）と question（問い）は必須です');
+  }
+  const resolved = repositoryIdManager.getPath(rid);
+  if (!resolved) throw new ActionError(404, 'リポジトリが見つかりません');
+
+  // 受信箱は親リポジトリ単位。worktree からの発行も親の受信箱に届き、
+  // 応答プロンプトだけ発行元（sourcePath）のキューへ戻る。
+  const parentRepoPath = getMainRepoPath(resolved);
+  const prid = repositoryIdManager.getId(parentRepoPath);
+
+  const attachments: ReviewAttachment[] = [];
+  for (const image of input.images ?? []) {
+    try {
+      const saved = await saveReviewImage(prid, image.path);
+      attachments.push({ type: 'image', url: saved.url, label: image.label });
+    } catch (e) {
+      throw new ActionError(400, `画像を保存できませんでした: ${String(e)}`);
+    }
+  }
+  for (const entry of input.urls ?? []) {
+    if (!entry.url) continue;
+    attachments.push({ type: 'url', url: entry.url, label: entry.label });
+  }
+
+  const provider: AiProvider = input.provider === 'codex' ? 'codex' : 'claude';
+
+  // 発行元キューのループ設定 reviewBlocking で AI の blocking 指定を上書きする。
+  // 'always': 常にブロッキング / 'never': 常に非ブロッキング / 'ai'・未設定: AI の指定に従う
+  const policy =
+    processManager.promptQueueManager.getLoopReviewBlocking(resolved, provider) ??
+    'ai';
+  const blocking =
+    policy === 'always' ? true : policy === 'never' ? false : input.blocking === true;
+
+  const result = await processManager.reviewRequestManager.create(prid, {
+    aim: input.aim,
+    question: input.question,
+    attachments,
+    choices: (input.choices ?? []).filter((c) => typeof c === 'string' && c !== ''),
+    sourcePath: resolved,
+    provider,
+    blocking,
+  });
+  if (!result.ok) throw new ActionError(500, result.error.message);
+
+  // ブロッキング発行: 応答が届くまで発行元キューを一時停止する
+  // （実行中のターンはそのまま完走し、次のアイテム／ループ周回から止まる）
+  if (blocking) {
+    await processManager.pausePromptQueue(resolved, provider);
+  }
+
+  const request = toPublicReviewRequest(result.value);
+  io.emit('review-request-created', { rid: prid, request });
+
+  const repoName = parentRepoPath.split('/').filter(Boolean).pop() || '';
+  getWebPushService()
+    ?.sendNotification({
+      title: `📝 [${repoName}] 評価リクエスト #${request.id}`,
+      body: request.aim.slice(0, 150),
+      // 受信箱はプロジェクトビューのキューセクション直上にインライン表示される
+      url: `/?repo=${encodeURIComponent(parentRepoPath)}`,
+      eventType: 'ReviewRequest',
+    })
+    .catch((err) => {
+      console.error('Web Push通知の送信に失敗:', err);
+    });
+
+  return { success: true, rid: prid, requestId: request.id, request };
+}
+
+export interface RespondReviewRequestInput {
+  kind: ReviewResponseKind;
+  choice?: string;
+  comment?: string;
+}
+
+export async function respondReviewRequest(
+  rid: string,
+  requestId: string,
+  input: RespondReviewRequestInput,
+  deps: ActionDeps
+): Promise<object> {
+  const { processManager, io } = deps;
+  if (input.kind === 'choice' && !input.choice) {
+    throw new ActionError(400, 'kind=choice には choice が必要です');
+  }
+  if (input.kind !== 'choice' && !input.comment) {
+    throw new ActionError(400, `kind=${input.kind} には comment が必要です`);
+  }
+
+  const result = await processManager.reviewRequestManager.respond(
+    rid,
+    requestId,
+    {
+      kind: input.kind,
+      choice: input.choice,
+      comment: input.comment,
+      respondedAt: Date.now(),
+    }
+  );
+  if (!result.ok) throw new ActionError(400, result.error.message);
+  const stored = result.value;
+
+  // 配達先は発行元。worktree が既に消えている場合は親リポジトリへフォールバック
+  // （応答の実体は review-requests.json に残り、反映ターンはキューを経由せず
+  // 配達のたびに組み立て直されるため、キュー操作で応答が失われることはない）
+  const parentRepoPath = repositoryIdManager.getPath(rid) ?? stored.sourcePath;
+  let targetPath = stored.sourcePath;
+  try {
+    await access(stored.sourcePath);
+  } catch {
+    targetPath = parentRepoPath;
+  }
+
+  // ブロッキング発行への応答: 同じ発行元に未回答のブロッキング発行が
+  // 残っていなければ、発行時に止めたキューを再開する
+  if (stored.blocking === true) {
+    const stillBlocked = processManager.reviewRequestManager.hasPendingBlocking(
+      stored.sourcePath,
+      stored.provider
+    );
+    if (!stillBlocked) {
+      await processManager.resumePromptQueue(targetPath, stored.provider);
+    }
+  }
+
+  // AI の手が空いていれば即座に反映ターンを配達する
+  // （処理中・一時停止中なら Stop hook 着弾時・キュー再開時に配達される）
+  await processManager.promptQueueManager.triggerReviewReflection(
+    targetPath,
+    stored.provider
+  );
+
+  io.emit('review-request-updated', {
+    rid,
+    request: toPublicReviewRequest(stored),
+  });
+  return { success: true, rid, requestId };
+}
+
+export async function deleteReviewRequest(
+  rid: string,
+  requestId: string,
+  deps: ActionDeps
+): Promise<object> {
+  const removed = await deps.processManager.reviewRequestManager.delete(
+    rid,
+    requestId
+  );
+  if (!removed) {
+    throw new ActionError(404, `評価リクエスト #${requestId} が見つかりません`);
+  }
+  await deleteReviewImages(
+    rid,
+    removed.attachments.filter((a) => a.type === 'image').map((a) => a.url)
+  );
+
+  // 未回答のブロッキング発行を削除した場合、止まったままにならないよう
+  // （他に未回答のブロッキング発行が無ければ）発行元キューを再開する
+  if (removed.status === 'pending' && removed.blocking === true) {
+    const stillBlocked =
+      deps.processManager.reviewRequestManager.hasPendingBlocking(
+        removed.sourcePath,
+        removed.provider
+      );
+    if (!stillBlocked) {
+      await deps.processManager.resumePromptQueue(
+        removed.sourcePath,
+        removed.provider
+      );
+    }
+  }
+
+  deps.io.emit('review-request-deleted', { rid, requestId });
+  return { success: true, rid, requestId };
 }
 
 // ---------------------------------------------------------------------------

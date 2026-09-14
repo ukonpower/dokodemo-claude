@@ -16,6 +16,9 @@ export interface PromptLoopState {
   judge: 'ai' | 'user' | 'none';
   judgeEveryN: number; // 何周ごとに判断（judge !== 'none' のとき有効、1以上）
   judgeCriteria?: string; // AI 判断時のユーザー指定判定基準（終了条件）
+  // 評価リクエスト発行時にループを停止するかのポリシー。
+  // 'ai': AI の blocking 指定に従う（未設定時の既定） / 'always': 常に停止 / 'never': 停止しない
+  reviewBlocking?: 'ai' | 'always' | 'never';
   intervalSec: number; // 再送待機秒数（0 = 即時）
   iteration: number; // 現在の周回番号（1始まり、サーバ側で加算）
   startedAt: number;
@@ -30,6 +33,12 @@ export interface PromptLoopState {
   pendingPlanning?: boolean; // 次の送信はプランニングターン
   planningActive?: boolean; // プランニングターン実行中
   modelRestorePending?: boolean; // プランニング後、次の通常送信でモデルを default に戻す
+  // ループ実行中にユーザーが送った未反映の指示。次のサイクル間で
+  // 「指示反映ターン」を 1 回差し込み、まとめて計画・進め方に反映させる
+  feedback?: string[];
+  // 指示反映ターン実行中（値 = このターンに含めた指示の件数）。
+  // 完了時に先頭からこの件数だけ feedback を消し、ターン中に届いた指示は持ち越す
+  feedbackActive?: number;
 }
 
 // プロンプトキュー関連の型定義

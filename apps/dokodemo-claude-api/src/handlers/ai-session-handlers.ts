@@ -280,6 +280,15 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
       processManager.setAiExecutionStatus(instanceId, 'running');
     }
 
+    // キュー外の経路で /model が送られたら、キュー側の /model 適用キャッシュを
+    // 無効化する（同値スキップ判定が古い値のまま誤ってスキップしないように）
+    if (command.trimStart().startsWith('/model')) {
+      processManager.promptQueueManager.invalidateCurrentModel(
+        instance.repositoryPath,
+        instance.provider
+      );
+    }
+
     const success = processManager.sendToInstance(instanceId, command);
     if (!success) {
       emitSystemMessage(socket, `CLIセッションエラー: 入力に失敗しました\n`, {

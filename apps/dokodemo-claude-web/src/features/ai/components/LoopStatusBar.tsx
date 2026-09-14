@@ -19,9 +19,13 @@ interface LoopStatusBarProps {
  * 表示状態は優先順に:
  * 1. 確認待ち（警告色 + 継続/終了ボタン）
  * 2. AI 判断中（スピナー）
- * 3. プランニング中（スピナー + モデル名）
- * 4. 待機中（カウントダウン + 今すぐ/停止）
- * 5. 実行中（周回数 + 停止）
+ * 3. 指示反映中（スピナー + 件数）
+ * 4. プランニング中（スピナー + モデル名）
+ * 5. 待機中（カウントダウン + 今すぐ/停止）
+ * 6. 実行中（周回数 + 停止）
+ *
+ * ループへの指示の入力はループ専用入力欄（LoopComposer）が担う。
+ * ここでは反映待ち・反映中の状況だけを表示する。
  */
 const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
   loopItem,
@@ -59,11 +63,20 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
 
   // 状態判定（優先順）
   const isAwaitingApproval = !!loop.awaitingUserApproval;
+  const isReflecting =
+    !isAwaitingApproval && !isJudging && !!loop.feedbackActive;
   const isPlanning =
-    !isAwaitingApproval && !isJudging && !!loop.planningActive;
+    !isAwaitingApproval && !isJudging && !isReflecting && !!loop.planningActive;
   const isCountingDown =
-    !isAwaitingApproval && !isJudging && !isPlanning && remainingSec > 0;
+    !isAwaitingApproval &&
+    !isJudging &&
+    !isReflecting &&
+    !isPlanning &&
+    remainingSec > 0;
   // isRunning は上記いずれでもない場合
+
+  const feedbackCount = loop.feedback?.length ?? 0;
+  const sentFeedbackCount = loop.feedbackActive ?? 0;
 
   return (
     <div
@@ -89,6 +102,13 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
                 AI 判断中 ({loop.iteration - 1}周目完了後)
               </span>
             </>
+          ) : isReflecting ? (
+            <>
+              <Loader size={12} className={s.spinIcon} />
+              <span className={s.text}>
+                指示反映中 ({sentFeedbackCount}件)
+              </span>
+            </>
           ) : isPlanning ? (
             <>
               <Loader size={12} className={s.spinIcon} />
@@ -100,7 +120,11 @@ const LoopStatusBar: React.FC<LoopStatusBarProps> = ({
           ) : isCountingDown ? (
             <span className={s.text}>
               {loop.iteration}周目 · 次回送信まで {remainingText}
-              {loop.pendingPlanning ? ' · 次はプランニング' : ''}
+              {feedbackCount > 0
+                ? ' · 次は指示反映'
+                : loop.pendingPlanning
+                  ? ' · 次はプランニング'
+                  : ''}
             </span>
           ) : (
             <span className={s.text}>

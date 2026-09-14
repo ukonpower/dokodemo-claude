@@ -9,6 +9,7 @@ import { QueueProvider } from '@/features/ai/providers/QueueProvider';
 import { BranchesProvider } from '@/features/git/providers/BranchesProvider';
 import { GitProvider } from '@/features/git/providers/GitProvider';
 import { FilesProvider } from '@/features/files/providers/FilesProvider';
+import { ReviewProvider } from '@/features/review/providers/ReviewProvider';
 import { EditorLauncherProvider } from '@/features/repo/providers/EditorLauncherProvider';
 
 /**
@@ -27,7 +28,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
                   <QueueProvider>
                     <GitProvider>
                       <FilesProvider>
-                        <EditorLauncherProvider>{children}</EditorLauncherProvider>
+                        <ReviewProvider>
+                          <EditorLauncherProvider>{children}</EditorLauncherProvider>
+                        </ReviewProvider>
                       </FilesProvider>
                     </GitProvider>
                   </QueueProvider>

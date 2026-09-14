@@ -1,0 +1,289 @@
+// レビューリクエストの受信箱（ループ設定パネル下のパネル + モーダル）
+
+// ループ設定パネルの下に置くパネル。指示パネルと枠の見た目を揃える
+.panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-secondary;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  color: $dark-text-secondary;
+}
+
+.headerIcon {
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+}
+
+// 未回答あり: アクセント色のバッジで件数を出す（未回答が無いときは出さない）
+.pendingBadge {
+  padding: 0 $space-2xs;
+  border-radius: $radius-full;
+  background-color: $accent;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+}
+
+// ブロッキング発行（応答までキュー・ループが停止中）の表示
+.blockingBadge {
+  display: inline-block;
+  margin-right: $space-2xs;
+  padding: 0 $space-2xs;
+  border: 1px solid $color-warning-border;
+  border-radius: $radius-full;
+  background-color: $color-warning-bg;
+  color: $color-warning;
+  font-size: $font-size-2xs;
+  line-height: 1rem;
+  white-space: nowrap;
+  vertical-align: text-bottom;
+}
+
+.openAllButton {
+  margin-left: auto;
+  padding: $space-3xs $space-xs;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: transparent;
+  color: $dark-text-secondary;
+  font-size: $font-size-xs;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+// 未回答リクエストのプレビュー行
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.previewItem {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  padding: $space-2xs;
+  border: 1px solid transparent;
+  border-radius: $radius;
+  background-color: $dark-bg-primary;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    border-color: $dark-border-light;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  object-fit: cover;
+}
+
+// 画像添付が無いリクエストのプレースホルダ（行の高さを揃える）
+.thumbPlaceholder {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  color: $dark-text-muted;
+}
+
+.previewMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+// 問い（1 行に丸める）
+.previewQuestion {
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 狙い + 経過時間
+.previewMeta {
+  display: flex;
+  align-items: baseline;
+  gap: $space-xs;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewTime {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.moreButton {
+  padding: $space-3xs;
+  border: none;
+  background: none;
+  color: $dark-text-muted;
+  font-size: $font-size-xs;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.footer {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}
+
+// モーダル内の一覧（未回答 / 回答済みの 2 セクション）
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-500;
+}
+
+// --- 未回答一覧のアコーディオン（1 行に畳み、押した件だけ展開する） ---
+
+.accordionItem {
+  border: 1px solid $dark-border-light;
+  border-radius: $radius-lg;
+  background-color: $dark-bg-secondary;
+  overflow: hidden;
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding-right: $space-2xs;
+}
+
+.accordionRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-sm;
+  border: none;
+  background: none;
+  color: $dark-text-secondary;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.rowId {
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-500;
+}
+
+.rowQuestion {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-primary;
+  @include truncate;
+}
+
+.rowTime {
+  flex-shrink: 0;
+  font-size: $font-size-2xs;
+  color: $gray-500;
+}
+
+// 回答済みセクションの開閉トグル（デフォルトは畳んで情報量を抑える）
+.answeredToggle {
+  display: flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-3xs 0;
+  border: none;
+  background: none;
+  color: $gray-500;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform $transition-fast $transition-easing;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+// セクションが空のときのプレースホルダ
+.emptyText {
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+}

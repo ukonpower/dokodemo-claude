@@ -24,17 +24,74 @@ const PROMPT_QUEUES_FILE = 'prompt-queues.json';
 // 毎周コミットが積まれる前提のループでしか判定できないため、自動コミット有効時のみ働く。
 const LOOP_IDLE_ROUND_LIMIT = 3;
 
-// コールドスタート（CLI 新規起動）時は起動完了を待ってからプロンプトを送るが、
-// それでも TUI 入力ハンドラの初期化と Enter の到達が競合して取りこぼされる
-// ことが稀にある。保険として Enter をこの間隔で 1 回追加送信する。
-// 入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
-const COLD_START_ENTER_RETRY_MS = 600;
+// TUI の再描画（起動直後・/clear や /model の実行直後）と入力の到達が競合すると、
+// 文字や Enter が取りこぼされることが稀にある。保険として Enter をこの間隔で
+// 1 回追加送信する。入力欄が空でも空 Enter は無害なため、二重送信のリスクはない。
+const ENTER_RETRY_MS = 600;
 
-// 送信から指定時間内に UserPromptSubmit hook が発火しなければ、CLI に届かなかった
-// or 本文が TUI ダイアログ（スラッシュコマンド等）に飲まれたと判断し、currentItem を
-// completed として次に進める。最長経路（/clear + /model + cold-start）の所要時間
-// 約 4.1s に対して十分な grace を取った 6s。
-const SEND_WATCHDOG_FROM_READY_MS = 6000;
+// /clear・/model 実行後、次の入力を打ち込むまでの静定待ち。
+// スラッシュコマンド実行直後は TUI が再描画中で入力を取りこぼしやすい
+// （/model 切替直後にプロンプトが飲まれ UserPromptSubmit が来ない実績あり）。
+const SLASH_SETTLE_MS = 900;
+
+// プロンプトの最終 Enter 送信後、この時間内に UserPromptSubmit hook が発火しなければ
+// 取りこぼしを疑い、送信全体の再送信（SEND_RESEND_LIMIT 回まで）→ 最後は
+// 承認待ち/completed に倒す。
+// カスタムスラッシュコマンドは展開後に UserPromptSubmit が発火するため、
+// 展開・hook POST の遅延も見込んだ値にしている。
+// 注意: かつてあった「Enter だけ再送」の救済は廃止した。CLI 内部のメッセージ
+// キューにプロンプトが滞留している場合、空 Enter は「キュー済みメッセージの
+// 割り込み送信」操作になり、実行中ターンを中断して事故を起こす（2026-08-02 実測）。
+// Enter 取りこぼしの救済は、入力欄クリア込みの全体再送信が兼ねる。
+const SEND_WATCHDOG_AFTER_SEND_MS = 6000;
+
+// 送信前アイドルゲート: CLI が実行中に打鍵・Enter すると、プロンプトは実行されず
+// CLI 内部のメッセージキューに滞留する。以後は「Stop hook で完了扱い→実は
+// キューの古いプロンプトが走り出しただけ」という 1 周先行のズレが恒久化する
+// （2026-08-02 実測: ループ開始時に CLI が実行中で、40 周ズレたまま走行）。
+// 送信はアイドルを確認できるまで見送る。
+const SEND_GATE_RETRY_MS = 5000; // 見送り後の再チェック間隔（Stop hook 再トリガの保険）
+
+// 実行ステータスが running でも、PTY 出力がこの時間まったく無ければ stale
+// （Stop の取りこぼし・順序レースで running が残った）とみなす。実行中の CLI は
+// spinner の再描画で継続的に出力を出し続けるため、長い無出力＝実行していない。
+const STATUS_DESYNC_SILENCE_MS = 20000;
+
+// 送信ウォッチドッグの「送信全体の再送信」の上限回数。Enter 再送で救えない
+// 取りこぼし（/model 後の打鍵破棄窓に打鍵が全部飲まれた等）を、承認待ちに
+// 倒す前に /model の再適用込みでアイテム送信全体をやり直して自己回復を試みる。
+const SEND_RESEND_LIMIT = 2;
+
+// UserPromptSubmit hook が来ないまま「実行中らしき出力」を検知した場合の
+// 再監視回数の上限（間隔は SEND_WATCHDOG_AFTER_SEND_MS）。hook の取りこぼし・
+// 遅延が疑われる状況で、実行中のセッションへ再打鍵して別プロンプトを重ねる
+// 事故を防ぐため、出力が動いている間は再送信せず監視だけを続ける。
+const SEND_ACTIVITY_WAIT_LIMIT = 10;
+
+// 「実行中らしさ」を PTY 出力から判定する目印（小文字比較）。
+// Claude CLI / Codex CLI とも実行中はステータス行に interrupt 案内を出し続け、
+// spinner 更新で継続的に再描画されるため、直近ウィンドウの出力デルタに
+// この文字列が含まれるかで「今まさに実行中か」を判定できる。
+const OUTPUT_ACTIVITY_MARKERS = ['esc to interrupt'];
+
+// 打鍵確認（echo 確認）: 本文打鍵後、Enter 送信前に「入力欄へ本文が到達したか」を
+// PTY 出力から確認する。/model・/clear 直後の TUI 再描画と打鍵が競合して本文ごと
+// 飲まれた場合、watchdog の Enter 再送では救えず（空の入力欄に Enter しても何も
+// 起きない）承認待ちに倒すしかなかった。打鍵時刻以降の出力デルタに目印（本文の
+// 先頭/末尾数文字）が現れるかを見て、現れなければ本文を打ち直す。
+//
+// 打ち直しは間隔を漸増させながら粘る。/model 実行直後の CLI には打鍵を
+// まるごと破棄する時間帯が十数秒続くことがあり（2026-07-29 実測: /model
+// claude-fable-5 の実行完了後、打ち直しも watchdog の Enter 再送もすべて
+// 無反応のまま消え、その後 CLI は空の入力欄でアイドルに戻っていた）、
+// 回数上限ではなく時間予算で粘る（破棄窓の実測十数秒＋余裕）。
+// 打ち直しの前には入力欄をクリア（Ctrl+U）し、「実は前の打鍵が届いていたが
+// echo 確認に失敗していた」ケースで本文が二重に連結されるのを防ぐ。
+const ECHO_CHECK_FIRST_DELAY_MS = 500; // 打鍵から最初の確認までの待ちの基準値（従来の Enter 前待ちを兼ねる）
+const ECHO_CHECK_RETRY_DELAY_MS = 700; // 目印未達時の再確認までの待ちの基準値
+const ECHO_RETYPE_BUDGET_MS = 30000; // 打ち直しを続ける時間予算
+const ECHO_RETYPE_DELAY_SCALE_MAX = 4; // 待ち時間の漸増上限（基準値×この倍率まで）
+const ECHO_NEEDLE_LENGTH = 16; // 目印の長さ（正規化後の文字数）
 
 /**
  * AIセッションとのやり取りを抽象化するインターフェース
@@ -84,10 +141,62 @@ export interface QueueAiSessionAdapter {
   isPrimaryAiBusy(repositoryPath: string, provider: AiProvider): boolean;
 
   /**
+   * プライマリAIが running へ遷移した時刻（ms）。running でなければ null。
+   * 送信ウォッチドッグが「この送信に対する UserPromptSubmit か、それ以前から
+   * 残っている stale な running か」を判別するのに使う。
+   */
+  getPrimaryRunningSince(
+    repositoryPath: string,
+    provider: AiProvider
+  ): number | null;
+
+  /**
    * プライマリセッションの出力末尾を取得（ループ AI 判断の入力に使う）。
    * 実装側で ANSI 除去と末尾行トリミングを行う。
    */
   getPrimaryOutputTail(repositoryPath: string, provider: AiProvider): string;
+
+  /**
+   * プライマリセッションの出力のうち、指定時刻以降に受信した分を ANSI 除去して
+   * 返す（打鍵確認に使う。打鍵より古い出力＝前周回の同一プロンプトの残骸を
+   * 照合対象から外すため、時刻で絞る）。
+   */
+  getPrimaryOutputSince(
+    repositoryPath: string,
+    provider: AiProvider,
+    sinceTimestampMs: number
+  ): string;
+}
+
+/**
+ * 反映ターンで配達する評価応答 1 件分。
+ * 実体は ReviewRequestManager が永続化しており、キューは配達のたびに
+ * ここから組み立て直す（キューアイテムとして抱え込まない）。
+ */
+export interface ReviewReflectionEntry {
+  rid: string;
+  requestId: string;
+  aim: string;
+  question: string;
+  response: {
+    kind: 'choice' | 'comment' | 'fundamental';
+    choice?: string;
+    comment?: string;
+  };
+}
+
+/**
+ * 評価応答の反映ターンの取得・確定を抽象化するインターフェース
+ * （ReviewRequestManager を注入。配達先の解決も注入側で行う）
+ */
+export interface ReviewReflectionAdapter {
+  /** 配達先（repositoryPath × provider）宛の未反映応答を古い順で返す */
+  listUnreflected(
+    repositoryPath: string,
+    provider: AiProvider
+  ): ReviewReflectionEntry[];
+  /** 反映ターンの完了時に呼ぶ。対象リクエストへ reflected を立てる */
+  markReflected(refs: { rid: string; requestId: string }[]): Promise<void>;
 }
 
 export class PromptQueueManager extends EventEmitter {
@@ -96,8 +205,29 @@ export class PromptQueueManager extends EventEmitter {
 
   private aiSessionAdapter: QueueAiSessionAdapter | null = null;
 
+  // 未回答のブロッキング評価リクエストが残っているかの判定（ReviewRequestManager を注入）
+  private blockingReviewChecker:
+    | ((repositoryPath: string, provider: AiProvider) => boolean)
+    | null = null;
+
+  // 評価応答の反映ターンの取得・確定（ReviewRequestManager を注入）
+  private reviewReflectionAdapter: ReviewReflectionAdapter | null = null;
+
+  // 送信中の反映ターンが含む応答の参照（キー = queueKey）。
+  // Stop hook 着弾時に reflected を立てる対象。プロセスが落ちた場合は
+  // reflected が立たないまま残るため、次の機会に同じ応答が再配達される。
+  private reviewReflectInFlight: Map<
+    string,
+    { rid: string; requestId: string }[]
+  > = new Map();
+
   // ループのインターバル待機用タイマー（キー = queueKey）
   private loopTimers: Map<string, NodeJS.Timeout> = new Map();
+
+  // 送信前アイドルゲートの再チェックタイマー（キー = queueKey）。
+  // CLI が実行中で送信を見送ったときの保険。通常は実行中ターンの Stop hook が
+  // processNextItem を再トリガするため、これは Stop を取りこぼした場合の救済。
+  private sendGateTimers: Map<string, NodeJS.Timeout> = new Map();
 
   // AI 判断の abort（キー = queueKey）
   private loopJudgeAborts: Map<string, AbortController> = new Map();
@@ -108,7 +238,8 @@ export class PromptQueueManager extends EventEmitter {
   private sendGenerations: Map<string, number> = new Map();
 
   // セッションへ最後に適用した /model の値（キー = queueKey）。
-  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になる。
+  // worktree 委譲時に「作成元セッションと同じモデルで動かす」継承の参照元になるほか、
+  // 同じ値なら /model 送信をスキップする判定（冗長送信の削減）にも使う。
   private currentModels: Map<string, string> = new Map();
 
   constructor(
@@ -126,6 +257,26 @@ export class PromptQueueManager extends EventEmitter {
    */
   setAiSessionAdapter(adapter: QueueAiSessionAdapter): void {
     this.aiSessionAdapter = adapter;
+  }
+
+  /**
+   * 未回答のブロッキング評価リクエストが残っているかの判定関数を設定する。
+   * 設定されている間、resumeQueue はこの判定が true の間は再開を拒否する
+   * （ループ停止→再開始やユーザーの再開操作でブロック状態が失われるのを防ぐ）
+   */
+  setBlockingReviewChecker(
+    checker: (repositoryPath: string, provider: AiProvider) => boolean
+  ): void {
+    this.blockingReviewChecker = checker;
+  }
+
+  /**
+   * 評価応答の反映ターンアダプターを設定する。
+   * 設定されている間、キューは送信の手前で毎回「未反映の応答が無いか」を確認し、
+   * あればキューアイテムより先に反映ターンとして配達する。
+   */
+  setReviewReflectionAdapter(adapter: ReviewReflectionAdapter): void {
+    this.reviewReflectionAdapter = adapter;
   }
 
   /**
@@ -147,6 +298,15 @@ export class PromptQueueManager extends EventEmitter {
    */
   getCurrentModel(repositoryPath: string, provider: AiProvider): string | undefined {
     return this.currentModels.get(this.getQueueKey(repositoryPath, provider));
+  }
+
+  /**
+   * /model 適用キャッシュの無効化。Web UI からユーザーが手動で /model を送った等、
+   * キュー外の経路でセッションのモデルが変わりうるときに呼ぶ。
+   * 次回のキュー送信ではスキップ判定が効かず /model を必ず再適用する。
+   */
+  invalidateCurrentModel(repositoryPath: string, provider: AiProvider): void {
+    this.currentModels.delete(this.getQueueKey(repositoryPath, provider));
   }
 
   /**
@@ -209,6 +369,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: PromptLoopPlanning;
       };
     }
@@ -232,6 +393,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(options.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(options.loop.intervalSec)),
           judgeCriteria: options.loop.judgeCriteria?.trim() || undefined,
+          reviewBlocking: options.loop.reviewBlocking,
           planning: this.normalizeLoopPlanning(options.loop.planning),
           iteration: 1,
           startedAt: now,
@@ -343,6 +505,7 @@ export class PromptQueueManager extends EventEmitter {
         judgeEveryN: number;
         intervalSec: number;
         judgeCriteria?: string;
+        reviewBlocking?: 'ai' | 'always' | 'never';
         planning?: PromptLoopPlanning;
       } | null;
     }
@@ -396,6 +559,7 @@ export class PromptQueueManager extends EventEmitter {
           Math.floor(updates.loop.intervalSec)
         );
         item.loop.judgeCriteria = updates.loop.judgeCriteria?.trim() || undefined;
+        item.loop.reviewBlocking = updates.loop.reviewBlocking;
         item.loop.planning = this.normalizeLoopPlanning(updates.loop.planning);
         if (!item.loop.planning) {
           // プランニング解除時は予約中のプランニングターンも取り消す
@@ -413,6 +577,7 @@ export class PromptQueueManager extends EventEmitter {
           judgeEveryN: Math.max(1, Math.floor(updates.loop.judgeEveryN)),
           intervalSec: Math.max(0, Math.floor(updates.loop.intervalSec)),
           judgeCriteria: updates.loop.judgeCriteria?.trim() || undefined,
+          reviewBlocking: updates.loop.reviewBlocking,
           planning: this.normalizeLoopPlanning(updates.loop.planning),
           iteration: 1,
           startedAt: Date.now(),
@@ -508,6 +673,209 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     return Ok(undefined);
+  }
+
+  /**
+   * ループへの指示を追加する。指示は loop.feedback に溜まり、
+   * 次のサイクル間で指示反映ターンとしてまとめて送られる。
+   */
+  async addLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    text: string
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    if (!item.loop) {
+      return Err(QueueError.loopBusy('対象はループアイテムではありません'));
+    }
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return Err(QueueError.loopBusy('指示が空です'));
+    }
+
+    item.loop.feedback = [...(item.loop.feedback ?? []), trimmed];
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    // 送信待ちで止まっている場合（キュー空 + 非処理中）はここから反映ターンが動き出す。
+    // インターバル待機・承認待ち等のゲートは processNextItem 側で判定される
+    if (!state.isProcessing && !state.isPaused) {
+      void this.processNextItem(repositoryPath, provider);
+    }
+
+    return Ok(undefined);
+  }
+
+  /**
+   * 未反映の指示を削除する（index = loop.feedback 内の位置）。
+   * 反映ターンに含めて送信済みの分（feedbackActive 件数）は削除できない。
+   */
+  async removeLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    index: number
+  ): Promise<Result<void, QueueError>> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    const item = state.queue.find((i) => i.id === itemId);
+    if (!item?.loop?.feedback) {
+      return Err(QueueError.itemNotFound(itemId));
+    }
+    const sentCount = item.loop.feedbackActive ?? 0;
+    if (index < sentCount || index >= item.loop.feedback.length) {
+      return Err(QueueError.loopBusy('削除できない指示です'));
+    }
+
+    item.loop.feedback = item.loop.feedback.filter((_, i) => i !== index);
+    if (item.loop.feedback.length === 0) {
+      item.loop.feedback = undefined;
+    }
+
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    return Ok(undefined);
+  }
+
+  /**
+   * 指示反映ターンのプロンプトを組み立てる。
+   */
+  private buildFeedbackPrompt(feedback: string[]): string {
+    const list = feedback
+      .map((f) => `- ${f.replace(/\n/g, '\n  ')}`)
+      .join('\n');
+    return [
+      'ループ実行中にユーザーから以下の指示が届きました。',
+      '',
+      list,
+      '',
+      'これらの指示を読み、今後の作業の計画・進め方に反映してください。',
+      '計画やタスクを管理するファイル（docs/tasks.md 等）を運用している場合は、その内容も更新してください。',
+      'このターンでは指示の反映のみを行い、通常の作業タスクは進めないでください。',
+    ].join('\n');
+  }
+
+  /**
+   * 評価応答の反映ターンのプロンプトを組み立てる。未反映の応答をまとめて 1 ターンで送る。
+   */
+  private buildReviewReflectionPrompt(
+    entries: ReviewReflectionEntry[]
+  ): string {
+    const sections = entries.map((e) => {
+      const lines = [`[評価リクエスト #${e.requestId}「${e.aim}」への応答]`];
+      if (e.response.kind === 'fundamental') {
+        lines.push(
+          '提示物への評価ではなく、方向性レベルの相談が届きました:',
+          '',
+          e.response.comment ?? ''
+        );
+      } else {
+        lines.push(`問い: ${e.question}`);
+        if (e.response.choice) lines.push(`選択: ${e.response.choice}`);
+        if (e.response.comment) lines.push(`コメント: ${e.response.comment}`);
+      }
+      return lines.join('\n');
+    });
+
+    const tail = [
+      'これらの評価を記録（feedback ログ等があれば追記）し、評価待ちのタスクがあれば完了または再着手へ動かし、必要な修正があればタスク化して対応してください。',
+    ];
+    if (entries.some((e) => e.response.kind === 'fundamental')) {
+      tail.push(
+        '方向性レベルの相談については、プロジェクトに goal / direction 文書があれば読み込み、前提から対話・整理してください。'
+      );
+    }
+    return [...sections, tail.join('\n')].join('\n\n');
+  }
+
+  /**
+   * 未反映の評価応答があれば反映ターンを開始する。開始したら true。
+   * 配達できる状態でない（アダプター未設定・応答なし・CLI 実行中）なら false を
+   * 返し、呼び出し側は通常のキュー処理を続ける。
+   * 反映済みのマークは Stop hook 着弾時（= ターン完了時）に行うため、
+   * 送信後にプロセスが落ちても応答が失われることはない（再配達される）。
+   */
+  private async maybeStartReviewReflection(
+    repositoryPath: string,
+    provider: AiProvider,
+    state: PromptQueueState
+  ): Promise<boolean> {
+    if (!this.reviewReflectionAdapter || !this.aiSessionAdapter) return false;
+
+    const entries = this.reviewReflectionAdapter.listUnreflected(
+      repositoryPath,
+      provider
+    );
+    if (entries.length === 0) return false;
+
+    // 実行中の CLI への打鍵は誤送信のもと（キューアイテムと同じ送信前アイドルゲート）
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      this.scheduleSendGateRetry(repositoryPath, provider);
+      return false;
+    }
+
+    const key = this.getQueueKey(repositoryPath, provider);
+    state.isProcessing = true;
+    state.currentItemId = 'review-reflect';
+    this.reviewReflectInFlight.set(
+      key,
+      entries.map((e) => ({ rid: e.rid, requestId: e.requestId }))
+    );
+    await this.persistQueues();
+    this.emitQueueUpdated(repositoryPath, provider, state);
+
+    try {
+      const session = await this.aiSessionAdapter.ensureSession(
+        repositoryPath,
+        provider
+      );
+      await this.aiSessionAdapter.waitForSessionReady(session.id);
+
+      const ok = await this.typeWithEchoCheck(
+        session.id,
+        repositoryPath,
+        provider,
+        this.buildReviewReflectionPrompt(entries)
+      );
+      if (!ok) {
+        throw new Error('PTY への書き込みに失敗しました');
+      }
+      this.aiSessionAdapter.sendCommand(session.id, '\r');
+      if (session.coldStart) {
+        await this.sleep(ENTER_RETRY_MS);
+        this.aiSessionAdapter.sendCommand(session.id, '\r');
+      }
+      return true;
+    } catch (error) {
+      console.error('[PromptQueueManager] 反映ターンの送信エラー:', error);
+      // 巻き戻す。reflected は立っていないため、次の機会に再配達される
+      this.reviewReflectInFlight.delete(key);
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+      await this.persistQueues();
+      this.emitQueueUpdated(repositoryPath, provider, state);
+      return false;
+    }
+  }
+
+  /**
+   * 評価応答の到着を配達機会としてキュー処理を促す（応答直後の即時配達用）。
+   * 処理中・一時停止中は何もしない（Stop hook 着弾時・キュー再開時に配達される）
+   */
+  async triggerReviewReflection(
+    repositoryPath: string,
+    provider: AiProvider
+  ): Promise<void> {
+    const state = this.getOrCreateQueueState(repositoryPath, provider);
+    if (!state.isProcessing && !state.isPaused) {
+      await this.processNextItem(repositoryPath, provider);
+    }
   }
 
   /**
@@ -654,6 +1022,17 @@ export class PromptQueueManager extends EventEmitter {
       );
     }
 
+    // 送信前アイドルゲート: 実行中の CLI へ強制送信すると、プロンプトが CLI
+    // 内部キューに滞留して周回の対応関係が壊れるため拒否する
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      return Err(
+        QueueError.addFailed(
+          repositoryPath,
+          'AI が実行中のため送信できません。完了を待ってから再実行してください'
+        )
+      );
+    }
+
     // ループアイテムの場合: 承認待ち / 判断中は強制送信できない。
     // インターバル待機中はタイマーとカウントダウンをクリアして即送信へ
     let sendOverride:
@@ -671,8 +1050,14 @@ export class PromptQueueManager extends EventEmitter {
       item.loop.nextSendAt = undefined;
       this.clearLoopTimer(repositoryPath, provider);
 
-      // processNextItem と同じ送信差し替え（プランニングターン / モデル復帰）
-      if (item.loop.pendingPlanning && item.loop.planning) {
+      // processNextItem と同じ送信差し替え（指示反映 / プランニング / モデル復帰）
+      if (item.loop.feedback?.length) {
+        item.loop.feedbackActive = item.loop.feedback.length;
+        sendOverride = {
+          prompt: this.buildFeedbackPrompt(item.loop.feedback),
+          skipClear: true,
+        };
+      } else if (item.loop.pendingPlanning && item.loop.planning) {
         item.loop.pendingPlanning = false;
         item.loop.planningActive = true;
         sendOverride = {
@@ -719,6 +1104,7 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
+      const sendStartedAt = Date.now();
       await this.sendItemCommands(
         session.id,
         item,
@@ -727,7 +1113,14 @@ export class PromptQueueManager extends EventEmitter {
       );
 
       // processNextItem と同じく送信ウォッチドッグを仕掛ける
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
+      this.scheduleSendWatchdog(
+        repositoryPath,
+        provider,
+        item.id,
+        generation,
+        sendOverride,
+        sendStartedAt
+      );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -855,6 +1248,13 @@ export class PromptQueueManager extends EventEmitter {
     repositoryPath: string,
     provider: AiProvider
   ): Promise<Result<void, QueueError>> {
+    // 未回答のブロッキング評価リクエストが残っている間は再開しない。
+    // ループの停止→再開始・ユーザーの再開操作・サーバ再起動のどの経路でも、
+    // 応答（または発行の削除）まで一時停止を維持する
+    if (this.blockingReviewChecker?.(repositoryPath, provider)) {
+      return Err(QueueError.blockedByReview(repositoryPath));
+    }
+
     const state = this.getOrCreateQueueState(repositoryPath, provider);
     state.isPaused = false;
 
@@ -910,6 +1310,18 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
+   * キューに登録されているループアイテムの reviewBlocking ポリシーを返す。
+   * ループが無い、または未設定なら undefined（呼び出し側で 'ai' 扱い）
+   */
+  getLoopReviewBlocking(
+    repositoryPath: string,
+    provider: AiProvider
+  ): 'ai' | 'always' | 'never' | undefined {
+    const state = this.getQueueState(repositoryPath, provider);
+    return state?.queue.find((i) => i.loop)?.loop?.reviewBlocking;
+  }
+
+  /**
    * フックからのキュートリガー
    */
   async triggerFromHook(
@@ -922,6 +1334,27 @@ export class PromptQueueManager extends EventEmitter {
       (item) => item.status === 'pending'
     );
     if (!state.currentItemId && !hasPendingItems) {
+      // キューは空でも、未反映の評価応答が残っていれば反映ターンを起動する
+      // （直送プロンプトのターン終了 = AI の手が空いた瞬間を配達機会にする）
+      await this.processNextItem(repositoryPath, provider);
+      return;
+    }
+
+    // 評価応答の反映ターン完了: 配達済みをマークして次の処理へ
+    if (state.currentItemId === 'review-reflect') {
+      const key = this.getQueueKey(repositoryPath, provider);
+      const refs = this.reviewReflectInFlight.get(key) ?? [];
+      this.reviewReflectInFlight.delete(key);
+      state.isProcessing = false;
+      state.currentItemId = undefined;
+
+      if (refs.length > 0 && this.reviewReflectionAdapter) {
+        await this.reviewReflectionAdapter.markReflected(refs);
+      }
+      await this.persistQueues();
+      this.emitQueueUpdated(repositoryPath, provider, state);
+
+      await this.processNextItem(repositoryPath, provider);
       return;
     }
 
@@ -975,7 +1408,22 @@ export class PromptQueueManager extends EventEmitter {
         // （周回ごとに completed を積まない）
         if (currentItem.loop) {
           const loop = currentItem.loop;
-          if (loop.planningActive) {
+          if (loop.feedbackActive) {
+            // 指示反映ターン完了: 反映済みの指示だけを消す（ターン中に届いた
+            // 指示は持ち越して次の反映ターンへ）。周回は数えず、判断・自動
+            // コミット等も挟まずに次のターンへ戻る
+            const remaining = loop.feedback?.slice(loop.feedbackActive);
+            loop.feedback = remaining?.length ? remaining : undefined;
+            loop.feedbackActive = undefined;
+            shouldAutoCommit = false;
+            shouldCodexReview = false;
+            currentItem.status = 'pending';
+            const idx = state.queue.indexOf(currentItem);
+            if (idx !== -1) {
+              state.queue.splice(idx, 1);
+              state.queue.push(currentItem);
+            }
+          } else if (loop.planningActive) {
             // プランニングターン完了: 周回は数えず、判断・自動コミット等も挟まずに
             // 即時で次の作業ターンへ戻る（計画は同一セッションの文脈に残っている）
             loop.planningActive = false;
@@ -1142,6 +1590,10 @@ export class PromptQueueManager extends EventEmitter {
       clearTimeout(timer);
     }
     this.loopTimers.clear();
+    for (const timer of this.sendGateTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.sendGateTimers.clear();
     for (const controller of this.loopJudgeAborts.values()) {
       controller.abort();
     }
@@ -1154,17 +1606,105 @@ export class PromptQueueManager extends EventEmitter {
   }
 
   /**
-   * 送信後 SEND_WATCHDOG_FROM_READY_MS 以内に UserPromptSubmit hook が発火しない
-   * ケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ / PTY write 失敗等）
-   * を検出して currentItem を completed として次へ進める。Stop hook 経路や
-   * forceSendItem / cancelCurrentItem / removeFromQueue で先に状態が変わって
-   * いれば全部 no-op に倒す。
+   * 直近ウィンドウの PTY 出力に「実行中らしさ」の目印があるかを判定する。
+   * UserPromptSubmit hook が来ていないのに実は実行が始まっている
+   * （hook の取りこぼし・遅延）ケースを検出し、実行中セッションへの
+   * 再打鍵（誤送信）を防ぐために使う。
+   */
+  private hasRecentOutputActivity(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    const delta =
+      this.aiSessionAdapter?.getPrimaryOutputSince(
+        repositoryPath,
+        provider,
+        Date.now() - SEND_WATCHDOG_AFTER_SEND_MS
+      ) ?? '';
+    const lower = delta.toLowerCase();
+    return OUTPUT_ACTIVITY_MARKERS.some((m) => lower.includes(m));
+  }
+
+  /**
+   * 実行ステータス（hook 由来）で running、かつ PTY 出力が実際に動いているか。
+   * running でも STATUS_DESYNC_SILENCE_MS 出力が静止していれば stale
+   * （Stop の取りこぼし・順序レースの残骸）とみなして false を返す。
+   */
+  private isPrimaryActuallyBusy(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    if (!this.aiSessionAdapter) return false;
+    if (!this.aiSessionAdapter.isPrimaryAiBusy(repositoryPath, provider)) {
+      return false;
+    }
+    const recentOutput = this.aiSessionAdapter.getPrimaryOutputSince(
+      repositoryPath,
+      provider,
+      Date.now() - STATUS_DESYNC_SILENCE_MS
+    );
+    return recentOutput.trim().length > 0;
+  }
+
+  /**
+   * 送信前アイドルゲート: プライマリ CLI がプロンプト送信を受けられる状態か。
+   * 実行中に打鍵すると CLI 内部キューへの滞留（1 周先行ズレ）が起きるため、
+   * 実行中マーカー・実行ステータスのどちらかが実行中を示す間は送信しない。
+   */
+  private isPrimarySessionIdle(
+    repositoryPath: string,
+    provider: AiProvider
+  ): boolean {
+    return (
+      !this.hasRecentOutputActivity(repositoryPath, provider) &&
+      !this.isPrimaryActuallyBusy(repositoryPath, provider)
+    );
+  }
+
+  /**
+   * アイドルゲートで送信を見送った後の再チェックを予約する。
+   * 既に予約済みなら何もしない（Stop hook 由来の processNextItem と重複してもよい）。
+   */
+  private scheduleSendGateRetry(
+    repositoryPath: string,
+    provider: AiProvider
+  ): void {
+    const key = this.getQueueKey(repositoryPath, provider);
+    if (this.sendGateTimers.has(key)) return;
+    const timer = setTimeout(() => {
+      this.sendGateTimers.delete(key);
+      void this.processNextItem(repositoryPath, provider);
+    }, SEND_GATE_RETRY_MS);
+    this.sendGateTimers.set(key, timer);
+  }
+
+  /**
+   * 送信完了（最終 Enter）後 SEND_WATCHDOG_AFTER_SEND_MS 以内に UserPromptSubmit
+   * hook が発火しないケース（本文スラッシュコマンド消化 / TUI ダイアログに飲まれ /
+   * PTY write 失敗等）を検出し、段階的に自己回復を試みる:
+   *   1. 今回の送信以降に running へ遷移していれば送信成功（Stop を待つ）。
+   *      送信より前からの running は stale（順序レースの残骸）として無視する
+   *   2. 実行中らしき出力を検知したら再送信せず監視継続（hook 取りこぼし疑い。
+   *      SEND_ACTIVITY_WAIT_LIMIT 回まで）
+   *   3. resendCount < SEND_RESEND_LIMIT: /model 再適用込みで送信全体をやり直す
+   *      （入力欄クリア込みなので Enter 取りこぼし・本文残留のどちらも救える。
+   *      空 Enter の再送はキュー済みメッセージの割り込み送信になるため行わない）
+   *   4. 上限到達: currentItem を completed として次へ進める（ループアイテムは
+   *      承認待ちに倒す）
+   * Stop hook 経路や forceSendItem / cancelCurrentItem / removeFromQueue で先に
+   * 状態が変わっていれば全部 no-op に倒す。
+   * override は送信時の差し替え内容（プランニング等）。再送信で同じ内容を
+   * 送り直すために引き回す。
    */
   private scheduleSendWatchdog(
     repositoryPath: string,
     provider: AiProvider,
     itemId: string,
-    generation: number
+    generation: number,
+    override: { prompt?: string; model?: string; skipClear?: boolean } | undefined,
+    sendStartedAt: number,
+    resendCount = 0,
+    activityWaits = 0
   ): void {
     setTimeout(async () => {
       const key = this.getQueueKey(repositoryPath, provider);
@@ -1177,15 +1717,81 @@ export class PromptQueueManager extends EventEmitter {
       if (state.currentItemId !== itemId) return;
       if (!state.isProcessing) return;
 
-      // UserPromptSubmit が発火していれば primary は running 状態。送信成功と
-      // 判断して何もしない（Stop hook の到達を待つ）。
-      const aiBusy =
-        this.aiSessionAdapter?.isPrimaryAiBusy(repositoryPath, provider) ??
-        false;
-      if (aiBusy) return;
+      // 今回の送信開始以降に UserPromptSubmit が発火していれば送信成功と判断して
+      // 何もしない（Stop hook の到達を待つ）。running でも遷移時刻が送信開始より
+      // 古い場合は、前のターンの残骸（Stop 取りこぼし・順序レース）なので
+      // 成功とはみなさず、下の救済フローへ進む。
+      const runningSince = this.aiSessionAdapter?.getPrimaryRunningSince(
+        repositoryPath,
+        provider
+      );
+      if (runningSince != null && runningSince >= sendStartedAt) return;
 
       const item = state.queue.find((i) => i.id === itemId);
       if (!item || item.status !== 'processing') return;
+
+      // hook は来ていないが出力が動いている＝実は実行中の可能性が高い。
+      // ここで再送信すると実行中のセッションへ別プロンプトを重ねてしまうため、
+      // 監視だけ継続する（上限を超えたら hook 側の異常として下の失敗処理へ）。
+      if (this.hasRecentOutputActivity(repositoryPath, provider)) {
+        if (activityWaits < SEND_ACTIVITY_WAIT_LIMIT) {
+          if (activityWaits === 0) {
+            console.warn(
+              `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} は UserPromptSubmit 未達のまま実行中らしき出力を検知しました（hook の取りこぼし疑い）。再送信せず監視を続けます`
+            );
+          }
+          this.scheduleSendWatchdog(
+            repositoryPath,
+            provider,
+            itemId,
+            generation,
+            override,
+            sendStartedAt,
+            resendCount,
+            activityWaits + 1
+          );
+          return;
+        }
+      } else if (resendCount < SEND_RESEND_LIMIT) {
+        // Enter 再送で救えなかった＝本文ごと取りこぼされた可能性が高い。
+        // /model の適用キャッシュを無効化して（取りこぼしがモデル未適用を
+        // 疑わせるため）、送信全体をやり直す。
+        const session = this.aiSessionAdapter?.getSession(
+          repositoryPath,
+          provider
+        );
+        if (session) {
+          console.warn(
+            `[PromptQueueManager] 送信ウォッチドッグ: ${itemId} の送信全体をやり直します（${resendCount + 1}/${SEND_RESEND_LIMIT}回目）`
+          );
+          this.invalidateCurrentModel(repositoryPath, provider);
+          const newGeneration = this.bumpSendGeneration(
+            repositoryPath,
+            provider
+          );
+          const newSendStartedAt = Date.now();
+          try {
+            await this.sendItemCommands(session.id, item, false, override);
+            this.scheduleSendWatchdog(
+              repositoryPath,
+              provider,
+              itemId,
+              newGeneration,
+              override,
+              newSendStartedAt,
+              resendCount + 1,
+              0
+            );
+            return;
+          } catch (error) {
+            console.error(
+              '[PromptQueueManager] 送信ウォッチドッグ: 再送信に失敗しました:',
+              error
+            );
+            // 下の失敗処理へフォールスルー
+          }
+        }
+      }
 
       // ループアイテムを completed で終わらせると再投入経路が無く黙って死ぬため、
       // 安全側として承認待ちの pending に戻して停止する（フック未達や送信取り
@@ -1202,8 +1808,13 @@ export class PromptQueueManager extends EventEmitter {
           item.loop.planningActive = false;
           item.loop.pendingPlanning = true;
         }
+        // 指示反映ターンの送信失敗時は feedback が残っているため、
+        // フラグだけ倒せば承認後に反映ターンから再開される
+        item.loop.feedbackActive = undefined;
         item.loop.lastJudgeReason =
-          '⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした。フック設定や送信の取りこぼしを確認してください。';
+          activityWaits >= SEND_ACTIVITY_WAIT_LIMIT
+            ? '⚠ プロンプト受付（UserPromptSubmit hook）が届かないまま実行中らしき出力が続いています。フックが別インスタンスに向いていないか設定を確認してください。'
+            : `⚠ 送信後にプロンプト受付（UserPromptSubmit hook）を確認できませんでした（自動再送 ${resendCount} 回も未達）。フック設定や送信の取りこぼしを確認してください。`;
         state.isProcessing = false;
         state.currentItemId = undefined;
         await this.persistQueues();
@@ -1235,7 +1846,7 @@ export class PromptQueueManager extends EventEmitter {
       this.emitQueueUpdated(repositoryPath, provider, state);
 
       await this.processNextItem(repositoryPath, provider);
-    }, SEND_WATCHDOG_FROM_READY_MS);
+    }, SEND_WATCHDOG_AFTER_SEND_MS);
   }
 
   /**
@@ -1287,14 +1898,21 @@ export class PromptQueueManager extends EventEmitter {
 
     const state = this.getOrCreateQueueState(repositoryPath, provider);
 
+    if (state.isProcessing || state.isPaused) {
+      return;
+    }
+
+    // 未反映の評価応答があれば、キューアイテムより先に反映ターンとして配達する。
+    // 実体は ReviewRequestManager の永続データなので、キューをクリアしても
+    // 配達は失われず、次にここを通ったときに再配達される
+    if (await this.maybeStartReviewReflection(repositoryPath, provider, state)) {
+      return;
+    }
+
     const pendingItems = state.queue.filter(
       (item) => item.status === 'pending'
     );
     if (pendingItems.length === 0) {
-      return;
-    }
-
-    if (state.isProcessing || state.isPaused) {
       return;
     }
 
@@ -1322,12 +1940,30 @@ export class PromptQueueManager extends EventEmitter {
         return;
       }
       item.loop.nextSendAt = undefined;
+    }
 
+    // 送信前アイドルゲート: CLI が実行中（別ターン走行中・手動操作中など）に
+    // 打鍵すると、プロンプトが CLI 内部キューに滞留して周回の対応関係が壊れる。
+    // アイドルを確認できるまで送信しない。実行中ターンの Stop hook が
+    // processNextItem を再トリガするのが本線で、タイマーは取りこぼしの保険。
+    if (!this.isPrimarySessionIdle(repositoryPath, provider)) {
+      console.warn(
+        `[PromptQueueManager] CLI が実行中のため ${item.id} の送信を見送ります（アイドル確認後に再開）`
+      );
+      this.scheduleSendGateRetry(repositoryPath, provider);
+      return;
+    }
+
+    if (item.loop) {
       // e. 空回り検知: 自動コミット有効なループなら、周回ごとにコミットが
       //    増えているはず。増えないまま LOOP_IDLE_ROUND_LIMIT 周続いたら、
       //    同じところで足踏みしているとみなして承認待ちに倒す。
-      //    計画ターンは実装を伴わないため計測から除外する。
-      if (item.isAutoCommit && !item.loop.pendingPlanning) {
+      //    計画ターン・指示反映ターンは実装を伴わないため計測から除外する。
+      if (
+        item.isAutoCommit &&
+        !item.loop.pendingPlanning &&
+        !item.loop.feedback?.length
+      ) {
         const head = this.getHeadCommit(repositoryPath);
         if (head) {
           if (item.loop.lastHeadCommit === head) {
@@ -1355,6 +1991,7 @@ export class PromptQueueManager extends EventEmitter {
     }
 
     // ループアイテムの送信内容の差し替え
+    // - 指示反映ターン: 溜まった指示をまとめて反映プロンプトとして送る（最優先）
     // - プランニングターン: 計画プロンプト + プランニング用モデルで 1 ターン送る
     // - モデル復帰: プランニング直後の通常送信で /model default に戻す
     //   （item.model があれば通常送信の /model で戻るため override 不要）
@@ -1362,7 +1999,14 @@ export class PromptQueueManager extends EventEmitter {
       | { prompt?: string; model?: string; skipClear?: boolean }
       | undefined;
     if (item.loop) {
-      if (item.loop.pendingPlanning && item.loop.planning) {
+      if (item.loop.feedback?.length) {
+        item.loop.feedbackActive = item.loop.feedback.length;
+        sendOverride = {
+          prompt: this.buildFeedbackPrompt(item.loop.feedback),
+          // 直前の作業ターンの文脈を踏まえて反映するため /clear は挟まない
+          skipClear: true,
+        };
+      } else if (item.loop.pendingPlanning && item.loop.planning) {
         item.loop.pendingPlanning = false;
         item.loop.planningActive = true;
         sendOverride = {
@@ -1409,6 +2053,7 @@ export class PromptQueueManager extends EventEmitter {
 
       // コマンド送信処理
       const generation = this.bumpSendGeneration(repositoryPath, provider);
+      const sendStartedAt = Date.now();
       await this.sendItemCommands(
         session.id,
         item,
@@ -1416,10 +2061,17 @@ export class PromptQueueManager extends EventEmitter {
         sendOverride
       );
 
-      // 送信完了から SEND_WATCHDOG_FROM_READY_MS 後に「UserPromptSubmit が
+      // 送信完了から SEND_WATCHDOG_AFTER_SEND_MS 後に「UserPromptSubmit が
       // 来なかった」ケース（本文がスラッシュコマンドで消化された等）を
       // 検出して自動的にキューを進める。Stop hook 経路で先に進んでいれば no-op。
-      this.scheduleSendWatchdog(repositoryPath, provider, item.id, generation);
+      this.scheduleSendWatchdog(
+        repositoryPath,
+        provider,
+        item.id,
+        generation,
+        sendOverride,
+        sendStartedAt
+      );
     } catch (error) {
       console.error('[PromptQueueManager] セッション確保エラー:', error);
       item.status = 'failed';
@@ -1472,18 +2124,122 @@ export class PromptQueueManager extends EventEmitter {
       );
       return;
     }
-    setTimeout(() => {
-      this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-      if (coldStart) {
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-        }, COLD_START_ENTER_RETRY_MS);
-      }
-    }, 300);
+    await this.sleep(300);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    // 再描画との競合による Enter 取りこぼし対策で 1 回だけ再送する
+    await this.sleep(ENTER_RETRY_MS);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
-   * アイテムのコマンドを送信。
+   * echo 確認用の正規化。TUI の折り返し・入力欄の罫線・空白を除き、
+   * 「打鍵した文字列そのもの」が出力に現れたかだけを比較できるようにする。
+   */
+  private normalizeForEchoCheck(s: string): string {
+    return s.replace(/[\s│┃]/g, '');
+  }
+
+  /**
+   * 本文を打鍵し、入力欄への到達を「打鍵時刻以降の出力デルタ」で確認する。
+   * 到達を確認できなければ間隔を漸増させながら本文を打ち直す（Enter はまだ
+   * 送らない）。/model 直後などに CLI が打鍵を破棄し続ける時間帯（十数秒）を
+   * またいで粘るため、回数ではなく時間予算（ECHO_RETYPE_BUDGET_MS）で粘る。
+   * 打ち直しの前には入力欄をクリア（Ctrl+U）して、echo 確認の見落としで
+   * 実は届いていた本文に重ねて打ってしまう二重連結を防ぐ。
+   * 長文は CLI がペーストプレースホルダ（[Pasted text #N +M lines]）表示に
+   * 置き換えることがあるため、それも到達とみなす。
+   * 戻り値は PTY write が成功したか（false はセッション死亡）。時間予算まで
+   * 到達を確認できなかった場合も true を返して Enter へ進む（最終防衛線は
+   * 送信 watchdog）。
+   */
+  private async typeWithEchoCheck(
+    sessionId: string,
+    repositoryPath: string,
+    provider: AiProvider,
+    text: string
+  ): Promise<boolean> {
+    if (!this.aiSessionAdapter) return false;
+
+    const normalized = this.normalizeForEchoCheck(text);
+    const headNeedle = normalized.slice(0, ECHO_NEEDLE_LENGTH);
+    const tailNeedle = normalized.slice(-ECHO_NEEDLE_LENGTH);
+
+    const startedAt = Date.now();
+    for (let attempt = 0; ; attempt++) {
+      if (attempt > 0) {
+        // 入力欄のクリア（Ctrl+U = 行頭まで削除）。空欄への送信は無害。
+        // 複数行状態への保険で数回送る（破棄窓の中なら丸ごと無視されるだけ）。
+        for (let i = 0; i < 3; i++) {
+          this.aiSessionAdapter.sendCommand(sessionId, '\x15');
+          await this.sleep(80);
+        }
+      }
+
+      const typedAt = Date.now();
+      const ok = this.aiSessionAdapter.sendCommand(sessionId, text);
+      if (!ok) return false;
+
+      // 後の試行ほど待ちを伸ばす（上限 ECHO_RETYPE_DELAY_SCALE_MAX 倍）
+      const scale = Math.min(attempt + 1, ECHO_RETYPE_DELAY_SCALE_MAX);
+      await this.sleep(ECHO_CHECK_FIRST_DELAY_MS * scale);
+
+      // 目印が短すぎて照合の信頼性が無い場合は従来どおり時間待ちのみで進む
+      if (headNeedle.length < 4) return true;
+
+      let confirmed = false;
+      for (let check = 0; check < 2 && !confirmed; check++) {
+        if (check > 0) await this.sleep(ECHO_CHECK_RETRY_DELAY_MS * scale);
+        const delta = this.normalizeForEchoCheck(
+          this.aiSessionAdapter.getPrimaryOutputSince(
+            repositoryPath,
+            provider,
+            typedAt
+          )
+        );
+        confirmed =
+          delta.includes(headNeedle) ||
+          delta.includes(tailNeedle) ||
+          delta.includes('Pastedtext');
+      }
+      if (confirmed) return true;
+
+      if (Date.now() - startedAt >= ECHO_RETYPE_BUDGET_MS) break;
+      console.warn(
+        `[PromptQueueManager] 打鍵確認: 入力欄への到達を確認できないため本文を打ち直します（${attempt + 1}回目、経過 ${Math.round((Date.now() - startedAt) / 1000)}s）`
+      );
+    }
+    console.warn(
+      '[PromptQueueManager] 打鍵確認: 時間予算内に到達を確認できませんでした（watchdog に委ねて送信を続行します）'
+    );
+    return true;
+  }
+
+  /**
+   * /clear・/model 等の前置きスラッシュコマンドを 1 つ実行する。
+   * 打鍵確認（未達なら打ち直し）・Enter 取りこぼし対策の再送・実行直後の
+   * TUI 再描画の静定待ちまで含む
+   * （静定を待たずに次の入力を打ち込むと取りこぼされることがある）。
+   */
+  private async runPrefixSlashCommand(
+    sessionId: string,
+    repositoryPath: string,
+    provider: AiProvider,
+    command: string
+  ): Promise<void> {
+    await this.typeWithEchoCheck(sessionId, repositoryPath, provider, command);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    await this.sleep(ENTER_RETRY_MS);
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    await this.sleep(SLASH_SETTLE_MS);
+  }
+
+  /**
+   * アイテムのコマンドを送信。最終 Enter の送信まで完了してから resolve する
+   * （呼び出し側はこの完了時点を起点に送信ウォッチドッグを仕掛ける）。
    * override はプランニングターン等でアイテム本来の prompt / model / clear 設定を
    * 差し替えて送るための一時指定（アイテム自体は変更しない）。
    */
@@ -1498,76 +2254,54 @@ export class PromptQueueManager extends EventEmitter {
     const prompt = override?.prompt ?? item.prompt;
     const model = override?.model ?? item.model;
     const sendClearBefore = override?.skipClear ? false : item.sendClearBefore;
+    const { repositoryPath, provider } = item;
 
-    const sendPromptWithEnter = (delay: number = 0) => {
-      setTimeout(() => {
-        const ok = this.aiSessionAdapter?.sendCommand(sessionId, prompt);
-        if (ok === false) {
-          // PTY が死んでいる。watchdog (6s) を待たずに即時で失敗扱いにする
-          void this.handleSendFailure(
-            item.repositoryPath,
-            item.provider,
-            item.id
-          );
-          return;
-        }
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-          // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
-          if (coldStart) {
-            setTimeout(() => {
-              this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-            }, COLD_START_ENTER_RETRY_MS);
-          }
-        }, 500);
-      }, delay);
-    };
-
-    // sendClearBeforeフラグがtrueの場合
     if (sendClearBefore) {
-      this.aiSessionAdapter.sendCommand(sessionId, '/clear');
+      await this.runPrefixSlashCommand(
+        sessionId,
+        repositoryPath,
+        provider,
+        '/clear'
+      );
+    }
 
-      setTimeout(() => {
-        this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-      }, 500);
-
-      if (model) {
+    if (model) {
+      const key = this.getQueueKey(repositoryPath, provider);
+      // 冗長な /model のスキップ: 前回適用した値と同じなら送らない。
+      // /model 実行直後の TUI 再描画は後続打鍵を飲む主要なリスク源のため、
+      // モデルが実際に変わるターンだけ送って露出回数を減らす。
+      // コールドスタート時は新規 CLI の状態が不明なので必ず送る。
+      const alreadyApplied =
+        !coldStart && this.currentModels.get(key) === model;
+      this.currentModels.set(key, model);
+      if (!alreadyApplied) {
         const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-        this.currentModels.set(
-          this.getQueueKey(item.repositoryPath, item.provider),
-          model
+        await this.runPrefixSlashCommand(
+          sessionId,
+          repositoryPath,
+          provider,
+          `/model ${modelValue}`
         );
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, `/model ${modelValue}`);
-          setTimeout(() => {
-            this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-          }, 500);
-        }, 1500);
-
-        sendPromptWithEnter(3000);
-      } else {
-        sendPromptWithEnter(1500);
       }
-    } else {
-      // 通常のプロンプト送信
-      if (model) {
-        const modelValue = model === 'OpusPlan' ? 'opusplan' : model;
-        this.currentModels.set(
-          this.getQueueKey(item.repositoryPath, item.provider),
-          model
-        );
-        this.aiSessionAdapter.sendCommand(sessionId, `/model ${modelValue}`);
+    }
 
-        setTimeout(() => {
-          this.aiSessionAdapter?.sendCommand(sessionId, '\r');
-        }, 500);
-
-        sendPromptWithEnter(1500);
-      } else {
-        // モデル指定も /clear も無い最短経路。コールドスタート時の Enter
-        // 取りこぼし対策も含めるため sendPromptWithEnter に集約する
-        sendPromptWithEnter(0);
-      }
+    // 打鍵確認込みで本文を打ち込む（Enter 前待ちの 500ms は確認処理が兼ねる）
+    const ok = await this.typeWithEchoCheck(
+      sessionId,
+      repositoryPath,
+      provider,
+      prompt
+    );
+    if (!ok) {
+      // PTY が死んでいる。watchdog を待たずに即時で失敗扱いにする
+      void this.handleSendFailure(repositoryPath, provider, item.id);
+      return;
+    }
+    this.aiSessionAdapter?.sendCommand(sessionId, '\r');
+    // コールドスタート時は Enter 取りこぼし対策で 1 回だけ再送する
+    if (coldStart) {
+      await this.sleep(ENTER_RETRY_MS);
+      this.aiSessionAdapter?.sendCommand(sessionId, '\r');
     }
   }
 
@@ -1767,6 +2501,8 @@ export class PromptQueueManager extends EventEmitter {
         // - 再起動後の自動再開防止のため awaitingUserApproval = true を強制
         //   （pendingJudge は維持し、次の processNextItem で再判定）
         // - プランニングターン実行中に落ちていた場合は予約に戻して再実行
+        // - 指示反映ターン実行中に落ちていた場合は feedback が残っているため、
+        //   フラグだけ倒せば承認後に反映ターンから再実行される
         if (restored.loop) {
           restored.loop = {
             ...restored.loop,
@@ -1775,6 +2511,7 @@ export class PromptQueueManager extends EventEmitter {
             planningActive: undefined,
             pendingPlanning:
               restored.loop.pendingPlanning || restored.loop.planningActive,
+            feedbackActive: undefined,
           };
         }
         return restored;
