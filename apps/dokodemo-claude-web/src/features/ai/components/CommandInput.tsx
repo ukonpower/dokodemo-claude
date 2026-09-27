@@ -1064,7 +1064,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
       }
 
       // Cmd/Ctrl + ↑ で前の履歴へ、Cmd/Ctrl + ↓ で次の履歴へ
-      // （Ctrl+Shift+矢印はAIインスタンスタブ操作のグローバルショートカットなので素通しする）
+      // （Shift 併用時はテキスト選択のブラウザ既定動作に任せる）
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'ArrowUp') {
         e.preventDefault();
         navigateHistoryUp();

@@ -3,11 +3,8 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   type ReactNode,
-  type RefObject,
 } from 'react';
-import type { AiInstanceTabsHandle } from '@/features/ai/components/AiInstanceTabs';
 import type { AiProvider as AiProviderName } from '@/types';
 import { useAiCli, type UseAiCliReturn } from '@/features/ai/hooks/useAiCli';
 import {
@@ -20,15 +17,13 @@ import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvid
 export interface AiContextValue {
   aiCli: UseAiCliReturn;
   customAiButtons: UseCustomAiButtonsReturn;
-  /** AIインスタンスタブの追加メニューを Ctrl+Shift+→（右端）から開くための ref */
-  aiInstanceTabsRef: RefObject<AiInstanceTabsHandle | null>;
   primaryProvider: AiProviderName | undefined;
 }
 
 const AiContext = createContext<AiContextValue | null>(null);
 
 /**
- * AI CLI 管理（useAiCli）・カスタム送信ボタン・AIインスタンスタブ ref を提供する Provider。
+ * AI CLI 管理（useAiCli）・カスタム送信ボタンを提供する Provider。
  */
 export function AiProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocketContext();
@@ -43,8 +38,6 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const aiCli = useAiCli(socket, repository.currentRepo, onAiOutputReceived);
   const { activeInstance } = aiCli;
 
-  // AIインスタンスタブの追加メニューを Ctrl+Shift+→（右端）から開くための ref
-  const aiInstanceTabsRef = useRef<AiInstanceTabsHandle>(null);
   const primaryProvider = aiCli.primaryInstance?.provider;
 
   // カスタム送信ボタン（global / repository スコープ両方）
@@ -57,9 +50,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   }, [socket, activeInstance]);
 
   return (
-    <AiContext.Provider
-      value={{ aiCli, customAiButtons, aiInstanceTabsRef, primaryProvider }}
-    >
+    <AiContext.Provider value={{ aiCli, customAiButtons, primaryProvider }}>
       {children}
     </AiContext.Provider>
   );

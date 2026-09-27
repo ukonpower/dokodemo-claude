@@ -1,13 +1,4 @@
-import {
-  useMemo,
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
-import type { ForwardedRef } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import {
   MoreVertical,
   RotateCcw,
@@ -26,18 +17,12 @@ import { getProviderShortName } from '@/features/ai/utils/ai-provider-info';
 import { PopupMenu } from '@/shared/components/PopupMenu';
 import s from './AiInstanceTabs.module.scss';
 
-// 追加メニューの項目（矢印キーで選択）。'close' はメニューを閉じるだけ
+// 追加メニューの項目。'close' はメニューを閉じるだけ
 const ADD_MENU_ITEMS: { key: AiProvider | 'close'; label: string }[] = [
   { key: 'claude', label: 'Claude' },
   { key: 'codex', label: 'Codex' },
   { key: 'close', label: '閉じる' },
 ];
-
-/** 親からメニューを開くための命令的ハンドル（Ctrl+Shift+→ の右端追加 / Ctrl+Shift+↓ のタブメニュー） */
-export interface AiInstanceTabsHandle {
-  openAddMenu: () => void;
-  openTabMenu: (instanceId: string) => void;
-}
 
 /**
  * インスタンスの表示名を決定
@@ -60,10 +45,7 @@ function getDisplayName(
 /**
  * AI インスタンスのタブ列
  */
-function AiInstanceTabs(
-  _props: object,
-  ref: ForwardedRef<AiInstanceTabsHandle>
-) {
+function AiInstanceTabs() {
   // 接続状態
   const { isConnected } = useSocketContext();
 
@@ -85,8 +67,6 @@ function AiInstanceTabs(
   const activeInstanceId = activeInstance?.instanceId ?? '';
 
   const [showAddMenu, setShowAddMenu] = useState(false);
-  // 追加メニューでハイライト中の項目（矢印キー操作用）
-  const [addMenuIndex, setAddMenuIndex] = useState(0);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // 各タブの操作メニュー（プロバイダー切替 / 再起動 / 閉じる）。
@@ -95,30 +75,6 @@ function AiInstanceTabs(
     null
   );
   const tabMenuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-
-  // 追加メニューを開く（先頭 Claude をハイライト状態に）
-  const openAddMenu = useCallback(() => {
-    setOpenMenuInstanceId(null);
-    setAddMenuIndex(0);
-    setShowAddMenu(true);
-  }, []);
-
-  // 選択中タブのメニューを開く（Ctrl+Shift+↓ からの呼び出し用）
-  const openTabMenu = useCallback((instanceId: string) => {
-    setShowAddMenu(false);
-    setOpenMenuInstanceId(instanceId);
-  }, []);
-
-  // 親（Ctrl+Shift+→ の右端追加 / Ctrl+Shift+↓ のタブメニュー）からメニューを開けるようにする
-  useImperativeHandle(
-    ref,
-    () => ({ openAddMenu, openTabMenu }),
-    [openAddMenu, openTabMenu]
-  );
-
-  // Enter 確定時に最新のハイライト位置を参照するための ref
-  const addMenuIndexRef = useRef(0);
-  addMenuIndexRef.current = addMenuIndex;
 
   const sorted = useMemo(
     () => [...instances].sort((a, b) => a.order - b.order),
@@ -142,10 +98,7 @@ function AiInstanceTabs(
   }, []);
 
   const toggleMenu = useCallback(() => {
-    setShowAddMenu((prev) => {
-      if (!prev) setAddMenuIndex(0);
-      return !prev;
-    });
+    setShowAddMenu((prev) => !prev);
   }, []);
 
   // 追加メニューの項目を確定（Claude / Codex は生成、close は閉じるだけ）
@@ -160,39 +113,6 @@ function AiInstanceTabs(
     [onCreate]
   );
 
-  // 追加メニュー表示中はキーボード操作を横取りする。
-  // capture フェーズで伝播を止め、グローバルの Ctrl+Shift+矢印ハンドラと競合させない。
-  useEffect(() => {
-    if (!showAddMenu) return;
-    const onKey = (e: KeyboardEvent) => {
-      const k = e.key;
-      if (
-        k !== 'ArrowUp' &&
-        k !== 'ArrowDown' &&
-        k !== 'ArrowLeft' &&
-        k !== 'ArrowRight' &&
-        k !== 'Enter' &&
-        k !== ' '
-      ) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      const n = ADD_MENU_ITEMS.length;
-      if (k === 'ArrowLeft') {
-        setShowAddMenu(false);
-      } else if (k === 'ArrowUp') {
-        setAddMenuIndex((i) => (i - 1 + n) % n);
-      } else if (k === 'ArrowDown' || k === 'ArrowRight') {
-        setAddMenuIndex((i) => (i + 1) % n);
-      } else {
-        confirmAddMenuItem(addMenuIndexRef.current);
-      }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [showAddMenu, confirmAddMenuItem]);
-
   const closeTabMenu = useCallback(() => {
     setOpenMenuInstanceId(null);
   }, []);
@@ -200,49 +120,6 @@ function AiInstanceTabs(
   const toggleTabMenu = useCallback((instanceId: string) => {
     setOpenMenuInstanceId((prev) => (prev === instanceId ? null : instanceId));
   }, []);
-
-  // タブメニュー表示中のキーボード操作（roving focus）。
-  // ↑↓/→ でメニュー内ボタンのフォーカス移動、← で閉じる、Enter/Space は各ボタンが処理。
-  useEffect(() => {
-    if (!openMenuInstanceId) return;
-    const getButtons = () => {
-      const el = document.getElementsByClassName(s.kbdMenu)[0];
-      return el
-        ? Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
-        : [];
-    };
-    // 開いたら先頭ボタンにフォーカス
-    getButtons()[0]?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      const k = e.key;
-      if (
-        k !== 'ArrowUp' &&
-        k !== 'ArrowDown' &&
-        k !== 'ArrowLeft' &&
-        k !== 'ArrowRight'
-      ) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      if (k === 'ArrowLeft') {
-        setOpenMenuInstanceId(null);
-        return;
-      }
-      const btns = getButtons();
-      if (btns.length === 0) return;
-      const cur = btns.indexOf(document.activeElement as HTMLButtonElement);
-      let next: number;
-      if (k === 'ArrowUp') {
-        next = cur === -1 ? btns.length - 1 : (cur - 1 + btns.length) % btns.length;
-      } else {
-        next = cur === -1 ? 0 : (cur + 1) % btns.length;
-      }
-      btns[next]?.focus();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [openMenuInstanceId]);
 
   return (
     <div className={s.root}>
@@ -326,11 +203,7 @@ function AiInstanceTabs(
           <button
             key={item.key}
             onClick={() => confirmAddMenuItem(index)}
-            onMouseEnter={() => setAddMenuIndex(index)}
-            className={`${s.addMenuItem}${
-              index === addMenuIndex ? ` ${s.highlight}` : ''
-            }`}
-            aria-selected={index === addMenuIndex}
+            className={s.addMenuItem}
           >
             {item.label}
           </button>
@@ -350,7 +223,6 @@ function AiInstanceTabs(
                 : null
             }
             onClose={closeTabMenu}
-            className={s.kbdMenu}
           >
             {inst ? (
               inst.isPrimary ? (
@@ -456,4 +328,4 @@ function AiInstanceTabs(
   );
 }
 
-export default forwardRef(AiInstanceTabs);
+export default AiInstanceTabs;

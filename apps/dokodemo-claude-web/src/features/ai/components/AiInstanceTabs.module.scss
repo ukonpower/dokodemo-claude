@@ -175,11 +175,6 @@
     background-color: $gray-700;
   }
 
-  // 矢印キーで選択中の項目
-  &.highlight {
-    background-color: $gray-700;
-  }
-
   svg {
     width: 0.8rem;
     height: 0.8rem;
@@ -225,18 +220,5 @@
     background-color: $gray-700;
     border-color: $gray-500;
     cursor: default;
-  }
-}
-
-// キーボード操作対象のタブメニュー: フォーカス中の項目を明示する
-.kbdMenu {
-  .addMenuItem:focus {
-    background-color: $gray-700;
-    outline: none;
-  }
-
-  .providerSegmentItem:focus {
-    outline: 2px solid $gray-200;
-    outline-offset: -2px;
   }
 }
