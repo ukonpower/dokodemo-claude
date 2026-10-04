@@ -81,7 +81,7 @@ export function ProjectView() {
     useAppSettingsContext();
 
   // AI CLI関連
-  const { aiCli, aiInstanceTabsRef } = useAiContext();
+  const { aiCli } = useAiContext();
   const {
     activeInstance,
     // AIアクション（active instance に対する操作）
@@ -293,7 +293,7 @@ export function ProjectView() {
           <section className={s.cliSection}>
             <div className={s.cliTabBar}>
               <div className={s.cliTabsScroll}>
-                <AiInstanceTabs ref={aiInstanceTabsRef} />
+                <AiInstanceTabs />
               </div>
               {/* 全画面切替と右列パネルの折りたたみトグル */}
               <div className={s.cliTabActions}>

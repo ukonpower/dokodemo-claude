@@ -39,7 +39,7 @@ export function AppContent() {
   const { socket, isConnected } = useSocketContext();
   const { repository, switchRepositoryFromList } = useRepositoryContext();
   const appSettings = useAppSettingsContext();
-  const { aiCli, aiInstanceTabsRef, primaryProvider } = useAiContext();
+  const { aiCli, primaryProvider } = useAiContext();
   const gitDiff = useGitDiffContext();
   const gitActions = useGitActionsContext();
   const fileViewer = useFileViewerContext();
@@ -78,31 +78,6 @@ export function AppContent() {
   useAppHotkeys({
     onToggleProjectSwitcher: () => setIsProjectSwitcherOpen((open) => !open),
     onToggleCommandPalette: () => setIsCommandPaletteOpen((open) => !open),
-    // Ctrl+Shift+←→: プロジェクトビューでAIインスタンスタブを切り替え
-    // （右端でさらに右を押すと provider を選ぶ追加メニューを開く）
-    onSwitchAiInstance: (direction) => {
-      if (dashboardMode || fileViewer.isActive) return;
-      const sorted = [...aiCli.aiInstances].sort((a, b) => a.order - b.order);
-      if (sorted.length === 0) return;
-      const currentIndex = sorted.findIndex(
-        (i) => i.instanceId === aiCli.activeInstance?.instanceId
-      );
-      const targetIndex = currentIndex + direction;
-      // 左端でさらに左：何もしない
-      if (targetIndex < 0) return;
-      // 右端でさらに右：provider（Claude / Codex）を選ぶ追加メニューを開く
-      if (targetIndex >= sorted.length) {
-        aiInstanceTabsRef.current?.openAddMenu();
-        return;
-      }
-      aiCli.activateInstance(sorted[targetIndex].instanceId);
-    },
-    // Ctrl+Shift+↓: 選択中タブのメニュー（再起動 / 新規セッション / シャットダウン）を開く
-    onOpenActiveTabMenu: () => {
-      if (dashboardMode || fileViewer.isActive) return;
-      const active = aiCli.activeInstance;
-      if (active) aiInstanceTabsRef.current?.openTabMenu(active.instanceId);
-    },
   });
 
   // ビュー別ページタイトル設定
