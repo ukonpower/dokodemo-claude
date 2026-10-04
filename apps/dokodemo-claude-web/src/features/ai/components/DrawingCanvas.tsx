@@ -35,11 +35,39 @@ const PEN_COLORS = [
   '#ffffff', // 白
 ];
 
-// 画面上での見た目のペン太さ（px）。ズーム倍率で割ってキャンバス座標系に変換する
-const PEN_SCREEN_WIDTH = 4;
+interface PenSize {
+  id: 'thin' | 'medium' | 'thick';
+  label: string;
+  /** キャンバス短辺に対する線幅の比率 */
+  ratio: number;
+  /** ツールバーで太さを示すドットのクラス */
+  dotClassName: string;
+}
+
+// 線幅は画面ではなくキャンバス（画像）基準で決め、ズームしても画像に対する太さを変えない。
+// 絶対 px にすると高解像度の画像ほど線が細く見えるため、短辺に対する比率で持つ。
+// 短辺を基準にするのは、フィット表示では短辺側が画面に収まることが多く、
+// 解像度・アスペクト比の違う画像でもフィット表示時の見た目の太さがほぼ揃うため。
+// 値の目安: iPhone スクショ（短辺 1170px）でキャンバス上 約6 / 12 / 23px、
+// スマホでフィット表示したとき画面上 約1.6 / 3.3 / 6.5px（従来の固定 4px が「中」付近）。
+// 細=文字への注釈、中=通常の赤入れ、太=囲み・強調 を想定し、各段で倍にして差を見分けやすくしている
+const PEN_SIZES: PenSize[] = [
+  { id: 'thin', label: '細', ratio: 0.005, dotClassName: s.penSizeDotThin },
+  { id: 'medium', label: '中', ratio: 0.01, dotClassName: s.penSizeDotMedium },
+  { id: 'thick', label: '太', ratio: 0.02, dotClassName: s.penSizeDotThick },
+];
+
+// 極端に小さい画像で線が 1px 未満になり消えて見えるのを防ぐ下限（キャンバス px）
+const PEN_MIN_WIDTH = 1;
 
 // 白紙キャンバスの解像度上限
 const BLANK_CANVAS_MAX = 3000;
+
+/** ペンサイズとキャンバス寸法から、キャンバス座標系での線幅を求める */
+function penWidthFor(canvas: HTMLCanvasElement, size: PenSize): number {
+  const shortSide = Math.min(canvas.width, canvas.height);
+  return Math.max(shortSide * size.ratio, PEN_MIN_WIDTH);
+}
 
 function midPoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -110,6 +138,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const multiTouchRef = useRef(false);
 
   const [penColor, setPenColor] = useState(PEN_COLORS[0]);
+  const [penSize, setPenSize] = useState<PenSize>(PEN_SIZES[1]);
   const [strokeCount, setStrokeCount] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -356,7 +385,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         const point = toCanvasPoint(e.clientX, e.clientY);
         const stroke: Stroke = {
           color: penColor,
-          width: PEN_SCREEN_WIDTH / viewRef.current.scale,
+          width: penWidthFor(canvasRef.current!, penSize),
           points: [point],
         };
         currentStrokeRef.current = stroke;
@@ -364,7 +393,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         strokePath(canvasRef.current!.getContext('2d')!, stroke);
       }
     },
-    [isReady, penColor, toCanvasPoint, redrawAll, beginPinch]
+    [isReady, penColor, penSize, toCanvasPoint, redrawAll, beginPinch]
   );
 
   const handlePointerMove = useCallback(
@@ -533,6 +562,27 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               aria-label={`ペン色 ${color}`}
             />
           ))}
+        </div>
+        <div className={s.toolGroup}>
+          {PEN_SIZES.map((size) => {
+            const isActive = penSize.id === size.id;
+            let className = s.toolButton;
+            if (isActive) {
+              className = `${s.toolButton} ${s.toolButtonActive}`;
+            }
+            return (
+              <button
+                key={size.id}
+                onClick={() => setPenSize(size)}
+                className={className}
+                aria-label={`ペンの太さ ${size.label}`}
+                aria-pressed={isActive}
+                title={`太さ: ${size.label}`}
+              >
+                <span className={`${s.penSizeDot} ${size.dotClassName}`} />
+              </button>
+            );
+          })}
         </div>
         <div className={s.toolGroup}>
           <button
