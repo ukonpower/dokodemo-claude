@@ -165,3 +165,32 @@
     cursor: not-allowed;
   }
 }
+
+// 選択中のツール（ペンの太さ）。カラースウォッチの選択表現に揃えて白枠で示す
+.toolButtonActive {
+  color: white;
+  background-color: rgba(white, 0.22);
+  border-color: white;
+}
+
+// ペンの太さを示すドット。実際の線幅ではなく 3 段の大小が見分けられる寸法にしている
+.penSizeDot {
+  display: block;
+  border-radius: $radius-full;
+  background-color: currentColor;
+}
+
+.penSizeDotThin {
+  width: 4px;
+  height: 4px;
+}
+
+.penSizeDotMedium {
+  width: 8px;
+  height: 8px;
+}
+
+.penSizeDotThick {
+  width: 14px;
+  height: 14px;
+}
