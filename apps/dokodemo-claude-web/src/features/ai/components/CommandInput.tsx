@@ -99,13 +99,27 @@ function computeBulletContinuation(
 ): BulletContinuation {
   const lineStart = value.lastIndexOf('\n', caret - 1) + 1;
   const line = value.slice(lineStart, caret);
-  const m = line.match(/^(\s*)- (.*)$/);
-  if (!m) return null;
-  const [, leading, body] = m;
-  if (body.length === 0) {
-    return { kind: 'terminate', removeStart: lineStart, removeEnd: caret };
+
+  const bullet = line.match(/^(\s*)- (.*)$/);
+  if (bullet) {
+    const [, leading, body] = bullet;
+    if (body.length === 0) {
+      return { kind: 'terminate', removeStart: lineStart, removeEnd: caret };
+    }
+    return { kind: 'continue', insert: `\n${leading}- ` };
   }
-  return { kind: 'continue', insert: `\n${leading}- ` };
+
+  const numbered = line.match(/^(\s*)(\d+)\. (.*)$/);
+  if (numbered) {
+    const [, leading, num, body] = numbered;
+    if (body.length === 0) {
+      return { kind: 'terminate', removeStart: lineStart, removeEnd: caret };
+    }
+    const nextNum = Number(num) + 1;
+    return { kind: 'continue', insert: `\n${leading}${nextNum}. ` };
+  }
+
+  return null;
 }
 
 /**
@@ -715,12 +729,12 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         // ケース A: collapsed
         if (!isRange) {
           if (direction === 'indent') {
-            // カーソル行が箇条書きの場合は行全体をインデントする
+            // カーソル行が箇条書き・番号付きリストの場合は行全体をインデントする
             const lineStart = value.lastIndexOf('\n', selStart - 1) + 1;
             const lineEndRaw = value.indexOf('\n', selStart);
             const lineEnd = lineEndRaw === -1 ? value.length : lineEndRaw;
             const line = value.slice(lineStart, lineEnd);
-            if (/^\s*- /.test(line)) {
+            if (/^\s*(- |\d+\. )/.test(line)) {
               replaceRangeKeepSelection(
                 lineStart,
                 lineStart,
