@@ -4,7 +4,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { X, Check, Undo2, Trash2, Maximize } from 'lucide-react';
+import { X, Check, Undo2, Redo2, Trash2, Maximize } from 'lucide-react';
 import s from './DrawingCanvas.module.scss';
 
 interface DrawingCanvasProps {
@@ -155,6 +155,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [penColor, setPenColor] = useState(PEN_COLORS[0]);
   const [penSize, setPenSize] = useState<PenSize>(PEN_SIZES[1]);
   const [strokeCount, setStrokeCount] = useState(0);
+  // redoStrokesRef は ref で再描画されないため、redo ボタンの disabled 判定用に件数を別に持つ
+  const [redoCount, setRedoCount] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -218,6 +220,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     pinchRef.current = null;
     multiTouchRef.current = false;
     setStrokeCount(0);
+    setRedoCount(0);
 
     const init = (width: number, height: number) => {
       canvas.width = width;
@@ -495,6 +498,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           // 新しい描き込みが確定した時点で、undo 前の続きには戻れなくなる
           redoStrokesRef.current = [];
           setStrokeCount(strokesRef.current.length);
+          setRedoCount(0);
         }
       }
     },
@@ -508,6 +512,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!stroke) return;
     redoStrokesRef.current.push(stroke);
     setStrokeCount(strokesRef.current.length);
+    setRedoCount(redoStrokesRef.current.length);
     redrawAll();
   }, [redrawAll]);
 
@@ -517,6 +522,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!stroke) return;
     strokesRef.current.push(stroke);
     setStrokeCount(strokesRef.current.length);
+    setRedoCount(redoStrokesRef.current.length);
     redrawAll();
   }, [redrawAll]);
 
@@ -553,6 +559,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     strokesRef.current = [];
     redoStrokesRef.current = [];
     setStrokeCount(0);
+    setRedoCount(0);
     redrawAll();
   }, [redrawAll]);
 
@@ -661,6 +668,15 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             title="元に戻す (⌘Z / Ctrl+Z)"
           >
             <Undo2 size={16} strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={redoCount === 0}
+            className={s.toolButton}
+            aria-label="やり直す"
+            title="やり直す (⇧⌘Z / Ctrl+Shift+Z)"
+          >
+            <Redo2 size={16} strokeWidth={2} />
           </button>
           <button
             onClick={handleClear}
