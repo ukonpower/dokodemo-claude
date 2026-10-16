@@ -322,4 +322,36 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
       // ignore
     }
   });
+
+  socket.on('add-loop-feedback', async (data) => {
+    const { rid, provider, itemId, text } = data;
+    const repositoryPath = tryResolvePath(rid);
+    if (!repositoryPath) return;
+    try {
+      await processManager.addLoopFeedback(
+        repositoryPath,
+        provider,
+        itemId,
+        text
+      );
+    } catch {
+      // ignore
+    }
+  });
+
+  socket.on('remove-loop-feedback', async (data) => {
+    const { rid, provider, itemId, index } = data;
+    const repositoryPath = tryResolvePath(rid);
+    if (!repositoryPath) return;
+    try {
+      await processManager.removeLoopFeedback(
+        repositoryPath,
+        provider,
+        itemId,
+        index
+      );
+    } catch {
+      // ignore
+    }
+  });
 }

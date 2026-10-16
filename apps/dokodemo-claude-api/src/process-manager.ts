@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import path from 'path';
 import {
   CommandShortcut,
@@ -15,6 +15,8 @@ import {
 } from './types/index.js';
 
 import { PersistenceService } from './services/persistence-service.js';
+import { repositoryIdManager } from './services/repository-id-manager.js';
+import { toPublicReviewRequest } from './managers/review-request-manager.js';
 import {
   ShortcutManager,
   TerminalManager,
@@ -25,6 +27,7 @@ import {
   WorktreeSyncManager,
   WorktreeSortOrderManager,
   WorktreeMemoManager,
+  ReviewRequestManager,
   AISessionManager,
   PortDetector,
   type ActiveAiSession,
@@ -35,6 +38,19 @@ import {
 interface AiExecutionState {
   instanceId: string;
   status: AiExecutionStatus;
+}
+
+// AI 出力履歴の ANSI エスケープ除去（キューアダプターの出力参照系で共用）。
+// ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex
+// で警告になるため、new RegExp + String.fromCharCode で組み立てる
+const ANSI_ESC = String.fromCharCode(0x1b);
+const ANSI_BEL = String.fromCharCode(0x07);
+const ANSI_REGEX = new RegExp(
+  `${ANSI_ESC}\\[[0-9;?]*[A-Za-z]|${ANSI_ESC}\\][^${ANSI_BEL}]*${ANSI_BEL}`,
+  'g'
+);
+function stripAnsi(s: string): string {
+  return s.replace(ANSI_REGEX, '');
 }
 
 interface PersistedSelectedProvider {
@@ -56,6 +72,7 @@ export class ProcessManager extends EventEmitter {
   public readonly worktreeSyncManager: WorktreeSyncManager;
   public readonly worktreeSortOrderManager: WorktreeSortOrderManager;
   public readonly worktreeMemoManager: WorktreeMemoManager;
+  public readonly reviewRequestManager: ReviewRequestManager;
 
   public readonly portDetector: PortDetector;
 
@@ -65,6 +82,11 @@ export class ProcessManager extends EventEmitter {
 
   // 実行状態: instanceId キー
   private aiExecutionStates: Map<string, AiExecutionState> = new Map();
+
+  // running へ遷移した時刻（キー = instanceId）。
+  // Stop(completed) と UserPromptSubmit(running) がほぼ同時に届く順序レースの
+  // 判定と、キュー側の「この送信に対する UserPromptSubmit か」の判別に使う。
+  private aiRunningSetAt: Map<string, number> = new Map();
   private selectedProviders: Map<string, PersistedSelectedProvider> = new Map();
   private processesDir: string;
   private selectedProvidersFile = 'repo-provider-preferences.json';
@@ -157,6 +179,11 @@ export class ProcessManager extends EventEmitter {
     // WorktreeMemoManager: ワークツリーごとのメモを保持
     this.worktreeMemoManager = new WorktreeMemoManager(this.persistenceService);
 
+    // ReviewRequestManager: 評価リクエスト（受信箱）を保持
+    this.reviewRequestManager = new ReviewRequestManager(
+      this.persistenceService
+    );
+
     // PromptQueueManager: プライマリインスタンスのセッションを返すアダプター
     this.promptQueueManager = new PromptQueueManager(this.persistenceService, {
       getSession: (repositoryPath: string, provider) => {
@@ -205,6 +232,18 @@ export class ProcessManager extends EventEmitter {
         if (!primary || primary.provider !== provider) return false;
         return this.getAiExecutionStatus(primary.instanceId) === 'running';
       },
+      getPrimaryRunningSince: (
+        repositoryPath: string,
+        provider: AiProvider
+      ) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary || primary.provider !== provider) return null;
+        if (this.getAiExecutionStatus(primary.instanceId) !== 'running')
+          return null;
+        return this.aiRunningSetAt.get(primary.instanceId) ?? null;
+      },
       getPrimaryOutputTail: (repositoryPath: string, provider: AiProvider) => {
         const primary = this.aiSessionManager.getPrimaryInstance(
           repositoryPath
@@ -216,20 +255,76 @@ export class ProcessManager extends EventEmitter {
           provider
         );
         // ANSI 除去 + 末尾 200 行 + 8000 文字上限
-        // ESC (0x1B) と BEL (0x07) を含む正規表現は eslint の no-control-regex
-        // で警告になるため、new RegExp + String.fromCharCode で組み立てる
-        const ESC = String.fromCharCode(0x1b);
-        const BEL = String.fromCharCode(0x07);
-        const ansiRegex = new RegExp(
-          `${ESC}\\[[0-9;?]*[A-Za-z]|${ESC}\\][^${BEL}]*${BEL}`,
-          'g'
-        );
-        const stripAnsi = (s: string): string => s.replace(ansiRegex, '');
         const lines = history.map((h) => stripAnsi(h.content));
         const tailLines = lines.slice(-200).join('\n');
         return tailLines.length > 8000
           ? tailLines.slice(-8000)
           : tailLines;
+      },
+      getPrimaryOutputSince: (
+        repositoryPath: string,
+        provider: AiProvider,
+        sinceTimestampMs: number
+      ) => {
+        const primary = this.aiSessionManager.getPrimaryInstance(
+          repositoryPath
+        );
+        if (!primary) return '';
+        const history = this.aiSessionManager.getOutputHistory(
+          primary.instanceId,
+          provider
+        );
+        const text = history
+          .filter((h) => h.timestamp >= sinceTimestampMs)
+          .map((h) => stripAnsi(h.content))
+          .join('\n');
+        // 打鍵直後の数秒分のデルタが対象なので通常は小さいが、上限だけ設ける
+        return text.length > 16000 ? text.slice(-16000) : text;
+      },
+    });
+    // 未回答のブロッキング評価リクエストが残っている間、キュー再開を拒否する判定を注入
+    this.promptQueueManager.setBlockingReviewChecker(
+      (repositoryPath, provider) =>
+        this.reviewRequestManager.hasPendingBlocking(repositoryPath, provider)
+    );
+    // 評価応答の反映ターン: 実体は review-requests.json、キューは配達役に徹する。
+    // 配達先は発行元パス（worktree が消えていたら親リポジトリへフォールバック）
+    const resolveReviewDeliveryPath = (request: {
+      rid: string;
+      sourcePath: string;
+    }): string => {
+      if (existsSync(request.sourcePath)) return request.sourcePath;
+      return repositoryIdManager.getPath(request.rid) ?? request.sourcePath;
+    };
+    this.promptQueueManager.setReviewReflectionAdapter({
+      listUnreflected: (repositoryPath, provider) =>
+        this.reviewRequestManager
+          .listUnreflected()
+          .filter(
+            (r) =>
+              r.provider === provider &&
+              r.response !== undefined &&
+              resolveReviewDeliveryPath(r) === repositoryPath
+          )
+          .map((r) => ({
+            rid: r.rid,
+            requestId: r.id,
+            aim: r.aim,
+            question: r.question,
+            response: {
+              kind: r.response!.kind,
+              choice: r.response!.choice,
+              comment: r.response!.comment,
+            },
+          })),
+      markReflected: async (refs) => {
+        const updated = await this.reviewRequestManager.markReflected(refs);
+        for (const request of updated) {
+          this.emit('review-request-updated', {
+            rid: request.rid,
+            request: toPublicReviewRequest(request),
+          });
+        }
       },
     });
     this.promptQueueManager.on('prompt-queue-updated', (data) =>
@@ -319,8 +414,29 @@ export class ProcessManager extends EventEmitter {
   }
 
   setAiExecutionStatus(instanceId: string, status: AiExecutionStatus): void {
+    // running の時刻は同値遷移でも更新する（連続 UserPromptSubmit 対応）
+    if (status === 'running') {
+      this.aiRunningSetAt.set(instanceId, Date.now());
+    }
+
     const current = this.aiExecutionStates.get(instanceId)?.status ?? 'idle';
     if (current === status) return;
+
+    // Stop(completed) と UserPromptSubmit(running) の順序レース対策:
+    // 前のターンの Stop hook が、次のターンの UserPromptSubmit より後に届くと
+    // 「実行中なのにアイドル表示」になり、キューの送信ゲート・ウォッチドッグが
+    // 誤動作する（2026-08-02 実測: 誤アイドル判定 → 空 Enter → 割り込み送信）。
+    // running 直後の completed は後着した前ターンの Stop とみなして無視する
+    // （誤って running が残っても、キュー側が出力静止を見て stale 判定で自己回復する）。
+    if (status === 'completed') {
+      const runningAt = this.aiRunningSetAt.get(instanceId);
+      if (runningAt !== undefined && Date.now() - runningAt < 1200) {
+        console.warn(
+          `[ProcessManager] running 直後の completed 遷移をスキップ（Stop 後着の疑い）: ${instanceId}`
+        );
+        return;
+      }
+    }
 
     if (status === 'idle') {
       this.aiExecutionStates.delete(instanceId);
@@ -362,6 +478,7 @@ export class ProcessManager extends EventEmitter {
     await this.worktreeSyncManager.initialize();
     await this.worktreeSortOrderManager.initialize();
     await this.worktreeMemoManager.initialize();
+    await this.reviewRequestManager.initialize();
 
     this.startProcessMonitoring();
     this.portDetector.start();
@@ -758,6 +875,7 @@ export class ProcessManager extends EventEmitter {
       judgeEveryN: number;
       intervalSec: number;
       judgeCriteria?: string;
+      reviewBlocking?: 'ai' | 'always' | 'never';
       planning?: PromptLoopPlanning;
     }
   ): Promise<PromptQueueItem> {
@@ -903,6 +1021,7 @@ export class ProcessManager extends EventEmitter {
           judgeEveryN: number;
           intervalSec: number;
           judgeCriteria?: string;
+          reviewBlocking?: 'ai' | 'always' | 'never';
           planning?: PromptLoopPlanning;
         }
       | null
@@ -948,6 +1067,36 @@ export class ProcessManager extends EventEmitter {
       provider,
       itemId,
       approved
+    );
+    return result.ok;
+  }
+
+  async addLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    text: string
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.addLoopFeedback(
+      repositoryPath,
+      provider,
+      itemId,
+      text
+    );
+    return result.ok;
+  }
+
+  async removeLoopFeedback(
+    repositoryPath: string,
+    provider: AiProvider,
+    itemId: string,
+    index: number
+  ): Promise<boolean> {
+    const result = await this.promptQueueManager.removeLoopFeedback(
+      repositoryPath,
+      provider,
+      itemId,
+      index
     );
     return result.ok;
   }

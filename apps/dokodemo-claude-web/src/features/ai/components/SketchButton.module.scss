@@ -1,0 +1,72 @@
+// スケッチ添付ボタン（鉛筆）と「白紙 / 写真から」ポップアップメニュー
+
+.hiddenFileInput {
+  display: none;
+}
+
+.menuWrapper {
+  position: relative;
+  display: flex;
+}
+
+// ボタンへ画像をドラッグ中のハイライト
+.dragOver {
+  color: $accent;
+  border-color: $accent;
+  background-color: $dark-bg-hover;
+}
+
+.icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.iconSm {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.menu {
+  position: fixed;
+  width: 11rem;
+  padding: $space-2xs;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  background-color: $dark-bg-secondary;
+  border: 1px solid $dark-border-light;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  z-index: 9999;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  width: 100%;
+  padding: $space-sm;
+  border-radius: $radius;
+  // SP はタップ主体なので一回り大きく、sm-up 以上では従来の xs に戻す
+  font-size: $font-size-sm;
+  line-height: 1rem;
+  text-align: left;
+  color: $dark-text-primary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  @include sm-up {
+    font-size: $font-size-xs;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: $dark-text-muted;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}

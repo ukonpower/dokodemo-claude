@@ -125,6 +125,16 @@ async function cleanupRepositoryPersistedData(
     if (rid) await fileManager.removeRepositoryUploads(rid);
   }
 
+  // 評価リクエスト（受信箱は親リポジトリ単位。添付画像は uploads ごと消えている）
+  {
+    const rid = repositoryIdManager.tryGetId(repoPath);
+    if (rid) {
+      await processManager.reviewRequestManager
+        .removeRepository(rid)
+        .catch(() => {});
+    }
+  }
+
   // ワークツリーのメモ
   for (const worktreePath of worktreePaths) {
     await processManager.worktreeMemoManager

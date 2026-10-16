@@ -16,7 +16,8 @@ export type WebPushEventType =
   | 'PlanApprovalWaiting'
   | 'PermissionRequest'
   | 'LoopApproval'
-  | 'LoopEnded';
+  | 'LoopEnded'
+  | 'ReviewRequest';
 
 export interface WebPushPayload {
   title: string;

@@ -8,4 +8,5 @@ export type * from './worktree';
 export type * from './terminal';
 export type * from './queue';
 export type * from './files';
+export type * from './review';
 export type * from './events';

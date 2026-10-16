@@ -20,6 +20,44 @@
   overflow: hidden;
 }
 
+// wide の overlay はスマホで余白を消し、パネルを全画面化する。
+// 上部固定のリポジトリタブバー（z-index: 50）に閉じるボタンが隠れないよう前面に出す
+.overlayWide {
+  @include sm-down {
+    padding: 0;
+    z-index: 60;
+  }
+}
+
+// 一覧系モーダル用の広幅パネル。PC では広げ、スマホでは全画面で情報量を確保する
+.panelWide {
+  @include lg-up {
+    max-width: 64rem;
+    max-height: 90vh;
+  }
+
+  @include sm-down {
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+
+    .header {
+      padding: $space-md $space-md;
+    }
+
+    .content {
+      padding: $space-md $space-sm;
+    }
+
+    .footer {
+      padding: $space-md $space-md;
+    }
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

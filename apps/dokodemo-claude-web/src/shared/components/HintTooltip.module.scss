@@ -1,0 +1,45 @@
+// ラベル横の「?」ボタン
+.button {
+  @include flex-center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: $dark-text-muted;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color $transition-fast $transition-easing;
+
+  &:hover,
+  &.open {
+    color: $dark-text-secondary;
+  }
+}
+
+// body へ portal する本体。位置は inline style で与える
+.tooltip {
+  position: fixed;
+  z-index: 10002;
+  max-width: 260px;
+  padding: $space-xs $space-sm;
+  border-radius: $radius;
+  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  box-shadow: $shadow-md;
+  color: $dark-text-secondary;
+  font-size: $font-size-xs;
+  line-height: $line-height-normal;
+  animation: hint-tooltip-in $transition-fast $transition-easing;
+}
+
+@keyframes hint-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-$space-2xs);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
