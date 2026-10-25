@@ -1,13 +1,12 @@
 // 右列サイドパネル（アコーディオン積層）
 // 既存のセクションカード言語（cliSection / terminalSection）に統一する:
-//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-tertiary / 枠 = $dark-border-light
+//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-tertiary（枠線は使わず面の段差で区切る）
 //   純ニュートラルグレー（青みなし）、開閉シェブロンで状態を示す
 
 .root {
   display: flex;
   flex-direction: column;
   background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
   box-shadow: $shadow-lg;
   overflow: hidden;
@@ -31,7 +30,7 @@
   min-height: 0;
 
   & + & {
-    border-top: 1px solid $dark-border;
+    margin-top: $space-3xs;
   }
 }
 
@@ -131,7 +130,6 @@
   display: flex;
   flex-shrink: 0;
   background-color: $dark-bg-tertiary;
-  border-bottom: 1px solid $dark-border;
 }
 
 .tab {
@@ -145,15 +143,13 @@
   padding: 0 $space-sm;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
   color: $gray-400;
   font-family: $font-sans;
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    background-color $transition-fast $transition-easing;
 
   &:hover:not(.tabActive) {
     color: $gray-200;
@@ -168,8 +164,7 @@
 
 .tabActive {
   color: $dark-text-primary;
-  background-color: $gray-800;
-  border-bottom-color: $gray-300;
+  background-color: $dark-bg-active;
 }
 
 .tabIcon {
@@ -211,7 +206,6 @@
   flex-shrink: 0;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
   color: $gray-400;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,

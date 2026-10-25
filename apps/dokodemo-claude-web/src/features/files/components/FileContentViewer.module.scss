@@ -62,7 +62,6 @@
   align-items: center;
   gap: $space-sm;
   padding: $space-sm $space-md;
-  border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
@@ -101,7 +100,7 @@
 }
 
 .tabButtonActive {
-  background-color: $dark-bg-hover;
+  background-color: $dark-bg-active;
   color: $dark-text-primary;
 }
 
@@ -154,7 +153,6 @@
   gap: $space-sm;
   padding: $space-xs $space-md;
   background-color: $color-warning-bg;
-  border-bottom: 1px solid $dark-border;
   font-size: $font-size-xs;
   color: $color-warning;
 }

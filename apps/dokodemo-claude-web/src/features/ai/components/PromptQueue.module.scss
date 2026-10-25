@@ -29,7 +29,6 @@
   justify-content: space-between;
   gap: $space-xs;
   padding-top: $space-xs;
-  border-top: 1px solid $dark-border-light;
 }
 
 .footerLeft {
@@ -112,7 +111,6 @@
   gap: $space-2xs;
   padding: $space-sm $space-sm;
   border-radius: $radius;
-  border: 1px solid $color-info-border;
   margin-bottom: $space-xs;
   background-color: $color-info-bg;
   color: $color-info;

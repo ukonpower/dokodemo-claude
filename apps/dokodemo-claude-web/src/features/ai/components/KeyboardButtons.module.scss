@@ -100,8 +100,8 @@
   @include flex-center;
   width: 2.25rem;
   height: 2.25rem;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-500;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
@@ -114,7 +114,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-400;
   }
 
   &:disabled {
@@ -123,8 +122,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $gray-400;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -132,8 +131,8 @@
   @include flex-center;
   width: 3rem;
   height: 4.75rem; // 矢印キー2段分 (2.25rem * 2 + gap 0.25rem)
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-400;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
@@ -147,7 +146,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-300;
   }
 
   &:disabled {
@@ -156,8 +154,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $gray-400;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -193,8 +191,8 @@
   @include flex-center;
   height: 1.875rem;
   padding: 0 $space-sm;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-500;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-md;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -211,7 +209,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-400;
   }
 
   &:disabled {
@@ -220,8 +217,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $gray-400;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -235,32 +232,20 @@
 .escButton {
   @extend %btnBase;
   min-height: 2.25rem;
-  border-color: $gray-600;
   color: $gray-400;
 
   &:hover {
-    border-color: $gray-500;
     color: $gray-300;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $gray-500;
   }
 }
 
 .spaceButton {
   @extend %btnBase;
   min-height: 2.25rem;
-  border-color: $gray-600;
   color: $gray-400;
 
   &:hover {
-    border-color: $gray-500;
     color: $gray-300;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $gray-500;
   }
 }
 
@@ -272,15 +257,6 @@
 
 .modeButton {
   @extend %btnBase;
-  border-color: $accent;
-
-  &:hover {
-    border-color: $accent-hover;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $accent;
-  }
 }
 
 .commitButton {
@@ -289,16 +265,10 @@
 
 .resumeButton {
   @extend %btnBase;
-  border-color: $accent;
   color: $accent;
 
   &:hover {
-    border-color: $accent-hover;
     color: $accent-hover;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $accent;
   }
 }
 
@@ -353,16 +323,7 @@
 
 .grayButton {
   @extend %btnBase;
-  border-color: $gray-600;
   color: $gray-400;
-
-  &:hover {
-    border-color: $gray-500;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $gray-500;
-  }
 }
 
 // カスタム行（「その他」タブ内）
@@ -382,25 +343,14 @@
 
 .customButton {
   @extend %btnBase;
-  border-color: $accent;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  &:hover {
-    border-color: $accent-hover;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 1px $accent;
-  }
 }
 
 .addButton {
   @extend %btnBase;
-  border-style: dashed;
-  border-color: $dark-border-focus;
   color: $dark-text-muted;
   width: 2.25rem;
   padding: 0;
@@ -411,7 +361,6 @@
 
   &:hover {
     color: $dark-text-primary;
-    border-color: $dark-text-muted;
   }
 }
 
@@ -428,10 +377,9 @@
 }
 
 .dialog {
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   padding: $space-lg;
   width: 100%;
   max-width: 420px;
@@ -462,8 +410,8 @@
 .dialogTextarea {
   width: 100%;
   padding: $space-sm $space-sm;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
   color: $dark-text-primary;
   font-family: $font-mono;
@@ -475,9 +423,8 @@
   }
 
   &:focus {
-    outline: none;
-    border-color: $accent;
-    box-shadow: 0 0 0 1px $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -533,24 +480,24 @@
 .dialogDeleteButton {
   margin-right: auto;
   padding: $space-xs $space-md;
-  border: 1px solid $color-error;
+  border: none;
   border-radius: $radius;
-  background: transparent;
+  background-color: rgba($color-error, 0.18);
   color: $color-error;
   font-size: $font-size-xs;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $color-error-bg;
+    background-color: rgba($color-error, 0.28);
   }
 }
 
 .dialogCancelButton {
   padding: $space-xs $space-md;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius;
-  background: transparent;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   font-size: $font-size-xs;
   cursor: pointer;
@@ -564,10 +511,10 @@
 
 .dialogSubmitButton {
   padding: $space-xs $space-md;
-  border: 1px solid $accent;
+  border: none;
   border-radius: $radius;
   background-color: $accent;
-  color: white;
+  color: $accent-fg;
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
   cursor: pointer;

@@ -1,5 +1,3 @@
-@use "sass:color";
-
 .root {
   position: absolute;
   inset: 0;
@@ -8,12 +6,11 @@
 }
 
 .header {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-secondary;
   padding: $space-sm $space-sm;
   display: flex;
   flex-direction: column;
   gap: $space-sm;
-  border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
 
@@ -93,9 +90,8 @@
   @include flex-center;
   width: 1.5rem;
   height: 1.5rem;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
   color: white;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -107,9 +103,9 @@
     background-color: $dark-bg-hover;
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus;
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -122,9 +118,8 @@
 }
 
 .keyboardControls {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-secondary;
   padding: $space-md;
-  border-top: 1px solid $dark-border;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
@@ -152,8 +147,7 @@
   @include flex-center;
   width: 2.25rem;
   height: 2.25rem;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-500;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
@@ -166,7 +160,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-400;
   }
 }
 
@@ -174,8 +167,7 @@
   @include flex-center;
   width: 3rem;
   height: 76px;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-400;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   font-size: $font-size-sm;
   line-height: 1.25rem;
@@ -188,7 +180,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-300;
   }
 }
 
@@ -213,8 +204,7 @@
   @include flex-center;
   width: 3rem;
   height: 2.25rem;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-500;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -227,15 +217,10 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-400;
   }
 
   &.escKey {
-    border-color: $color-error;
-
-    &:hover {
-      border-color: $color-error;
-    }
+    color: $color-error;
   }
 }
 
@@ -243,8 +228,7 @@
   @include flex-center;
   height: 2.25rem;
   width: 100%;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-600;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -257,14 +241,12 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-500;
   }
 }
 
 .inputArea {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-secondary;
   padding: $space-sm $space-sm;
-  border-top: 1px solid $dark-border;
   flex-shrink: 0;
 
   @include sm-up {
@@ -282,29 +264,25 @@
 
 .textInput {
   flex: 1 1 0%;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-input;
   color: white;
   padding: $space-2xs $space-sm;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
+  border: none;
   font-size: $font-size-xs;
   line-height: 1rem;
   transition: all $transition-fast $transition-easing;
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $accent;
-  }
-
-  &:hover {
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
 .submitButton {
   padding: $space-2xs $space-md;
   background-color: $accent;
-  color: white;
+  color: $accent-fg;
   border-radius: $radius-lg;
   border: none;
   font-size: $font-size-xs;
@@ -314,7 +292,7 @@
   box-shadow: $shadow-sm;
 
   &:hover {
-    background-color: color.adjust($accent, $lightness: -10%);
+    background-color: $accent-hover;
   }
 }
 
@@ -331,8 +309,7 @@
 
 .fullscreenHeader {
   padding: $space-md $space-lg;
-  border-bottom: 1px solid $dark-border;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-secondary;
   @include flex-between;
 }
 
@@ -361,9 +338,8 @@
   @include flex-center;
   width: 2rem;
   height: 2rem;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
   color: white;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
@@ -372,9 +348,9 @@
     background-color: $dark-bg-hover;
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus;
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -388,8 +364,7 @@
   @include flex-center;
   height: 2.25rem;
   padding: 0 $space-md;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $gray-500;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -403,6 +378,5 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $gray-400;
   }
 }

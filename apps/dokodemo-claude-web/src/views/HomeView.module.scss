@@ -29,7 +29,6 @@
 .header {
   background-color: $dark-bg-secondary;
   box-shadow: $shadow-sm;
-  border-bottom: 1px solid $dark-border;
   overflow: hidden;
 }
 
@@ -168,9 +167,8 @@
 
 // サーバー情報セクション
 .serverInfo {
-  background-color: rgba($dark-bg-secondary, 0.5);
+  background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  border: 1px solid rgba($dark-border-light, 0.5);
   padding: $space-sm $space-md;
   font-size: $font-size-xs;
 
@@ -219,7 +217,6 @@
 .repoManagerCard {
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
   overflow: hidden;
 }
 
@@ -243,11 +240,10 @@
 }
 
 .loadingCard {
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: 0 25px 50px -12px rgba(black, 0.25);
+  box-shadow: $shadow-float;
   padding: $space-2xl;
-  border: 1px solid $dark-border-light;
 }
 
 .loadingContent {
@@ -297,13 +293,12 @@
 }
 
 .dialogCard {
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: 0 25px 50px -12px rgba(black, 0.25);
+  box-shadow: $shadow-float;
   max-width: 28rem;
   width: 100%;
   padding: $space-xl;
-  border: 1px solid $dark-border-light;
 }
 
 .dialogHeader {
@@ -343,7 +338,6 @@
   border-radius: $radius-md;
   padding: $space-lg;
   margin-bottom: $space-lg;
-  border: 1px solid $color-warning-border;
 }
 
 .warningFlex {
@@ -392,10 +386,9 @@
 }
 
 .repoInfoBox {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-hover;
   border-radius: $radius-md;
   padding: $space-md;
-  border: 1px solid $dark-border-light;
 }
 
 .repoInfoName {

@@ -17,7 +17,7 @@
 
 .buttonActive {
   background-color: $accent;
-  color: white;
+  color: $accent-fg;
   box-shadow: $shadow-sm;
 }
 
@@ -27,7 +27,7 @@
 
   &:hover {
     color: $gray-200;
-    background-color: $dark-bg-primary;
+    background-color: $dark-bg-hover;
   }
 }
 

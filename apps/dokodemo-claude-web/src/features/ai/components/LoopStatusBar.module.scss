@@ -4,7 +4,6 @@
   gap: $space-2xs;
   padding: $space-sm $space-sm;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
   margin-bottom: $space-xs;
   background-color: $dark-bg-secondary;
   color: $dark-text-primary;
@@ -12,13 +11,11 @@
 
 .warning {
   background-color: $color-warning-bg;
-  border-color: $color-warning-border;
   color: $color-warning;
 }
 
 .info {
   background-color: $color-info-bg;
-  border-color: $color-info-border;
   color: $color-info;
 }
 
@@ -86,8 +83,8 @@
   padding: $space-2xs $space-md;
   min-height: 28px;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
-  background-color: transparent;
+  border: none;
+  background-color: rgba(white, 0.08);
   color: inherit;
   cursor: pointer;
   touch-action: manipulation;
@@ -105,8 +102,7 @@
 
 .continueButton {
   background-color: $accent;
-  border-color: $accent;
-  color: white;
+  color: $accent-fg;
 
   &:hover {
     background-color: $accent-hover;
@@ -116,10 +112,10 @@
 .endButton,
 .stopButton {
   color: $color-error;
-  border-color: $color-error-border;
+  background-color: rgba($color-error, 0.18);
 
   &:hover {
-    background-color: $color-error-bg;
+    background-color: rgba($color-error, 0.28);
   }
 }
 

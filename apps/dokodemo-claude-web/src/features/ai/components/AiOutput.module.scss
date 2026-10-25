@@ -39,9 +39,7 @@
   width: 1.25rem;
   height: 1.25rem;
   background-color: rgba($dark-bg-secondary, 0.7);
-  border: 1px solid $dark-border-light;
-  border-top: none;
-  border-right: none;
+  border: none;
   color: rgba(white, 0.7);
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
@@ -69,7 +67,7 @@
   height: 2rem;
   background-color: $dark-bg-secondary;
   border-radius: 9999px;
-  border: 1px solid $dark-border-light;
+  border: none;
   color: white;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
@@ -80,8 +78,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 

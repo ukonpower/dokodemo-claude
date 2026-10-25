@@ -7,7 +7,6 @@
   background-color: $dark-bg-primary;
   border-radius: $radius-lg;
   padding: $space-2xs;
-  border: 1px solid $dark-border-light;
 }
 
 .modeTab {
@@ -27,7 +26,6 @@
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   box-shadow: $shadow-md;
-  border: 1px solid $dark-border-light;
 }
 
 .modeTabInactive {
@@ -65,8 +63,8 @@
 .textInput {
   width: 100%;
   padding: $space-sm $space-md;
-  border: 1px solid $dark-border-light;
-  background-color: $dark-bg-tertiary;
+  border: none;
+  background-color: $dark-bg-input;
   color: $dark-text-primary;
   border-radius: $radius-lg;
   font-size: $font-size-sm;
@@ -77,13 +75,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $accent;
-    border-color: $accent;
-  }
-
-  &:hover {
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 
   &:disabled {

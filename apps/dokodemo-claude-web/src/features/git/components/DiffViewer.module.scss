@@ -12,7 +12,6 @@
   gap: $space-md;
   padding: $space-md $space-lg;
   background-color: $gray-800;
-  border-bottom: 1px solid $gray-700;
 }
 
 .backButton {
@@ -88,7 +87,6 @@
 .errorBox {
   margin: $space-lg;
   background-color: $color-error-bg;
-  border: 1px solid $color-error-border;
   border-radius: $radius-lg;
   padding: $space-md $space-lg;
   font-size: $font-size-sm;

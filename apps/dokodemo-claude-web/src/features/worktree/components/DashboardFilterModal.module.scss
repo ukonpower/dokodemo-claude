@@ -19,10 +19,9 @@
   width: 100%;
   max-width: 480px;
   max-height: 80vh;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   overflow: hidden;
 }
 
@@ -31,7 +30,6 @@
   align-items: center;
   gap: $space-sm;
   padding: $space-sm $space-md;
-  border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
 }
 
@@ -51,7 +49,7 @@
   @include flex-center;
   width: 26px;
   height: 26px;
-  border: 1px solid $dark-border;
+  border: none;
   background-color: $dark-bg-secondary;
   color: $dark-text-secondary;
   border-radius: $radius-sm;
@@ -68,7 +66,6 @@
   align-items: center;
   gap: $space-xs;
   padding: $space-sm $space-md;
-  border-bottom: 1px solid $dark-border;
 }
 
 .actionButton {
@@ -79,7 +76,7 @@
   font-size: $font-size-xs;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  border: 1px solid $dark-border;
+  border: none;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;

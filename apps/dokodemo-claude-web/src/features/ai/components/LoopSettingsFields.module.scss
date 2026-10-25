@@ -51,8 +51,7 @@
   align-items: stretch;
   gap: $space-3xs;
   border-radius: $radius;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
   overflow: hidden;
 }
 
@@ -149,6 +148,7 @@
 
   &.on {
     left: 0.75rem;
+    background-color: $accent-fg;
   }
 
   &.off {
@@ -156,14 +156,13 @@
   }
 }
 
-// 定期プランニング有効時の子設定（左ボーダーでネストを表現）
+// 定期プランニング有効時の子設定（左インデントでネストを表現）
 .subGroup {
   display: flex;
   flex-direction: column;
   gap: $space-sm;
   margin-left: $space-2xs;
   padding-left: $space-md;
-  border-left: 2px solid $dark-border-light;
 
   .fieldLabel {
     color: $dark-text-muted;
@@ -185,13 +184,13 @@
   padding: $space-2xs $space-sm;
   font-size: $font-size-sm;
   color: $dark-text-primary;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
 
   &:focus {
-    outline: none;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -244,8 +243,8 @@
   font-size: $font-size-sm;
   line-height: 1.5;
   color: $dark-text-primary;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
   resize: vertical;
 
@@ -255,7 +254,7 @@
   }
 
   &:focus {
-    outline: none;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }

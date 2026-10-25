@@ -121,7 +121,6 @@
   flex: 0 0 auto;
   width: 12px;
   background-color: rgba($gray-800, 0.6);
-  border-left: 1px solid $gray-700;
   cursor: pointer;
   touch-action: none;
   user-select: none;
@@ -175,7 +174,7 @@
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  border: 1px solid $gray-700;
+  border: none;
   border-radius: $radius;
   background-color: rgba($gray-800, 0.85);
   color: $gray-400;

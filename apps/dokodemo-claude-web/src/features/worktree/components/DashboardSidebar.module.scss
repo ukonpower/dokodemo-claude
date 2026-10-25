@@ -4,7 +4,6 @@
   width: 280px;
   flex-shrink: 0;
   background-color: $dark-bg-secondary;
-  border-right: 1px solid $dark-border;
   overflow: hidden;
 }
 
@@ -14,7 +13,6 @@
   justify-content: space-between;
   gap: $space-xs;
   padding: $space-sm $space-sm;
-  border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
 
@@ -40,7 +38,6 @@
   @include flex-center;
   width: 24px;
   height: 24px;
-  border: 1px solid $dark-border;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border-radius: $radius-sm;
@@ -58,7 +55,6 @@
   align-items: center;
   gap: $space-2xs;
   padding: $space-xs $space-sm;
-  border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
 
@@ -72,7 +68,7 @@
   font-size: $font-size-xs;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  border: 1px solid $dark-border;
+  border: none;
   border-radius: $radius-sm;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
@@ -81,7 +77,6 @@
   &:hover:not(:disabled) {
     background-color: $dark-bg-hover;
     color: $dark-text-primary;
-    border-color: $dark-border-light;
   }
 
   &:disabled {
@@ -123,12 +118,6 @@
   display: flex;
   flex-direction: column;
   padding: $space-xs $space-sm;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-
-  &:last-child {
-    border-bottom: none;
-  }
-
   &:hover {
     background-color: $dark-bg-hover;
   }
@@ -149,7 +138,7 @@
   @include flex-center;
   width: 22px;
   height: 22px;
-  border: 1px solid transparent;
+  border: none;
   background-color: transparent;
   color: $dark-text-muted;
   border-radius: $radius-sm;
@@ -212,7 +201,7 @@
   width: auto;
   height: 22px;
   padding: 0 $space-2xs;
-  border: 1px solid transparent;
+  border: none;
   background-color: transparent;
   color: $dark-text-muted;
   border-radius: $radius-sm;
@@ -235,7 +224,7 @@
   @include flex-center;
   width: 22px;
   height: 22px;
-  border: 1px solid transparent;
+  border: none;
   background-color: transparent;
   color: $dark-text-muted;
   border-radius: $radius-sm;
@@ -256,10 +245,9 @@
   max-height: 280px;
   overflow-y: auto;
   padding: $space-sm $space-md;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   font-size: $font-size-xs;
   color: $dark-text-primary;
 }
@@ -271,7 +259,6 @@
   align-self: stretch;
   background-color: $dark-bg-secondary;
   border: none;
-  border-right: 1px solid $dark-border;
   color: $dark-text-muted;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;

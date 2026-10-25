@@ -1,7 +1,6 @@
 .root {
   background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
   padding: $space-md;
 }
 
@@ -46,7 +45,7 @@
   font-weight: $font-weight-medium;
   color: $dark-text-primary;
   background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius-lg;
   transition: all $transition-fast $transition-easing;
   box-shadow: $shadow-sm;
@@ -54,7 +53,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
   }
 
   &:disabled {
@@ -102,7 +100,7 @@
 .scriptButton {
   position: relative;
   background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius-lg;
   padding: $space-sm;
   text-align: left;
@@ -112,7 +110,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
   }
 
   &:disabled {

@@ -52,26 +52,23 @@
   padding: $space-3xs $space-sm;
   font-size: $font-size-xs;
   color: rgba(white, 0.6);
-  background-color: transparent;
-  border: 1px solid rgba(white, 0.2);
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius;
   cursor: pointer;
   font-family: $font-sans;
   transition:
     color 0.15s,
-    border-color 0.15s,
     background-color 0.15s;
 
   &:hover {
     color: white;
-    border-color: rgba(white, 0.4);
-    background-color: rgba(white, 0.06);
+    background-color: $dark-bg-hover;
   }
 }
 
 .errorBox {
   background-color: $color-error-bg;
-  border: 1px solid $color-error-border;
   border-radius: $radius;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
@@ -96,24 +93,21 @@
   align-items: center;
   justify-content: center;
   background-color: transparent;
-  border: 1px dashed transparent;
   border-radius: 8px;
   color: inherit;
   font: inherit;
   padding: 0;
   cursor: pointer;
-  transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+  transition: background-color $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(white, 0.02);
-    border-color: $dark-border-light;
   }
 }
 
 .dropZoneDragging {
   background-color: rgba($accent, 0.08);
-  border-color: $accent;
+  border: 1px dashed $accent;
 }
 
 .dropZoneDisabled {
@@ -259,9 +253,8 @@
   border-radius: $radius-full;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
@@ -276,14 +269,12 @@
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.75);
-    border-color: rgba(255, 255, 255, 0.28);
     color: white;
   }
 }
 
 .copyButtonSuccess {
   background-color: rgba($color-success, 0.3);
-  border-color: rgba($color-success, 0.6);
   color: $emerald-300;
 }
 
@@ -293,7 +284,6 @@
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.75);
-    border-color: rgba(255, 255, 255, 0.28);
     color: white;
   }
 }
@@ -304,7 +294,6 @@
 
   &:hover {
     background-color: rgba($color-error, 0.35);
-    border-color: rgba($color-error, 0.65);
     color: $red-300;
   }
 }

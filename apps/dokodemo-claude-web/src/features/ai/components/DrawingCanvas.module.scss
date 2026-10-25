@@ -30,7 +30,7 @@
   color: white;
   border-radius: $radius-full;
   background-color: rgba(white, 0.1);
-  border: 1px solid rgba(white, 0.18);
+  border: none;
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing;
 
@@ -49,7 +49,7 @@
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   border-radius: $radius-full;
-  color: white;
+  color: $accent-fg;
   background-color: $accent;
   border: none;
   cursor: pointer;
@@ -115,11 +115,10 @@
   width: 28px;
   height: 28px;
   border-radius: $radius-full;
-  border: 2px solid rgba(white, 0.25);
+  border: none;
   cursor: pointer;
   padding: 0;
   transition: transform $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     box-shadow $transition-fast $transition-easing;
 
   &:active {
@@ -128,8 +127,7 @@
 }
 
 .colorSwatchActive {
-  border-color: white;
-  box-shadow: 0 0 0 3px rgba(white, 0.25);
+  box-shadow: 0 0 0 3px rgba(white, 0.5);
   transform: scale(1.12);
 
   &:active {
@@ -150,7 +148,7 @@
   border-radius: $radius-full;
   color: rgba(white, 0.85);
   background-color: rgba(white, 0.1);
-  border: 1px solid rgba(white, 0.18);
+  border: none;
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
@@ -166,11 +164,10 @@
   }
 }
 
-// 選択中のツール（ペンの太さ）。カラースウォッチの選択表現に揃えて白枠で示す
+// 選択中のツール（ペンの太さ）。背景の明るさで示す
 .toolButtonActive {
   color: white;
-  background-color: rgba(white, 0.22);
-  border-color: white;
+  background-color: rgba(white, 0.32);
 }
 
 // ペンの太さを示すドット。実際の線幅ではなく 3 段の大小が見分けられる寸法にしている

@@ -22,24 +22,23 @@
 .selectInput {
   width: 100%;
   padding: $space-sm $space-md;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius-md;
   color: white;
   font-size: $font-size-sm;
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus;
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
 .textInput {
   width: 100%;
   padding: $space-sm $space-md;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius-md;
   color: white;
   font-size: $font-size-sm;
@@ -49,9 +48,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus;
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
