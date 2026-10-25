@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: $space-2xs;
-  border: 1px solid transparent;
+  border: none;
   border-radius: $radius;
   font-weight: $font-weight-medium;
   cursor: pointer;
@@ -30,7 +30,7 @@
 // --- バリアント ---
 .primary {
   background-color: $accent;
-  color: $dark-text-primary;
+  color: $accent-fg;
 
   &:hover:not(:disabled) {
     background-color: $accent-hover;
@@ -47,8 +47,7 @@
 }
 
 .ghost {
-  background-color: transparent;
-  border-color: $dark-border-light;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
 
   &:hover:not(:disabled) {

@@ -31,7 +31,6 @@
   border-radius: $radius-full;
   background-color: rgba(white, 0.08);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(white, 0.12);
 }
 
 .closeButton {
@@ -42,15 +41,12 @@
   border-radius: $radius-full;
   background-color: rgba(white, 0.1);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(white, 0.22);
-    border-color: rgba(white, 0.32);
   }
 
   &:active {
@@ -199,10 +195,8 @@
   font-weight: $font-weight-medium;
   letter-spacing: 0.01em;
   border-radius: $radius-full;
-  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
@@ -218,14 +212,12 @@
 
   &:hover {
     background-color: rgba(white, 0.2);
-    border-color: rgba(white, 0.32);
   }
 }
 
 .copyPathCopied {
   background-color: rgba($color-success, 0.2);
   color: $color-success;
-  border-color: rgba($color-success, 0.5);
 }
 
 .downloadButton {
@@ -235,17 +227,14 @@
   border-radius: $radius-full;
   color: rgba(white, 0.85);
   background-color: rgba(white, 0.1);
-  border: 1px solid rgba(white, 0.18);
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(white, 0.22);
-    border-color: rgba(white, 0.32);
     color: $dark-text-primary;
   }
 
@@ -261,17 +250,14 @@
   border-radius: $radius-full;
   color: rgba(white, 0.7);
   background-color: rgba(white, 0.06);
-  border: 1px solid rgba(white, 0.14);
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba($color-error, 0.18);
-    border-color: rgba($color-error, 0.5);
     color: $red-300;
   }
 

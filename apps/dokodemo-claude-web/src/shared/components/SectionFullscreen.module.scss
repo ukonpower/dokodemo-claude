@@ -62,16 +62,13 @@
   border-radius: $radius-full;
   background-color: rgba(white, 0.1);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(white, 0.18);
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(white, 0.22);
-    border-color: rgba(white, 0.32);
   }
 
   &:active {
@@ -86,5 +83,4 @@
   display: flex;
   flex-direction: column;
   background-color: $dark-bg-secondary;
-  border-top: 1px solid $dark-border-light;
 }

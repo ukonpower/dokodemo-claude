@@ -10,13 +10,12 @@
 }
 
 .card {
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: 0 25px 50px -12px rgba(black, 0.25);
+  box-shadow: $shadow-float;
   max-width: 28rem;
   width: 100%;
   padding: $space-xl;
-  border: 1px solid $dark-border-light;
 }
 
 .header {
