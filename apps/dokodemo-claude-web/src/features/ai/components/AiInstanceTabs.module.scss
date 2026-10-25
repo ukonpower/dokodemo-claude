@@ -23,7 +23,8 @@
   align-items: center;
   height: 100%;
   gap: $space-2xs;
-  padding: 0 $space-xs;
+  // 文字の左端を下の xterm（.cliBody の padding）と揃える
+  padding: 0 $space-sm;
   border: none;
   background: transparent;
   color: $gray-400;

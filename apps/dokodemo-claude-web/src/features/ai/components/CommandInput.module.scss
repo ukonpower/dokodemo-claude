@@ -460,12 +460,6 @@
   gap: $space-3xs;
 }
 
-.mobileOnly {
-  @include sm-up {
-    display: none;
-  }
-}
-
 .hiddenFileInput {
   display: none;
 }
@@ -494,6 +488,14 @@
 
   &:focus {
     outline: none;
+  }
+}
+
+// .historyButton の display:flex を上書きできるよう、必ずそれより後ろに置く
+// （同じ詳細度なので前に置くと PC でもインデントボタンが出てしまう）
+.mobileOnly {
+  @include sm-up {
+    display: none;
   }
 }
 
