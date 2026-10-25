@@ -13,6 +13,9 @@ const semanticGroups: { title: string; items: [string, string][] }[] = [
       ['$dark-bg-secondary', tokens.darkBgSecondary],
       ['$dark-bg-tertiary', tokens.darkBgTertiary],
       ['$dark-bg-hover', tokens.darkBgHover],
+      ['$dark-bg-active', tokens.darkBgActive],
+      ['$dark-bg-input', tokens.darkBgInput],
+      ['$dark-bg-float', tokens.darkBgFloat],
       ['$dark-border', tokens.darkBorder],
       ['$dark-border-light', tokens.darkBorderLight],
       ['$dark-border-focus', tokens.darkBorderFocus],
@@ -26,6 +29,8 @@ const semanticGroups: { title: string; items: [string, string][] }[] = [
     items: [
       ['$accent', tokens.accent],
       ['$accent-hover', tokens.accentHover],
+      ['$accent-fg', tokens.accentFg],
+      ['$focus-ring', tokens.focusRing],
       ['$color-success', tokens.colorSuccess],
       ['$color-success-hover', tokens.colorSuccessHover],
       ['$color-warning', tokens.colorWarning],

@@ -49,16 +49,14 @@
   border-radius: $radius-full;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: none;
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.32);
   }
 
   &:active {
@@ -79,8 +77,7 @@
 .contentCard {
   max-width: 880px;
   margin: 0 auto;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: $space-lg $space-lg;
 }
@@ -126,10 +123,9 @@
   font-weight: $font-weight-medium;
   letter-spacing: 0.01em;
   border-radius: $radius-full;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: none;
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
@@ -145,14 +141,12 @@
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.32);
   }
 }
 
 .copyButtonCopied {
   background-color: rgba($color-success, 0.2);
   color: $color-success;
-  border-color: rgba($color-success, 0.5);
 }
 
 .iconButton {
@@ -162,17 +156,15 @@
   border-radius: $radius-full;
   color: rgba(255, 255, 255, 0.85);
   background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: none;
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing,
     transform $transition-fast $transition-easing;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.32);
     color: white;
   }
 
@@ -184,11 +176,9 @@
 .deleteButton {
   color: rgba(255, 255, 255, 0.7);
   background-color: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.14);
 
   &:hover {
     background-color: rgba($color-error, 0.18);
-    border-color: rgba($color-error, 0.5);
     color: $red-300;
   }
 }

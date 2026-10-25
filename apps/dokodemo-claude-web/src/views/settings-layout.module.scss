@@ -17,7 +17,6 @@
   align-items: center;
   gap: $space-sm;
   padding: $space-xs $space-md;
-  border-bottom: 1px solid $dark-border;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
@@ -90,7 +89,6 @@
     margin: 0 -1rem;
     padding: $space-sm $space-lg;
     background-color: $dark-bg-primary;
-    border-bottom: 1px solid $dark-border;
     @include scrollbar-none;
   }
 }
@@ -118,18 +116,13 @@
     padding: $space-2xs $space-sm;
     font-size: $font-size-xs;
     background-color: $dark-bg-tertiary;
-    border: 1px solid $dark-border-light;
     border-radius: $radius-full;
   }
 }
 
 .navItemActive {
   color: $dark-text-primary;
-  background-color: $dark-bg-tertiary;
-
-  @include lg-down {
-    border-color: $gray-500;
-  }
+  background-color: $dark-bg-active;
 }
 
 .navIcon {
@@ -173,14 +166,13 @@
 
 .card {
   background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
   padding: 0 $space-lg;
 }
 
-// 破壊的操作をまとめるカード（赤系の枠で通常セクションと区別する）
+// 破壊的操作をまとめるカード（赤系の面で通常セクションと区別する）
 .cardDanger {
-  border-color: rgba($color-error, 0.4);
+  background-color: $color-error-bg;
 }
 
 // --- 設定行 ---
@@ -211,7 +203,7 @@
 .row + .rowStack,
 .rowStack + .row,
 .rowStack + .rowStack {
-  border-top: 1px solid $dark-border;
+  margin-top: $space-3xs;
 }
 
 .rowInfo {
@@ -249,7 +241,6 @@
 
   .row + &,
   .rowStack + & {
-    border-top: 1px solid $dark-border;
     margin-top: $space-3xs;
   }
 }

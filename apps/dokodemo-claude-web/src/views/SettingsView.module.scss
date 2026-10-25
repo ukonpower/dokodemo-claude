@@ -6,7 +6,6 @@
 .segmented {
   display: flex;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   border-radius: $radius;
   padding: $space-3xs;
   gap: $space-3xs;
@@ -30,7 +29,7 @@
 }
 
 .segmentedButtonActive {
-  background-color: $dark-bg-hover;
+  background-color: $dark-bg-active;
   color: $dark-text-primary;
   box-shadow: $shadow-sm;
 }
@@ -54,12 +53,9 @@
   align-items: flex-start;
   gap: $space-sm;
   padding: $space-sm $space-sm;
-  border: 1px solid transparent;
   border-radius: $radius;
   text-align: left;
-  transition:
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+  transition: background-color $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
@@ -67,8 +63,7 @@
 }
 
 .radioItemSelected {
-  background-color: $dark-bg-tertiary;
-  border-color: $dark-border-light;
+  background-color: $dark-bg-active;
 }
 
 .radioMark {
@@ -117,7 +112,6 @@
   height: 1.25rem;
   border-radius: $radius-full;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing;
 
@@ -129,7 +123,6 @@
 
 .switchOn {
   background-color: $accent;
-  border-color: $accent;
 }
 
 .switchKnob {
@@ -143,6 +136,7 @@
 
   .switchOn & {
     transform: translateX(1.125rem);
+    background-color: $accent-fg;
   }
 }
 
@@ -177,8 +171,7 @@
   min-width: 0;
   padding: $space-2xs $space-sm;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-input;
   color: $dark-text-primary;
   font-size: $font-size-xs;
 

@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border;
   border-radius: $radius-md;
   overflow: hidden;
   // grid セル全体を使う。grid 側で grid-auto-rows が固定されているので、
@@ -18,7 +17,6 @@
   gap: $space-xs;
   padding: $space-xs $space-sm;
   background-color: $dark-bg-tertiary;
-  border-bottom: 1px solid $dark-border;
   min-height: 36px;
   flex-shrink: 0;
 }
@@ -83,7 +81,7 @@
   gap: $space-3xs;
   padding: 0 $space-2xs;
   height: 22px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: $dark-text-muted;
   border-radius: $radius-sm;
@@ -112,7 +110,6 @@
 .memoBlock {
   padding: $space-xs $space-sm;
   background-color: $dark-bg-tertiary;
-  border-bottom: 1px solid $dark-border;
   font-size: $font-size-xs;
   color: $dark-text-secondary;
   max-height: 180px;
@@ -148,7 +145,6 @@
   padding: $space-3xs $space-sm;
   background-color: $dark-bg-tertiary;
   border: none;
-  border-top: 1px solid $dark-border;
   color: $dark-text-muted;
   font-size: $font-size-2xs;
   letter-spacing: 0.02em;

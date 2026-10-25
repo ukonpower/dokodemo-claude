@@ -93,8 +93,7 @@
   width: 100%;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
   border-radius: $radius;
   color: $dark-text-primary;
   white-space: pre-wrap;
@@ -123,7 +122,6 @@
   font-size: $font-size-xs;
   padding: $space-3xs $space-xs;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   border-radius: $radius;
   color: $dark-text-muted;
   font-family: $font-mono;
@@ -141,7 +139,7 @@
   padding: $space-2xs $space-md;
   font-size: $font-size-xs;
   background-color: rgba($accent, 0.2);
-  border: 1px solid $accent;
+  border: none;
   border-radius: $radius;
   color: $dark-text-primary;
   transition: all $transition-fast $transition-easing;
@@ -155,8 +153,8 @@
 .closeButton {
   padding: $space-2xs $space-md;
   font-size: $font-size-xs;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius;
   color: $dark-text-primary;
   transition: all $transition-fast $transition-easing;
@@ -193,16 +191,16 @@
   width: 100%;
   padding: $space-xs $space-sm;
   font-size: $font-size-xs;
-  background-color: $dark-bg-primary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
   color: $dark-text-primary;
   resize: vertical;
   min-height: 60px;
 
   &:focus {
-    outline: none;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -224,20 +222,18 @@
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   border-radius: $radius;
-  border: 1px solid;
+  border: none;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
 }
 
 .optionsButtonActive {
   background-color: rgba($accent, 0.2);
-  border-color: $accent;
   color: $accent;
 }
 
 .optionsButtonInactive {
-  background-color: $dark-bg-secondary;
-  border-color: $dark-border-light;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-muted;
 
   &:hover {
@@ -255,7 +251,7 @@
   padding: $space-3xs $space-2xs;
   font-size: $font-size-2xs;
   background-color: $accent;
-  color: white;
+  color: $accent-fg;
   border-radius: $radius-full;
   line-height: 1;
 }
@@ -273,10 +269,9 @@
 // 位置・幅・高さは fixed 配置のためインライン style で指定する
 .optionsDropdown {
   position: fixed;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: $shadow-float;
   z-index: 9999;
   overflow-y: auto;
 }
@@ -310,7 +305,7 @@
   width: 14px;
   height: 14px;
   border-radius: $radius;
-  border: 1px solid;
+  border: none;
   @include flex-center;
   transition: all $transition-fast $transition-easing;
 }
@@ -318,23 +313,20 @@
 // 選択状態はモノトーンのアクセントで統一（/clear・/commit で色を分けない）
 .checkboxCheckedBlue {
   background-color: $accent;
-  border-color: $accent;
 }
 
 .checkboxCheckedGreen {
   background-color: $accent;
-  border-color: $accent;
 }
 
 .checkboxUnchecked {
-  background-color: $dark-bg-tertiary;
-  border-color: $dark-border-light;
+  background-color: $dark-bg-hover;
 }
 
 .checkIcon {
   width: 8px;
   height: 8px;
-  color: white;
+  color: $accent-fg;
 }
 
 .optionText {
@@ -354,7 +346,6 @@
 }
 
 .optionsSeparator {
-  border-top: 1px solid $dark-border-light;
   margin: $space-2xs 0;
 }
 
@@ -412,7 +403,7 @@
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   border-radius: $radius;
-  border: 1px solid;
+  border: none;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
   white-space: nowrap;
@@ -422,13 +413,11 @@
 
 .modelButtonActive {
   background-color: $accent;
-  border-color: $accent;
-  color: white;
+  color: $accent-fg;
 }
 
 .modelButtonInactive {
   background-color: $dark-bg-tertiary;
-  border-color: $dark-border-light;
   color: $dark-text-muted;
 
   &:hover {
@@ -464,13 +453,13 @@
   padding: $space-2xs $space-xs;
   font-size: $font-size-xs;
   color: $dark-text-primary;
-  background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
 
   &:focus {
-    outline: none;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -496,7 +485,7 @@
 .modelAddSubmit {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  color: white;
+  color: $accent-fg;
   background-color: $accent;
   border: none;
   border-radius: $radius;
@@ -517,8 +506,8 @@
 .cancelEditButton {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius;
   color: $dark-text-primary;
   transition: all $transition-fast $transition-easing;
@@ -533,9 +522,9 @@
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   background-color: $accent;
-  border: 1px solid $accent;
+  border: none;
   border-radius: $radius;
-  color: white;
+  color: $accent-fg;
   transition: all $transition-fast $transition-easing;
   cursor: pointer;
 
@@ -578,8 +567,8 @@
   padding: $space-2xs $space-sm;
   min-height: 28px;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
-  background-color: transparent;
+  border: none;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   cursor: pointer;
   touch-action: manipulation;

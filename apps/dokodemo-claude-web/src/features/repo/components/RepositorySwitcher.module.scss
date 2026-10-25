@@ -4,7 +4,6 @@
   left: 0;
   right: 0;
   background-color: $dark-bg-primary;
-  border-top: 1px solid $dark-border-light;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   z-index: 50;
 
@@ -12,8 +11,6 @@
   @include sm-down {
     top: 0;
     bottom: auto;
-    border-top: none;
-    border-bottom: 1px solid $dark-border-light;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
@@ -41,20 +38,17 @@
 }
 
 .tabActive {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-active;
   color: $dark-text-primary;
-  border: 1px solid $dark-border-focus;
 }
 
 .tabInactive {
   background-color: $dark-bg-secondary;
   color: $dark-text-secondary;
-  border: 1px solid $dark-border-light;
 
   &:hover {
-    background-color: $dark-bg-tertiary;
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
-    border-color: $dark-border-focus;
   }
 }
 

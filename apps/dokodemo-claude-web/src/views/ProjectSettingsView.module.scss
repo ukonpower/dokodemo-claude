@@ -40,7 +40,6 @@
   gap: $space-sm;
   padding: $space-2xs $space-sm;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   border-radius: $radius;
 }
 
@@ -99,8 +98,7 @@
   min-width: 0;
   padding: $space-2xs $space-sm;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-input;
   color: $dark-text-primary;
   font-family: $font-mono;
   font-size: $font-size-xs;
@@ -113,8 +111,7 @@
 .select {
   padding: $space-2xs $space-sm;
   border-radius: $radius;
-  border: 1px solid $dark-border-light;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-input;
   color: $dark-text-primary;
   font-size: $font-size-xs;
 }
@@ -123,8 +120,7 @@
 
 .dangerBox {
   padding: $space-sm $space-md;
-  background-color: rgba($color-error, 0.08);
-  border: 1px solid rgba($color-error, 0.3);
+  background-color: rgba($color-error, 0.18);
   border-radius: $radius;
 }
 

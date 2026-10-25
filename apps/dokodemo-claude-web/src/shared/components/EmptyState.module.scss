@@ -17,8 +17,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: rgba(white, 0.03);
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-muted;
   margin-bottom: $space-3xs;
 }

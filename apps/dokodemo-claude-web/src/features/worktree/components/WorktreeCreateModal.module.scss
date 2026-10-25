@@ -20,7 +20,6 @@
   width: 1rem;
   height: 1rem;
   border-radius: $radius;
-  border-color: $gray-600;
   background-color: $gray-700;
 }
 
@@ -59,9 +58,9 @@
   font-size: $font-size-xs;
   color: $gray-300;
   padding: $space-3xs $space-sm;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius;
-  background-color: transparent;
+  background-color: $dark-bg-tertiary;
   transition:
     background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
@@ -97,24 +96,23 @@
 .selectInput {
   width: 100%;
   padding: $space-sm $space-md;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius-md;
   color: white;
   font-size: $font-size-sm;
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $accent;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
 .textInput {
   width: 100%;
   padding: $space-sm $space-md;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius-md;
   color: white;
   font-size: $font-size-sm;
@@ -124,9 +122,8 @@
   }
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $accent;
-    border-color: $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -140,7 +137,6 @@
   margin-top: $space-lg;
   padding: $space-md $space-md;
   background-color: $color-error-bg;
-  border-left: 3px solid $color-error;
   border-radius: $radius-md;
 }
 
@@ -172,7 +168,6 @@
 .syncSection {
   margin-top: $space-lg;
   padding: $space-md;
-  border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   background-color: rgba(black, 0.15);
 }
@@ -194,9 +189,9 @@
   font-size: $font-size-xs;
   color: $gray-300;
   padding: $space-2xs $space-sm;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius;
-  background-color: transparent;
+  background-color: $dark-bg-tertiary;
   transition: background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
 
@@ -213,7 +208,7 @@
 
 .syncSaveButtonSaved {
   color: $color-success;
-  border-color: $color-success-border;
+  background-color: $color-success-bg;
 }
 
 .syncHint {
@@ -257,8 +252,8 @@
 .syncSelect {
   flex-shrink: 0;
   padding: $space-3xs $space-xs;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
   color: white;
   font-size: $font-size-xs;
@@ -298,16 +293,16 @@
 .syncAddInput {
   width: 100%;
   padding: $space-2xs $space-sm;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-input;
+  border: none;
   border-radius: $radius;
   color: white;
   font-size: $font-size-xs;
   font-family: $font-mono;
 
   &:focus {
-    outline: none;
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -318,10 +313,9 @@
   z-index: 100; // modalOverlay の z-index: 50 より上
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   padding: $space-3xs;
   margin: 0;
   list-style: none;
@@ -382,9 +376,9 @@
   padding: $space-2xs $space-xs;
   font-size: $font-size-xs;
   color: $gray-200;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius;
-  background-color: transparent;
+  background-color: $dark-bg-tertiary;
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {

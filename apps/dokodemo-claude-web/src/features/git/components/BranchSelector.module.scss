@@ -131,10 +131,9 @@
   position: fixed;
   min-width: 11rem;
   box-sizing: border-box;
-  background-color: $gray-800;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   overflow: hidden;
   padding: $space-2xs;
   display: flex;
@@ -158,7 +157,7 @@
   transition: background-color $transition-fast $transition-easing;
 
   &:hover:not(:disabled) {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -172,10 +171,9 @@
   width: 16rem;
   max-width: calc(100vw - 1rem);
   box-sizing: border-box;
-  background-color: $gray-800;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   overflow: hidden;
 }
 
@@ -192,7 +190,6 @@
   flex-wrap: wrap;
   gap: $space-2xs;
   padding: $space-xs $space-sm;
-  border-bottom: 1px solid $dark-border;
 }
 
 .toolbarButton {
@@ -201,19 +198,17 @@
   gap: $space-2xs;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  background: none;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius;
   cursor: pointer;
   color: $gray-300;
   transition: color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    background-color $transition-fast $transition-easing;
 
   &:hover {
     color: $gray-100;
-    background-color: rgba($gray-700, 0.7);
-    border-color: $dark-border-light;
+    background-color: $dark-bg-hover;
   }
 }
 
@@ -222,20 +217,18 @@
   align-items: center;
   justify-content: center;
   padding: $space-2xs;
-  background: none;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius;
   cursor: pointer;
   color: $gray-300;
   transition: color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    background-color $transition-fast $transition-easing;
   margin-left: auto;
 
   &:hover {
     color: $gray-100;
-    background-color: rgba($gray-700, 0.7);
-    border-color: $dark-border-light;
+    background-color: $dark-bg-hover;
   }
 }
 
@@ -266,7 +259,6 @@
   color: $gray-400;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-top: 1px solid $dark-border;
   margin-top: $space-2xs;
   padding-top: $space-sm;
 }
@@ -278,13 +270,13 @@
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 }
 
 .branchItemCurrent {
   color: $gray-100;
-  background-color: rgba($gray-700, 0.5);
+  background-color: $dark-bg-active;
 }
 
 .branchItemDefault {
@@ -356,7 +348,7 @@
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 }
 
@@ -383,10 +375,9 @@
 }
 
 .modalContent {
-  background-color: $gray-800;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  border: 1px solid $dark-border-light;
+  box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
   max-width: 28rem;
@@ -447,7 +438,6 @@
 
 .warningBox {
   background-color: $color-warning-bg;
-  border: 1px solid $color-warning-border;
   border-radius: $radius-md;
   padding: $space-md;
   margin-bottom: $space-lg;
@@ -475,10 +465,9 @@
   z-index: 10000;
   width: 20rem;
   max-width: calc(100vw - 1rem);
-  background-color: $gray-800;
-  border: 1px solid $dark-border;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   overflow: hidden;
   color: $gray-200;
   animation: pull-popup-in $transition-fast $transition-easing both;
@@ -500,7 +489,6 @@
   align-items: center;
   gap: $space-sm;
   padding: $space-sm;
-  border-bottom: 1px solid $dark-border;
   background-color: rgba($gray-900, 0.35);
 }
 
@@ -606,7 +594,6 @@
   margin: 0;
   padding: $space-xs $space-sm;
   background-color: $dark-bg-primary;
-  border: 1px solid $dark-border;
   border-radius: $radius;
   font-family: $font-mono;
   font-size: $font-size-xs;

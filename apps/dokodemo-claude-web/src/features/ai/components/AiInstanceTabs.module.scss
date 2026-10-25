@@ -23,10 +23,9 @@
   align-items: center;
   height: 100%;
   gap: $space-2xs;
-  padding: 0 $space-xs;
+  // 文字の左端を下の xterm（.cliBody の padding）と揃える
+  padding: 0 $space-sm;
   border: none;
-  border-top: 2px solid transparent;
-  border-bottom: 2px solid transparent;
   background: transparent;
   color: $gray-400;
   font-size: $font-size-xs;
@@ -35,21 +34,20 @@
   cursor: pointer;
   transition:
     color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    background-color $transition-fast $transition-easing;
   white-space: nowrap;
   max-width: 12rem;
 
   &:hover:not(.active) {
-    background-color: $gray-800;
+    background-color: $dark-bg-chrome-hover;
     color: $gray-200;
   }
 
-  // アクティブタブの下線はモノトーンで統一（provider 別のブランド色は使わない）
+  // アクティブタブは下の CLI 本体（.cliSection）と同じ面にして地続きに見せる
+  // （provider 別のブランド色は使わない）
   &.active {
     color: white;
-    background-color: $gray-800;
-    border-bottom-color: $dark-text-primary;
+    background-color: $dark-bg-secondary;
   }
 }
 
@@ -131,20 +129,18 @@
   height: 1.3rem;
   margin: 0 $space-xs;
   padding: 0;
-  background: transparent;
-  border: 1px solid $dark-border-light;
+  background: $dark-bg-tertiary;
+  border: none;
   border-radius: 50%;
   color: $gray-400;
   cursor: pointer;
   transition:
     color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    background-color $transition-fast $transition-easing;
 
   &:hover {
     color: white;
-    background-color: $gray-700;
-    border-color: $gray-500;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -172,7 +168,7 @@
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 
   svg {
@@ -181,11 +177,10 @@
   }
 }
 
-// タブメニュー内の区切り線（プロバイダー切替 と 再起動 の間）
+// タブメニュー内の区切り（プロバイダー切替 と 再起動 の間）。線は引かず余白で分ける
 .menuDivider {
   height: 1px;
   margin: $space-3xs 0;
-  background-color: $dark-border-light;
 }
 
 // provider 切替セグメント（Claude / Codex の 2 択トグル）
@@ -199,26 +194,24 @@
   flex: 1;
   padding: $space-2xs $space-xs;
   font-size: $font-size-xs;
-  background: transparent;
-  border: 1px solid $dark-border-light;
+  background: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-sm;
   color: $gray-300;
   cursor: pointer;
   transition:
     background-color $transition-fast $transition-easing,
-    color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    color $transition-fast $transition-easing;
 
   &:hover:not(.active) {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
     color: $gray-100;
   }
 
   // アクティブ表示はモノトーン（provider 別ブランド色は使わない）
   &.active {
     color: white;
-    background-color: $gray-700;
-    border-color: $gray-500;
+    background-color: $dark-bg-active;
     cursor: default;
   }
 }

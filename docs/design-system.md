@@ -47,17 +47,24 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | トークン | 値 | 用途 |
 |----------|----|----|
 | `$dark-bg-primary` | #0a0a0a | 背景（最下層） |
-| `$dark-bg-secondary` | #141414 | 背景（パネル等） |
-| `$dark-bg-tertiary` | #1c1c1c | 背景（1 段上のサーフェス） |
-| `$dark-bg-hover` | #252525 | ホバー背景 |
-| `$dark-border` | #1f1f1f | ボーダー（標準） |
-| `$dark-border-light` | #2a2a2a | ボーダー（やや明るい） |
-| `$dark-border-focus` | #333333 | ボーダー（フォーカス） |
+| `$dark-bg-secondary` | #191919 | 背景（パネル・カード等） |
+| `$dark-bg-tertiary` | #2a2a2a | 背景（パネルの上の部品: ボタン・タブ・行など） |
+| `$dark-bg-hover` | #3a3a3a | ホバー背景 |
+| `$dark-bg-active` | #4a4a4a | 選択中・ON の面 |
+| `$dark-bg-input` | #262626 | テキスト入力欄の面 |
+| `$dark-bg-float` | #2e2e2e | メニュー・ダイアログ等の浮く面（`$shadow-float` と組） |
+| `$dark-bg-chrome` | #141414 | タブバー・パネル見出しなど、パネルの中身を切り替える枠の面（内容より暗く沈める） |
+| `$dark-bg-chrome-hover` | rgba(white, .04) | chrome 上のホバー |
+| `$dark-border` | #232323 | 中身の構造を示す線（表の罫線・Markdown の区切り等）。要素の枠には使わない |
+| `$dark-border-light` | #2c2c2c | 同上（やや明るい） |
+| `$dark-border-focus` | #333333 | 同上（強め） |
 | `$dark-text-primary` | #ffffff | テキスト（主） |
-| `$dark-text-secondary` | #a0a0a0 | テキスト（副） |
-| `$dark-text-muted` | #666666 | テキスト（控えめ） |
-| `$accent` | `$gray-500` | インタラクション強調（ボタン・選択・フォーカスリング等） |
-| `$accent-hover` | `$gray-600` | 強調のホバー |
+| `$dark-text-secondary` | #a3a3a3 | テキスト（副） |
+| `$dark-text-muted` | #6b6b6b | テキスト（控えめ） |
+| `$accent` | `$gray-200` | 強い強調の面（主ボタン・送信など）。白に近い |
+| `$accent-hover` | `$gray-300` | 強調のホバー |
+| `$accent-fg` | `$gray-900` | `$accent` の上に載せる文字・アイコン |
+| `$focus-ring` | `$gray-400` | キーボードフォーカス・入力中の欄の outline |
 | `$color-success` / `-hover` | `$emerald-500` / `$emerald-600` | 成功 |
 | `$color-warning` / `-hover` | `$amber-500` / `$amber-600` | 警告 |
 | `$color-error` / `-hover` | `$red-500` / `$red-600` | エラー |
@@ -75,7 +82,7 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 
 | 種別 | トークン | 値 |
 |------|----------|----|
-| フォント | `$font-sans` | Inter, system-ui, … |
+| フォント | `$font-sans` | Helvetica Neue, Arial, ヒラギノ角ゴ, …（OREngine の uipower と同じ並び） |
 | フォント | `$font-mono` | JetBrains Mono, Fira Code, … |
 | サイズ | `$font-size-2xs` | 0.625rem (10px) |
 | サイズ | `$font-size-xs` | 0.75rem (12px) |
@@ -107,15 +114,17 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 
 ### 角丸
 
-| トークン | 値 |
-|----------|----|
-| `$radius-sm` | 2px |
-| `$radius` | 4px |
-| `$radius-md` | 6px |
-| `$radius-lg` | 8px |
-| `$radius-xl` | 12px |
-| `$radius-2xl` | 16px |
-| `$radius-full` | 9999px（丸・ピル） |
+部品は 3px、パネル・カード・モーダルなどの大きな面は 2px に揃えている。
+
+| トークン | 値 | 用途 |
+|----------|----|----|
+| `$radius-sm` | 2px | 小さな部品 |
+| `$radius` | 3px | 部品（ボタン・入力欄など） |
+| `$radius-md` | 3px | 部品 |
+| `$radius-lg` | 2px | パネル・カード |
+| `$radius-xl` | 2px | パネル・モーダル |
+| `$radius-2xl` | 2px | パネル・モーダル |
+| `$radius-full` | 9999px | 丸・ピル |
 
 ### シャドウ
 
@@ -125,6 +134,7 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | `$shadow` | 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1) |
 | `$shadow-md` | 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1) |
 | `$shadow-lg` | 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1) |
+| `$shadow-float` | 0 8px 24px rgba(0,0,0,.55)（枠線の無い浮く面を下から離す） |
 
 ### トランジション
 
@@ -156,6 +166,27 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 - **font-size はスケールのみ。** `$font-size-*` 以外の値を使わない。
 - **アイコンは lucide-react のみ。** サイズは **12, 14, 16, 20, 32** の 5 種に限定する
   （それ以外のサイズを新規に増やさない）。
+
+## 枠線を使わない
+
+要素の形や区切りは枠線（border）ではなく**面の明るさの段差**で見せる（OREngine の uipower と同じ考え方）。
+奥から `$dark-bg-primary` → `secondary`（パネル）→ `tertiary`（パネル上の部品）の順に明るくする。
+
+| やりたいこと | 書き方 |
+|--------------|--------|
+| 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
+| 領域を区切る（ヘッダー下など） | 区切り線は引かない。余白（gap）か、片方の背景を一段変えて区切る |
+| ホバー | `background-color: $dark-bg-hover` |
+| 下のパネルを切り替えるタブバー・パネル見出し | バーは `$dark-bg-chrome`（ホバーは `$dark-bg-chrome-hover`）。選択中のタブは下のパネルと同じ面（`secondary`）＋白文字にして地続きに見せる。枠を内容より明るくしない |
+| 選択中・ON | `background-color: $dark-bg-active`。特に強く示すものだけ `$accent` + `$accent-fg` |
+| フォーカス（入力欄・キーボード操作） | `outline: 1px solid $focus-ring; outline-offset: -1px;` |
+| メニュー・ダイアログなど浮く面 | `background-color: $dark-bg-float; box-shadow: $shadow-float;` |
+| 状態色（エラー・成功など）を示す | 色付きの枠ではなく、背景を `$color-*-bg`（または `rgba($color-*, 0.18)` 程度）で染め、文字を状態色にする |
+| 画像・キャンバスの上に浮くボタン | 枠を付けず、半透明の背景（`rgba(white, …)` + `backdrop-filter`）で見せる |
+
+例外として線を使ってよいのは、**中身の構造を表す線**だけ:
+Markdown（見出しの下線・表の罫線・引用の左線・hr）、diff やコードの行の印、スピナー（border で描く回転）、
+CSS の三角形、ドラッグ中だけ出るドロップ位置の印。これらには `$dark-border*` などを使う。
 
 ## 強制（stylelint）
 
@@ -198,7 +229,7 @@ import は `@/shared/components/<Name>` で行う（barrel index.ts は作らな
 
 | prop | 型 | 既定 | 説明 |
 |------|----|------|------|
-| `variant` | `'primary' \| 'danger' \| 'ghost'` | `'ghost'` | primary=`$accent`、danger=`$color-error`、ghost=透明+`$dark-border-light` |
+| `variant` | `'primary' \| 'danger' \| 'ghost'` | `'ghost'` | primary=`$accent`、danger=`$color-error`、ghost=`$dark-bg-tertiary` の面 |
 | `size` | `'sm' \| 'md'` | `'md'` | sm=`$font-size-2xs`、md=`$font-size-xs` |
 | `className` | `string` | — | レイアウト調整用に merge される |
 

@@ -10,7 +10,6 @@
 .tabBar {
   background-color: $gray-900;
   padding: $space-sm $space-sm;
-  border-bottom: 1px solid $dark-border;
   display: flex;
   align-items: center;
   overflow-x: auto;
@@ -52,21 +51,18 @@
   }
 
   &.active {
-    background-color: white;
-    color: $gray-900;
-    border: 2px solid $gray-400;
-    border-bottom: 0;
+    background-color: $dark-bg-active;
+    color: $dark-text-primary;
     font-weight: $font-weight-bold;
     box-shadow: $shadow-lg;
   }
 
   &:not(.active) {
-    background-color: $gray-700;
+    background-color: $dark-bg-tertiary;
     color: $gray-300;
-    border: 1px solid $gray-600;
 
     &:hover {
-      background-color: $gray-600;
+      background-color: $dark-bg-hover;
     }
   }
 }
@@ -118,9 +114,8 @@
   padding: $space-xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1rem;
-  background-color: $gray-800;
+  background-color: $dark-bg-tertiary;
   color: $gray-100;
-  border: 1px solid $dark-border-light;
   border-radius: $radius-lg;
   display: flex;
   align-items: center;
@@ -138,7 +133,7 @@
   }
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -184,16 +179,15 @@
   font-size: $font-size-xs;
   line-height: 1rem;
   color: $gray-400;
-  background-color: rgba($gray-800, 0.5);
-  border: 1px solid rgba($gray-700, 0.5);
+  background-color: $dark-bg-secondary;
+  border: none;
   border-radius: $radius-lg;
   cursor: pointer;
-  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing, border-color $transition-fast $transition-easing;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba($gray-700, 0.5);
+    background-color: $dark-bg-hover;
     color: $gray-300;
-    border-color: $gray-600;
   }
 
   &:disabled {
@@ -214,14 +208,12 @@
 
 // Shortcuts section
 .shortcutsSection {
-  border-top: 1px solid $dark-border-light;
-  background-color: $gray-800;
+  background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
 
 .shortcutsHeader {
   padding: $space-xs $space-md;
-  border-bottom: 1px solid $dark-border-light;
 }
 
 .shortcutsHeaderInner {
@@ -247,7 +239,7 @@
   font-size: $font-size-xs;
   line-height: 1rem;
   background-color: $accent;
-  color: white;
+  color: $accent-fg;
   border-radius: $radius;
   border: none;
   cursor: pointer;
@@ -285,9 +277,8 @@
 .shortcutForm {
   margin-bottom: $space-sm;
   padding: $space-sm;
-  background-color: $gray-800;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
 }
 
 .shortcutFormInner {
@@ -303,14 +294,14 @@
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1rem;
-  background-color: $gray-900;
+  background-color: $dark-bg-input;
   color: white;
-  border: 1px solid $dark-border-light;
+  border: none;
   border-radius: $radius;
 
   &:focus {
-    outline: none;
-    border-color: $dark-border-focus;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -331,9 +322,8 @@
 .shortcutItem {
   display: flex;
   align-items: center;
-  background-color: $gray-800;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
   overflow: hidden;
 
   & > * + * {
@@ -357,11 +347,11 @@
   }
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
-    background-color: $gray-800;
+    background-color: $dark-bg-tertiary;
     cursor: not-allowed;
   }
 }

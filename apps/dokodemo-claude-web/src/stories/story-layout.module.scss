@@ -27,7 +27,6 @@
 }
 
 .swatch {
-  border: 1px solid $dark-border-light;
   border-radius: $radius-md;
   overflow: hidden;
   background-color: $dark-bg-secondary;
@@ -95,7 +94,6 @@
   align-items: baseline;
   gap: $space-lg;
   padding: $space-sm 0;
-  border-bottom: 1px solid $dark-border;
 }
 
 .typeMeta {

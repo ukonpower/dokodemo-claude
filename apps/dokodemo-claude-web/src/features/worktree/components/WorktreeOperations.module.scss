@@ -1,6 +1,5 @@
 .container {
   background-color: $gray-900;
-  border-top: 1px solid $dark-border-light;
   padding: $space-xs $space-md;
 }
 
@@ -93,8 +92,7 @@
   padding-right: 2.25rem;
   font-size: $font-size-sm;
   color: $gray-300;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius-md;
   word-break: break-word;
 }
@@ -152,14 +150,14 @@
   font-size: $font-size-sm;
   font-family: inherit;
   color: $gray-200;
-  background-color: $gray-900;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-md;
   resize: vertical;
 
   &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $accent;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -182,10 +180,9 @@
 }
 
 .modalContent {
-  background-color: $gray-800;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  border: 1px solid $dark-border-light;
+  box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
   max-width: 28rem;
@@ -208,7 +205,6 @@
 
 .modalIconCircleRed {
   background-color: $color-error-bg;
-  box-shadow: inset 0 0 0 1px $color-error-border;
 }
 
 .modalIcon {
@@ -235,7 +231,6 @@
 // Merge error modal
 .errorBox {
   background-color: $color-error-bg;
-  border: 1px solid $color-error-border;
   border-radius: $radius-md;
   padding: $space-md;
   margin-bottom: $space-lg;
@@ -264,8 +259,7 @@
 }
 
 .detailBox {
-  background-color: $gray-900;
-  border: 1px solid $gray-700;
+  background-color: $dark-bg-input;
   border-radius: $radius-md;
   padding: $space-md;
   margin-bottom: $space-lg;

@@ -6,7 +6,6 @@
 
   &.normal {
     background-color: $gray-900;
-    border-bottom: 1px solid $dark-border-light;
   }
 }
 
@@ -15,7 +14,6 @@
 
   &.normal {
     background-color: $gray-900;
-    border-bottom: 1px solid $dark-border-light;
   }
 }
 
@@ -59,13 +57,12 @@
     padding: $space-xs $space-md;
     font-size: $font-size-sm;
     line-height: 1.25rem;
-    background-color: $gray-800;
-    border: 1px solid $dark-border-light;
+    background-color: $dark-bg-tertiary;
     border-radius: $radius-md;
 
     &:focus {
-      outline: none;
-      box-shadow: 0 0 0 1px $dark-border-focus;
+      outline: 1px solid $focus-ring;
+      outline-offset: -1px;
     }
   }
 }
@@ -117,19 +114,12 @@
   }
 
   &.normalStyle {
-    border-bottom: 2px solid;
-
     &.active {
-      border-color: $dark-text-primary;
-      background-color: $gray-800;
+      background-color: $dark-bg-active;
     }
 
-    &:not(.active) {
-      border-color: transparent;
-
-      &:hover {
-        background-color: $gray-800;
-      }
+    &:not(.active):hover {
+      background-color: $dark-bg-hover;
     }
   }
 }
@@ -150,13 +140,12 @@
   }
 }
 
-// メインとブランチの区切り線
+// メインとブランチの間隔だけを確保する要素（線は引かない）
 .divider {
   flex-shrink: 0;
   align-self: center;
   width: 1px;
   height: 1.25rem;
-  background-color: $dark-border-light;
   margin: 0 $space-sm;
 }
 
@@ -187,19 +176,12 @@
   }
 
   &.normalStyle {
-    border-bottom: 2px solid;
-
     &.active {
-      border-color: $dark-text-primary;
-      background-color: $gray-800;
+      background-color: $dark-bg-active;
     }
 
-    &:not(.active) {
-      border-color: transparent;
-
-      &:hover {
-        background-color: $gray-800;
-      }
+    &:not(.active):hover {
+      background-color: $dark-bg-hover;
     }
   }
 }
@@ -341,25 +323,21 @@
   // OPEN (緑) — PR の状態色
   &.open {
     background-color: $color-success;
-    box-shadow: 0 0 0 1px rgba($color-success, 0.4);
   }
 
   // MERGED (紫)
   &.merged {
     background-color: $purple-500;
-    box-shadow: 0 0 0 1px rgba($purple-500, 0.4);
   }
 
   // CLOSED (赤)
   &.closed {
     background-color: $color-error;
-    box-shadow: 0 0 0 1px rgba($color-error, 0.4);
   }
 
   // DRAFT (灰)
   &.draft {
     background-color: $gray-400;
-    box-shadow: 0 0 0 1px rgba($gray-400, 0.4);
   }
 }
 
@@ -458,10 +436,9 @@
 // Portal menu
 .portalMenu {
   position: fixed;
-  background-color: $gray-800;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   padding: $space-2xs 0;
   z-index: 9999;
   min-width: 140px;
@@ -519,7 +496,6 @@
   line-height: 1.4;
   color: $gray-300;
   cursor: pointer;
-  border-top: 1px solid $dark-border-focus;
   transition: background-color $transition-fast $transition-easing;
 
   &:hover,
@@ -552,7 +528,6 @@
   color: $color-error;
   background: none;
   border: none;
-  border-top: 1px solid $dark-border-focus;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;
@@ -581,7 +556,6 @@
   color: $gray-500;
   background: none;
   border: none;
-  border-top: 1px solid $dark-border-focus;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;
@@ -621,7 +595,7 @@
   transition: background-color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: $gray-700;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -657,10 +631,9 @@
 }
 
 .modalContent {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-float;
   border-radius: $radius-xl;
-  box-shadow: $shadow-lg, 0 0 0 1px rgba(white, 0.04);
-  border: 1px solid $dark-border-light;
+  box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
   max-width: 28rem;
@@ -682,7 +655,6 @@
 
   &.info {
     background-color: $dark-bg-hover;
-    box-shadow: inset 0 0 0 1px $dark-border-light;
   }
 }
 
@@ -725,7 +697,6 @@
 
   &.blue {
     background-color: rgba($gray-900, 0.4);
-    border: 1px solid $dark-border-light;
   }
 }
 
@@ -758,23 +729,21 @@
   font-weight: $font-weight-medium;
   line-height: 1.25rem;
   color: $gray-200;
-  background: transparent;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-md;
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
-    color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+    color $transition-fast $transition-easing;
 
   &:hover {
-    background-color: rgba($gray-700, 0.4);
+    background-color: $dark-bg-hover;
     color: white;
-    border-color: $dark-border-focus;
   }
 
   &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px $gray-500, 0 0 0 4px $dark-bg-tertiary;
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
@@ -786,7 +755,7 @@
   line-height: 1.25rem;
   color: white;
   border-radius: $radius-md;
-  border: 1px solid transparent;
+  border: none;
   cursor: pointer;
   transition: background-color $transition-fast $transition-easing,
     box-shadow $transition-fast $transition-easing;
@@ -802,6 +771,7 @@
 
   &.info {
     background-color: $accent;
+    color: $accent-fg;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 
     &:hover:not(:disabled) {
@@ -809,7 +779,8 @@
     }
 
     &:focus-visible {
-      box-shadow: 0 0 0 2px $accent, 0 0 0 4px $dark-bg-tertiary;
+      outline: 1px solid $focus-ring;
+      outline-offset: 2px;
     }
   }
 }

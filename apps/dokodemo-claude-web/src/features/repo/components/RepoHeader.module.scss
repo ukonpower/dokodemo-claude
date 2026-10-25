@@ -3,7 +3,6 @@
   z-index: 60;
   background-color: $dark-bg-secondary;
   box-shadow: $shadow-sm;
-  border-bottom: 1px solid $dark-border;
 }
 
 .headerInner {
@@ -68,14 +67,13 @@
     background-color: $dark-bg-hover;
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 1px $dark-border-focus, 0 0 0 3px rgba($dark-border-focus, 0.3);
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
   }
 }
 
 .repoInfo {
-  border-left: 1px solid $dark-border-light;
   padding-left: $space-sm;
   min-width: 0;
 
@@ -209,10 +207,9 @@
   right: 0;
   margin-top: $space-sm;
   width: 9rem;
-  background-color: $gray-800;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-md;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   z-index: 50;
 }
 

@@ -43,10 +43,7 @@
   bottom: 0;
   width: 1.75rem;
   height: 1.75rem;
-  background-color: rgba($dark-bg-secondary, 0.7);
-  border: 1px solid $dark-border-light;
-  border-right: none;
-  border-bottom: none;
+  background-color: rgba($dark-bg-tertiary, 0.8);
   border-radius: $radius-md 0 0 0;
   color: rgba(white, 0.7);
   cursor: pointer;
@@ -85,7 +82,6 @@
   height: 1.75rem;
   margin-right: $space-2xs;
   background-color: rgba($dark-bg-hover, 0.9);
-  border: 1px solid $dark-border-light;
   border-radius: $radius-full;
   color: $dark-text-primary;
   cursor: pointer;

@@ -1,7 +1,7 @@
+// 外枠は親の .bottomSection と同じ内容の面。中のボタンを一段明るい部品の面にする
 .root {
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  border: 1px solid $dark-border-light;
   padding: $space-md;
 }
 
@@ -33,7 +33,7 @@
   margin-left: $space-sm;
   font-size: $font-size-xs;
   color: $dark-text-secondary;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-tertiary;
   padding: $space-3xs $space-sm;
   border-radius: $radius;
 }
@@ -45,8 +45,8 @@
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
   color: $dark-text-primary;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-lg;
   transition: all $transition-fast $transition-easing;
   box-shadow: $shadow-sm;
@@ -54,7 +54,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
   }
 
   &:disabled {
@@ -101,8 +100,8 @@
 
 .scriptButton {
   position: relative;
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-tertiary;
+  border: none;
   border-radius: $radius-lg;
   padding: $space-sm;
   text-align: left;
@@ -112,7 +111,6 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    border-color: $dark-border-focus;
   }
 
   &:disabled {

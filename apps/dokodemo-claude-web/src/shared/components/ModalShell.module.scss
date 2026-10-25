@@ -8,10 +8,9 @@
 }
 
 .panel {
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
+  background-color: $dark-bg-float;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
+  box-shadow: $shadow-float;
   width: 100%;
   max-width: 32rem;
   max-height: 85vh;
@@ -26,7 +25,6 @@
   justify-content: space-between;
   gap: $space-md;
   padding: $space-lg $space-xl;
-  border-bottom: 1px solid $dark-border;
   flex-shrink: 0;
 }
 
@@ -46,6 +44,5 @@
   justify-content: flex-end;
   gap: $space-md;
   padding: $space-lg $space-xl;
-  border-top: 1px solid $dark-border;
   flex-shrink: 0;
 }
