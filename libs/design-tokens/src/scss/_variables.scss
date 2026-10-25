@@ -222,6 +222,12 @@ $dark-bg-active: #4a4a4a;
 $dark-bg-input: #262626;
 // メニュー・ダイアログ・トーストなど、ほかの面の上に浮く面。$shadow-float と組で使う
 $dark-bg-float: #2e2e2e;
+// タブバー・パネル見出しなど、下のパネルの中身を切り替える枠（chrome）の面。
+// 内容の面（secondary）より一段暗くして沈め、選択中のタブだけ secondary にしてパネルと地続きに見せる
+// （VS Code のタブバーと同じ考え方。枠より内容を明るくして視線を内容へ向ける）
+$dark-bg-chrome: #141414;
+// chrome 上のホバー。$dark-bg-hover だと選択中（secondary）より明るくなり順序が逆転するため、ごく薄く重ねる
+$dark-bg-chrome-hover: rgba(white, 0.04);
 
 // --- ボーダー（ダークテーマ）---
 // 要素の枠には使わない。表の罫線・Markdown の区切り線など、中身の構造を示す線にだけ使う

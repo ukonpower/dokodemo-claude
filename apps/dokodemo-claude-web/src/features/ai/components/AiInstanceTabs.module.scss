@@ -39,14 +39,15 @@
   max-width: 12rem;
 
   &:hover:not(.active) {
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-chrome-hover;
     color: $gray-200;
   }
 
-  // アクティブタブは面の明るさで示す（provider 別のブランド色は使わない）
+  // アクティブタブは下の CLI 本体（.cliSection）と同じ面にして地続きに見せる
+  // （provider 別のブランド色は使わない）
   &.active {
     color: white;
-    background-color: $dark-bg-active;
+    background-color: $dark-bg-secondary;
   }
 }
 

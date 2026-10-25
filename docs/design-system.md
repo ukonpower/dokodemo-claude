@@ -53,6 +53,8 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | `$dark-bg-active` | #4a4a4a | 選択中・ON の面 |
 | `$dark-bg-input` | #262626 | テキスト入力欄の面 |
 | `$dark-bg-float` | #2e2e2e | メニュー・ダイアログ等の浮く面（`$shadow-float` と組） |
+| `$dark-bg-chrome` | #141414 | タブバー・パネル見出しなど、パネルの中身を切り替える枠の面（内容より暗く沈める） |
+| `$dark-bg-chrome-hover` | rgba(white, .04) | chrome 上のホバー |
 | `$dark-border` | #232323 | 中身の構造を示す線（表の罫線・Markdown の区切り等）。要素の枠には使わない |
 | `$dark-border-light` | #2c2c2c | 同上（やや明るい） |
 | `$dark-border-focus` | #333333 | 同上（強め） |
@@ -175,6 +177,7 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
 | 領域を区切る（ヘッダー下など） | 区切り線は引かない。余白（gap）か、片方の背景を一段変えて区切る |
 | ホバー | `background-color: $dark-bg-hover` |
+| 下のパネルを切り替えるタブバー・パネル見出し | バーは `$dark-bg-chrome`（ホバーは `$dark-bg-chrome-hover`）。選択中のタブは下のパネルと同じ面（`secondary`）＋白文字にして地続きに見せる。枠を内容より明るくしない |
 | 選択中・ON | `background-color: $dark-bg-active`。特に強く示すものだけ `$accent` + `$accent-fg` |
 | フォーカス（入力欄・キーボード操作） | `outline: 1px solid $focus-ring; outline-offset: -1px;` |
 | メニュー・ダイアログなど浮く面 | `background-color: $dark-bg-float; box-shadow: $shadow-float;` |

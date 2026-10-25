@@ -1,6 +1,6 @@
 // 右列サイドパネル（アコーディオン積層）
 // 既存のセクションカード言語（cliSection / terminalSection）に統一する:
-//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-tertiary（枠線は使わず面の段差で区切る）
+//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-chrome（枠線は使わず面の段差で区切る）
 //   純ニュートラルグレー（青みなし）、開閉シェブロンで状態を示す
 
 .root {
@@ -49,7 +49,7 @@
   gap: $space-xs;
   height: 2rem;
   padding: 0 $space-sm 0 $space-xs;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-chrome;
   cursor: pointer;
   color: $gray-400;
   flex-shrink: 0;
@@ -59,7 +59,7 @@
 
   &:hover {
     color: $gray-200;
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-chrome-hover;
   }
 }
 
@@ -71,7 +71,7 @@
 
   &:hover {
     color: $gray-200;
-    background-color: $dark-bg-tertiary;
+    background-color: $dark-bg-chrome;
   }
 }
 
@@ -129,7 +129,7 @@
 .tabBar {
   display: flex;
   flex-shrink: 0;
-  background-color: $dark-bg-tertiary;
+  background-color: $dark-bg-chrome;
 }
 
 .tab {
@@ -153,7 +153,7 @@
 
   &:hover:not(.tabActive) {
     color: $gray-200;
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-chrome-hover;
   }
 
   // スマホ: タブの縦サイズを少し詰める
@@ -162,9 +162,10 @@
   }
 }
 
+// 選択中のタブは下のボディと同じ面にして地続きに見せる
 .tabActive {
   color: $dark-text-primary;
-  background-color: $dark-bg-active;
+  background-color: $dark-bg-secondary;
 }
 
 .tabIcon {
