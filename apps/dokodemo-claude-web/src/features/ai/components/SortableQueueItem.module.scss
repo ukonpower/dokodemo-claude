@@ -57,9 +57,11 @@
 .removeButton {
   flex-shrink: 0;
   cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-  color: $gray-500;
-  background: none;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   padding: $space-2xs;
   line-height: 0;
@@ -67,6 +69,7 @@
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -235,10 +238,11 @@
 
 .optionsButtonInactive {
   background-color: $dark-bg-tertiary;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -419,10 +423,11 @@
 
 .modelButtonInactive {
   background-color: $dark-bg-tertiary;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -473,12 +478,14 @@
 .modelAddCancel {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
+  border-radius: $radius;
   cursor: pointer;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }

@@ -30,16 +30,16 @@
   display: inline-flex;
   align-items: center;
   font-weight: $font-weight-medium;
-  color: $gray-400;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
 
   &:hover {
-    color: $gray-200;
-    background-color: rgba($gray-700, 0.5);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -344,7 +344,7 @@
 .menuButton {
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
 
@@ -363,16 +363,16 @@
   }
 
   &.open {
-    color: $gray-300;
-    background-color: $gray-700;
+    color: $dark-text-primary;
+    background-color: $dark-bg-active;
   }
 
   &:not(.open) {
-    color: $gray-500;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $gray-300;
-      background-color: $gray-700;
+      color: $dark-text-primary;
+      background-color: $dark-bg-hover;
     }
   }
 }
@@ -393,16 +393,16 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  color: $gray-500;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
 
   &:hover {
-    color: $gray-300;
-    background-color: rgba($gray-700, 0.5);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {

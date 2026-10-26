@@ -20,13 +20,14 @@
   gap: $space-2xs;
   padding: $space-2xs $space-sm;
   font-size: $font-size-sm;
-  color: $gray-400;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: white;
-    background-color: $gray-700;
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 }
 
@@ -45,28 +46,30 @@
 }
 
 .wrapButtonActive {
-  color: white;
-  background-color: $gray-700;
+  color: $dark-text-primary;
+  background-color: $dark-bg-active;
 }
 
 .wrapButtonInactive {
-  color: $gray-400;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
 
   &:hover {
-    color: white;
-    background-color: $gray-700;
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 }
 
 .refreshButton {
   padding: $space-xs;
-  color: $gray-400;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: white;
-    background-color: $gray-700;
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 }
 

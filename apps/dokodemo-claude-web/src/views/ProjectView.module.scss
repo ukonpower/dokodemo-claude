@@ -480,12 +480,16 @@
 
 // プロジェクト設定への導線（削除などの破壊的操作はこの先）
 .projectSettingsButton {
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
   font-size: $font-size-xs;
-  color: $gray-500;
-  transition: color $transition-fast ease;
+  color: $dark-text-secondary;
+  transition: color $transition-fast ease, background-color $transition-fast ease;
 
   &:hover {
-    color: $gray-300;
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 
   &:disabled {

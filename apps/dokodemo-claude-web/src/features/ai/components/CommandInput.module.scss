@@ -88,10 +88,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-tertiary;
+      color: $dark-text-primary;
     }
   }
 }
@@ -162,10 +163,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-tertiary;
+      color: $dark-text-primary;
     }
   }
 }
@@ -181,7 +183,7 @@
   font-weight: $font-weight-medium;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
 
@@ -196,10 +198,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-hover;
+      color: $dark-text-primary;
     }
   }
 }
@@ -209,7 +212,8 @@
   height: 0.75rem;
   border-radius: $radius-sm;
   border: none;
-  background-color: $dark-bg-tertiary;
+  // 置き場所のボタンが tertiary / hover の面を持つため、それより明るい段にして枠を見せる
+  background-color: $dark-bg-active;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,15 +250,15 @@
   border-radius: $radius;
   font-size: $font-size-xs;
   font-family: $font-mono;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
-    color: $dark-text-secondary;
+    color: $dark-text-primary;
     background-color: $dark-bg-hover;
   }
 
@@ -419,14 +423,15 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: $radius;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 
   &:disabled {
@@ -471,14 +476,15 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: $radius;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 
   &:disabled {
@@ -513,8 +519,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: $radius-md;
-  color: $dark-text-muted;
-  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   touch-action: manipulation;
@@ -710,9 +716,10 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
+      background-color: $dark-bg-tertiary;
       color: $dark-text-primary;
     }
   }
@@ -781,9 +788,10 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
+      background-color: $dark-bg-tertiary;
       color: $dark-text-primary;
     }
   }
@@ -811,7 +819,7 @@
   font-size: $font-size-xs;
   line-height: 1rem;
   transition: all $transition-fast $transition-easing;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   white-space: nowrap;
@@ -979,12 +987,14 @@
 .modelAddCancel {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
+  border-radius: $radius;
   cursor: pointer;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }

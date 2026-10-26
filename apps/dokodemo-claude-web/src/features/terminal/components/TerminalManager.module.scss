@@ -178,8 +178,8 @@
   padding: $space-sm $space-lg;
   font-size: $font-size-xs;
   line-height: 1rem;
-  color: $gray-400;
-  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   border-radius: $radius;
   cursor: pointer;
@@ -187,7 +187,7 @@
 
   &:hover {
     background-color: $dark-bg-hover;
-    color: $gray-300;
+    color: $dark-text-primary;
   }
 
   &:disabled {

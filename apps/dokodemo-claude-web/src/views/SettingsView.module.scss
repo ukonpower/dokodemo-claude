@@ -18,13 +18,15 @@
   padding: $space-2xs $space-md;
   border-radius: $radius;
   font-size: $font-size-xs;
-  color: $gray-400;
+  color: $dark-text-secondary;
   transition:
     background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
 
-  &:hover {
-    color: $gray-300;
+  // トラック自体が tertiary の面なので、hover はその一段上の面で示す
+  &:hover:not(.segmentedButtonActive) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 

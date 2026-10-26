@@ -4,7 +4,8 @@
   justify-content: center;
   border: none;
   border-radius: $radius;
-  background: none;
+  // 行・タブ（面なし）と見分けられるよう、押せるものは平常時から部品の面を持たせる
+  background-color: $dark-bg-tertiary;
   padding: 0;
   flex-shrink: 0;
   cursor: pointer;

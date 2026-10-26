@@ -62,7 +62,8 @@ pre {
   border: none;
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
-  background: none;
+  // IconButton と同じく平常時から部品の面を持たせる
+  background-color: $dark-bg-tertiary;
   padding: 0;
   flex-shrink: 0;
 
@@ -82,7 +83,7 @@ pre {
   border: none;
   cursor: pointer;
   transition: background-color 150ms ease, color 150ms ease;
-  background: none;
+  background-color: $dark-bg-tertiary;
   padding: 0;
   flex-shrink: 0;
 

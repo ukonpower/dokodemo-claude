@@ -266,7 +266,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $gray-500;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;

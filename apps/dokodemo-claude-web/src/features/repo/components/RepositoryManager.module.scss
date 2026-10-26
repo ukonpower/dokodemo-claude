@@ -82,10 +82,15 @@
   right: $space-md;
   top: 50%;
   transform: translateY(-50%);
-  color: $gray-400;
-  transition: color $transition-fast $transition-easing;
+  display: flex;
+  padding: $space-3xs;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
