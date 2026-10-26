@@ -22,7 +22,8 @@
   min-height: 0;
 }
 
-// 各セクション（見出し + ボディ）。中身のあるセクションが残りの縦スペースを分け合う
+// 各セクション（見出し + ボディ）。中身の量によらず列の高さを均等に分け、
+// ファイルや diff が増えても箱の位置・高さが動かないようにする
 .section {
   display: flex;
   flex-direction: column;
@@ -31,11 +32,6 @@
   background-color: $dark-bg-raised;
   border-radius: $radius-lg;
   overflow: hidden;
-}
-
-// 中身が空のセクションは空の表示ぶんの高さに縮め、空白の箱を並べない
-.sectionEmpty {
-  flex: 0 0 auto;
 }
 
 // 開閉しない静的な見出し。切り替える枠ではないので chrome にはせず、箱と同じ面に置く
