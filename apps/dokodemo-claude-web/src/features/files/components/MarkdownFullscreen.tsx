@@ -66,7 +66,6 @@ const MarkdownFullscreen: React.FC<MarkdownFullscreenProps> = ({
       <div className={s.root}>
         <div className={s.preview}>
           <EmptyState
-            icon={<FileText size={20} strokeWidth={1.75} />}
             message="Markdown はまだありません"
           />
         </div>

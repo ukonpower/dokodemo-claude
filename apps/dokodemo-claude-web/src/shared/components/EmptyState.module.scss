@@ -1,38 +1,30 @@
+// 空の一覧に置く案内。大きいアイコンや中央寄せの余白は使わず、一覧の 1 行目と同じ位置に小さく出す
 .root {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: $space-sm;
-  padding: $space-xl $space-lg;
-  min-height: 100%;
-  text-align: center;
-}
-
-.iconWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: $dark-bg-tertiary;
-  color: $dark-text-muted;
-  margin-bottom: $space-3xs;
+  gap: $space-3xs;
+  padding: $space-2xs 0;
+  text-align: left;
 }
 
 .message {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
   font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-  color: $gray-400;
+  color: $gray-500;
   font-family: $font-sans;
-  line-height: 1.4;
+  line-height: $line-height-normal;
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .hint {
   font-size: $font-size-2xs;
   color: $gray-500;
   font-family: $font-sans;
-  line-height: 1.4;
+  line-height: $line-height-normal;
 }

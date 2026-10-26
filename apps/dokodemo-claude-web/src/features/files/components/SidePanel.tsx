@@ -238,27 +238,33 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   if (isLg) {
     return (
       <>
-        <div className={s.root}>
-          {sections.map((sec) => (
-            <div key={sec.id} className={`${s.section} ${s.sectionOpen}`}>
-              <div className={`${s.header} ${s.headerStatic}`}>
-                <span className={s.headerIcon}>{sec.icon}</span>
-                <span className={s.headerLabel}>{sec.label}</span>
-                {sec.sub && <span className={s.headerSub}>{sec.sub}</span>}
-                <span className={s.spacer} />
-                {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
-                <button
-                  className={s.maximizeButton}
-                  onClick={() => setFullscreenId(sec.id)}
-                  aria-label="別ウィンドウで開く"
-                  title="別ウィンドウで開く"
-                >
-                  <ExternalLink size={12} strokeWidth={2} />
-                </button>
+        <div className={s.stack}>
+          {sections.map((sec) => {
+            let sectionClass = s.section;
+            if (sec.count === 0) {
+              sectionClass = `${s.section} ${s.sectionEmpty}`;
+            }
+            return (
+              <div key={sec.id} className={sectionClass}>
+                <div className={s.header}>
+                  <span className={s.headerIcon}>{sec.icon}</span>
+                  <span className={s.headerLabel}>{sec.label}</span>
+                  {sec.sub && <span className={s.headerSub}>{sec.sub}</span>}
+                  <span className={s.spacer} />
+                  {sec.count > 0 && <span className={s.count}>{sec.count}</span>}
+                  <button
+                    className={s.maximizeButton}
+                    onClick={() => setFullscreenId(sec.id)}
+                    aria-label="別ウィンドウで開く"
+                    title="別ウィンドウで開く"
+                  >
+                    <ExternalLink size={12} strokeWidth={2} />
+                  </button>
+                </div>
+                <div className={s.body}>{sec.body}</div>
               </div>
-              <div className={s.body}>{sec.body}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {fullscreenOverlay}
       </>

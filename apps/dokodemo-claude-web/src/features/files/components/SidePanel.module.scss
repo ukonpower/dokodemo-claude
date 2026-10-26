@@ -1,78 +1,53 @@
-// 右列サイドパネル（アコーディオン積層）
-// 既存のセクションカード言語（cliSection / terminalSection）に統一する:
-//   カード面 = $dark-bg-secondary / 見出しバー = $dark-bg-chrome（枠線は使わず面の段差で区切る）
-//   純ニュートラルグレー（青みなし）、開閉シェブロンで状態を示す
+// 右列サイドパネル
+// 置き場所の cliSection（$dark-bg-secondary）と同じ面にすると中身がページに溶けるため、
+// 一段明るい $dark-bg-raised の箱にして、枠線なしで「パネルの中の区画」に見せる
 
+// lg 未満（縦積み最下部・タブ切替）: タブバー + 中身を 1 つの箱にする
 .root {
   display: flex;
   flex-direction: column;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-raised;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
   overflow: hidden;
-
-  // lg 未満（縦積み最下部・タブ切替）: 高さ上限を設け tabContent 内でスクロール
+  // 高さ上限を設け tabContent 内でスクロール
   max-height: 38dvh;
-
-  // lg 以上（右列・縦積み）: 列いっぱいの高さに追従し各セクションボディを個別スクロール
-  @include lg-up {
-    max-height: none;
-    height: 100%;
-    min-height: 0;
-  }
 }
 
-// 各セクション（見出しバー + ボディ）
+// lg 以上（右列）: セクションごとに別の箱にし、隙間で区切って縦に積む
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  height: 100%;
+  min-height: 0;
+}
+
+// 各セクション（見出し + ボディ）。中身のあるセクションが残りの縦スペースを分け合う
 .section {
   display: flex;
   flex-direction: column;
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-height: 0;
-
-  & + & {
-    margin-top: $space-3xs;
-  }
+  background-color: $dark-bg-raised;
+  border-radius: $radius-lg;
+  overflow: hidden;
 }
 
-// 開いているセクションは残りの縦スペースを分け合って埋める（lg のみ）。
-// SP では root の高さ基準がないため flex 分割はせず、内容高さで積む。
-.sectionOpen {
-  @include lg-up {
-    flex: 1 1 0;
-    min-height: 0;
-  }
+// 中身が空のセクションは空の表示ぶんの高さに縮め、空白の箱を並べない
+.sectionEmpty {
+  flex: 0 0 auto;
 }
 
+// 開閉しない静的な見出し。切り替える枠ではないので chrome にはせず、箱と同じ面に置く
 .header {
   display: flex;
   align-items: center;
   gap: $space-xs;
   height: 2rem;
-  padding: 0 $space-sm 0 $space-xs;
-  background-color: $dark-bg-chrome;
-  cursor: pointer;
-  color: $gray-400;
+  padding: 0 $space-sm;
+  color: $gray-200;
   flex-shrink: 0;
   user-select: none;
-  transition: color $transition-fast $transition-easing,
-    background-color $transition-fast $transition-easing;
-
-  &:hover {
-    color: $gray-200;
-    background-color: $dark-bg-chrome-hover;
-  }
-}
-
-// lg のセクション見出し（開閉しない静的ラベル）
-.headerStatic {
-  cursor: default;
-  padding-left: $space-sm;
-  color: $gray-200;
-
-  &:hover {
-    color: $gray-200;
-    background-color: $dark-bg-chrome;
-  }
 }
 
 .headerIcon {
@@ -105,7 +80,7 @@
   font-size: $font-size-2xs;
   font-weight: $font-weight-semibold;
   color: $gray-300;
-  background-color: $gray-800;
+  background-color: $dark-bg-hover;
   border-radius: $radius-full;
   min-width: 1.1rem;
   height: 1.1rem;
@@ -121,7 +96,6 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background-color: $dark-bg-secondary;
   @include scrollbar-thin;
 }
 
@@ -165,7 +139,7 @@
 // 選択中のタブは下のボディと同じ面にして地続きに見せる
 .tabActive {
   color: $dark-text-primary;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-raised;
 }
 
 .tabIcon {
@@ -222,7 +196,6 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background-color: $dark-bg-secondary;
   @include scrollbar-thin;
 }
 

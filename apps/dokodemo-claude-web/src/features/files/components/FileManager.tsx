@@ -14,7 +14,6 @@ import {
   Check,
   Trash2,
   Download,
-  Inbox,
   Upload,
   Play,
 } from 'lucide-react';
@@ -347,7 +346,6 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
 
       {readOnly && files.length === 0 && emptyMessage ? (
         <EmptyState
-          icon={<Inbox size={20} strokeWidth={1.75} />}
           message={emptyMessage}
         />
       ) : !readOnly && files.length === 0 ? (
@@ -361,7 +359,7 @@ const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(function Fil
           }`}
         >
           <EmptyState
-            icon={<Upload size={20} strokeWidth={1.75} />}
+            icon={<Upload size={14} />}
             message="ファイルをアップロード"
             hint="ドラッグ&ドロップ または クリックで選択"
           />
