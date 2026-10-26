@@ -238,10 +238,10 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
   if (isLg) {
     return (
       <>
-        <div className={s.root}>
+        <div className={s.stack}>
           {sections.map((sec) => (
-            <div key={sec.id} className={`${s.section} ${s.sectionOpen}`}>
-              <div className={`${s.header} ${s.headerStatic}`}>
+            <div key={sec.id} className={s.section}>
+              <div className={s.header}>
                 <span className={s.headerIcon}>{sec.icon}</span>
                 <span className={s.headerLabel}>{sec.label}</span>
                 {sec.sub && <span className={s.headerSub}>{sec.sub}</span>}

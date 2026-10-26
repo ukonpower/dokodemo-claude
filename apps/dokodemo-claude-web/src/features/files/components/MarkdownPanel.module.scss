@@ -6,6 +6,11 @@
   overflow: hidden;
 }
 
+// 空表示は送信・受信・diff と同じ位置に出すため、一覧（.list）ではなく他パネルと同じ内側余白に置く
+.empty {
+  padding: $space-sm;
+}
+
 .list {
   flex: 1;
   overflow-y: auto;

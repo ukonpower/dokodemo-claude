@@ -215,6 +215,9 @@ $transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
 $dark-bg-primary: #0a0a0a;
 $dark-bg-secondary: #191919;
 $dark-bg-tertiary: #2a2a2a;
+// パネル（secondary）の中にさらに置く区画の面（サイドパネルの各セクションなど）。
+// tertiary はボタン・行などの部品に使うため、区画にはそれより暗い段を用意している
+$dark-bg-raised: #212121;
 $dark-bg-hover: #3a3a3a;
 // 選択中・押下中の面（トグルの ON、選択中のタブ・行など）
 $dark-bg-active: #4a4a4a;

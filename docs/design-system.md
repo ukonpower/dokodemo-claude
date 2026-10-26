@@ -49,6 +49,7 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | `$dark-bg-primary` | #0a0a0a | 背景（最下層） |
 | `$dark-bg-secondary` | #191919 | 背景（パネル・カード等） |
 | `$dark-bg-tertiary` | #2a2a2a | 背景（パネルの上の部品: ボタン・タブ・行など） |
+| `$dark-bg-raised` | #212121 | パネルの中にさらに置く区画（サイドパネルの各セクション等）。部品（tertiary）より暗い |
 | `$dark-bg-hover` | #3a3a3a | ホバー背景 |
 | `$dark-bg-active` | #4a4a4a | 選択中・ON の面 |
 | `$dark-bg-input` | #262626 | テキスト入力欄の面 |
@@ -174,7 +175,7 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 
 | やりたいこと | 書き方 |
 |--------------|--------|
-| 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
+| 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、パネル内の区画=`$dark-bg-raised`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
 | 領域を区切る（ヘッダー下など） | 区切り線は引かない。余白（gap）か、片方の背景を一段変えて区切る |
 | ホバー | `background-color: $dark-bg-hover` |
 | 下のパネルを切り替えるタブバー・パネル見出し | バーは `$dark-bg-chrome`（ホバーは `$dark-bg-chrome-hover`）。選択中のタブは下のパネルと同じ面（`secondary`）＋白文字にして地続きに見せる。枠を内容より明るくしない |

@@ -27,14 +27,14 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
 
   return (
     <div className={s.root}>
-      <div className={s.list}>
-        {files.length === 0 ? (
-          <EmptyState
-            icon={<FileText size={20} strokeWidth={1.75} />}
-            message="Markdown はまだありません"
-          />
-        ) : (
-          files.map((file) => {
+      {files.length === 0 && (
+        <div className={s.empty}>
+          <EmptyState message="Markdown はまだありません" />
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className={s.list}>
+          {files.map((file) => {
             const displayName = getDisplayName(file.filename);
             const label = file.title || displayName;
             return (
@@ -48,9 +48,9 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
                 <span className={s.listLabel}>{label}</span>
               </button>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       <MarkdownLightbox
         rid={rid}

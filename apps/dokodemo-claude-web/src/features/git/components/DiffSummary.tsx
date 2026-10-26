@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { GitBranch, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { GitDiffFile, GitDiffSummary } from '@/types';
 import EmptyState from '@/shared/components/EmptyState';
 import { FileIcon, splitFilePath } from '@/shared/utils/file-icon';
@@ -72,7 +72,6 @@ const DiffSummary: React.FC<DiffSummaryProps> = ({
       {/* 差分なし */}
       {!isLoading && !error && summary && summary.files.length === 0 && (
         <EmptyState
-          icon={<GitBranch size={20} strokeWidth={1.75} />}
           message="変更されたファイルはありません"
         />
       )}
