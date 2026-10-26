@@ -115,17 +115,22 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 
 ### 角丸
 
-部品は 3px、パネル・カード・モーダルなどの大きな面は 2px に揃えている。
+外側の面ほど少し大きく丸める（部品 5 → 区画 6 → パネル 8 → 浮く面 10）。
+面は内側に余白を取って部品を入れるため、外側の角が内側より小さいと入れ子の輪郭がちぐはぐに見える。
+入れ子の面は、内側の角丸を外側以下にする（例: 区画 6px の中の行は 5px）。
 
 | トークン | 値 | 用途 |
 |----------|----|----|
-| `$radius-sm` | 2px | 小さな部品 |
-| `$radius` | 3px | 部品（ボタン・入力欄など） |
-| `$radius-md` | 3px | 部品 |
-| `$radius-lg` | 2px | パネル・カード |
-| `$radius-xl` | 2px | パネル・モーダル |
-| `$radius-2xl` | 2px | パネル・モーダル |
+| `$radius-sm` | 3px | 小さなチップ・バッジ・チェックボックス |
+| `$radius` | 5px | 部品（ボタン・入力欄・行・キー・タブ） |
+| `$radius-md` | 5px | 部品（`$radius` と同じ値の別名） |
+| `$radius-lg` | 6px | パネル内の区画（`$dark-bg-raised` の面・選択肢を並べるトラック・注意書きの箱など） |
+| `$radius-xl` | 8px | パネル・カード |
+| `$radius-2xl` | 10px | メニュー・ダイアログ・トーストなど浮く面 |
 | `$radius-full` | 9999px | 丸・ピル |
+
+片側だけ丸める場合（タブバーの上辺など）も、その面の役割のトークンを使う（例: パネル上端のタブバーは `$radius-xl $radius-xl 0 0`）。
+行が左右いっぱいに並ぶメニューは、hover の面が角からはみ出さないよう `overflow: hidden` で切り取る。
 
 ### シャドウ
 
@@ -176,6 +181,9 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | やりたいこと | 書き方 |
 |--------------|--------|
 | 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、パネル内の区画=`$dark-bg-raised`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
+| ボタン（アイコンボタン・文字だけの小ボタン） | 平常時から `tertiary` の面＋`$dark-text-secondary`。hover で `$dark-bg-hover`＋`$dark-text-primary` |
+| トラックに並ぶ選択肢（送信モード・ワークフロー等） | 非選択は面なし＋`$dark-text-secondary`、hover で `tertiary` の面。選択中は `$dark-bg-active` |
+| 行（一覧・メニュー項目）・タブ | 平常時は面なし。hover で面を出す |
 | 領域を区切る（ヘッダー下など） | 区切り線は引かない。余白（gap）か、片方の背景を一段変えて区切る |
 | ホバー | `background-color: $dark-bg-hover` |
 | 下のパネルを切り替えるタブバー・パネル見出し | バーは `$dark-bg-chrome`（ホバーは `$dark-bg-chrome-hover`）。選択中のタブは下のパネルと同じ面（`secondary`）＋白文字にして地続きに見せる。枠を内容より明るくしない |
@@ -183,7 +191,10 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | フォーカス（入力欄・キーボード操作） | `outline: 1px solid $focus-ring; outline-offset: -1px;` |
 | メニュー・ダイアログなど浮く面 | `background-color: $dark-bg-float; box-shadow: $shadow-float;` |
 | 状態色（エラー・成功など）を示す | 色付きの枠ではなく、背景を `$color-*-bg`（または `rgba($color-*, 0.18)` 程度）で染め、文字を状態色にする |
-| 画像・キャンバスの上に浮くボタン | 枠を付けず、半透明の背景（`rgba(white, …)` + `backdrop-filter`）で見せる |
+| 画像・キャンバスの上に浮くボタン | 枠を付けず、半透明の背景（`rgba(white, …)` + `backdrop-filter`）で見せる（`tertiary` の面は付けない） |
+
+押せるものは平常時から面を持ち、行・タブは面なしにする。ボタンと行・タブの区別は「面があるかどうか」で付ける
+（迷ったら、並んだ一覧の 1 件なら行、パネルの中身を切り替えるならタブ、単発の操作ならボタン）。
 
 例外として線を使ってよいのは、**中身の構造を表す線**だけ:
 Markdown（見出しの下線・表の罫線・引用の左線・hr）、diff やコードの行の印、スピナー（border で描く回転）、
@@ -248,6 +259,7 @@ import Button from '@/shared/components/Button';
 
 `IconButton.tsx` — アイコン 1 つを収めた正方形ボタン。既存グローバルクラス
 `.btn-icon` / `.btn-icon-xs` の React 化。children にアイコン（lucide-react）を渡す。
+平常時から `$dark-bg-tertiary` の面を持ち、hover で `$dark-bg-hover` になる。
 サイズは CSS 側で svg を含めて固定するため、アイコンに個別の size 指定は不要。
 
 | prop | 型 | 既定 | 説明 |
