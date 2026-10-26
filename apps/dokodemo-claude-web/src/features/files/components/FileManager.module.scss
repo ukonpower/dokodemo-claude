@@ -22,14 +22,14 @@
 
 .uploadProgress {
   height: 4px;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   background-color: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 
 .uploadProgressFill {
   height: 100%;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   background-color: $accent;
   transition: width 0.2s;
 }
@@ -69,7 +69,7 @@
 
 .errorBox {
   background-color: $color-error-bg;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   color: $color-error;
@@ -92,7 +92,7 @@
   display: flex;
   align-items: flex-start;
   background-color: transparent;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   color: inherit;
   font: inherit;
   padding: 0;
@@ -160,7 +160,7 @@
   width: 2rem;
   height: 2rem;
   background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 9999px;
+  border-radius: $radius-full;
   @include flex-center;
 }
 

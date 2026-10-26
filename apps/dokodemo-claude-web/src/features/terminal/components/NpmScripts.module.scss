@@ -1,7 +1,7 @@
 // 外枠は親の .bottomSection と同じ内容の面。中のボタンを一段明るい部品の面にする
 .root {
   background-color: $dark-bg-secondary;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   padding: $space-md;
 }
 
@@ -35,7 +35,7 @@
   color: $dark-text-secondary;
   background-color: $dark-bg-tertiary;
   padding: $space-3xs $space-sm;
-  border-radius: $radius;
+  border-radius: $radius-sm;
 }
 
 .refreshButton {
@@ -47,7 +47,7 @@
   color: $dark-text-primary;
   background-color: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   transition: all $transition-fast $transition-easing;
   box-shadow: $shadow-sm;
   cursor: pointer;
@@ -102,7 +102,7 @@
   position: relative;
   background-color: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   padding: $space-sm;
   text-align: left;
   transition: all $transition-normal $transition-easing;

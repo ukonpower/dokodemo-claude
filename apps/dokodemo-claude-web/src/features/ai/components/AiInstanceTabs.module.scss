@@ -90,7 +90,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   color: $gray-500;
   cursor: pointer;
   transition:
@@ -131,7 +131,7 @@
   padding: 0;
   background: $dark-bg-tertiary;
   border: none;
-  border-radius: 50%;
+  border-radius: $radius-full;
   color: $gray-400;
   cursor: pointer;
   transition:
@@ -196,7 +196,7 @@
   font-size: $font-size-xs;
   background: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   color: $gray-300;
   cursor: pointer;
   transition:

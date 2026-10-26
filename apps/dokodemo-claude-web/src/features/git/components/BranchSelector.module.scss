@@ -132,7 +132,7 @@
   min-width: 11rem;
   box-sizing: border-box;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
   padding: $space-2xs;
@@ -172,7 +172,7 @@
   max-width: calc(100vw - 1rem);
   box-sizing: border-box;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
 }
@@ -376,7 +376,7 @@
 
 .modalContent {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
@@ -438,7 +438,7 @@
 
 .warningBox {
   background-color: $color-warning-bg;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-md;
   margin-bottom: $space-lg;
 }
@@ -466,7 +466,7 @@
   width: 20rem;
   max-width: calc(100vw - 1rem);
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
   color: $gray-200;
@@ -594,7 +594,7 @@
   margin: 0;
   padding: $space-xs $space-sm;
   background-color: $dark-bg-primary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   font-family: $font-mono;
   font-size: $font-size-xs;
   line-height: 1.5;

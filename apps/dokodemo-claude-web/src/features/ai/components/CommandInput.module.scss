@@ -175,7 +175,7 @@
   align-items: center;
   gap: $space-2xs;
   padding: $space-2xs $space-sm;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
   font-weight: $font-weight-medium;
@@ -207,7 +207,7 @@
 .checkIcon {
   width: 0.75rem;
   height: 0.75rem;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   border: none;
   background-color: $dark-bg-tertiary;
   display: flex;
@@ -296,7 +296,7 @@
   border: none;
   background-color: $dark-bg-input;
   color: $dark-text-primary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   resize: none;
   font-family: $font-mono;
   font-size: $font-size-sm;
@@ -335,7 +335,7 @@
   align-items: center;
   justify-content: center;
   background-color: rgba($dark-bg-secondary, 0.8);
-  border-radius: $radius-lg;
+  border-radius: $radius;
 }
 
 .uploadContent {
@@ -561,7 +561,7 @@
   flex-direction: column;
   gap: $space-3xs;
   background-color: $dark-bg-float;
-  border-radius: $radius;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   z-index: 9999;
 }
@@ -673,7 +673,7 @@
   flex-shrink: 0;
   gap: $space-3xs;
   background-color: $dark-bg-secondary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-3xs;
 }
 
@@ -859,7 +859,7 @@
   max-height: 20rem;
   overflow-y: auto;
   background-color: $dark-bg-float;
-  border-radius: $radius;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   z-index: 9999;
 }
@@ -1057,7 +1057,7 @@
 /* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
 .loopPanel {
   background-color: $dark-bg-secondary;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   overflow: hidden;
   padding: $space-sm $space-md $space-md;
   transform-origin: top;

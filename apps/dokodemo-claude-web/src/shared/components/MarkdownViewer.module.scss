@@ -134,7 +134,7 @@
   }
 
   img {
-    border-radius: $radius-lg;
+    border-radius: $radius;
     margin: $space-xs 0;
     max-width: 100%;
   }
@@ -149,7 +149,7 @@
 .inlineCode {
   background-color: $gray-800;
   padding: $space-3xs $space-xs;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   font-size: $font-size-xs;
   color: $gray-200;
   font-family: $font-mono;

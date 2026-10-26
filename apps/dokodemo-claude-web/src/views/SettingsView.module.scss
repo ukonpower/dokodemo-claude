@@ -6,7 +6,7 @@
 .segmented {
   display: flex;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-3xs;
   gap: $space-3xs;
 }
@@ -16,7 +16,7 @@
   align-items: baseline;
   gap: $space-xs;
   padding: $space-2xs $space-md;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   font-size: $font-size-xs;
   color: $gray-400;
   transition:

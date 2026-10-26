@@ -560,7 +560,6 @@ const SortableQueueItem: React.FC<SortableQueueItemProps> = ({
       style={{
         ...style,
         backgroundColor: statusStyle.bgColor,
-        borderRadius: 4,
         padding: '6px 8px',
       }}
       {...(!isEditing && !isViewing ? attributes : {})}

@@ -40,7 +40,7 @@
   height: 24px;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
@@ -69,7 +69,7 @@
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   min-width: 0;
@@ -141,7 +141,7 @@
   border: none;
   background-color: transparent;
   color: $dark-text-muted;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   flex-shrink: 0;
@@ -204,7 +204,7 @@
   border: none;
   background-color: transparent;
   color: $dark-text-muted;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   flex-shrink: 0;
@@ -227,7 +227,7 @@
   border: none;
   background-color: transparent;
   color: $dark-text-muted;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   flex-shrink: 0;
@@ -246,7 +246,7 @@
   overflow-y: auto;
   padding: $space-sm $space-md;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   font-size: $font-size-xs;
   color: $dark-text-primary;

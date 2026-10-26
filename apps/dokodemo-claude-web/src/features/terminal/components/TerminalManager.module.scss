@@ -28,7 +28,7 @@
   padding: $space-xs $space-sm;
   font-size: $font-size-xs;
   line-height: 1rem;
-  border-radius: $radius-lg $radius-lg 0 0;
+  border-radius: $radius $radius 0 0;
   display: flex;
   align-items: center;
   white-space: nowrap;
@@ -70,7 +70,7 @@
 .tabDot {
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   flex-shrink: 0;
 
   &.active {
@@ -116,7 +116,7 @@
   line-height: 1rem;
   background-color: $dark-bg-tertiary;
   color: $gray-100;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -181,7 +181,7 @@
   color: $gray-400;
   background-color: $dark-bg-secondary;
   border: none;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   cursor: pointer;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
@@ -323,7 +323,7 @@
   display: flex;
   align-items: center;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   overflow: hidden;
 
   & > * + * {

@@ -31,7 +31,7 @@
 .statusDot {
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   flex-shrink: 0;
 
   &.active {
@@ -148,7 +148,7 @@
   width: 2.25rem;
   height: 2.25rem;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-sm;
   line-height: 1.25rem;
   font-family: $font-mono;
@@ -168,7 +168,7 @@
   width: 3rem;
   height: 76px;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-sm;
   line-height: 1.25rem;
   font-weight: $font-weight-semibold;
@@ -205,7 +205,7 @@
   width: 3rem;
   height: 2.25rem;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
   font-family: $font-mono;
@@ -229,7 +229,7 @@
   height: 2.25rem;
   width: 100%;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
   font-family: $font-mono;
@@ -267,7 +267,7 @@
   background-color: $dark-bg-input;
   color: white;
   padding: $space-2xs $space-sm;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   border: none;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -283,7 +283,7 @@
   padding: $space-2xs $space-md;
   background-color: $accent;
   color: $accent-fg;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   border: none;
   font-size: $font-size-xs;
   line-height: 1rem;
@@ -365,7 +365,7 @@
   height: 2.25rem;
   padding: 0 $space-md;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
   font-family: $font-mono;

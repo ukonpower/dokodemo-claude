@@ -181,7 +181,7 @@
 
 .modalContent {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
@@ -198,7 +198,7 @@
   flex-shrink: 0;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   @include flex-center;
   margin-right: $space-md;
 }
@@ -231,7 +231,7 @@
 // Merge error modal
 .errorBox {
   background-color: $color-error-bg;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-md;
   margin-bottom: $space-lg;
 }
@@ -260,7 +260,7 @@
 
 .detailBox {
   background-color: $dark-bg-input;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-md;
   margin-bottom: $space-lg;
 }
