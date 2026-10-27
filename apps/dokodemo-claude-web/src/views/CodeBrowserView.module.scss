@@ -16,9 +16,12 @@
 
 .backButton {
   padding: $space-2xs;
-  color: $dark-text-muted;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -39,7 +42,7 @@
   align-items: center;
   gap: $space-3xs;
   padding: $space-3xs;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   background-color: $dark-bg-primary;
   flex-shrink: 0;
 }
@@ -51,7 +54,7 @@
   padding: $space-2xs $space-sm;
   border-radius: $radius;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     color: $dark-text-primary;

@@ -70,12 +70,20 @@
   align-items: center;
   justify-content: center;
   font-size: $font-size-2xs;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
+  border-radius: $radius;
   padding: $space-3xs $space-xs;
   font-family: $font-sans;
   cursor: pointer;
   touch-action: manipulation;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
 
   // モバイルではタップターゲットを広げる
   @include sm-down {
@@ -91,17 +99,29 @@
 
 .pauseButton {
   composes: footerButton;
-  color: $gray-500;
+  color: $dark-text-secondary;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
 }
 
 .resumeButton {
   composes: footerButton;
-  color: $gray-500;
+  color: $dark-text-secondary;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
 }
 
 .resetButton {
   composes: footerButton;
-  color: $gray-500;
+  color: $dark-text-secondary;
+
+  &:hover {
+    color: $dark-text-primary;
+  }
 }
 
 // ループ終了バナー（AI 判断の理由表示）
@@ -110,7 +130,7 @@
   flex-direction: column;
   gap: $space-2xs;
   padding: $space-sm $space-sm;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   margin-bottom: $space-xs;
   background-color: $color-info-bg;
   color: $color-info;
@@ -138,13 +158,16 @@
   margin: -$space-2xs;
   border: none;
   border-radius: $radius;
-  background: transparent;
-  color: inherit;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
   cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 

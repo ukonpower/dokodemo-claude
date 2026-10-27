@@ -102,7 +102,7 @@
   height: 2.25rem;
   background-color: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-sm;
   line-height: 1.25rem;
   font-family: $font-mono;
@@ -133,7 +133,7 @@
   height: 4.75rem; // 矢印キー2段分 (2.25rem * 2 + gap 0.25rem)
   background-color: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-sm;
   line-height: 1.25rem;
   font-family: $font-mono;
@@ -303,7 +303,7 @@
   padding: 0 $space-2xs;
   background: transparent;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   font-size: $font-size-xs;
   font-family: $font-mono;
   color: $dark-text-muted;
@@ -378,7 +378,7 @@
 
 .dialog {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-lg;
   width: 100%;

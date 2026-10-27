@@ -124,7 +124,7 @@
   position: relative;
   width: 1.5rem;
   height: 0.875rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   flex-shrink: 0;
   transition: background-color $transition-normal $transition-easing;
 
@@ -142,7 +142,7 @@
   top: 0.125rem;
   width: 0.625rem;
   height: 0.625rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   background-color: white;
   transition: all $transition-normal $transition-easing;
 

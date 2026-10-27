@@ -13,7 +13,7 @@
 
 .errorBox {
   background-color: $color-error-bg;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
   color: $color-error;
@@ -41,7 +41,7 @@
   align-items: center;
   gap: $space-sm;
   padding: $space-xs;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   border: none;
   background: transparent;
   text-align: left;

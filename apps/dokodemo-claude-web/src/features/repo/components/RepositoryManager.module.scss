@@ -82,10 +82,15 @@
   right: $space-md;
   top: 50%;
   transform: translateY(-50%);
-  color: $gray-400;
-  transition: color $transition-fast $transition-easing;
+  display: flex;
+  padding: $space-3xs;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -165,7 +170,7 @@
   padding: $space-sm $space-lg;
   background-color: $accent;
   color: $accent-fg;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-sm;
   font-weight: $font-weight-medium;
   transition: all $transition-fast $transition-easing;
@@ -243,7 +248,7 @@
   position: relative;
   cursor: pointer;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   padding: $space-sm $space-md;
   transition: all $transition-normal $transition-easing;
   display: block;
@@ -309,7 +314,7 @@
   display: inline-flex;
   align-items: center;
   padding: $space-3xs $space-2xs;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   font-size: $font-size-xs;
 }
 
@@ -354,7 +359,7 @@
   right: 0;
   margin-bottom: $space-2xs;
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
   min-width: 140px;

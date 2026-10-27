@@ -6,7 +6,7 @@
 .segmented {
   display: flex;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-3xs;
   gap: $space-3xs;
 }
@@ -16,15 +16,17 @@
   align-items: baseline;
   gap: $space-xs;
   padding: $space-2xs $space-md;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   font-size: $font-size-xs;
-  color: $gray-400;
+  color: $dark-text-secondary;
   transition:
     background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
 
-  &:hover {
-    color: $gray-300;
+  // トラック自体が tertiary の面なので、hover はその一段上の面で示す
+  &:hover:not(.segmentedButtonActive) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 

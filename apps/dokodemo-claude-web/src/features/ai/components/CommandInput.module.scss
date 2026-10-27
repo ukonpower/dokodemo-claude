@@ -88,10 +88,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-tertiary;
+      color: $dark-text-primary;
     }
   }
 }
@@ -162,10 +163,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-tertiary;
+      color: $dark-text-primary;
     }
   }
 }
@@ -175,13 +177,13 @@
   align-items: center;
   gap: $space-2xs;
   padding: $space-2xs $space-sm;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   font-size: $font-size-xs;
   line-height: 1rem;
   font-weight: $font-weight-medium;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
 
@@ -196,10 +198,11 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $dark-text-secondary;
+      background-color: $dark-bg-hover;
+      color: $dark-text-primary;
     }
   }
 }
@@ -207,9 +210,10 @@
 .checkIcon {
   width: 0.75rem;
   height: 0.75rem;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   border: none;
-  background-color: $dark-bg-tertiary;
+  // 置き場所のボタンが tertiary / hover の面を持つため、それより明るい段にして枠を見せる
+  background-color: $dark-bg-active;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,15 +250,15 @@
   border-radius: $radius;
   font-size: $font-size-xs;
   font-family: $font-mono;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   touch-action: manipulation;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
-    color: $dark-text-secondary;
+    color: $dark-text-primary;
     background-color: $dark-bg-hover;
   }
 
@@ -296,7 +300,7 @@
   border: none;
   background-color: $dark-bg-input;
   color: $dark-text-primary;
-  border-radius: $radius-lg;
+  border-radius: $radius;
   resize: none;
   font-family: $font-mono;
   font-size: $font-size-sm;
@@ -335,7 +339,7 @@
   align-items: center;
   justify-content: center;
   background-color: rgba($dark-bg-secondary, 0.8);
-  border-radius: $radius-lg;
+  border-radius: $radius;
 }
 
 .uploadContent {
@@ -419,14 +423,15 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: $radius;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 
   &:disabled {
@@ -471,14 +476,15 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: $radius;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 
   &:disabled {
@@ -513,8 +519,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: $radius-md;
-  color: $dark-text-muted;
-  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   touch-action: manipulation;
@@ -561,7 +567,7 @@
   flex-direction: column;
   gap: $space-3xs;
   background-color: $dark-bg-float;
-  border-radius: $radius;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   z-index: 9999;
 }
@@ -673,7 +679,7 @@
   flex-shrink: 0;
   gap: $space-3xs;
   background-color: $dark-bg-secondary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-3xs;
 }
 
@@ -710,9 +716,10 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
+      background-color: $dark-bg-tertiary;
       color: $dark-text-primary;
     }
   }
@@ -781,9 +788,10 @@
   }
 
   &:not(.active) {
-    color: $dark-text-muted;
+    color: $dark-text-secondary;
 
     &:hover {
+      background-color: $dark-bg-tertiary;
       color: $dark-text-primary;
     }
   }
@@ -811,7 +819,7 @@
   font-size: $font-size-xs;
   line-height: 1rem;
   transition: all $transition-fast $transition-easing;
-  background-color: $dark-bg-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   white-space: nowrap;
@@ -859,7 +867,7 @@
   max-height: 20rem;
   overflow-y: auto;
   background-color: $dark-bg-float;
-  border-radius: $radius;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   z-index: 9999;
 }
@@ -979,12 +987,14 @@
 .modelAddCancel {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
+  border-radius: $radius;
   cursor: pointer;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -1057,7 +1067,7 @@
 /* プロンプトループ設定パネル（ループ ON の間だけ送信バー直下に表示） */
 .loopPanel {
   background-color: $dark-bg-secondary;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   overflow: hidden;
   padding: $space-sm $space-md $space-md;
   transform-origin: top;

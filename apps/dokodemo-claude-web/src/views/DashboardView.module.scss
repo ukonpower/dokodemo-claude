@@ -89,7 +89,8 @@
   @include flex-center;
   width: 32px;
   height: 32px;
-  border-radius: $radius-sm;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   text-decoration: none;
   transition: all $transition-fast $transition-easing;
@@ -160,7 +161,7 @@
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
 
   &:focus {
@@ -176,7 +177,7 @@
   border: none;
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
@@ -211,7 +212,7 @@
   background-color: $dark-bg-tertiary;
   color: $dark-text-primary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   white-space: nowrap;
@@ -329,7 +330,7 @@
   padding: $space-sm $space-lg;
   background-color: $dark-bg-float;
   color: $dark-text-primary;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   font-size: $font-size-sm;
 }

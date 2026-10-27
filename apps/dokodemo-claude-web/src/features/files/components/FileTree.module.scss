@@ -83,7 +83,7 @@
 .dirChangeDot {
   width: 0.375rem;
   height: 0.375rem;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   background-color: $color-warning;
   flex-shrink: 0;
 }

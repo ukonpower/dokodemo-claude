@@ -1,6 +1,7 @@
 .itemRoot {
   display: flex;
   flex-direction: column;
+  border-radius: $radius;
   transition: background-color $transition-fast $transition-easing;
 }
 
@@ -56,9 +57,11 @@
 .removeButton {
   flex-shrink: 0;
   cursor: pointer;
-  transition: background-color $transition-fast $transition-easing;
-  color: $gray-500;
-  background: none;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
   padding: $space-2xs;
   line-height: 0;
@@ -66,6 +69,7 @@
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -122,7 +126,7 @@
   font-size: $font-size-xs;
   padding: $space-3xs $space-xs;
   background-color: $dark-bg-tertiary;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   color: $dark-text-muted;
   font-family: $font-mono;
   line-height: 1;
@@ -234,10 +238,11 @@
 
 .optionsButtonInactive {
   background-color: $dark-bg-tertiary;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -270,7 +275,7 @@
 .optionsDropdown {
   position: fixed;
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   z-index: 9999;
   overflow-y: auto;
@@ -304,7 +309,7 @@
 .checkbox {
   width: 14px;
   height: 14px;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   border: none;
   @include flex-center;
   transition: all $transition-fast $transition-easing;
@@ -388,7 +393,7 @@
   color: white;
   background-color: $color-error;
   border: none;
-  border-radius: 50%;
+  border-radius: $radius-full;
   cursor: pointer;
   opacity: 0;
   transition: opacity $transition-fast $transition-easing;
@@ -418,10 +423,11 @@
 
 .modelButtonInactive {
   background-color: $dark-bg-tertiary;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
@@ -472,12 +478,14 @@
 .modelAddCancel {
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
-  background: none;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border: none;
+  border-radius: $radius;
   cursor: pointer;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }

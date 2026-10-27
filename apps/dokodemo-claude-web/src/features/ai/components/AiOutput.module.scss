@@ -47,7 +47,7 @@
 
   // 左端のボタンだけ左下を丸める（ボタン群としてまとめる）
   &:first-child {
-    border-radius: 0 0 0 $radius-md;
+    border-radius: 0 0 0 $radius;
   }
 
   &:hover {
@@ -66,7 +66,7 @@
   width: 2rem;
   height: 2rem;
   background-color: $dark-bg-secondary;
-  border-radius: 9999px;
+  border-radius: $radius-full;
   border: none;
   color: white;
   cursor: pointer;

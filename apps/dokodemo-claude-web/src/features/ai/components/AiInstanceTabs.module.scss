@@ -88,18 +88,18 @@
   width: 1.125rem;
   height: 1.125rem;
   padding: 0;
-  background: transparent;
+  background-color: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-sm;
-  color: $gray-500;
+  border-radius: $radius;
+  color: $dark-text-secondary;
   cursor: pointer;
   transition:
     color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: white;
-    background-color: rgba(white, 0.12);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -131,7 +131,7 @@
   padding: 0;
   background: $dark-bg-tertiary;
   border: none;
-  border-radius: 50%;
+  border-radius: $radius-full;
   color: $gray-400;
   cursor: pointer;
   transition:
@@ -196,7 +196,7 @@
   font-size: $font-size-xs;
   background: $dark-bg-tertiary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   color: $gray-300;
   cursor: pointer;
   transition:

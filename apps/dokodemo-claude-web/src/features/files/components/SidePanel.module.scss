@@ -155,9 +155,9 @@
   width: 1.4rem;
   height: 1.4rem;
   border: none;
-  background: transparent;
-  color: $gray-400;
-  border-radius: $radius-sm;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border-radius: $radius;
   cursor: pointer;
   flex-shrink: 0;
   transition: color $transition-fast $transition-easing,
@@ -175,9 +175,9 @@
   justify-content: center;
   width: 2rem;
   flex-shrink: 0;
-  background: transparent;
+  background-color: $dark-bg-tertiary;
   border: none;
-  color: $gray-400;
+  color: $dark-text-secondary;
   cursor: pointer;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;

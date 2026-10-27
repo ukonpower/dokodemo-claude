@@ -2,6 +2,10 @@
 
 .wrapper {
   position: relative;
+  // ブランチ・同期・再取得の各ボタンが面を持つため、隣り合う面がくっつかないよう間を空ける
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3xs;
 }
 
 .triggerButton {
@@ -9,17 +13,17 @@
   align-items: center;
   padding: $space-2xs $space-sm;
   font-size: $font-size-xs;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   font-weight: $font-weight-medium;
-  color: $gray-300;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: $gray-100;
-    background-color: rgba($gray-700, 0.5);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -62,16 +66,16 @@
   justify-content: center;
   font-size: $font-size-xs;
   font-family: $font-mono;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
-  color: $gray-300;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: $gray-100;
-    background-color: rgba($gray-700, 0.5);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -100,16 +104,16 @@
   display: inline-flex;
   align-items: center;
   padding: $space-2xs;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
-  color: $gray-500;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
-    color: $gray-100;
-    background-color: rgba($gray-700, 0.5);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -132,7 +136,7 @@
   min-width: 11rem;
   box-sizing: border-box;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
   padding: $space-2xs;
@@ -172,7 +176,7 @@
   max-width: calc(100vw - 1rem);
   box-sizing: border-box;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
 }
@@ -376,7 +380,7 @@
 
 .modalContent {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-xl;
   width: 100%;
@@ -438,7 +442,7 @@
 
 .warningBox {
   background-color: $color-warning-bg;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-md;
   margin-bottom: $space-lg;
 }
@@ -466,7 +470,7 @@
   width: 20rem;
   max-width: calc(100vw - 1rem);
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
   color: $gray-200;
@@ -544,11 +548,11 @@
 
 .pullPopupClose {
   flex-shrink: 0;
-  background: none;
+  background-color: $dark-bg-tertiary;
   border: none;
   cursor: pointer;
   padding: $space-3xs;
-  color: $gray-500;
+  color: $dark-text-secondary;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -562,8 +566,8 @@
   }
 
   &:hover:not(:disabled) {
-    color: $gray-100;
-    background-color: rgba($gray-700, 0.7);
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
   }
 
   &:disabled {
@@ -594,7 +598,7 @@
   margin: 0;
   padding: $space-xs $space-sm;
   background-color: $dark-bg-primary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   font-family: $font-mono;
   font-size: $font-size-xs;
   line-height: 1.5;

@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   background-color: $dark-bg-secondary;
-  border-radius: $radius-md;
+  border-radius: $radius-xl;
   overflow: hidden;
   // grid セル全体を使う。grid 側で grid-auto-rows が固定されているので、
   // この height は「ビューポート基準の固定値」になり、入力欄の開閉や
@@ -63,8 +63,8 @@
   width: 24px;
   height: 24px;
   border: none;
-  border-radius: $radius-sm;
-  background: transparent;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
@@ -82,9 +82,9 @@
   padding: 0 $space-2xs;
   height: 22px;
   border: none;
-  background: transparent;
-  color: $dark-text-muted;
-  border-radius: $radius-sm;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
   flex-shrink: 0;

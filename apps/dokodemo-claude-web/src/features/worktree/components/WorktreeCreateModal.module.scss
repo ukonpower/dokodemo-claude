@@ -19,7 +19,7 @@
 .checkbox {
   width: 1rem;
   height: 1rem;
-  border-radius: $radius;
+  border-radius: $radius-sm;
   background-color: $gray-700;
 }
 
@@ -137,7 +137,7 @@
   margin-top: $space-lg;
   padding: $space-md $space-md;
   background-color: $color-error-bg;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
 }
 
 .createErrorTitle {
@@ -168,7 +168,7 @@
 .syncSection {
   margin-top: $space-lg;
   padding: $space-md;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   background-color: rgba(black, 0.15);
 }
 
@@ -266,7 +266,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $gray-500;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing,
     background-color $transition-fast $transition-easing;
@@ -314,7 +315,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background-color: $dark-bg-float;
-  border-radius: $radius;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-3xs;
   margin: 0;

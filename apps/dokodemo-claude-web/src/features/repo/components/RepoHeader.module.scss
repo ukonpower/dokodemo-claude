@@ -208,8 +208,10 @@
   margin-top: $space-sm;
   width: 9rem;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
+  // 行は左右いっぱいに並ぶため、hover の面が丸めた角からはみ出さないよう切り取る
+  overflow: hidden;
   z-index: 50;
 }
 

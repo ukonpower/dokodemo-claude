@@ -35,10 +35,14 @@
   display: flex;
   align-items: center;
   gap: $space-2xs;
-  color: $dark-text-muted;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
   font-size: $font-size-sm;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -68,9 +72,12 @@
 
 .backButton {
   padding: $space-2xs;
-  color: $dark-text-muted;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -88,7 +95,7 @@
   gap: $space-3xs;
   margin-left: $space-sm;
   background-color: $dark-bg-primary;
-  border-radius: $radius;
+  border-radius: $radius-lg;
   padding: $space-3xs;
 }
 
@@ -105,10 +112,11 @@
 }
 
 .tabButtonInactive {
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
-    color: $dark-text-secondary;
+    background-color: $dark-bg-tertiary;
+    color: $dark-text-primary;
   }
 }
 
@@ -122,27 +130,34 @@
 
 .wrapButton {
   padding: $space-2xs;
-  transition: color $transition-fast $transition-easing;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 }
 
 .wrapButtonActive {
+  background-color: $dark-bg-active;
   color: $dark-text-primary;
 }
 
 .wrapButtonInactive {
-  color: $dark-text-muted;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
 
 .fullscreenButton {
   padding: $space-2xs;
-  color: $dark-text-muted;
-  transition: color $transition-fast $transition-easing;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }

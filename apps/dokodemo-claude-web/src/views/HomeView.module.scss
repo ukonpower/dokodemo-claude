@@ -168,7 +168,7 @@
 // サーバー情報セクション
 .serverInfo {
   background-color: $dark-bg-secondary;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   padding: $space-sm $space-md;
   font-size: $font-size-xs;
 
@@ -216,7 +216,7 @@
 // リポジトリマネージャーカード
 .repoManagerCard {
   background-color: $dark-bg-secondary;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   overflow: hidden;
 }
 
@@ -241,7 +241,7 @@
 
 .loadingCard {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   padding: $space-2xl;
 }
@@ -294,7 +294,7 @@
 
 .dialogCard {
   background-color: $dark-bg-float;
-  border-radius: $radius-lg;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   max-width: 28rem;
   width: 100%;
@@ -335,7 +335,7 @@
 
 .warningBox {
   background-color: $color-warning-bg;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-lg;
   margin-bottom: $space-lg;
 }
@@ -387,7 +387,7 @@
 
 .repoInfoBox {
   background-color: $dark-bg-hover;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $space-md;
 }
 

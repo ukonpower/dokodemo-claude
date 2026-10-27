@@ -20,7 +20,7 @@
   max-width: 480px;
   max-height: 80vh;
   background-color: $dark-bg-float;
-  border-radius: $radius-md;
+  border-radius: $radius-2xl;
   box-shadow: $shadow-float;
   overflow: hidden;
 }
@@ -52,7 +52,7 @@
   border: none;
   background-color: $dark-bg-secondary;
   color: $dark-text-secondary;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
 
   &:hover {
@@ -77,7 +77,7 @@
   background-color: $dark-bg-tertiary;
   color: $dark-text-secondary;
   border: none;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   cursor: pointer;
   transition: all $transition-fast $transition-easing;
 
