@@ -370,9 +370,6 @@ export function ProjectView() {
                     aria-expanded={false}
                   >
                     <ChevronLeft size={14} aria-hidden />
-                    <span className={s.sideColStripLabel}>
-                      送信・受信・MD・diff
-                    </span>
                   </button>
                 )}
                 {!isSideColCollapsed && (

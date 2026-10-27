@@ -442,7 +442,7 @@
 }
 
 // 右列を畳んでいるときに右端へ残す縦帯。帯全体がボタンで、押すと右列を開く。
-// 畳まれた右列の中身をラベルで示し、閉じていることと戻し方を見て取れるようにする。
+// 矢印は縦中央に置き、開いているときの境目の取っ手（.sideColHandle）と同じ高さで向きだけが反転するようにする。
 .sideColStrip {
   display: none;
 
@@ -454,7 +454,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: $space-sm;
+    justify-content: center;
     border: none;
     border-radius: $radius-lg;
     background-color: $dark-bg-raised;
@@ -467,12 +467,6 @@
       color: $dark-text-primary;
     }
   }
-}
-
-.sideColStripLabel {
-  writing-mode: vertical-rl;
-  font-size: $font-size-xs;
-  white-space: nowrap;
 }
 
 .mobileQueue {
