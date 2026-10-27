@@ -13,6 +13,7 @@ import {
   ChevronUp,
   ChevronsLeft,
   ChevronsRight,
+  ClipboardPaste,
   FileText,
   ImagePlus,
   Loader,
@@ -30,6 +31,7 @@ import type {
 import { useModelOptions } from '@/features/ai/hooks/useModelOptions';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import { resolveModelLabel } from '@/features/ai/utils/models';
+import { readClipboardImage } from '@/features/ai/utils/clipboard-image';
 import LoopSettingsFields, {
   DEFAULT_PLANNING_MODEL,
   DEFAULT_PLANNING_EVERY_N,
@@ -886,6 +888,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     const [isDrawingOpen, setIsDrawingOpen] = useState(false);
     // 写真加筆モードの背景画像 URL（object URL）。白紙スケッチ時は null
     const [drawingBgUrl, setDrawingBgUrl] = useState<string | null>(null);
+    // クリップボードから開けず白紙で開いたときに、キャンバス上へ出す案内文
+    const [drawingNotice, setDrawingNotice] = useState<string | null>(null);
     // 鉛筆ボタンのポップアップメニュー（白紙 / 写真から）
     const [isSketchMenuOpen, setIsSketchMenuOpen] = useState(false);
     const [sketchMenuPosition, setSketchMenuPosition] = useState({
@@ -913,6 +917,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
     // キャンバスを閉じ、背景 object URL を解放する
     const closeDrawing = useCallback(() => {
       setIsDrawingOpen(false);
+      setDrawingNotice(null);
       setDrawingBgUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
@@ -925,6 +930,7 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
+      setDrawingNotice(null);
       setIsDrawingOpen(true);
       setIsSketchMenuOpen(false);
     }, []);
@@ -937,9 +943,32 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
         if (prev) URL.revokeObjectURL(prev);
         return url;
       });
+      setDrawingNotice(null);
       setIsDrawingOpen(true);
       setIsSketchMenuOpen(false);
     }, []);
+
+    // 「クリップボードから」: クリップボードの画像を背景にして開く。
+    // 読めなければ白紙で開き、キャンバス上での貼り付け（paste イベント）に誘導する
+    const openClipboardSketch = useCallback(async () => {
+      setIsSketchMenuOpen(false);
+      const result = await readClipboardImage();
+      if (result.status === 'ok') {
+        openSketchFromFile(result.file);
+        return;
+      }
+
+      const pasteHint = '⌘V / Ctrl+V で画像を貼り付けると背景にできます';
+      let reason = 'クリップボードを読めませんでした。';
+      if (result.status === 'unsupported') {
+        // http 接続（非セキュアコンテキスト）では Clipboard API 自体が無い
+        reason = 'この接続ではクリップボードを直接読めません。';
+      } else if (result.status === 'empty') {
+        reason = 'クリップボードに画像がありません。';
+      }
+      openBlankSketch();
+      setDrawingNotice(reason + pasteHint);
+    }, [openSketchFromFile, openBlankSketch]);
 
     // 「写真から加筆」: ネイティブの画像ピッカーを開く
     const openPhotoSketch = useCallback(() => {
@@ -1335,6 +1364,14 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
               >
                 <ImagePlus size={14} strokeWidth={2} />
                 <span>写真から加筆</span>
+              </button>
+              <button
+                type="button"
+                className={s.sketchMenuItem}
+                onClick={() => void openClipboardSketch()}
+              >
+                <ClipboardPaste size={14} strokeWidth={2} />
+                <span>クリップボードから</span>
               </button>
             </div>
           )}
@@ -1891,6 +1928,8 @@ const TextInput = forwardRef<TextInputRef, TextInputProps>(
           backgroundImageUrl={drawingBgUrl}
           onClose={closeDrawing}
           onComplete={handleDrawingComplete}
+          onPasteImage={openSketchFromFile}
+          notice={drawingNotice}
         />
       </div>
     );
