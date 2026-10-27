@@ -418,7 +418,7 @@
   }
 
   &:focus {
-    outline: 1px solid $focus-ring;
+    outline: 1px solid $focus-ring-input;
     outline-offset: -1px;
   }
 }
