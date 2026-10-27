@@ -311,7 +311,7 @@
   // 親モーダルの overflow に切り取られないよう document.body にポータル描画し、
   // top/left/width/maxHeight は JS から inline style で渡す
   position: fixed;
-  z-index: 100; // modalOverlay の z-index: 50 より上
+  z-index: 100; // ModalShell の overlay（z-index: 80）より上
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background-color: $dark-bg-float;

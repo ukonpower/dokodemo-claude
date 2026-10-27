@@ -235,7 +235,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
 }
 
 .loadingCard {
@@ -287,7 +288,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
   padding: $space-lg;
 }
 

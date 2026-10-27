@@ -17,6 +17,8 @@
     top: 0;
     bottom: auto;
     order: -1;
+    // スクロールで下から上がってくる RepoHeader（60）より手前に出す。モーダルの overlay（80）よりは奥
+    z-index: 70;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 

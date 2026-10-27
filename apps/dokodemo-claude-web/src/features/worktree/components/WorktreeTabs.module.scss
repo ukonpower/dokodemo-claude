@@ -629,7 +629,8 @@
   -webkit-backdrop-filter: blur(4px);
   @include flex-center;
   padding: $space-lg;
-  z-index: 50;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
 }
 
 .modalContent {
