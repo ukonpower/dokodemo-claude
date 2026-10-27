@@ -65,7 +65,8 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | `$accent` | `$gray-200` | 強い強調の面（主ボタン・送信など）。白に近い |
 | `$accent-hover` | `$gray-300` | 強調のホバー |
 | `$accent-fg` | `$gray-900` | `$accent` の上に載せる文字・アイコン |
-| `$focus-ring` | `$gray-400` | キーボードフォーカス・入力中の欄の outline |
+| `$focus-ring` | `$gray-400` | ボタン等のキーボードフォーカスの outline |
+| `$focus-ring-input` | `$gray-600` | テキスト入力欄・select のフォーカスの outline（入力中は出続けるため控えめ） |
 | `$color-success` / `-hover` | `$emerald-500` / `$emerald-600` | 成功 |
 | `$color-warning` / `-hover` | `$amber-500` / `$amber-600` | 警告 |
 | `$color-error` / `-hover` | `$red-500` / `$red-600` | エラー |
@@ -191,7 +192,8 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 | ホバー | `background-color: $dark-bg-hover` |
 | 下のパネルを切り替えるタブバー・パネル見出し | バーは `$dark-bg-chrome`（ホバーは `$dark-bg-chrome-hover`）。選択中のタブは下のパネルと同じ面（`secondary`）＋白文字にして地続きに見せる。枠を内容より明るくしない |
 | 選択中・ON | `background-color: $dark-bg-active`。特に強く示すものだけ `$accent` + `$accent-fg` |
-| フォーカス（入力欄・キーボード操作） | `outline: 1px solid $focus-ring; outline-offset: -1px;` |
+| フォーカス（テキスト入力欄・select） | `outline: 1px solid $focus-ring-input; outline-offset: -1px;` |
+| フォーカス（ボタン等のキーボード操作） | `outline: 1px solid $focus-ring; outline-offset: -1px;` |
 | メニュー・ダイアログなど浮く面 | `background-color: $dark-bg-float; box-shadow: $shadow-float;` |
 | 状態色（エラー・成功など）を示す | 色付きの枠ではなく、背景を `$color-*-bg`（または `rgba($color-*, 0.18)` 程度）で染め、文字を状態色にする |
 | 画像・キャンバスの上に浮くボタン | 枠を付けず、半透明の背景（`rgba(white, …)` + `backdrop-filter`）で見せる（`tertiary` の面は付けない） |

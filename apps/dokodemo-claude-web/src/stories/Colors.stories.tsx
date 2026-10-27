@@ -31,6 +31,7 @@ const semanticGroups: { title: string; items: [string, string][] }[] = [
       ['$accent-hover', tokens.accentHover],
       ['$accent-fg', tokens.accentFg],
       ['$focus-ring', tokens.focusRing],
+      ['$focus-ring-input', tokens.focusRingInput],
       ['$color-success', tokens.colorSuccess],
       ['$color-success-hover', tokens.colorSuccessHover],
       ['$color-warning', tokens.colorWarning],
