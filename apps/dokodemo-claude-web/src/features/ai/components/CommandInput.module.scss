@@ -46,7 +46,8 @@
   min-width: 0;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  padding: $space-3xs;
+  // 溝の内側余白は付けない。プロジェクト画面では溝が背景と同色で見えず、
+  // 余白の分だけ端のボタンが入力欄より内側にずれて見えるため
   overflow-x: auto;
 
   @include lg-up {
@@ -288,10 +289,11 @@
   }
 }
 
+// PC の入力欄（3 行分）は ↑↓ 2 段より背が高い。↓ を下端へ寄せて入力欄の下端と揃える
 .historySide {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: $space-2xs;
   flex-shrink: 0;
 }
@@ -674,6 +676,7 @@
 
 // 送信モード切替セグメントと各修飾グループを共通の「チップ枠」として扱う。
 // これにより折り返してもグループ単位で整い、宙ぶらりんな区切り線が出ない。
+// 内側余白を付けないのは .skillGroup と同じ理由（端のボタンを入力欄の端に揃える）。
 .modeSegment,
 .optGroup {
   display: flex;
@@ -682,7 +685,6 @@
   gap: $space-3xs;
   background-color: $dark-bg-secondary;
   border-radius: $radius-lg;
-  padding: $space-3xs;
 }
 
 .modeButton {

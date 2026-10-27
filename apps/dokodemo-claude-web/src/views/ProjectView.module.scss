@@ -336,9 +336,9 @@
 .cliInputWrapper {
   margin-top: $space-sm;
   flex-shrink: 0;
-  /* stylelint-disable-next-line declaration-property-value-disallowed-list -- フォーカスリングの見切れ防止に左右 1px 確保（トークン化不要な微調整） */
-  padding: 0 1px;
 
+  // 横方向の余白は持たない。下の .keyboardArea と左右端を揃えるため
+  // （入力欄まわりのフォーカス枠は内側描画なので見切れない）。
   // SP時は AI出力との間隔を詰めて操作系の縦余白も削減
   // 横方向は .cliBody の横パディング除去に合わせて自前で 0.5rem 確保
   @include sm-down {
