@@ -442,7 +442,7 @@
 }
 
 // 右列を畳んでいるときに右端へ残す縦帯。帯全体がボタンで、押すと右列を開く。
-// 畳まれた右列の中身をラベルで示し、閉じていることと戻し方を見て取れるようにする。
+// 畳まれた右列の中身をタブと同じアイコンで示し、閉じていることと戻し方を見て取れるようにする。
 .sideColStrip {
   display: none;
 
@@ -467,12 +467,6 @@
       color: $dark-text-primary;
     }
   }
-}
-
-.sideColStripLabel {
-  writing-mode: vertical-rl;
-  font-size: $font-size-xs;
-  white-space: nowrap;
 }
 
 .mobileQueue {

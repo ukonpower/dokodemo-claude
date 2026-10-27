@@ -7,6 +7,10 @@ import {
   AlertTriangle,
   CircleStop,
   Loader2,
+  Send,
+  Inbox,
+  FileText,
+  GitBranch,
 } from 'lucide-react';
 import Button from '@/shared/components/Button';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
@@ -370,9 +374,11 @@ export function ProjectView() {
                     aria-expanded={false}
                   >
                     <ChevronLeft size={14} aria-hidden />
-                    <span className={s.sideColStripLabel}>
-                      送信・受信・MD・diff
-                    </span>
+                    {/* 畳まれた右列の中身を示す。SidePanel のタブと同じアイコン・順序に揃える */}
+                    <Send size={14} aria-hidden />
+                    <Inbox size={14} aria-hidden />
+                    <FileText size={14} aria-hidden />
+                    <GitBranch size={14} aria-hidden />
                   </button>
                 )}
                 {!isSideColCollapsed && (
