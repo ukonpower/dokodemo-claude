@@ -6,10 +6,9 @@
   // 画面下部固定の RepositorySwitcher 分の余白
   padding-bottom: $space-3xl;
 
-  // モバイルでは RepositorySwitcher が画面上部固定になる
+  // モバイルでは RepositorySwitcher が流れの中で上部に貼り付くため余白は要らない
   @include sm-down {
     padding-bottom: 0;
-    padding-top: $space-3xl;
   }
 }
 
