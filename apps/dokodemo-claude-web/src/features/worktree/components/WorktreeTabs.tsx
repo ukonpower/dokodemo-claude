@@ -5,9 +5,13 @@ import {
   Home,
   Plus,
   GitMerge,
+  GitPullRequest,
+  GitPullRequestClosed,
+  GitPullRequestDraft,
   Trash2,
   ArrowLeft,
   Loader2,
+  type LucideIcon,
 } from 'lucide-react';
 import { useOutsideClose } from '@/shared/hooks/useOutsideClose';
 import {
@@ -42,39 +46,50 @@ const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
   y: 0,
 });
 
+interface PrStateVisual {
+  label: string;
+  Icon: LucideIcon;
+  colorClass: string;
+}
+
 /**
- * PR バッジに使う状態色クラスを決める。
- * - Draft は state OPEN でも灰色扱い
- * - MERGED > CLOSED の順で評価
+ * PR の状態から表示ラベル・アイコン・色クラスを決める。
+ * Draft は state が OPEN のまま isDraft で区別されるため、OPEN より先に判定する
  */
-function getPrStateClass(
-  pr: GitWorktreePrInfo,
-  styles: typeof s
-): string {
-  if (pr.isDraft && pr.state === 'OPEN') return styles.draft;
-  if (pr.state === 'OPEN') return styles.open;
-  if (pr.state === 'MERGED') return styles.merged;
-  return styles.closed;
+function getPrStateVisual(pr: GitWorktreePrInfo): PrStateVisual {
+  if (pr.state === 'OPEN' && pr.isDraft) {
+    return { label: 'Draft', Icon: GitPullRequestDraft, colorClass: s.prDraft };
+  }
+  if (pr.state === 'OPEN') {
+    return { label: 'Open', Icon: GitPullRequest, colorClass: s.prOpen };
+  }
+  if (pr.state === 'MERGED') {
+    return { label: 'Merged', Icon: GitMerge, colorClass: s.prMerged };
+  }
+  return { label: 'Closed', Icon: GitPullRequestClosed, colorClass: s.prClosed };
 }
 
-function getPrStateLabel(pr: GitWorktreePrInfo): string {
-  if (pr.isDraft && pr.state === 'OPEN') return 'Draft';
-  if (pr.state === 'OPEN') return 'Open';
-  if (pr.state === 'MERGED') return 'Merged';
-  return 'Closed';
-}
-
-interface PrBadgeProps {
+interface PrStateIconProps {
   pr: GitWorktreePrInfo;
   compact: boolean;
 }
 
 /**
- * PR 番号と状態色ドットを並べた小さなバッジ。
- * クリックは親 <a> の遷移を抑止して PR の URL を新規タブで開く。
+ * PR の状態を色付きアイコンだけで示すリンク。クリックで PR を新規タブで開く。
+ * 番号は横幅を取るので出さず、ツールチップと ⋮ メニューの「PR を開く」で補う
  */
-function PrBadge({ pr, compact }: PrBadgeProps) {
-  const tooltip = `#${pr.number} ${getPrStateLabel(pr)}\n${pr.title}`;
+function PrStateIcon({ pr, compact }: PrStateIconProps) {
+  const visual = getPrStateVisual(pr);
+  const Icon = visual.Icon;
+  const tooltip = `#${pr.number} ${visual.label}\n${pr.title}`;
+
+  let iconSize = 14;
+  let sizeClass = s.normal;
+  if (compact) {
+    iconSize = 12;
+    sizeClass = s.compact;
+  }
+
   return (
     <a
       href={pr.url}
@@ -82,18 +97,46 @@ function PrBadge({ pr, compact }: PrBadgeProps) {
       rel="noopener noreferrer"
       draggable={false}
       title={tooltip}
+      aria-label={`PR #${pr.number} ${visual.label}`}
       onClick={(e) => {
-        // PR URL を新規タブで開く（タブ切り替えは抑止）
+        // 親タブのリンクへ伝播するとワークツリー切り替えが走るため止める
         e.stopPropagation();
       }}
       onMouseDown={(e) => {
         // dnd-kit のドラッグセンサー発火を抑止
         e.stopPropagation();
       }}
-      className={`${s.prBadge} ${compact ? s.compact : ''}`}
+      className={`${s.prStateIcon} ${sizeClass} ${visual.colorClass}`}
     >
-      <span className={s.prNumber}>#{pr.number}</span>
-      <span className={`${s.prStateDot} ${getPrStateClass(pr, s)}`} />
+      <Icon size={iconSize} />
+    </a>
+  );
+}
+
+interface OpenPrMenuItemProps {
+  pr: GitWorktreePrInfo;
+  onOpen: () => void;
+}
+
+/**
+ * ⋮ メニューの「PR を開く」行。タブ上のアイコンは小さくスマホで押しにくいので、その代わりの入口
+ */
+function OpenPrMenuItem({ pr, onOpen }: OpenPrMenuItemProps) {
+  const visual = getPrStateVisual(pr);
+  const Icon = visual.Icon;
+
+  return (
+    <a
+      href={pr.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={pr.title}
+      onClick={onOpen}
+      className={`${s.menuItem} ${s.openPrItem}`}
+    >
+      <Icon className={`${s.menuItemIcon} ${visual.colorClass}`} />
+      PR を開く
+      <span className={s.menuItemPrNumber}>#{pr.number}</span>
     </a>
   );
 }
@@ -176,12 +219,12 @@ function SortableWorktreeTab({
       >
         <span className={s.tabTexts}>
           <span className={s.tabTopRow}>
+            {wt.prInfo && <PrStateIcon pr={wt.prInfo} compact={compact} />}
             <span
               className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}
             >
               {wt.branch}
             </span>
-            {wt.prInfo && <PrBadge pr={wt.prInfo} compact={compact} />}
           </span>
           {wt.memoSummary && (
             <span className={`${s.tabSummary} ${isActive ? s.active : ''}`}>
@@ -442,12 +485,12 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
                   size={compact ? 12 : 16}
                   className={`${s.mainIcon} ${compact ? s.compact : s.normal}`}
                 />
+                {mainWorktree.prInfo && (
+                  <PrStateIcon pr={mainWorktree.prInfo} compact={compact} />
+                )}
                 <span className={`${s.tabBranchName} ${compact ? s.compact : s.normal}`}>
                   {mainWorktree.branch}
                 </span>
-                {mainWorktree.prInfo && (
-                  <PrBadge pr={mainWorktree.prInfo} compact={compact} />
-                )}
               </a>
             </div>
             <div className={s.divider}></div>
@@ -556,6 +599,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
 
             return (
               <>
+                {wt.prInfo && <OpenPrMenuItem pr={wt.prInfo} onOpen={closeTabMenu} />}
                 <button
                   onClick={() => handleMergeClick(wt)}
                   className={`${s.menuItem} ${s.mergeItem}`}

@@ -329,57 +329,37 @@
   }
 }
 
-// PR バッジ：PR 番号 + 状態色ドット
-.prBadge {
+// PR の状態アイコン（ブランチ名の前に置くリンク）。
+// inline-flex にして svg の line-height 分の伸びを出さず、タブの高さを変えない
+.prStateIcon {
   display: inline-flex;
   align-items: center;
-  gap: $space-2xs;
-  margin-left: $space-xs;
-  padding: $space-3xs $space-2xs;
-  font-family: $font-mono;
-  font-size: $font-size-2xs;
-  line-height: 1.2;
-  color: $gray-300;
-  background-color: rgba($gray-700, 0.5);
-  border-radius: $radius-sm;
   flex-shrink: 0;
 
   &.compact {
-    margin-left: $space-2xs;
-    padding: 0 $space-3xs;
-    font-size: $font-size-2xs;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    margin-right: $space-xs;
   }
 }
 
-.prNumber {
-  font-weight: $font-weight-medium;
+// PR の状態色。タブのアイコンと ⋮ メニューの「PR を開く」で共用する
+.prOpen {
+  color: $emerald-400;
 }
 
-.prStateDot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: $radius-full;
-  flex-shrink: 0;
+.prDraft {
+  color: $gray-500;
+}
 
-  // OPEN (緑) — PR の状態色
-  &.open {
-    background-color: $color-success;
-  }
+.prMerged {
+  color: $purple-400;
+}
 
-  // MERGED (紫)
-  &.merged {
-    background-color: $purple-500;
-  }
-
-  // CLOSED (赤)
-  &.closed {
-    background-color: $color-error;
-  }
-
-  // DRAFT (灰)
-  &.draft {
-    background-color: $gray-400;
-  }
+.prClosed {
+  color: $red-400;
 }
 
 // 中身を flex で詰めて高さをアイコン＋padding に収める（インラインの svg だと
@@ -664,6 +644,12 @@
     color: $dark-text-secondary;
   }
 
+  // <a> で描くので、ボタン行と同じ見た目になるよう下線を消す
+  &.openPrItem {
+    color: $dark-text-secondary;
+    text-decoration: none;
+  }
+
   &.deleteItem {
     color: $color-error;
   }
@@ -673,6 +659,14 @@
   width: 1rem;
   height: 1rem;
   margin-right: $space-sm;
+}
+
+.menuItemPrNumber {
+  margin-left: auto;
+  padding-left: $space-md;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
 }
 
 // Modal styles
