@@ -194,7 +194,7 @@ function SortableWorktreeTab({
       {isDeleting ? (
         // 削除中スピナー（メニューボタンと同寸で置き換え、レイアウトを崩さない）
         <span
-          className={`${s.menuButton} ${s.deletingSpinnerWrap} ${compact ? s.compact : s.normal}`}
+          className={`${s.menuButton} ${compact ? s.compact : s.normal}`}
           aria-label="削除中"
         >
           <Loader2 size={compact ? 12 : 16} className={s.deletingSpinner} />

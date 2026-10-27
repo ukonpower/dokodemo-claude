@@ -193,12 +193,6 @@
   pointer-events: none;
 }
 
-// span 要素に .menuButton を当てて同寸表示するため、明示的に flex にする
-.deletingSpinnerWrap {
-  display: inline-flex;
-  align-items: center;
-}
-
 .deletingSpinner {
   animation: spin 1s linear infinite;
   color: $gray-400;
@@ -341,7 +335,13 @@
   }
 }
 
+// 中身を flex で詰めて高さをアイコン＋padding に収める（インラインの svg だと
+// line-height 分だけ背が伸び、hover の面がタブの上下端にくっつく）。
+// 削除中スピナーの span にも当てて同寸表示する
 .menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
   background: none;
