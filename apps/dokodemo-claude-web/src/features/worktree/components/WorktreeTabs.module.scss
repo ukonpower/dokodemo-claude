@@ -344,7 +344,7 @@
 .menuButton {
   border-radius: $radius;
   transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
-  background-color: $dark-bg-tertiary;
+  background: none;
   border: none;
   cursor: pointer;
 

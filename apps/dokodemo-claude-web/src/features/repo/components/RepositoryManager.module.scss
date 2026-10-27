@@ -337,13 +337,13 @@
 
 .menuButton {
   padding: $space-2xs;
-  background-color: $dark-bg-hover;
-  color: $gray-400;
+  background: none;
+  color: $dark-text-secondary;
   border-radius: $radius;
   transition: all $transition-normal $transition-easing;
 
   &:hover {
-    background-color: $dark-bg-active;
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
