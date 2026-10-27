@@ -185,6 +185,8 @@ dokodemo-claude のデザイントークンと使用ルールをまとめる。�
 |--------------|--------|
 | 要素を囲む | border は付けない。親より一段明るい背景を付ける（パネル=`secondary`、パネル内の区画=`$dark-bg-raised`、部品=`tertiary`、入力欄=`$dark-bg-input`） |
 | ボタン（アイコンボタン・文字だけの小ボタン） | 平常時から `tertiary` の面＋`$dark-text-secondary`。hover で `$dark-bg-hover`＋`$dark-text-primary` |
+| タブ・行の中に置く 3 点リーダー（⋮）のメニューボタン | 平常時は面なし＋`$dark-text-secondary`（タブ・行の一部に見せ、並んだときに面が点々と続かないようにする）。hover で `$dark-bg-hover`＋`$dark-text-primary`。メニューを開いている間を示すなら `$dark-bg-active` |
+| 帯に並ぶ部品の群（ブランチバーのブランチ操作・ワークツリータブ） | 帯は面なし。群ごとに `$dark-bg-raised`＋`$radius-lg`、内側 padding と部品間を `$space-3xs`。群の中のボタン・タブは平常時は面なし＋`$dark-text-secondary`、hover で `tertiary`＋`$dark-text-primary`、選択中は `$dark-bg-active`。群の外の単独ボタンは「ボタン」の扱い。部品は height で固定して端を揃える |
 | トラックに並ぶ選択肢（送信モード・ワークフロー等） | 非選択は面なし＋`$dark-text-secondary`、hover で `tertiary` の面。選択中は `$dark-bg-active` |
 | 行（一覧・メニュー項目）・タブ | 平常時は面なし。hover で面を出す |
 | 領域を区切る（ヘッダー下など） | 区切り線は引かない。余白（gap）か、片方の背景を一段変えて区切る |

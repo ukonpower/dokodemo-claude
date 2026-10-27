@@ -1,19 +1,26 @@
 @use "sass:color";
 
+// ブランチ操作の群（ブランチ選択・ahead/behind・再取得）。ブランチバーの区画として面を持ち、
+// 中のボタンは平常時は面なし・hover で面を出す。ボタンの高さはブランチバー（ProjectView）の
+// --branch-bar-item-height に揃える
 .wrapper {
   position: relative;
-  // ブランチ・同期・再取得の各ボタンが面を持つため、隣り合う面がくっつかないよう間を空ける
   display: inline-flex;
   align-items: center;
   gap: $space-3xs;
+  padding: $space-3xs;
+  background-color: $dark-bg-raised;
+  border-radius: $radius-lg;
 }
 
 .triggerButton {
   display: inline-flex;
   align-items: center;
-  padding: $space-2xs $space-sm;
+  height: var(--branch-bar-item-height);
+  // 左だけ群の padding（$space-3xs）分を詰め、ブランチアイコンの左端を CLI パネルの文字の左端（$space-sm）に揃える
+  padding: 0 $space-sm 0 $space-xs;
   font-size: $font-size-xs;
-  background-color: $dark-bg-tertiary;
+  background: none;
   border: none;
   cursor: pointer;
   font-weight: $font-weight-medium;
@@ -23,7 +30,7 @@
 
   &:hover {
     color: $dark-text-primary;
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-tertiary;
   }
 
   &:disabled {
@@ -61,12 +68,13 @@
   display: inline-flex;
   align-items: center;
   gap: $space-3xs;
-  padding: $space-2xs $space-xs;
+  height: var(--branch-bar-item-height);
+  padding: 0 $space-xs;
   min-width: 3rem;
   justify-content: center;
   font-size: $font-size-xs;
   font-family: $font-mono;
-  background-color: $dark-bg-tertiary;
+  background: none;
   border: none;
   cursor: pointer;
   color: $dark-text-secondary;
@@ -75,7 +83,7 @@
 
   &:hover {
     color: $dark-text-primary;
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-tertiary;
   }
 
   &:disabled {
@@ -103,8 +111,11 @@
 .syncRefreshButton {
   display: inline-flex;
   align-items: center;
-  padding: $space-2xs;
-  background-color: $dark-bg-tertiary;
+  justify-content: center;
+  width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅。要約ありで縦に伸びても幅は変えない
+  height: var(--branch-bar-item-height);
+  padding: 0;
+  background: none;
   border: none;
   cursor: pointer;
   color: $dark-text-secondary;
@@ -113,7 +124,7 @@
 
   &:hover {
     color: $dark-text-primary;
-    background-color: $dark-bg-hover;
+    background-color: $dark-bg-tertiary;
   }
 
   &:disabled {

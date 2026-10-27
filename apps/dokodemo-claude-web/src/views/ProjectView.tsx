@@ -267,7 +267,6 @@ export function ProjectView() {
             {/* ワークツリータブ */}
             {currentRepo && (
               <>
-                <div className={s.branchDivider} />
                 <WorktreeTabs compact={true} />
                 <button
                   type="button"
