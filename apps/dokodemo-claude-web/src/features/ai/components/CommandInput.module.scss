@@ -1,13 +1,9 @@
+// 入力欄まわりの部品（ボタン・入力欄・行）の間隔は、縦横とも $space-2xs に揃える。
+// 行の間・行の中・入力欄と履歴ボタンの間で値が違うと、同じ群の中で隙間がばらついて見えるため。
+// KeyboardButtons（SP のキー群）も同じ値に揃えている。
 .root {
-  // SP ではターミナルへ縦幅を譲るため要素間の余白を詰める
   & > * + * {
     margin-top: $space-2xs;
-  }
-
-  @include sm-up {
-    & > * + * {
-      margin-top: $space-xs; // space-y-1.5
-    }
   }
 }
 
@@ -38,7 +34,7 @@
 .skillRow {
   display: flex;
   align-items: center;
-  gap: $space-xs;
+  gap: $space-2xs;
   min-width: 0;
 }
 
@@ -234,7 +230,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: $space-xs;
+  gap: $space-2xs;
 
   // PC ではスキル行の右側へ寄せて同一行に配置
   @include lg-up {
@@ -279,17 +275,24 @@
   gap: $space-2xs;
 }
 
+// 入力欄を右の履歴ボタン列（↑↓ 2 段）と同じ高さまで伸ばし、下端を揃える
 .textareaWrapper {
   position: relative;
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  .textarea {
+    flex: 1 0 auto;
+  }
 }
 
 .historySide {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: $space-3xs;
+  gap: $space-2xs;
   flex-shrink: 0;
 }
 
@@ -455,14 +458,13 @@
   justify-content: space-between;
   gap: $space-2xs;
   padding: 0;
-  margin-top: $space-3xs;
 }
 
 .toolbarLeft,
 .toolbarRight {
   display: flex;
   align-items: center;
-  gap: $space-3xs;
+  gap: $space-2xs;
 }
 
 .hiddenFileInput {
@@ -606,7 +608,7 @@
 .sendSection {
   display: flex;
   flex-direction: column;
-  gap: $space-xs;
+  gap: $space-2xs;
 }
 
 // 上ライン: インデント（左）＋アップロード・送信（右寄せ）
@@ -614,7 +616,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $space-xs;
+  gap: $space-2xs;
 }
 
 // 上ライン右側: アップロード＋モデル＋送信をまとめて右に寄せる。
@@ -624,7 +626,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: $space-xs;
+  gap: $space-2xs;
 }
 
 // 送信行に置くモデルチップ。送信ボタンを押し出さないよう幅の上限を決め、
@@ -653,7 +655,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: $space-xs;
+  gap: $space-2xs;
 }
 
 // 修飾グループの下段グリッド（/clear | /commit の 2 等幅セル。
@@ -662,7 +664,7 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $space-xs;
+  gap: $space-2xs;
 
   // PC では各コントロールが画面幅いっぱいに間延びしないよう上限を設ける
   @include lg-up {
