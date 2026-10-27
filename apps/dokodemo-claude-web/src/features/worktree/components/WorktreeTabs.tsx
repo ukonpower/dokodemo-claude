@@ -356,7 +356,7 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
   // ワークツリーが1つ以下（メインのみ）の場合は表示しない
   if (worktrees.length <= 1 && !showCreateModal) {
     return (
-      <div className={`${s.singleRoot} ${compact ? '' : s.normal}`}>
+      <div className={`${s.singleRoot} ${compact ? s.compact : s.normal}`}>
         <div className={`${s.singleInner} ${compact ? '' : s.normal}`}>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -411,8 +411,14 @@ function WorktreeTabs({ compact = false }: WorktreeTabsProps) {
     onReorderWorktrees(arrayMove(paths, oldIndex, newIndex));
   };
 
+  // 要約付きのタブは 2 行になる。親のブランチバーはこの目印を見て帯の部品をすべて同じ高さに伸ばす
+  const hasSummary = branchWorktrees.some((wt) => Boolean(wt.memoSummary));
+
   return (
-    <div className={`${s.root} ${compact ? '' : s.normal}`}>
+    <div
+      className={`${s.root} ${compact ? s.compact : s.normal}`}
+      data-has-summary={hasSummary || undefined}
+    >
       <div className={s.tabsContainer}>
         {/* メインワークツリー（左固定） */}
         {mainWorktree && (

@@ -65,14 +65,15 @@
   }
 }
 
-// ブランチバー（ブランチ選択〜メインブランチ〜ワークツリータブを一体で横スクロール）
+// ブランチバー（ブランチ操作の群〜ワークツリータブの群〜ダッシュボードを一体で横スクロール）
+// 帯自体は面を持たず、群ごとに $dark-bg-raised の区画にする（群と群の間は余白で区切る）。
+// 部品の高さは中身から決めず --branch-bar-item-height で揃える。BranchSelector / WorktreeTabs の
+// compact 表示はこの変数を読む。群の外形は「部品の高さ＋群の内側 padding（$space-3xs）×2」
 .branchBar {
+  --branch-bar-item-height: 1.5rem; // 24px
   display: flex;
   align-items: center;
-  gap: $space-2xs;
-  background-color: rgba($gray-800, 0.5);
-  border-radius: $radius-xl;
-  padding: $space-2xs $space-xs;
+  gap: $space-sm;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -82,9 +83,10 @@
     display: none;
   }
 
-  // 左は 0 にして、ブランチ名を CLI タブ名・xterm の左端（$space-sm）に揃える
-  @include sm-up {
-    padding: $space-3xs $space-2xs $space-3xs 0;
+  // タブに要約があると 2 行になるため、帯の部品をすべて伸ばして上下の端を揃える
+  // （WorktreeTabs が要約付きタブを持つときルートに data-has-summary を付ける）
+  &:has([data-has-summary]) {
+    --branch-bar-item-height: 2.25rem; // 36px: ブランチ名＋要約の 2 行が収まる高さ
   }
 }
 
@@ -92,22 +94,16 @@
   flex-shrink: 0;
 }
 
-.branchDivider {
-  width: 1px;
-  height: 1rem;
-  background-color: rgba($gray-600, 0.5);
-  flex-shrink: 0;
-}
-
-// ダッシュボード切替ボタン（WorktreeTabs の右隣）
+// ダッシュボード切替ボタン（WorktreeTabs の右隣）。群の外の単独ボタンなので面を持ち、
+// 群の外形と同じ大きさの正方形にする
 .dashboardButton {
   display: inline-flex;
   align-items: center;
-  gap: $space-2xs;
+  justify-content: center;
   margin-left: auto;
-  padding: $space-2xs $space-sm;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
+  width: calc(var(--branch-bar-item-height) + #{$space-3xs} * 2);
+  height: calc(var(--branch-bar-item-height) + #{$space-3xs} * 2);
+  padding: 0;
   color: $dark-text-secondary;
   background-color: $dark-bg-tertiary;
   border-radius: $radius;

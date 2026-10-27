@@ -1,16 +1,46 @@
 @use "sass:color";
 
+// compact はブランチバー（ProjectView）の 1 群として区画の面を持つ。中の部品は平常時は面なし・
+// hover で面を出し、高さはブランチバーの --branch-bar-item-height に揃える
+@mixin compact-group {
+  display: flex;
+  align-items: center;
+  padding: $space-3xs;
+  background-color: $dark-bg-raised;
+  border-radius: $radius-lg;
+}
+
 // 横スクロールは親の .branchBar 側で一体的に行うため、自身は縮まず内容幅を保つ
 .root {
   flex-shrink: 0;
+
+  &.compact {
+    @include compact-group;
+
+    .tabsContainer,
+    .tabsScroll {
+      gap: $space-3xs;
+    }
+
+    // 群の中は部品間を $space-3xs で揃えるため、メインとブランチの間の余白は取らない
+    .divider {
+      display: none;
+    }
+  }
 
   &.normal {
     background-color: $gray-900;
   }
 }
 
+// ワークツリーが無いときは＋だけの群として、タブがあるときと同じ面にする
 .singleRoot {
   min-width: 0;
+
+  &.compact {
+    @include compact-group;
+    flex-shrink: 0;
+  }
 
   &.normal {
     background-color: $gray-900;
@@ -48,9 +78,15 @@
   }
 
   &.compact {
-    padding: $space-2xs $space-sm;
-    font-size: $font-size-xs;
-    line-height: 1rem;
+    justify-content: center;
+    width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅の正方形
+    height: var(--branch-bar-item-height);
+    padding: 0;
+    background: none;
+
+    &:hover {
+      background-color: $dark-bg-tertiary;
+    }
   }
 
   &.normal {
@@ -71,7 +107,6 @@
   &.compact {
     width: 0.75rem;
     height: 0.75rem;
-    margin-right: $space-2xs;
   }
 
   &.normal {
@@ -102,14 +137,19 @@
   transition: background-color $transition-fast $transition-easing;
 
   &.compactStyle {
+    height: var(--branch-bar-item-height);
     border-radius: $radius;
 
     &.active {
-      background-color: rgba($gray-700, 0.5);
+      background-color: $dark-bg-active;
     }
 
     &:not(.active):hover {
-      background-color: rgba($gray-700, 0.3);
+      background-color: $dark-bg-tertiary;
+
+      .tabButton {
+        color: $dark-text-primary;
+      }
     }
   }
 
@@ -164,14 +204,19 @@
   transition: background-color $transition-fast $transition-easing;
 
   &.compactStyle {
+    height: var(--branch-bar-item-height);
     border-radius: $radius;
 
     &.active {
-      background-color: rgba($gray-700, 0.5);
+      background-color: $dark-bg-active;
     }
 
     &:not(.active):hover {
-      background-color: rgba($gray-700, 0.3);
+      background-color: $dark-bg-tertiary;
+
+      .tabButton {
+        color: $dark-text-primary;
+      }
     }
   }
 
@@ -224,8 +269,10 @@
     cursor: not-allowed;
   }
 
+  // 高さはタブ（.compactStyle）側で決め、リンクはその高さいっぱいに広げてクリック範囲にする
   &.compact {
-    padding: $space-2xs $space-sm;
+    align-self: stretch;
+    padding: 0 $space-sm;
     font-size: $font-size-xs;
     line-height: 1rem;
   }
@@ -241,10 +288,10 @@
   }
 
   &:not(.active) {
-    color: $gray-400;
+    color: $dark-text-secondary;
 
     &:hover {
-      color: $gray-200;
+      color: $dark-text-primary;
     }
   }
 }
@@ -411,7 +458,15 @@
   }
 
   &.compact {
-    padding: $space-2xs;
+    justify-content: center;
+    width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅の正方形
+    height: var(--branch-bar-item-height);
+    padding: 0;
+    background: none;
+
+    &:hover {
+      background-color: $dark-bg-tertiary;
+    }
   }
 
   &.normal {
