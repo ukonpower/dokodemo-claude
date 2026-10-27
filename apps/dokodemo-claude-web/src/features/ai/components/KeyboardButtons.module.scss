@@ -6,12 +6,14 @@
 
 // 左=矢印キー+Enter群 / 右=コマンド群 を横並びにする。
 // 折り返さず左寄せにし、コマンド群（2×2）を常に Enter の右余白に収める。
+// キー群の中もコマンド群の中も、群どうしの間も $space-2xs に揃え、全体を 1 枚のキー配列として見せる
+// （CommandInput の部品間隔と同じ値）。
 .mainRow {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: $space-sm;
+  gap: $space-2xs;
 }
 
 // PC（lg 以上）専用のコマンドバー。
@@ -21,7 +23,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
-  gap: $space-xs;
+  gap: $space-2xs;
 
   // ネストしたカスタム行（.row）を中央寄せせず素直にインライン整列させる
   .row {
@@ -52,7 +54,7 @@
 .commandGroup {
   display: flex;
   align-items: stretch;
-  gap: $space-xs;
+  gap: $space-2xs;
   flex: 1 1 auto;
   min-width: 0;
   align-self: stretch;
@@ -65,28 +67,20 @@
   .coreCommandRow {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: $space-xs;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    // 単独で使う .coreCommandRow（PC のコマンドバー）の align-items: center を打ち消す
+    align-items: stretch;
+    gap: $space-2xs;
     width: 100%;
     min-width: 0;
 
-    // 各セルを列いっぱいに広げて 2×2 を揃える
+    // 各セルを行・列いっぱいに広げる。固定高のままだと Enter の高さに合わせて伸びた行の中で
+    // ボタンが上に寄り、縦の隙間だけ横より広く見える。伸ばすと上段は ↑、下段は ←↓→ と同じ段に揃う
     & > button {
       width: 100%;
+      height: auto;
       min-width: 0;
     }
-  }
-}
-
-.divider {
-  width: 1px;
-  height: 4rem;
-  background-color: $gray-600;
-  flex: 0 0 auto;
-  align-self: center;
-
-  // PC（sideCol 280px固定）では区切り線非表示。md までは表示し続ける
-  @include lg-up {
-    display: none;
   }
 }
 
@@ -130,7 +124,8 @@
 .enterButton {
   @include flex-center;
   width: 3rem;
-  height: 4.75rem; // 矢印キー2段分 (2.25rem * 2 + gap 0.25rem)
+  // 矢印キー 2 段分（.arrowKey の高さ × 2 + .arrowGrid の gap）
+  height: calc(2.25rem * 2 + #{$space-2xs});
   background-color: $dark-bg-tertiary;
   border: none;
   border-radius: $radius;
@@ -165,7 +160,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: $space-xs;
+  gap: $space-2xs;
   flex: 0 1 auto;
 
   & > button {
@@ -179,7 +174,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: $space-xs;
+  gap: $space-2xs;
 
   & > * {
     flex: 0 1 auto;

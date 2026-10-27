@@ -6,10 +6,9 @@
   // 画面下部固定の RepositorySwitcher 分の余白
   padding-bottom: $space-3xl;
 
-  // モバイルでは RepositorySwitcher が画面上部固定になる
+  // モバイルでは RepositorySwitcher が流れの中で上部に貼り付くため余白は要らない
   @include sm-down {
     padding-bottom: 0;
-    padding-top: $space-3xl;
   }
 }
 
@@ -256,7 +255,7 @@
 .cliInnerRowFullscreen {
   position: fixed;
   inset: 0;
-  // RepoHeader (z-index: 60) より上に出す
+  // RepoHeader（60）・SP のプロジェクト切り替えタブ（70）・モーダル（80）より上に出す
   z-index: 100;
   background-color: $dark-bg-secondary;
   padding: $space-sm;
@@ -513,7 +512,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
   padding: $space-lg;
 }
 

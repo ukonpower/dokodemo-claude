@@ -3,7 +3,8 @@
   inset: 0;
   background-color: rgba(0, 0, 0, 0.8);
   @include flex-center;
-  z-index: 50;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
   padding: $space-lg;
 }
 

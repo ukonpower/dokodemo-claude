@@ -7,10 +7,18 @@
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   z-index: 50;
 
-  // モバイルでは画面上部に固定
+  // モバイルでは画面上部に貼り付ける。fixed にするとページ側で高さ分の余白を見込みで確保する必要があり、
+  // 実際の高さ（ピルの中身で変わる）とずれた分だけヘッダーとの隙間が広がる。
+  // sticky にして流れの中に置き、ヘッダーとの隙間を .swiper の下余白だけにする。
+  // 置き場所の各ビュー（ProjectView / HomeView / DashboardView）では末尾に描画しているため、order で先頭に出す
+  // （親が flex の縦並びであること前提）
   @include sm-down {
+    position: sticky;
     top: 0;
     bottom: auto;
+    order: -1;
+    // スクロールで下から上がってくる RepoHeader（60）より手前に出す。モーダルの overlay（80）よりは奥
+    z-index: 70;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 

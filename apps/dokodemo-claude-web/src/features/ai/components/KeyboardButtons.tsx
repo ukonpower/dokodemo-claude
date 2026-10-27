@@ -457,8 +457,6 @@ export const KeyboardButtons: React.FC<KeyboardButtonsProps> = ({
             </button>
           </div>
 
-          <div className={s.divider}></div>
-
           <div className={s.commandGroup}>{coreCommandButtons}</div>
         </div>
       )}

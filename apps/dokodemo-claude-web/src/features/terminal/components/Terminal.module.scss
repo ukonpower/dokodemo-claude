@@ -300,7 +300,9 @@
 .fullscreenOverlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  // AI CLI の全画面表示（ProjectView の .cliInnerRowFullscreen）と同じ段。
+  // RepoHeader（60）・SP のプロジェクト切り替えタブ（70）・モーダル（80）より上に出す
+  z-index: 100;
   background-color: $dark-bg-primary;
   display: flex;
   flex-direction: column;
