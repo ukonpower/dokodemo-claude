@@ -191,3 +191,20 @@
   width: 14px;
   height: 14px;
 }
+
+// 白紙キャンバス上の案内文。描画の邪魔をしないよう操作は素通しにする
+.notice {
+  position: absolute;
+  top: $space-md;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - #{$space-lg} * 2);
+  margin: 0;
+  padding: $space-xs $space-md;
+  font-size: $font-size-xs;
+  text-align: center;
+  color: rgba(white, 0.85);
+  background-color: rgba($dark-bg-primary, 0.8);
+  border-radius: $radius-full;
+  pointer-events: none;
+}

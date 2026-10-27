@@ -5,6 +5,7 @@ import React, {
   useState,
 } from 'react';
 import { X, Check, Undo2, Redo2, Trash2, Maximize } from 'lucide-react';
+import { findImageFileInClipboardData } from '@/features/ai/utils/clipboard-image';
 import s from './DrawingCanvas.module.scss';
 
 interface DrawingCanvasProps {
@@ -14,6 +15,13 @@ interface DrawingCanvasProps {
   onClose: () => void;
   /** 完了時に合成PNGを受け取る */
   onComplete: (file: File) => void;
+  /**
+   * 開いている間に画像が貼り付けられたとき、その画像を受け取る。
+   * 背景の差し替えは呼び出し側が backgroundImageUrl を更新して行う。未指定なら貼り付けを扱わない
+   */
+  onPasteImage?: (file: File) => void;
+  /** 白紙で何も描いていない間だけキャンバス上に出す案内文 */
+  notice?: string | null;
 }
 
 interface Point {
@@ -126,6 +134,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   backgroundImageUrl,
   onClose,
   onComplete,
+  onPasteImage,
+  notice,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -526,6 +536,28 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     redrawAll();
   }, [redrawAll]);
 
+  // 画像の貼り付けで背景を差し替える。
+  // capture 段階で拾って伝播を止め、背面の入力欄の paste ハンドラ（アップロード処理）と二重に動かないようにする
+  useEffect(() => {
+    if (!isOpen || !onPasteImage) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const file = findImageFileInClipboardData(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // 描き込みは差し替え前の画像の座標で持っているため新しい背景には引き継げない。黙って消さずに確認する
+      if (strokesRef.current.length > 0) {
+        const confirmed = window.confirm(
+          '描いた内容を破棄して、貼り付けた画像に差し替えますか？'
+        );
+        if (!confirmed) return;
+      }
+      onPasteImage(file);
+    };
+    window.addEventListener('paste', handlePaste, true);
+    return () => window.removeEventListener('paste', handlePaste, true);
+  }, [isOpen, onPasteImage]);
+
   // undo / redo のショートカット。開いている間だけ有効
   useEffect(() => {
     if (!isOpen) return;
@@ -586,6 +618,11 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   if (!isOpen) return null;
 
+  let showNotice = false;
+  if (notice && !backgroundImageUrl && strokeCount === 0) {
+    showNotice = true;
+  }
+
   return (
     <div className={s.backdrop}>
       {/* ヘッダー */}
@@ -623,6 +660,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <div ref={wrapperRef} className={s.canvasWrapper}>
           <canvas ref={canvasRef} className={s.canvas} />
         </div>
+        {showNotice && <p className={s.notice}>{notice}</p>}
       </div>
 
       {/* ツールバー */}
