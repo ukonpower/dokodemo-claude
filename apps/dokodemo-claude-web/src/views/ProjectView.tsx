@@ -1,15 +1,14 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import {
   LayoutDashboard,
-  PanelRightClose,
-  PanelRightOpen,
+  ChevronLeft,
+  ChevronRight,
   Terminal,
   AlertTriangle,
   CircleStop,
   Loader2,
 } from 'lucide-react';
 import Button from '@/shared/components/Button';
-import IconButton from '@/shared/components/IconButton';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useSocketContext } from '@/app/providers/SocketProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
@@ -295,28 +294,6 @@ export function ProjectView() {
               <div className={s.cliTabsScroll}>
                 <AiInstanceTabs />
               </div>
-              {/* 全画面切替と右列パネルの折りたたみトグル */}
-              <div className={s.cliTabActions}>
-                {/* 右列（送信/受信/MD/Git）の折りたたみトグル。PC でのみ表示し、
-                    畳むと CLI がその分だけ横に広がる（状態はリポジトリ単位で保存） */}
-                <IconButton
-                  size="xs"
-                  className={s.sideColToggle}
-                  onClick={handleToggleSideCol}
-                  label={
-                    isSideColCollapsed
-                      ? '送信・受信パネルを表示'
-                      : '送信・受信パネルを畳んで CLI を広げる'
-                  }
-                  aria-pressed={isSideColCollapsed}
-                >
-                  {isSideColCollapsed ? (
-                    <PanelRightOpen />
-                  ) : (
-                    <PanelRightClose />
-                  )}
-                </IconButton>
-              </div>
             </div>
 
             <div className={s.cliBody}>
@@ -380,6 +357,39 @@ export function ProjectView() {
                     </div>
                   )}
                 </div>
+
+                {/* 右列の開閉。操作対象と結びついて見えるよう、開いている間は
+                    CLI と右列の境目に取っ手を、畳んでいる間は右端に帯を置く。
+                    折りたたみは PC（lg 以上）だけの機能なので、どちらも lg 未満では隠す */}
+                {isSideColCollapsed && (
+                  <button
+                    type="button"
+                    className={s.sideColStrip}
+                    onClick={handleToggleSideCol}
+                    title="右列を開く"
+                    aria-label="右列を開く"
+                    aria-expanded={false}
+                  >
+                    <ChevronLeft size={14} aria-hidden />
+                    <span className={s.sideColStripLabel}>
+                      送信・受信・MD・diff
+                    </span>
+                  </button>
+                )}
+                {!isSideColCollapsed && (
+                  <div className={s.sideColBoundary}>
+                    <button
+                      type="button"
+                      className={s.sideColHandle}
+                      onClick={handleToggleSideCol}
+                      title="右列を畳む"
+                      aria-label="右列を畳む"
+                      aria-expanded={true}
+                    >
+                      <ChevronRight size={12} aria-hidden />
+                    </button>
+                  </div>
+                )}
 
                 {/* 右列：SidePanel（lg 未満では縦積み最下部・全幅） */}
                 <div

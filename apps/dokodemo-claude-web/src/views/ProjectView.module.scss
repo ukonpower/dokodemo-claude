@@ -194,14 +194,6 @@
   align-items: stretch;
 }
 
-// 出力操作ボタン群（旧 AiOutput ヘッダーから統合・cliTabBar 右端）
-.cliTabActions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: $space-2xs;
-}
-
 .sectionTitle {
   font-size: $font-size-xs;
   font-weight: $font-weight-medium;
@@ -244,8 +236,10 @@
   gap: $space-sm;
   overflow: hidden;
 
+  // 横並び時の列間は .sideColBoundary（開時）/ .sideColStrip の左余白（閉時）が受け持つ
   @include lg-up {
     flex-direction: row;
+    gap: 0;
   }
 }
 
@@ -279,8 +273,10 @@
     min-height: 12rem;
   }
 
-  // 全画面表示中は送信・受信パネル（右列）を隠し、CLI を全幅で使う
-  .sideCol {
+  // 全画面表示中は送信・受信パネル（右列）とその開閉の取っ手・帯を隠し、CLI を全幅で使う
+  .sideCol,
+  .sideColBoundary,
+  .sideColStrip {
     display: none;
   }
 
@@ -401,13 +397,86 @@
   }
 }
 
-// 右列の折りたたみトグルボタン。折りたたみが意味を持つ PC（lg 以上）でのみ表示する。
-.sideColToggle {
+// 右列が開いているときの CLI と右列の境目。上下いっぱいの細線の縦中央に取っ手を重ね、
+// 取っ手が何を開け閉めするのかを位置で示す。
+// 幅は取っ手（14px）が収まる最小限に留め、従来の列間（$space-sm）からの CLI 幅の減りを抑える。
+// 折りたたみは PC（lg 以上）だけの機能なので、それ未満では出さない。
+.sideColBoundary {
   display: none;
 
   @include lg-up {
-    display: inline-flex;
+    position: relative;
+    flex-shrink: 0;
+    width: $space-lg;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+
+  // 列の区切りを示す線。取っ手の背面に通すため疑似要素で描く
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background-color: $dark-border-light;
+  }
+}
+
+// 境目の取っ手（押すと右列を畳む）
+.sideColHandle {
+  @include flex-center;
+  position: relative;
+  width: 14px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: $radius-sm;
+  background-color: $dark-bg-hover;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-active;
+    color: $dark-text-primary;
+  }
+}
+
+// 右列を畳んでいるときに右端へ残す縦帯。帯全体がボタンで、押すと右列を開く。
+// 畳まれた右列の中身をラベルで示し、閉じていることと戻し方を見て取れるようにする。
+.sideColStrip {
+  display: none;
+
+  @include lg-up {
+    flex-shrink: 0;
+    width: 24px;
+    margin-left: $space-sm;
+    padding: $space-sm 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-sm;
+    border: none;
+    border-radius: $radius-lg;
+    background-color: $dark-bg-raised;
+    color: $dark-text-secondary;
+    cursor: pointer;
+    transition: all $transition-fast $transition-easing;
+
+    &:hover {
+      background-color: $dark-bg-hover;
+      color: $dark-text-primary;
+    }
+  }
+}
+
+.sideColStripLabel {
+  writing-mode: vertical-rl;
+  font-size: $font-size-xs;
+  white-space: nowrap;
 }
 
 .mobileQueue {
