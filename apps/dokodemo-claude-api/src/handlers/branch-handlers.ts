@@ -420,11 +420,20 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         branchName,
       });
 
-      socket.emit('worktree-deleted', {
+      // 成功は全クライアントへ通知する。削除したワークツリーを別タブ・別端末で
+      // 開いているクライアントが親リポへ戻れないと、中身の無い画面で固まるため。
+      // 失敗は操作したクライアントにだけエラー表示させる。
+      const deletedPayload = {
         ...result,
         wtid,
         worktreePath,
-      });
+        parentRepoPath,
+      };
+      if (result.success) {
+        ctx.io.emit('worktree-deleted', deletedPayload);
+      } else {
+        socket.emit('worktree-deleted', deletedPayload);
+      }
 
       if (result.success) {
         // 削除したワークツリーのメモも掃除する
