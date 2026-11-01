@@ -242,6 +242,7 @@ export interface ServerToClientEvents {
     message: string;
     wtid?: string; // ワークツリーID（必須）
     worktreePath?: string; // 削除されたワークツリーのパス
+    parentRepoPath?: string; // 削除されたワークツリーの親リポジトリのパス
   }) => void;
   'worktree-merged': (data: {
     success: boolean;

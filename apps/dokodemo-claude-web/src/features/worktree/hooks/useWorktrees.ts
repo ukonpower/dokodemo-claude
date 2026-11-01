@@ -240,7 +240,9 @@ export function useWorktrees(
           setWorktrees((prev) => prev.filter((wt) => wt.path !== deletedPath));
 
           const currentPath = currentRepoRef.current;
-          const parentPath = parentRepoPathRef.current;
+          // 他クライアントが削除した場合は worktrees-list を受け取る前でも戻れるよう、
+          // イベントに載っている親パスを優先する
+          const parentPath = data.parentRepoPath || parentRepoPathRef.current;
           // 削除した worktree が「次回ホームから開く先」として保存されていれば
           // 親リポへ戻す（stale な参照で broken state にならないように）。
           if (
