@@ -1,0 +1,409 @@
+@use "sass:color";
+
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabBar {
+  background-color: $gray-900;
+  padding: $space-sm $space-sm;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  flex-shrink: 0;
+
+  & > * + * {
+    margin-left: $space-2xs;
+  }
+
+  @include sm-up {
+    padding: $space-sm $space-lg;
+  }
+}
+
+.tab {
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  border-radius: $radius $radius 0 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  min-width: 0;
+  cursor: pointer;
+  transition: all $transition-normal $transition-easing;
+
+  & > * + * {
+    margin-left: $space-2xs;
+  }
+
+  @include sm-up {
+    padding: $space-2xs $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+
+    & > * + * {
+      margin-left: $space-sm;
+    }
+  }
+
+  &.active {
+    background-color: $dark-bg-active;
+    color: $dark-text-primary;
+    font-weight: $font-weight-bold;
+    box-shadow: $shadow-lg;
+  }
+
+  &:not(.active) {
+    background-color: $dark-bg-tertiary;
+    color: $gray-300;
+
+    &:hover {
+      background-color: $dark-bg-hover;
+    }
+  }
+}
+
+.tabDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+
+  &.active {
+    background-color: $color-success;
+  }
+
+  &.exited {
+    background-color: $color-error;
+  }
+
+  &.other {
+    background-color: $color-warning;
+  }
+}
+
+.tabName {
+  @include truncate;
+  max-width: 5rem;
+
+  @include sm-up {
+    max-width: none;
+  }
+}
+
+.tabClose {
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  margin-left: $space-2xs;
+  flex-shrink: 0;
+  color: $gray-300;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-error;
+  }
+}
+
+.newTerminalButton {
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  background-color: $dark-bg-tertiary;
+  color: $gray-100;
+  border-radius: $radius;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  & > * + * {
+    margin-left: $space-2xs;
+  }
+
+  @include sm-up {
+    padding: $space-2xs $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    background-color: $gray-900;
+    color: $gray-500;
+    cursor: not-allowed;
+  }
+}
+
+.newTerminalLabel {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.terminalBody {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminalContentArea {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+}
+
+.emptyState {
+  height: 100%;
+  background-color: $gray-900;
+  @include flex-center;
+}
+
+.createTerminalButton {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $dark-text-secondary;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.createTerminalPrompt {
+  color: $dark-text-muted;
+  font-family: $font-mono;
+}
+
+.terminalPane {
+  position: absolute;
+  inset: 0;
+}
+
+// Shortcuts section
+.shortcutsSection {
+  background-color: $dark-bg-secondary;
+  flex-shrink: 0;
+}
+
+.shortcutsHeader {
+  padding: $space-xs $space-md;
+}
+
+.shortcutsHeaderInner {
+  @include flex-between;
+}
+
+.shortcutsTitle {
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: $font-weight-medium;
+  color: $gray-200;
+  display: flex;
+  align-items: center;
+}
+
+.shortcutsIcon {
+  margin-right: $space-sm;
+  color: $gray-400;
+}
+
+.addShortcutButton {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  background-color: $accent;
+  color: $accent-fg;
+  border-radius: $radius;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: $space-2xs;
+  }
+
+  &:hover {
+    background-color: $accent-hover;
+  }
+
+  &:disabled {
+    background-color: $gray-600;
+    cursor: not-allowed;
+  }
+}
+
+.addShortcutLabel {
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.shortcutsContent {
+  padding: $space-xs $space-md;
+  max-height: 7rem;
+  overflow-y: auto;
+}
+
+.shortcutForm {
+  margin-bottom: $space-sm;
+  padding: $space-sm;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius-lg;
+}
+
+.shortcutFormInner {
+  display: flex;
+  flex-direction: column;
+
+  & > * + * {
+    margin-top: $space-sm;
+  }
+}
+
+.shortcutInput {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  background-color: $dark-bg-input;
+  color: white;
+  border: none;
+  border-radius: $radius;
+
+  &:focus {
+    outline: 1px solid $focus-ring-input;
+    outline-offset: -1px;
+  }
+}
+
+.shortcutFormButtons {
+  display: flex;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.shortcutsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-xs;
+}
+
+.shortcutItem {
+  display: flex;
+  align-items: center;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  overflow: hidden;
+
+  & > * + * {
+    margin-left: $space-2xs;
+  }
+}
+
+.shortcutExecuteButton {
+  padding: $space-xs $space-sm;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    background-color: $dark-bg-tertiary;
+    cursor: not-allowed;
+  }
+}
+
+.shortcutExecIcon {
+  color: $gray-400;
+}
+
+.shortcutName {
+  font-weight: $font-weight-medium;
+}
+
+.shortcutCommand {
+  color: $gray-400;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.shortcutDeleteButton {
+  padding: $space-xs;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $color-error;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: color.adjust($color-error, $lightness: 10%);
+    background-color: rgba($color-error, 0.1);
+  }
+}
+
+.emptyShortcuts {
+  text-align: center;
+  padding: $space-sm 0;
+}
+
+.emptyShortcutsText {
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $gray-400;
+}
+
+.emptyShortcutsHint {
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  color: $gray-500;
+  margin-top: $space-3xs;
+}

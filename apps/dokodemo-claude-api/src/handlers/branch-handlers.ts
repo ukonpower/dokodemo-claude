@@ -18,6 +18,7 @@ import {
 } from '../utils/git-utils.js';
 import { getWorktreePrsByBranch } from '../utils/gh-utils.js';
 import { startBranchWatching } from '../services/branch-watcher.js';
+import { worktreeMemoSummaryService } from '../services/worktree-memo-summary-service.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { resolveRepositoryPath } from '../utils/resolve-repository-path.js';
@@ -73,7 +74,12 @@ export function addWorktreeIds(
   for (const wt of worktrees) {
     const wtid = repositoryIdManager.tryGetId(wt.path);
     if (wtid === undefined) continue;
-    result.push({ ...wt, wtid, memo: memoManager?.get(wt.path) });
+    result.push({
+      ...wt,
+      wtid,
+      memo: memoManager?.get(wt.path),
+      memoSummary: worktreeMemoSummaryService.getSummary(wt.path),
+    });
   }
   if (parentRepoPath && sortOrderManager) {
     return sortOrderManager.applyOrder(parentRepoPath, result);
@@ -414,11 +420,20 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         branchName,
       });
 
-      socket.emit('worktree-deleted', {
+      // 成功は全クライアントへ通知する。削除したワークツリーを別タブ・別端末で
+      // 開いているクライアントが親リポへ戻れないと、中身の無い画面で固まるため。
+      // 失敗は操作したクライアントにだけエラー表示させる。
+      const deletedPayload = {
         ...result,
         wtid,
         worktreePath,
-      });
+        parentRepoPath,
+      };
+      if (result.success) {
+        ctx.io.emit('worktree-deleted', deletedPayload);
+      } else {
+        socket.emit('worktree-deleted', deletedPayload);
+      }
 
       if (result.success) {
         // 削除したワークツリーのメモも掃除する
@@ -462,6 +477,7 @@ export function registerBranchHandlers(ctx: HandlerContext): void {
         success: false,
         message: `ワークツリー削除エラー: ${error instanceof Error ? error.message : '不明なエラー'}`,
         wtid,
+        worktreePath,
       });
     }
   });

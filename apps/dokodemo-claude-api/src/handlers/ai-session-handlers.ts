@@ -3,6 +3,7 @@ import type { HandlerContext, TypedServer, TypedSocket } from './types.js';
 import type { AiProvider, AiOutputLine } from '../types/index.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { aiActivitySummaryService } from '../services/ai-activity-summary-service.js';
+import { worktreeMemoSummaryService } from '../services/worktree-memo-summary-service.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import type { AiInstance } from '../types/index.js';
 
@@ -401,6 +402,10 @@ export function registerAiSessionHandlers(ctx: HandlerContext): void {
   socket.on('set-ai-summary-settings', async (data) => {
     try {
       await aiActivitySummaryService.setEnabled(data.enabled);
+      if (data.enabled) {
+        // off の間に変わったワークツリーメモの要約を生成し直す（設定は共用）
+        await worktreeMemoSummaryService.reconcile();
+      }
     } catch (error) {
       console.error('指示内容要約設定の保存に失敗:', error);
     }

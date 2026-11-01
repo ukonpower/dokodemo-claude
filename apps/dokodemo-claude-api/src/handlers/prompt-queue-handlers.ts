@@ -25,6 +25,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
       prompt,
       sendClearBefore,
       isAutoCommit,
+      isAutoCommitPush,
       isCodexReview,
       model,
       loop,
@@ -39,6 +40,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
         prompt,
         sendClearBefore,
         isAutoCommit,
+        isAutoCommitPush,
         model,
         isCodexReview,
         loop
@@ -89,6 +91,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
       prompt,
       sendClearBefore,
       isAutoCommit,
+      isAutoCommitPush,
       isCodexReview,
       model,
       loop,
@@ -104,6 +107,7 @@ export function registerPromptQueueHandlers(ctx: HandlerContext): void {
         prompt,
         sendClearBefore,
         isAutoCommit,
+        isAutoCommitPush,
         model,
         isCodexReview,
         loop

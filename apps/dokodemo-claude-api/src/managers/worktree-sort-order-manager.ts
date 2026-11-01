@@ -89,6 +89,14 @@ export class WorktreeSortOrderManager {
     return Ok(sanitized);
   }
 
+  /**
+   * リポジトリ削除時の後始末用。並び順の記録を破棄する。
+   */
+  async remove(parentRepoPath: string): Promise<void> {
+    if (!this.orders.delete(parentRepoPath)) return;
+    await this.persist();
+  }
+
   private async persist(): Promise<Result<void, PersistenceError>> {
     const data: Record<string, string[]> = {};
     for (const [key, paths] of this.orders.entries()) {

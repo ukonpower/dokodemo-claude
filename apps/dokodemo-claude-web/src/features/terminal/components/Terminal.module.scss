@@ -1,0 +1,384 @@
+.root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background-color: $dark-bg-secondary;
+  padding: $space-sm $space-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  flex-shrink: 0;
+}
+
+.headerInfo {
+  @include flex-between;
+}
+
+.terminalInfo {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.statusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+
+  &.active {
+    background-color: $color-success;
+  }
+
+  &.exited {
+    background-color: $color-error;
+  }
+
+  &.other {
+    background-color: $color-warning;
+  }
+}
+
+.terminalName {
+  color: $gray-300;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  @include truncate;
+}
+
+.terminalCwd {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  @include truncate;
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.terminalPid {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  display: none;
+
+  @include sm-up {
+    display: inline;
+  }
+}
+
+.headerButtons {
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.iconButton {
+  @include flex-center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  color: white;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
+  }
+}
+
+.terminalMain {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: 100%;
+  background-color: $dark-bg-primary;
+  position: relative;
+}
+
+.keyboardControls {
+  background-color: $dark-bg-secondary;
+  padding: $space-md;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.controlsInner {
+  display: flex;
+  align-items: center;
+  gap: $space-lg;
+}
+
+.arrowGroup {
+  display: flex;
+  align-items: flex-end;
+  gap: $space-2xs;
+}
+
+.arrowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $space-2xs;
+}
+
+.arrowKey {
+  @include flex-center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.enterKey {
+  @include flex-center;
+  width: 3rem;
+  height: 76px;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-lg;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.divider {
+  height: 4rem;
+  width: 1px;
+  background-color: $gray-600;
+}
+
+.rightGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.rightTopRow {
+  display: flex;
+  gap: $space-2xs;
+}
+
+.funcKey {
+  @include flex-center;
+  width: 3rem;
+  height: 2.25rem;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $dark-text-primary;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &.escKey {
+    color: $color-error;
+  }
+}
+
+.ctrlCKey {
+  @include flex-center;
+  height: 2.25rem;
+  width: 100%;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: $gray-400;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.inputArea {
+  background-color: $dark-bg-secondary;
+  padding: $space-sm $space-sm;
+  flex-shrink: 0;
+
+  @include sm-up {
+    padding: $space-sm $space-md;
+  }
+}
+
+.inputForm {
+  display: flex;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.textInput {
+  flex: 1 1 0%;
+  background-color: $dark-bg-input;
+  color: white;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  border: none;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  transition: all $transition-fast $transition-easing;
+
+  &:focus {
+    outline: 1px solid $focus-ring-input;
+    outline-offset: -1px;
+  }
+}
+
+.submitButton {
+  padding: $space-2xs $space-md;
+  background-color: $accent;
+  color: $accent-fg;
+  border-radius: $radius;
+  border: none;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background-color: $accent-hover;
+  }
+}
+
+// Fullscreen overlay
+.fullscreenOverlay {
+  position: fixed;
+  inset: 0;
+  // AI CLI の全画面表示（ProjectView の .cliInnerRowFullscreen）と同じ段。
+  // RepoHeader（60）・SP のプロジェクト切り替えタブ（70）・モーダル（80）より上に出す
+  z-index: 100;
+  background-color: $dark-bg-primary;
+  display: flex;
+  flex-direction: column;
+  transition: all $transition-normal $transition-easing;
+}
+
+.fullscreenHeader {
+  padding: $space-md $space-lg;
+  background-color: $dark-bg-secondary;
+  @include flex-between;
+}
+
+.fullscreenHeaderLeft {
+  display: flex;
+  align-items: center;
+
+  & > * + * {
+    margin-left: $space-sm;
+  }
+}
+
+.fullscreenLabel {
+  color: $gray-300;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+}
+
+.fullscreenCwd {
+  color: $gray-500;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+}
+
+.fullscreenCloseButton {
+  @include flex-center;
+  width: 2rem;
+  height: 2rem;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  color: white;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
+  }
+}
+
+.fullscreenTerminal {
+  flex: 1 1 0%;
+  min-height: 0;
+  position: relative;
+}
+
+.fullscreenScrollButton {
+  @include flex-center;
+  height: 2.25rem;
+  padding: 0 $space-md;
+  background-color: $dark-bg-tertiary;
+  border-radius: $radius;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-family: $font-mono;
+  color: white;
+  touch-action: manipulation;
+  box-shadow: $shadow-md;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  gap: $space-2xs;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}

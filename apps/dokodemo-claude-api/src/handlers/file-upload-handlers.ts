@@ -14,6 +14,22 @@ import type { FileSource, UploadedFileInfo } from '../types/index.js';
 // プレビューAPI: raw binary POST受け取り時の上限
 const PREVIEW_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
+// 拡張子由来の Content-Type ではブラウザが inline 表示せずダウンロードになる
+// テキスト系拡張子（例: .md → text/markdown、.ts → video/mp2t、.tsx → octet-stream）。
+// download なしの取得時は text/plain に差し替えてブラウザ内で表示できるようにする
+const TEXT_PREVIEW_EXTENSIONS = new Set([
+  '.md',
+  '.markdown',
+  '.csv',
+  '.tsv',
+  '.yml',
+  '.yaml',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.sh',
+]);
+
 /**
  * GET /api/media/:rid
  */
@@ -51,6 +67,15 @@ export const getFileHandler: RequestHandler = async (req, res) => {
   // ?download=1 でブラウザにダウンロードとして扱わせる（Content-Disposition: attachment）
   if (req.query.download !== undefined) {
     res.download(filePath, filename, onError);
+    return;
+  }
+
+  if (TEXT_PREVIEW_EXTENSIONS.has(path.extname(filename).toLowerCase())) {
+    res.sendFile(
+      filePath,
+      { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+      onError
+    );
     return;
   }
 
@@ -286,7 +311,7 @@ export function registerFileRoutes(app: Express, io: TypedServer): void {
  * Socket.IOイベントハンドラーを登録
  */
 export function registerFileHandlers(ctx: HandlerContext): void {
-  const { socket } = ctx;
+  const { socket, io } = ctx;
 
   socket.on('get-files', async (data) => {
     const { rid } = data;
@@ -301,6 +326,18 @@ export function registerFileHandlers(ctx: HandlerContext): void {
       ...result,
       rid,
       filename,
+    });
+  });
+
+  // アップロードファイルの一括削除。
+  // 他タブの一覧も追従させるため結果は全クライアントへ配信する。
+  socket.on('delete-all-files', async (data) => {
+    const { rid, source } = data;
+    const result = await fileManager.deleteAllFiles(rid, source);
+    io.emit('files-cleared', {
+      ...result,
+      rid,
+      source,
     });
   });
 }

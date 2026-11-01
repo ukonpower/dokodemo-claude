@@ -1,0 +1,742 @@
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { X, Check, Undo2, Redo2, Trash2, Maximize } from 'lucide-react';
+import { findImageFileInClipboardData } from '@/features/ai/utils/clipboard-image';
+import s from './DrawingCanvas.module.scss';
+
+interface DrawingCanvasProps {
+  isOpen: boolean;
+  /** 赤入れ対象の画像URL。未指定なら白紙キャンバス */
+  backgroundImageUrl?: string | null;
+  onClose: () => void;
+  /** 完了時に合成PNGを受け取る */
+  onComplete: (file: File) => void;
+  /**
+   * 開いている間に画像が貼り付けられたとき、その画像を受け取る。
+   * 背景の差し替えは呼び出し側が backgroundImageUrl を更新して行う。未指定なら貼り付けを扱わない
+   */
+  onPasteImage?: (file: File) => void;
+  /** 白紙で何も描いていない間だけキャンバス上に出す案内文 */
+  notice?: string | null;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Stroke {
+  color: string;
+  width: number;
+  points: Point[];
+}
+
+const PEN_COLORS = [
+  '#ef4444', // 赤（デフォルト）
+  '#3b82f6', // 青
+  '#eab308', // 黄
+  '#111827', // 黒
+  '#ffffff', // 白
+];
+
+interface PenSize {
+  id: 'thin' | 'medium' | 'thick';
+  label: string;
+  /** キャンバス短辺に対する線幅の比率 */
+  ratio: number;
+  /** ツールバーで太さを示すドットのクラス */
+  dotClassName: string;
+}
+
+// 線幅は画面ではなくキャンバス（画像）基準で決め、ズームしても画像に対する太さを変えない。
+// 絶対 px にすると高解像度の画像ほど線が細く見えるため、短辺に対する比率で持つ。
+// 短辺を基準にするのは、フィット表示では短辺側が画面に収まることが多く、
+// 解像度・アスペクト比の違う画像でもフィット表示時の見た目の太さがほぼ揃うため。
+// 値の目安: iPhone スクショ（短辺 1170px）でキャンバス上 約6 / 12 / 23px、
+// スマホでフィット表示したとき画面上 約1.6 / 3.3 / 6.5px（従来の固定 4px が「中」付近）。
+// 細=文字への注釈、中=通常の赤入れ、太=囲み・強調 を想定し、各段で倍にして差を見分けやすくしている
+const PEN_SIZES: PenSize[] = [
+  { id: 'thin', label: '細', ratio: 0.005, dotClassName: s.penSizeDotThin },
+  { id: 'medium', label: '中', ratio: 0.01, dotClassName: s.penSizeDotMedium },
+  { id: 'thick', label: '太', ratio: 0.02, dotClassName: s.penSizeDotThick },
+];
+
+// 極端に小さい画像で線が 1px 未満になり消えて見えるのを防ぐ下限（キャンバス px）
+const PEN_MIN_WIDTH = 1;
+
+// 白紙キャンバスの解像度上限
+const BLANK_CANVAS_MAX = 3000;
+
+/** ペンサイズとキャンバス寸法から、キャンバス座標系での線幅を求める */
+function penWidthFor(canvas: HTMLCanvasElement, size: PenSize): number {
+  const shortSide = Math.min(canvas.width, canvas.height);
+  return Math.max(shortSide * size.ratio, PEN_MIN_WIDTH);
+}
+
+/** キーボード入力を受け付けるテキスト入力欄か（そこでは標準の undo を優先する） */
+function isTextEditingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA';
+}
+
+/** macOS / iOS では Cmd、それ以外では Ctrl を undo/redo の修飾キーとして扱う */
+function isApplePlatform(): boolean {
+  return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+}
+
+function midPoint(a: Point, b: Point): Point {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function strokePath(ctx: CanvasRenderingContext2D, stroke: Stroke) {
+  const pts = stroke.points;
+  if (pts.length === 0) return;
+
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  ctx.lineWidth = stroke.width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (pts.length === 1) {
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, stroke.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mid = midPoint(pts[i], pts[i + 1]);
+    ctx.quadraticCurveTo(pts[i].x, pts[i].y, mid.x, mid.y);
+  }
+  ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+  ctx.stroke();
+}
+
+/**
+ * 全画面のお絵かきオーバーレイ。
+ * 1本指（マウスドラッグ）で描画、2本指でピンチズーム＋パン、ホイールでズーム。
+ */
+const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
+  isOpen,
+  backgroundImageUrl,
+  onClose,
+  onComplete,
+  onPasteImage,
+  notice,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const bgImageRef = useRef<HTMLImageElement | null>(null);
+  const strokesRef = useRef<Stroke[]>([]);
+  // undo で取り除いたストローク。新しいストロークを確定したら破棄する
+  const redoStrokesRef = useRef<Stroke[]>([]);
+  const currentStrokeRef = useRef<Stroke | null>(null);
+
+  // ビュー変換（キャンバス座標 → 画面座標）
+  const viewRef = useRef({ scale: 1, tx: 0, ty: 0, fitScale: 1 });
+
+  // マルチタッチ管理
+  const pointersRef = useRef(new Map<number, Point>());
+  const pinchRef = useRef<{
+    d0: number;
+    s0: number;
+    tx0: number;
+    ty0: number;
+    mid0: Point;
+  } | null>(null);
+  // 一度2本指になったら、全ての指が離れるまで描画を再開しない
+  const multiTouchRef = useRef(false);
+
+  const [penColor, setPenColor] = useState(PEN_COLORS[0]);
+  const [penSize, setPenSize] = useState<PenSize>(PEN_SIZES[1]);
+  const [strokeCount, setStrokeCount] = useState(0);
+  // redoStrokesRef は ref で再描画されないため、redo ボタンの disabled 判定用に件数を別に持つ
+  const [redoCount, setRedoCount] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // onClose は親の再レンダーごとに identity が変わりうる（インライン関数）。
+  // 初期化 effect の依存に入れるとキャンバスが描画中にリセットされるため ref 経由で参照する
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  const applyView = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const { scale, tx, ty } = viewRef.current;
+    wrapper.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }, []);
+
+  const fitView = useCallback(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const scale = Math.min(cw / canvas.width, ch / canvas.height);
+    viewRef.current.scale = scale;
+    viewRef.current.fitScale = scale;
+    viewRef.current.tx = (cw - canvas.width * scale) / 2;
+    viewRef.current.ty = (ch - canvas.height * scale) / 2;
+    applyView();
+  }, [applyView]);
+
+  const redrawAll = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const bg = bgImageRef.current;
+    if (bg) {
+      ctx.drawImage(bg, 0, 0);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    for (const stroke of strokesRef.current) {
+      strokePath(ctx, stroke);
+    }
+  }, []);
+
+  // キャンバス初期化（背景画像の読み込み / 白紙の生成）
+  useEffect(() => {
+    if (!isOpen) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    let cancelled = false;
+    strokesRef.current = [];
+    redoStrokesRef.current = [];
+    currentStrokeRef.current = null;
+    pointersRef.current.clear();
+    pinchRef.current = null;
+    multiTouchRef.current = false;
+    setStrokeCount(0);
+    setRedoCount(0);
+
+    const init = (width: number, height: number) => {
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      redrawAll();
+      fitView();
+      setIsReady(true);
+    };
+
+    if (backgroundImageUrl) {
+      const img = new Image();
+      img.onload = () => {
+        if (cancelled) return;
+        bgImageRef.current = img;
+        init(img.naturalWidth, img.naturalHeight);
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        window.alert('画像の読み込みに失敗しました');
+        onCloseRef.current();
+      };
+      img.src = backgroundImageUrl;
+    } else {
+      bgImageRef.current = null;
+      const width = Math.min(
+        Math.round(window.innerWidth * 2),
+        BLANK_CANVAS_MAX
+      );
+      const height = Math.min(
+        Math.round(window.innerHeight * 2),
+        BLANK_CANVAS_MAX
+      );
+      init(width, height);
+    }
+
+    return () => {
+      cancelled = true;
+      bgImageRef.current = null;
+      setIsReady(false);
+    };
+  }, [isOpen, backgroundImageUrl, redrawAll, fitView]);
+
+  // 開いた時点で背面の入力欄にフォーカスが残っていると、Cmd+Z がそちらの undo に
+  // 吸われてキャンバスに効かない（見えない入力欄が書き換わる）ため、フォーカスを外す
+  useEffect(() => {
+    if (!isOpen) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && isTextEditingTarget(active)) {
+      active.blur();
+    }
+  }, [isOpen]);
+
+  // 開いている間は背面のスクロールを止める（ImageLightbox と同じ流儀）
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  const requestClose = useCallback(() => {
+    if (
+      strokesRef.current.length > 0 &&
+      !window.confirm('描いた内容を破棄しますか？')
+    ) {
+      return;
+    }
+    onClose();
+  }, [onClose]);
+
+  // Escで閉じる
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') requestClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, requestClose]);
+
+  // ホイールズーム（React の onWheel は passive になり preventDefault できないため native で張る）
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = container.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const view = viewRef.current;
+      const factor = Math.exp(-e.deltaY * 0.002);
+      const next = Math.min(
+        Math.max(view.scale * factor, view.fitScale * 0.3),
+        Math.max(view.fitScale * 20, 4)
+      );
+      view.tx = cx - (cx - view.tx) * (next / view.scale);
+      view.ty = cy - (cy - view.ty) * (next / view.scale);
+      view.scale = next;
+      applyView();
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [isOpen, applyView]);
+
+  const toCanvasPoint = useCallback((clientX: number, clientY: number): Point => {
+    const container = containerRef.current;
+    const view = viewRef.current;
+    const rect = container?.getBoundingClientRect();
+    const left = rect?.left ?? 0;
+    const top = rect?.top ?? 0;
+    return {
+      x: (clientX - left - view.tx) / view.scale,
+      y: (clientY - top - view.ty) / view.scale,
+    };
+  }, []);
+
+  // 描画中ストロークの末尾セグメントだけを描く（毎moveの全再描画を避ける）
+  const drawLatestSegment = useCallback((stroke: Stroke) => {
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    const pts = stroke.points;
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    if (pts.length === 2) {
+      const mid = midPoint(pts[0], pts[1]);
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(mid.x, mid.y);
+    } else {
+      const a = pts[pts.length - 3];
+      const b = pts[pts.length - 2];
+      const c = pts[pts.length - 1];
+      const m1 = midPoint(a, b);
+      const m2 = midPoint(b, c);
+      ctx.moveTo(m1.x, m1.y);
+      ctx.quadraticCurveTo(b.x, b.y, m2.x, m2.y);
+    }
+    ctx.stroke();
+  }, []);
+
+  const beginPinch = useCallback(() => {
+    const pts = Array.from(pointersRef.current.values());
+    if (pts.length < 2) return;
+    const view = viewRef.current;
+    pinchRef.current = {
+      d0: Math.max(distance(pts[0], pts[1]), 1),
+      s0: view.scale,
+      tx0: view.tx,
+      ty0: view.ty,
+      mid0: midPoint(pts[0], pts[1]),
+    };
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isReady) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      containerRef.current?.setPointerCapture(e.pointerId);
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      pointersRef.current.set(e.pointerId, {
+        x: e.clientX - (rect?.left ?? 0),
+        y: e.clientY - (rect?.top ?? 0),
+      });
+
+      if (pointersRef.current.size === 2) {
+        // 2本目の指: 描きかけのストロークを取り消してピンチ操作へ移行
+        multiTouchRef.current = true;
+        if (currentStrokeRef.current) {
+          strokesRef.current.pop();
+          currentStrokeRef.current = null;
+          redrawAll();
+        }
+        beginPinch();
+        return;
+      }
+
+      if (pointersRef.current.size === 1 && !multiTouchRef.current) {
+        const point = toCanvasPoint(e.clientX, e.clientY);
+        const stroke: Stroke = {
+          color: penColor,
+          width: penWidthFor(canvasRef.current!, penSize),
+          points: [point],
+        };
+        currentStrokeRef.current = stroke;
+        strokesRef.current.push(stroke);
+        strokePath(canvasRef.current!.getContext('2d')!, stroke);
+      }
+    },
+    [isReady, penColor, penSize, toCanvasPoint, redrawAll, beginPinch]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      e.preventDefault();
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      pointersRef.current.set(e.pointerId, {
+        x: e.clientX - (rect?.left ?? 0),
+        y: e.clientY - (rect?.top ?? 0),
+      });
+
+      const pinch = pinchRef.current;
+      if (pinch && pointersRef.current.size >= 2) {
+        const pts = Array.from(pointersRef.current.values());
+        const d = Math.max(distance(pts[0], pts[1]), 1);
+        const mid = midPoint(pts[0], pts[1]);
+        const view = viewRef.current;
+        const next = Math.min(
+          Math.max(pinch.s0 * (d / pinch.d0), view.fitScale * 0.3),
+          Math.max(view.fitScale * 20, 4)
+        );
+        const ratio = next / pinch.s0;
+        view.scale = next;
+        view.tx = mid.x - (pinch.mid0.x - pinch.tx0) * ratio;
+        view.ty = mid.y - (pinch.mid0.y - pinch.ty0) * ratio;
+        applyView();
+        return;
+      }
+
+      const stroke = currentStrokeRef.current;
+      if (stroke) {
+        const point = toCanvasPoint(e.clientX, e.clientY);
+        const last = stroke.points[stroke.points.length - 1];
+        if (distance(point, last) < 1 / viewRef.current.scale) return;
+        stroke.points.push(point);
+        drawLatestSegment(stroke);
+      }
+    },
+    [toCanvasPoint, drawLatestSegment, applyView]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.delete(e.pointerId);
+
+      if (pointersRef.current.size < 2) {
+        pinchRef.current = null;
+      }
+      if (pointersRef.current.size === 0) {
+        multiTouchRef.current = false;
+        const stroke = currentStrokeRef.current;
+        if (stroke) {
+          // 描画中は最終セグメントの中点までしか描いていないため、末尾を締める
+          // （そうしないと再描画時に線がわずかに伸びて見た目がずれる）
+          const ctx = canvasRef.current?.getContext('2d');
+          const pts = stroke.points;
+          if (ctx && pts.length >= 2) {
+            const prev = pts[pts.length - 2];
+            const last = pts[pts.length - 1];
+            const mid = midPoint(prev, last);
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.width;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(mid.x, mid.y);
+            ctx.lineTo(last.x, last.y);
+            ctx.stroke();
+          }
+          currentStrokeRef.current = null;
+          // 新しい描き込みが確定した時点で、undo 前の続きには戻れなくなる
+          redoStrokesRef.current = [];
+          setStrokeCount(strokesRef.current.length);
+          setRedoCount(0);
+        }
+      }
+    },
+    []
+  );
+
+  const handleUndo = useCallback(() => {
+    // 描画中に undo すると描きかけのストロークと履歴が食い違うため受け付けない
+    if (currentStrokeRef.current) return;
+    const stroke = strokesRef.current.pop();
+    if (!stroke) return;
+    redoStrokesRef.current.push(stroke);
+    setStrokeCount(strokesRef.current.length);
+    setRedoCount(redoStrokesRef.current.length);
+    redrawAll();
+  }, [redrawAll]);
+
+  const handleRedo = useCallback(() => {
+    if (currentStrokeRef.current) return;
+    const stroke = redoStrokesRef.current.pop();
+    if (!stroke) return;
+    strokesRef.current.push(stroke);
+    setStrokeCount(strokesRef.current.length);
+    setRedoCount(redoStrokesRef.current.length);
+    redrawAll();
+  }, [redrawAll]);
+
+  // 画像の貼り付けで背景を差し替える。
+  // capture 段階で拾って伝播を止め、背面の入力欄の paste ハンドラ（アップロード処理）と二重に動かないようにする
+  useEffect(() => {
+    if (!isOpen || !onPasteImage) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const file = findImageFileInClipboardData(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // 描き込みは差し替え前の画像の座標で持っているため新しい背景には引き継げない。黙って消さずに確認する
+      if (strokesRef.current.length > 0) {
+        const confirmed = window.confirm(
+          '描いた内容を破棄して、貼り付けた画像に差し替えますか？'
+        );
+        if (!confirmed) return;
+      }
+      onPasteImage(file);
+    };
+    window.addEventListener('paste', handlePaste, true);
+    return () => window.removeEventListener('paste', handlePaste, true);
+  }, [isOpen, onPasteImage]);
+
+  // undo / redo のショートカット。開いている間だけ有効
+  useEffect(() => {
+    if (!isOpen) return;
+    const useMeta = isApplePlatform();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // テキスト入力中はブラウザ標準の undo/redo を奪わない
+      if (isTextEditingTarget(e.target)) return;
+      if (e.altKey) return;
+      if (e.key.toLowerCase() !== 'z') return;
+
+      let modifierPressed = e.ctrlKey;
+      if (useMeta) {
+        modifierPressed = e.metaKey;
+      }
+      if (!modifierPressed) return;
+
+      e.preventDefault();
+      if (e.shiftKey) {
+        handleRedo();
+      } else {
+        handleUndo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleUndo, handleRedo]);
+
+  const handleClear = useCallback(() => {
+    if (strokesRef.current.length === 0) return;
+    if (!window.confirm('すべての描き込みを消しますか？')) return;
+    strokesRef.current = [];
+    redoStrokesRef.current = [];
+    setStrokeCount(0);
+    setRedoCount(0);
+    redrawAll();
+  }, [redrawAll]);
+
+  const handleComplete = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || isExporting) return;
+    setIsExporting(true);
+    canvas.toBlob((blob) => {
+      setIsExporting(false);
+      if (!blob) {
+        window.alert('画像の書き出しに失敗しました');
+        return;
+      }
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const prefix = backgroundImageUrl ? 'markup' : 'sketch';
+      const file = new File([blob], `${prefix}-${stamp}.png`, {
+        type: 'image/png',
+      });
+      onComplete(file);
+    }, 'image/png');
+  }, [backgroundImageUrl, isExporting, onComplete]);
+
+  if (!isOpen) return null;
+
+  let showNotice = false;
+  if (notice && !backgroundImageUrl && strokeCount === 0) {
+    showNotice = true;
+  }
+
+  return (
+    <div className={s.backdrop}>
+      {/* ヘッダー */}
+      <div className={s.topBar}>
+        <button
+          onClick={requestClose}
+          className={s.closeButton}
+          aria-label="閉じる"
+          title="閉じる (Esc)"
+        >
+          <X size={20} strokeWidth={2.25} />
+        </button>
+        <span className={s.title}>
+          {backgroundImageUrl ? '赤入れ' : 'スケッチ'}
+        </span>
+        <button
+          onClick={handleComplete}
+          disabled={!isReady || isExporting || (!backgroundImageUrl && strokeCount === 0)}
+          className={s.completeButton}
+        >
+          <Check size={16} strokeWidth={2.5} />
+          <span>完了</span>
+        </button>
+      </div>
+
+      {/* キャンバス */}
+      <div
+        ref={containerRef}
+        className={s.canvasArea}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        <div ref={wrapperRef} className={s.canvasWrapper}>
+          <canvas ref={canvasRef} className={s.canvas} />
+        </div>
+        {showNotice && <p className={s.notice}>{notice}</p>}
+      </div>
+
+      {/* ツールバー */}
+      <div className={s.toolBar}>
+        <div className={s.colorGroup}>
+          {PEN_COLORS.map((color) => (
+            <button
+              key={color}
+              onClick={() => setPenColor(color)}
+              className={`${s.colorSwatch} ${penColor === color ? s.colorSwatchActive : ''}`}
+              style={{ backgroundColor: color }}
+              aria-label={`ペン色 ${color}`}
+            />
+          ))}
+        </div>
+        <div className={s.toolGroup}>
+          {PEN_SIZES.map((size) => {
+            const isActive = penSize.id === size.id;
+            let className = s.toolButton;
+            if (isActive) {
+              className = `${s.toolButton} ${s.toolButtonActive}`;
+            }
+            return (
+              <button
+                key={size.id}
+                onClick={() => setPenSize(size)}
+                className={className}
+                aria-label={`ペンの太さ ${size.label}`}
+                aria-pressed={isActive}
+                title={`太さ: ${size.label}`}
+              >
+                <span className={`${s.penSizeDot} ${size.dotClassName}`} />
+              </button>
+            );
+          })}
+        </div>
+        <div className={s.toolGroup}>
+          <button
+            onClick={handleUndo}
+            disabled={strokeCount === 0}
+            className={s.toolButton}
+            aria-label="元に戻す"
+            title="元に戻す (⌘Z / Ctrl+Z)"
+          >
+            <Undo2 size={16} strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={redoCount === 0}
+            className={s.toolButton}
+            aria-label="やり直す"
+            title="やり直す (⇧⌘Z / Ctrl+Shift+Z)"
+          >
+            <Redo2 size={16} strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleClear}
+            disabled={strokeCount === 0}
+            className={s.toolButton}
+            aria-label="すべて消す"
+            title="すべて消す"
+          >
+            <Trash2 size={16} strokeWidth={2} />
+          </button>
+          <button
+            onClick={fitView}
+            className={s.toolButton}
+            aria-label="表示をリセット"
+            title="表示をリセット"
+          >
+            <Maximize size={16} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DrawingCanvas;

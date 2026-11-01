@@ -1,0 +1,844 @@
+@use "sass:color";
+
+// compact はブランチバー（ProjectView）の 1 群として区画の面を持つ。中の部品は平常時は面なし・
+// hover で面を出し、高さはブランチバーの --branch-bar-item-height に揃える
+@mixin compact-group {
+  display: flex;
+  align-items: center;
+  padding: $space-3xs;
+  background-color: $dark-bg-raised;
+  border-radius: $radius-lg;
+}
+
+// 横スクロールは親の .branchBar 側で一体的に行うため、自身は縮まず内容幅を保つ
+.root {
+  flex-shrink: 0;
+
+  &.compact {
+    @include compact-group;
+
+    .tabsContainer,
+    .tabsScroll {
+      gap: $space-3xs;
+    }
+
+    // 群の中は部品間を $space-3xs で揃えるため、メインとブランチの間の余白は取らない
+    .divider {
+      display: none;
+    }
+  }
+
+  &.normal {
+    background-color: $gray-900;
+  }
+}
+
+// ワークツリーが無いときは＋だけの群として、タブがあるときと同じ面にする
+.singleRoot {
+  min-width: 0;
+
+  &.compact {
+    @include compact-group;
+    flex-shrink: 0;
+  }
+
+  &.normal {
+    background-color: $gray-900;
+  }
+}
+
+.singleInner {
+  display: flex;
+  align-items: center;
+
+  &.normal {
+    padding: $space-sm $space-lg;
+  }
+}
+
+.createButton {
+  display: inline-flex;
+  align-items: center;
+  font-weight: $font-weight-medium;
+  color: $dark-text-secondary;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    justify-content: center;
+    width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅の正方形
+    height: var(--branch-bar-item-height);
+    padding: 0;
+    background: none;
+
+    &:hover {
+      background-color: $dark-bg-tertiary;
+    }
+  }
+
+  &.normal {
+    padding: $space-xs $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+    background-color: $dark-bg-tertiary;
+    border-radius: $radius-md;
+
+    &:focus {
+      outline: 1px solid $focus-ring;
+      outline-offset: -1px;
+    }
+  }
+}
+
+.createIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+    margin-right: $space-sm;
+  }
+}
+
+.tabsContainer {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+// メインワークツリー（左固定）セクション
+.mainSection {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.mainTab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &.compactStyle {
+    height: var(--branch-bar-item-height);
+    border-radius: $radius;
+
+    &.active {
+      background-color: $dark-bg-active;
+    }
+
+    &:not(.active):hover {
+      background-color: $dark-bg-tertiary;
+
+      .tabButton {
+        color: $dark-text-primary;
+      }
+    }
+  }
+
+  &.normalStyle {
+    &.active {
+      background-color: $dark-bg-active;
+    }
+
+    &:not(.active):hover {
+      background-color: $dark-bg-hover;
+    }
+  }
+}
+
+.mainIcon {
+  flex-shrink: 0;
+
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+    margin-right: $space-sm;
+  }
+}
+
+// メインとブランチの間隔だけを確保する要素（線は引かない）
+.divider {
+  flex-shrink: 0;
+  align-self: center;
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 $space-sm;
+}
+
+// ブランチワークツリータブ群（dnd-kit で並び替え可能。スクロールは親の .branchBar 側で一体的に行う）
+.tabsScroll {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tabWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &.compactStyle {
+    height: var(--branch-bar-item-height);
+    border-radius: $radius;
+
+    &.active {
+      background-color: $dark-bg-active;
+    }
+
+    &:not(.active):hover {
+      background-color: $dark-bg-tertiary;
+
+      .tabButton {
+        color: $dark-text-primary;
+      }
+    }
+  }
+
+  &.normalStyle {
+    &.active {
+      background-color: $dark-bg-active;
+    }
+
+    &:not(.active):hover {
+      background-color: $dark-bg-hover;
+    }
+  }
+}
+
+// 削除実行中のタブ: 控えめにトーンダウンし、クリック等の操作を受け付けない
+// （pointer-events で内側のリンク・メニューもまとめて無効化する）
+.tabWrapper.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.deletingSpinner {
+  animation: spin 1s linear infinite;
+  color: $gray-400;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  transition: color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // 高さはタブ（.compactStyle）側で決め、リンクはその高さいっぱいに広げてクリック範囲にする
+  &.compact {
+    align-self: stretch;
+    padding: 0 $space-sm;
+    font-size: $font-size-xs;
+    line-height: 1rem;
+  }
+
+  &.normal {
+    padding: $space-sm $space-sm $space-sm $space-lg;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+  }
+
+  &.active {
+    color: $dark-text-primary;
+  }
+
+  &:not(.active) {
+    color: $dark-text-secondary;
+
+    &:hover {
+      color: $dark-text-primary;
+    }
+  }
+}
+
+// ブランチ名（上段）とメモ要約（下段）の 2 行縦積み（AiInstanceTabs と同じトーン）
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: $space-3xs;
+  min-width: 0;
+}
+
+.tabTopRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.tabBranchName {
+  white-space: nowrap;
+}
+
+.tabSummary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  &.active {
+    color: $gray-400;
+  }
+}
+
+// PR バッジ：PR 番号 + 状態色ドット
+.prBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  margin-left: $space-xs;
+  padding: $space-3xs $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-2xs;
+  line-height: 1.2;
+  color: $gray-300;
+  background-color: rgba($gray-700, 0.5);
+  border-radius: $radius-sm;
+  flex-shrink: 0;
+
+  &.compact {
+    margin-left: $space-2xs;
+    padding: 0 $space-3xs;
+    font-size: $font-size-2xs;
+  }
+}
+
+.prNumber {
+  font-weight: $font-weight-medium;
+}
+
+.prStateDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+
+  // OPEN (緑) — PR の状態色
+  &.open {
+    background-color: $color-success;
+  }
+
+  // MERGED (紫)
+  &.merged {
+    background-color: $purple-500;
+  }
+
+  // CLOSED (赤)
+  &.closed {
+    background-color: $color-error;
+  }
+
+  // DRAFT (灰)
+  &.draft {
+    background-color: $gray-400;
+  }
+}
+
+// 中身を flex で詰めて高さをアイコン＋padding に収める（インラインの svg だと
+// line-height 分だけ背が伸び、hover の面がタブの上下端にくっつく）。
+// 削除中スピナーの span にも当てて同寸表示する
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    padding: $space-3xs;
+    margin-right: $space-2xs;
+  }
+
+  &.normal {
+    padding: $space-2xs;
+    margin-right: $space-sm;
+  }
+
+  &.open {
+    color: $dark-text-primary;
+    background-color: $dark-bg-active;
+  }
+
+  &:not(.open) {
+    color: $dark-text-secondary;
+
+    &:hover {
+      color: $dark-text-primary;
+      background-color: $dark-bg-hover;
+    }
+  }
+}
+
+.menuIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.newButton {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: $dark-text-secondary;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.compact {
+    justify-content: center;
+    width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅の正方形
+    height: var(--branch-bar-item-height);
+    padding: 0;
+    background: none;
+
+    &:hover {
+      background-color: $dark-bg-tertiary;
+    }
+  }
+
+  &.normal {
+    padding: $space-sm $space-md;
+    font-size: $font-size-sm;
+    line-height: 1.25rem;
+  }
+}
+
+.newIcon {
+  &.compact {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  &.normal {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+// Portal menu
+.portalMenu {
+  position: fixed;
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  padding: $space-2xs 0;
+  // 行は左右いっぱいに並ぶため、hover の面が丸めた角からはみ出さないよう切り取る
+  overflow: hidden;
+  z-index: 9999;
+  min-width: 140px;
+
+  // 削除の確認（2段目）。ヘッダーが地色を持つので自前の上下 padding は外す
+  &.confirmMenu {
+    width: 15rem;
+    max-width: 20rem;
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+// --- 2段目: 削除の確認 ---
+
+.confirmPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+// 対象の提示
+.confirmHeader {
+  padding: $space-sm $space-md;
+}
+
+// 消える対象を「囲まれた一個のモノ」として見せる
+.confirmBranch {
+  @include truncate;
+  display: inline-block;
+  max-width: 100%;
+  padding: $space-3xs $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  line-height: 1.3;
+  color: $gray-200;
+  background-color: rgba($gray-900, 0.6);
+  border-radius: $radius-sm;
+}
+
+.confirmNote {
+  display: block;
+  margin-top: $space-2xs;
+  font-size: $font-size-2xs;
+  line-height: 1.4;
+  color: $gray-400;
+}
+
+// 追加で消えるものだけをチェックで足す。行全体を label にしてタップ領域を広く取る
+.branchOption {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-xs $space-md;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  color: $gray-300;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover,
+  &:focus-within {
+    background-color: rgba($gray-700, 0.5);
+  }
+}
+
+// チェックすると消える範囲が増えるので、アクセントは危険色に合わせる
+.branchCheckbox {
+  width: 0.875rem;
+  height: 0.875rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: $color-error;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.dangerRow {
+  width: 100%;
+  padding: $space-sm $space-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.4;
+  text-align: left;
+  color: $color-error;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    outline: none;
+    color: $red-400;
+    background-color: rgba($color-error, 0.14);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.backRow {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  padding: $space-xs $space-md;
+  font-size: $font-size-xs;
+  line-height: 1.4;
+  color: $gray-500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    color: $gray-200;
+    background-color: rgba($gray-700, 0.5);
+  }
+}
+
+.backIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branchOption,
+  .dangerRow,
+  .backRow {
+    transition: none;
+  }
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  line-height: 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.mergeItem {
+    color: $dark-text-secondary;
+  }
+
+  &.deleteItem {
+    color: $color-error;
+  }
+}
+
+.menuItemIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: $space-sm;
+}
+
+// Modal styles
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(black, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  @include flex-center;
+  padding: $space-lg;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
+}
+
+.modalContent {
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  padding: $space-xl;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-md;
+  margin-bottom: $space-lg;
+}
+
+.modalIconWrapper {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-full;
+  @include flex-center;
+
+  &.info {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.modalIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+
+  &.info {
+    color: $dark-text-secondary;
+  }
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+  line-height: 1.4;
+  margin: 0 0 $space-xs;
+}
+
+.modalDescription {
+  color: $gray-300;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.modalBranchNameBlue {
+  font-family: $font-mono;
+  color: $gray-200;
+  background-color: rgba($gray-900, 0.4);
+  padding: $space-3xs $space-xs;
+  border-radius: $radius-sm;
+}
+
+.warningBox {
+  border-radius: $radius-lg;
+  padding: $space-md $space-lg;
+  margin-bottom: $space-lg;
+
+  &.blue {
+    background-color: rgba($gray-900, 0.4);
+  }
+}
+
+.warningList {
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  & > * + * {
+    margin-top: $space-xs;
+  }
+
+  &.blue {
+    color: $dark-text-secondary;
+  }
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-sm;
+}
+
+.cancelButton {
+  min-width: 6rem;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.25rem;
+  color: $gray-200;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: white;
+  }
+
+  &:focus-visible {
+    outline: 1px solid $focus-ring;
+    outline-offset: -1px;
+  }
+}
+
+.confirmButton {
+  min-width: 6rem;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1.25rem;
+  color: white;
+  border-radius: $radius-md;
+  border: none;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing,
+    box-shadow $transition-fast $transition-easing;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &.info {
+    background-color: $accent;
+    color: $accent-fg;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+    &:hover:not(:disabled) {
+      background-color: $accent-hover;
+    }
+
+    &:focus-visible {
+      outline: 1px solid $focus-ring;
+      outline-offset: 2px;
+    }
+  }
+}

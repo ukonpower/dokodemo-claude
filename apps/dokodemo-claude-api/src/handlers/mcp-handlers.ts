@@ -156,7 +156,12 @@ const TOOL_DEFS = [
           description: '親リポジトリ本体にも送る場合 true（既定 false）',
         },
         sendClearBefore: { type: 'boolean', description: '送信前に /clear を投入する場合 true' },
-        isAutoCommit: { type: 'boolean', description: '自動コミットを行う場合 true' },
+        isAutoCommit: { type: 'boolean', description: '自動コミットを行う場合 true（コミットのみ。push はしない）' },
+        isAutoCommitPush: {
+          type: 'boolean',
+          description:
+            '自動コミット時に push まで行う場合 true（既定 false）。無人ループでは push が公開行為になるため、明示的に指定したときだけ有効',
+        },
         model: {
           type: 'string',
           description:
@@ -389,6 +394,7 @@ async function dispatch(
           includeMain: bool(args.includeMain),
           sendClearBefore: bool(args.sendClearBefore),
           isAutoCommit: bool(args.isAutoCommit),
+          isAutoCommitPush: bool(args.isAutoCommitPush),
           model: typeof args.model === 'string' ? args.model : undefined,
         },
         deps

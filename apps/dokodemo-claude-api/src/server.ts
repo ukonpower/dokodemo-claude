@@ -40,10 +40,12 @@ import {
   findRepositoryRoot,
   getWorktreeInfo,
   getMainRepoPath,
+  getWorktrees,
 } from './utils/git-utils.js';
 import {
   setWorktreeSortOrderManager,
   setWorktreeMemoManager,
+  buildWorktreesListPayload,
 } from './handlers/branch-handlers.js';
 import { registerTerminalRoutes } from './handlers/terminal-handlers.js';
 import { registerMcpRoutes } from './handlers/mcp-handlers.js';
@@ -63,6 +65,10 @@ import {
   aiActivitySummaryService,
   type AiActivitySummaryEvent,
 } from './services/ai-activity-summary-service.js';
+import {
+  worktreeMemoSummaryService,
+  type WorktreeMemoSummaryEvent,
+} from './services/worktree-memo-summary-service.js';
 import {
   initWebPushService,
   getWebPushService,
@@ -717,12 +723,12 @@ app.get('/api/hook-stats', (req, res) => {
 // キューに単一アイテム追加
 app.post('/api/queue/add', async (req, res) => {
   try {
-    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model } = req.body;
+    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model } = req.body;
     if (!repositoryPath || !provider || !prompt) {
       res.status(400).json({ success: false, message: 'repositoryPath, provider, prompt は必須です' });
       return;
     }
-    const item = await processManager.addToPromptQueue(repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model);
+    const item = await processManager.addToPromptQueue(repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model);
     res.json({ success: true, item });
   } catch (error) {
     console.error('[REST API] キュー追加エラー:', error);
@@ -742,7 +748,7 @@ app.post('/api/queue/add-batch', async (req, res) => {
     for (const item of items) {
       const added = await processManager.addToPromptQueue(
         repositoryPath, provider, item.prompt,
-        item.sendClearBefore, item.isAutoCommit, item.model
+        item.sendClearBefore, item.isAutoCommit, item.isAutoCommitPush, item.model
       );
       addedItems.push(added);
     }
@@ -778,13 +784,13 @@ app.get('/api/queue/status', (req, res) => {
 app.put('/api/queue/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, model } = req.body;
+    const { repositoryPath, provider, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model } = req.body;
     if (!repositoryPath || !provider) {
       res.status(400).json({ success: false, message: 'repositoryPath, provider は必須です' });
       return;
     }
     const success = await processManager.updatePromptQueue(
-      repositoryPath, provider as AiProvider, itemId, prompt, sendClearBefore, isAutoCommit, model
+      repositoryPath, provider as AiProvider, itemId, prompt, sendClearBefore, isAutoCommit, isAutoCommitPush, model
     );
     res.json({ success });
   } catch (error) {
@@ -1086,6 +1092,23 @@ aiActivitySummaryService.on('summary', (data: AiActivitySummaryEvent): void => {
   });
 });
 
+// ワークツリーメモの要約が生成されたら、要約を同梱した最新一覧を全クライアントへ配信
+worktreeMemoSummaryService.on(
+  'summary',
+  (data: WorktreeMemoSummaryEvent): void => {
+    void (async () => {
+      const parentRepoPath = getMainRepoPath(data.worktreePath);
+      const worktrees = await getWorktrees(parentRepoPath);
+      io.emit(
+        'worktrees-list',
+        await buildWorktreesListPayload(worktrees, parentRepoPath)
+      );
+    })().catch((err) => {
+      console.warn('ワークツリーメモ要約の配信に失敗:', err);
+    });
+  }
+);
+
 processManager.on('ai-exit', (data) => {
   const providerName =
     data.provider === 'claude' ? 'Claude Code CLI' : 'Codex CLI';
@@ -1334,6 +1357,20 @@ async function startServer(): Promise<void> {
 
   // ProcessManagerの初期化
   await processManager.initialize();
+
+  // ワークツリーメモ要約サービスの初期化（メモの保存・削除に追従して要約を生成する）
+  // メモの復元（processManager.initialize）後に行う
+  processManager.worktreeMemoManager.setOnChange((worktreePath, memo) => {
+    worktreeMemoSummaryService.notifyMemoChanged(worktreePath, memo);
+  });
+  worktreeMemoSummaryService
+    .init(persistenceService, {
+      isEnabled: () => aiActivitySummaryService.isEnabled(),
+      getMemos: () => processManager.worktreeMemoManager.entries(),
+    })
+    .catch((err) => {
+      console.error('ワークツリーメモ要約サービスの初期化に失敗:', err);
+    });
 
   // FileManagerの初期化
   await fileManager.initialize();

@@ -1,0 +1,49 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  @include flex-center;
+  // RepoHeader（60）と SP のプロジェクト切り替えタブ（70）より手前に出す
+  z-index: 80;
+  padding: $space-lg;
+}
+
+.panel {
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  padding: $space-lg $space-xl;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $dark-text-primary;
+}
+
+.content {
+  padding: $space-lg $space-xl;
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-md;
+  padding: $space-lg $space-xl;
+  flex-shrink: 0;
+}

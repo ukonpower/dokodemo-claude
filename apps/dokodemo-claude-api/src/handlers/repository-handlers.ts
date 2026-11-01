@@ -7,6 +7,9 @@ import { PersistenceService } from '../services/persistence-service.js';
 import { repositoryIdManager } from '../services/repository-id-manager.js';
 import { emitIdMappingUpdated } from './id-mapping-helpers.js';
 import { cleanChildEnv } from '../utils/clean-env.js';
+import { getWorktrees, getWorktreeInfo } from '../utils/git-utils.js';
+import { fileManager } from '../services/file-manager.js';
+import type { ProcessManager } from '../process-manager.js';
 
 // 最終アクセス時刻を保存するファイル名（processes/ 配下に永続化）
 const REPO_LAST_ACCESS_FILE = 'repo-last-access.json';
@@ -104,6 +107,57 @@ async function resolveDeletedWorktreeFallback(repoPath: string): Promise<{
 }
 
 /**
+ * リポジトリ削除に伴う永続データの後始末。
+ *
+ * ディレクトリを消しただけでは uploads・ワークツリーのメモ・並び順・同期設定・
+ * リポジトリ固有のカスタム送信ボタンが残り続けるため、まとめて破棄する。
+ * どれか一つが失敗しても残りは処理する（掃除漏れよりは部分成功を優先）。
+ */
+async function cleanupRepositoryPersistedData(
+  processManager: ProcessManager,
+  repoPath: string,
+  worktreePaths: string[],
+  persistence: PersistenceService
+): Promise<void> {
+  // アップロードファイル（本体 + 各ワークツリー）
+  for (const target of [repoPath, ...worktreePaths]) {
+    const rid = repositoryIdManager.tryGetId(target);
+    if (rid) await fileManager.removeRepositoryUploads(rid);
+  }
+
+  // ワークツリーのメモ
+  for (const worktreePath of worktreePaths) {
+    await processManager.worktreeMemoManager
+      .remove(worktreePath)
+      .catch(() => {});
+  }
+
+  // ワークツリーの並び順・同期設定（親リポジトリ単位）
+  await processManager.worktreeSortOrderManager.remove(repoPath).catch(() => {});
+  await processManager.worktreeSyncManager.remove(repoPath).catch(() => {});
+
+  // リポジトリ固有のカスタム送信ボタン（本体 + 各ワークツリー）
+  for (const target of [repoPath, ...worktreePaths]) {
+    await processManager.customAiButtonManager
+      .removeByRepository(target)
+      .catch(() => {});
+  }
+
+  // 最終アクセス時刻
+  const lastAccessTimes = await loadRepoLastAccess(persistence);
+  if (lastAccessTimes) {
+    let changed = false;
+    for (const target of [repoPath, ...worktreePaths]) {
+      if (target in lastAccessTimes) {
+        delete lastAccessTimes[target];
+        changed = true;
+      }
+    }
+    if (changed) await saveRepoLastAccess(persistence, lastAccessTimes);
+  }
+}
+
+/**
  * リポジトリ関連のSocket.IOイベントハンドラーを登録
  */
 export function registerRepositoryHandlers(ctx: HandlerContext): void {
@@ -193,24 +247,60 @@ export function registerRepositoryHandlers(ctx: HandlerContext): void {
     try {
       const repoIndex = repositories.findIndex((r) => r.path === repoPath);
       if (repoIndex === -1) {
+        // ワークツリーは repositories に載らない。素の rm で消すと親リポジトリ側に
+        // 登録が残るため、ここでは削除せずワークツリー削除へ誘導する。
+        const isWorktree = getWorktreeInfo(repoPath).isWorktree;
         socket.emit('repo-deleted', {
           success: false,
-          message: `リポジトリ「${name}」が見つかりません`,
+          message: isWorktree
+            ? 'ワークツリーはここからは削除できません。ワークツリータブの削除を使ってください'
+            : `リポジトリ「${name}」が見つかりません`,
           path: repoPath,
         });
         return;
       }
 
-      await fs.rm(repoPath, { recursive: true, force: true });
-      repositories.splice(repoIndex, 1);
+      // ワークツリーは親リポジトリの外（.dokodemo-worktrees 配下）にあるため、
+      // 親を消しただけでは gitdir が壊れた状態で取り残される。先に列挙しておく。
+      const worktreePaths = (await getWorktrees(repoPath).catch(() => []))
+        .filter((wt) => !wt.isMain && wt.path !== repoPath)
+        .map((wt) => wt.path);
+
+      // プロセス停止は削除前に行う（PTY が消えたディレクトリを掴んだままになるのを防ぐ）
+      for (const worktreePath of worktreePaths) {
+        await processManager.cleanupRepositoryProcesses(worktreePath);
+      }
       await processManager.cleanupRepositoryProcesses(repoPath);
+
+      await fs.rm(repoPath, { recursive: true, force: true });
+      for (const worktreePath of worktreePaths) {
+        await fs.rm(worktreePath, { recursive: true, force: true });
+      }
+      // ワークツリーの親ディレクトリ（.dokodemo-worktrees/<プロジェクト名>）ごと掃除。
+      // 表示名（クライアント指定）ではなく実パスから引く
+      const worktreeRoot = repositoryIdManager.getPath(
+        `wt:${path.basename(repoPath)}`
+      );
+      await fs.rm(worktreeRoot, { recursive: true, force: true }).catch(() => {});
+
+      repositories.splice(repoIndex, 1);
+
+      await cleanupRepositoryPersistedData(
+        processManager,
+        repoPath,
+        worktreePaths,
+        persistenceService
+      );
 
       // 全クライアントに最新の id-mapping を通知
       await emitIdMappingUpdated(ctx.io, repositories);
 
       socket.emit('repo-deleted', {
         success: true,
-        message: `リポジトリ「${name}」を削除しました`,
+        message:
+          worktreePaths.length > 0
+            ? `リポジトリ「${name}」とワークツリー${worktreePaths.length}件を削除しました`
+            : `リポジトリ「${name}」を削除しました`,
         path: repoPath,
       });
       emitReposList(socket, repositories, persistenceService);

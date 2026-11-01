@@ -1,5 +1,4 @@
-import { spawn } from 'child_process';
-import { cleanChildEnv } from '../utils/clean-env.js';
+import { runSelfGit } from './self-repo.js';
 
 /**
  * dokodemo-claude 自身のリモート更新（新リリース）を定期検知するサービス。
@@ -19,38 +18,6 @@ let updateAvailable = false;
 let notifyChange: ((updateAvailable: boolean) => void) | null = null;
 let checking = false;
 
-function runGit(
-  args: string[],
-  timeoutMs: number
-): Promise<{ code: number | null; stdout: string }> {
-  return new Promise((resolve) => {
-    const gitProcess = spawn('git', args, {
-      cwd: repoRoot,
-      env: cleanChildEnv(),
-    });
-    let stdout = '';
-    let settled = false;
-
-    const settle = (code: number | null): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({ code, stdout });
-    };
-
-    const timer = setTimeout(() => {
-      gitProcess.kill('SIGTERM');
-      settle(null);
-    }, timeoutMs);
-
-    gitProcess.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    gitProcess.on('error', () => settle(null));
-    gitProcess.on('exit', (code) => settle(code));
-  });
-}
-
 /**
  * 現在の更新有無（キャッシュ済みの最新チェック結果）
  */
@@ -66,8 +33,9 @@ export async function checkSelfUpdate(): Promise<void> {
   checking = true;
   try {
     // fetch 失敗（オフライン等）は無視し、手元の remote-tracking ref で比較する
-    await runGit(['fetch', '--quiet'], 30000);
-    const result = await runGit(
+    await runSelfGit(repoRoot, ['fetch', '--quiet'], 30000);
+    const result = await runSelfGit(
+      repoRoot,
       ['rev-list', '--count', 'HEAD..@{upstream}'],
       10000
     );

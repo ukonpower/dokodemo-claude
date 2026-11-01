@@ -1,0 +1,217 @@
+.root {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  flex: 1;
+}
+
+.swiper {
+  flex: 1;
+  min-width: 0;
+}
+
+.slideAuto {
+  width: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: $space-2xs;
+  // 文字の左端を下の xterm（.cliBody の padding）と揃える
+  padding: 0 $space-sm;
+  border: none;
+  background: transparent;
+  color: $gray-400;
+  font-size: $font-size-xs;
+  line-height: 1rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+  white-space: nowrap;
+  max-width: 12rem;
+
+  &:hover:not(.active) {
+    background-color: $dark-bg-chrome-hover;
+    color: $gray-200;
+  }
+
+  // アクティブタブは下の CLI 本体（.cliSection）と同じ面にして地続きに見せる
+  // （provider 別のブランド色は使わない）
+  &.active {
+    color: white;
+    background-color: $dark-bg-secondary;
+  }
+}
+
+// ラベル（上段）と要約（下段）の 2 行縦積み
+.tabTexts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: $space-3xs;
+  min-width: 0;
+  padding: $space-2xs 0;
+}
+
+.label {
+  @include truncate;
+  max-width: 10rem;
+}
+
+// タブの AI に何を頼んだかの要約（ラベル下のサブテキスト。全文は title で表示）
+.summary {
+  @include truncate;
+  max-width: 10rem;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-normal;
+  line-height: 0.85rem;
+  color: $gray-500;
+
+  .tab.active & {
+    color: $gray-400;
+  }
+}
+
+.menuBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: $radius;
+  color: $dark-text-secondary;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+}
+
+.addWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+// 新規インスタンス追加ボタン（タブ右端・スクロール内。タブの ⋮ と区別する丸アイコン）
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0 $space-xs;
+  padding: 0;
+  background: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius-full;
+  color: $gray-400;
+  cursor: pointer;
+  transition:
+    color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: white;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 0.65rem;
+    height: 0.65rem;
+  }
+}
+
+.addMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  padding: $space-2xs $space-md;
+  font-size: $font-size-xs;
+  background: none;
+  border: none;
+  color: $gray-200;
+  cursor: pointer;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+
+  svg {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+}
+
+// タブメニュー内の区切り（プロバイダー切替 と 再起動 の間）。線は引かず余白で分ける
+.menuDivider {
+  height: 1px;
+  margin: $space-3xs 0;
+}
+
+// provider 切替セグメント（Claude / Codex の 2 択トグル）
+.providerSegment {
+  display: flex;
+  gap: $space-3xs;
+  padding: $space-3xs $space-2xs;
+}
+
+.providerSegmentItem {
+  flex: 1;
+  padding: $space-2xs $space-xs;
+  font-size: $font-size-xs;
+  background: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius;
+  color: $gray-300;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast $transition-easing,
+    color $transition-fast $transition-easing;
+
+  &:hover:not(.active) {
+    background-color: $dark-bg-hover;
+    color: $gray-100;
+  }
+
+  // アクティブ表示はモノトーン（provider 別ブランド色は使わない）
+  &.active {
+    color: white;
+    background-color: $dark-bg-active;
+    cursor: default;
+  }
+}

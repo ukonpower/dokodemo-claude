@@ -1,0 +1,80 @@
+.container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $dark-bg-primary;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+
+  // モバイルでは画面上部に貼り付ける。fixed にするとページ側で高さ分の余白を見込みで確保する必要があり、
+  // 実際の高さ（ピルの中身で変わる）とずれた分だけヘッダーとの隙間が広がる。
+  // sticky にして流れの中に置き、ヘッダーとの隙間を .swiper の下余白だけにする。
+  // 置き場所の各ビュー（ProjectView / HomeView / DashboardView）では末尾に描画しているため、order で先頭に出す
+  // （親が flex の縦並びであること前提）
+  @include sm-down {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    order: -1;
+    // スクロールで下から上がってくる RepoHeader（60）より手前に出す。モーダルの overlay（80）よりは奥
+    z-index: 70;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  :global(.swiper) {
+    padding: $space-xs $space-md;
+  }
+
+  :global(.swiper-slide) {
+    width: auto !important;
+  }
+}
+
+.tab {
+  padding: $space-xs $space-sm;
+  border-radius: $radius-md;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: all $transition-normal $transition-easing;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  min-width: 168px;
+  max-width: 220px;
+  text-decoration: none;
+}
+
+.tabActive {
+  background-color: $dark-bg-active;
+  color: $dark-text-primary;
+}
+
+.tabInactive {
+  background-color: $dark-bg-secondary;
+  color: $dark-text-secondary;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}
+
+.tabHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.tabName {
+  @include truncate;
+  min-width: 0;
+  flex: 1;
+}
+
+.tabStatus {
+  display: inline-flex;
+  align-items: center;
+}

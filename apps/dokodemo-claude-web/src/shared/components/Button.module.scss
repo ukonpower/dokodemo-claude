@@ -1,0 +1,57 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2xs;
+  border: none;
+  border-radius: $radius;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all $transition-fast $transition-easing;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// --- サイズ ---
+.sm {
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-2xs;
+}
+
+.md {
+  padding: $space-sm $space-md;
+  font-size: $font-size-xs;
+}
+
+// --- バリアント ---
+.primary {
+  background-color: $accent;
+  color: $accent-fg;
+
+  &:hover:not(:disabled) {
+    background-color: $accent-hover;
+  }
+}
+
+.danger {
+  background-color: $color-error;
+  color: $dark-text-primary;
+
+  &:hover:not(:disabled) {
+    background-color: $color-error-hover;
+  }
+}
+
+.ghost {
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
+  }
+}

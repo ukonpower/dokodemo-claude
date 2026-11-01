@@ -8,18 +8,20 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid $dark-border;
+  gap: $space-sm;
+  padding: $space-xs $space-md;
   background-color: $dark-bg-secondary;
   flex-shrink: 0;
 }
 
 .backButton {
-  padding: 0.25rem;
-  color: $dark-text-muted;
+  padding: $space-2xs;
+  border-radius: $radius;
+  background-color: $dark-bg-tertiary;
+  color: $dark-text-secondary;
 
   &:hover {
+    background-color: $dark-bg-hover;
     color: $dark-text-primary;
   }
 }
@@ -38,9 +40,9 @@
 .modeTabs {
   display: flex;
   align-items: center;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: 0.375rem;
+  gap: $space-3xs;
+  padding: $space-3xs;
+  border-radius: $radius-lg;
   background-color: $dark-bg-primary;
   flex-shrink: 0;
 }
@@ -48,11 +50,11 @@
 .modeTab {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 0.3rem;
+  gap: $space-xs;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
   font-size: $font-size-xs;
-  color: $dark-text-muted;
+  color: $dark-text-secondary;
 
   &:hover {
     color: $dark-text-primary;
@@ -74,13 +76,6 @@
   @include sm-down {
     display: none;
   }
-}
-
-// グラフモード（GitGraphView をそのまま埋め込む）
-.graphArea {
-  flex: 1 1 0%;
-  overflow: hidden;
-  min-height: 0;
 }
 
 // モバイルレイアウト
@@ -105,7 +100,7 @@
   overflow-y: auto;
   flex-shrink: 0;
   height: 30%;
-  border-bottom: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
 }
 
 .mobileFileContent {
@@ -131,7 +126,7 @@
 
 .desktopList {
   width: 18rem;
-  border-right: 1px solid $dark-border;
+  background-color: $dark-bg-secondary;
   overflow-y: auto;
   flex-shrink: 0;
 

@@ -10,6 +10,12 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@dokodemo-workspace/shared-types": [
+        "../../libs/shared-types/src/index.d.ts"
+      ]
+    },
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true

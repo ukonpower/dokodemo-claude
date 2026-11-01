@@ -39,7 +39,8 @@ dokodemo-workspace/
 │   └── dokodemo-claude-api/   # バックエンド (Node.js + Express)
 │
 ├── libs/
-│   └── design-tokens/         # 共有デザイントークン（SCSS）
+│   ├── design-tokens/         # 共有デザイントークン（SCSS）
+│   └── shared-types/          # web/api 共有の型定義（.d.ts のみ・値なし）
 │
 ├── nx.json                    # Nx 設定
 ├── tsconfig.base.json         # ベース TypeScript 設定
@@ -60,10 +61,23 @@ dokodemo-workspace/
 - `handlers/` — REST/Socket イベント実装（`repository-handlers`, `diff-handlers`, `misc-handlers` 等）
 - `services/` — `plugin-manager-service`, `claude-hooks-service`
 
-**frontend (`apps/dokodemo-claude-web/src/`)**
-- `utils/backend-url.ts` — `BACKEND_URL` 定義（dev/prod とも `window.location.origin`、frontend にポートをハードコードしない）
+**frontend (`apps/dokodemo-claude-web/src/`)** — feature-sliced 構成。import は `@/`（src 基準）エイリアスで書く（相対 `../` 禁止）。barrel index.ts は作らない。
+- `features/<機能>/` — `ai` / `git` / `worktree` / `terminal` / `files` / `repo`。各 feature は `components/` `hooks/` `providers/` `utils/` を持つ。機能状態は Provider（React Context）が該当 feature の hook を呼んで配り、コンポーネントは `useXxxContext()` で直接消費する（views 経由の props 中継はしない）
+- `shared/` — ドメイン非依存の汎用部品。`components/`（MarkdownViewer, TerminalOut, EmptyState 等）, `hooks/`（useOutsideClose 等）, `utils/`（backend-url, repository-id-map 等）。**shared から features への import は禁止**
+- `app/` — アプリ全体のオーケストレーション。`App.tsx`（Provider 合成のみ）, `AppContent.tsx`（ビュー分岐）, `providers/`（Socket / AppSettings / Navigation / AppProviders 合成）, `hooks/`（useSocketBootstrap, useViewRouting 等）, `commands/`（コマンドパレット）, `utils/open-views.ts`（別タブでビューを開くヘルパー）
+- `views/` — 画面単位の合成レイヤ。propsレスで Context を消費し、feature コンポーネントを組む
+- `types/index.ts` — `@dokodemo-workspace/shared-types` を re-export する shim。アプリコードは従来どおり `@/types` を import する（shared-types を直接 import しない。vite にエイリアスを足していないため値 import は落ちる）
+- `shared/utils/backend-url.ts` — `BACKEND_URL` 定義（dev/prod とも `window.location.origin`、frontend にポートをハードコードしない）
 - `vite-env.d.ts` — Vite import.meta.env の型定義（`DC_API_URL` 等）
-- `hooks/`, `components/` — React UI
+
+feature 間依存のルール:
+- 各 feature の Provider が repo（currentRepo）や ai（primaryProvider）の Context を参照するのは基盤依存として許可
+- UI コンポーネントの feature 間参照は一方向のみ: `worktree→{ai,git,terminal}`, `files→git`, `repo→{ai,git}`。逆方向・新規エッジを足すときはファイルレベルで循環しないことを確認する
+- 複数箇所で使い回すパラメータ化部品（CommandInput, TerminalOut 等）は Context 化せず props で受ける
+
+**型定義（`libs/shared-types/src/`）**
+- web/api の Socket イベント型（`events.d.ts` の `ServerToClientEvents` / `ClientToServerEvents`）とドメインモデルの単一ソース。**必ず `.d.ts`**（`.ts` にすると api の tsc が rootDir 制約 TS6059 で落ちる）。値（const/enum）は置けない
+- イベントや型を追加・変更するときは shared-types だけを編集する（web/api 個別の types/index.ts は shim なので触らない）
 
 **ルート**
 - `apps/dokodemo-claude-web/vite.config.ts` — dev サーバ proxy（`/api`, `/hook`, `/socket.io` → `DC_API_PORT`）
@@ -148,7 +162,9 @@ npx nx type-check dokodemo-claude-api
    ```
    - ブラウザで `https://localhost:<DC_PROD_PORT>` にアクセス（既定 8000）
    - Express が Web (dist) + API を 1 ポートで配信
-   - 実体は `scripts/start-prod.js`（supervisor）。UI の更新ボタン（pull-self）が成功すると `.dc-restart-request` フラグが書かれ、supervisor が npm install（root/api/web）→ 全プロセス再起動を行う
+   - 実体は `scripts/start-prod.js`（supervisor）。更新（pull-self）が成功すると `.dc-restart-request` フラグが書かれ、supervisor が npm install（root/api/web）→ 全プロセス再起動を行う
+   - 更新の実行は**設定画面の「更新」セクション**にある（現在ブランチの更新と、更新先ブランチの切り替え）。切り替え候補は `main` と main へ未マージの `release/*`（＋現在ブランチ）。切り替え時は追跡ファイルのローカル変更（npm install で書き換わる package-lock.json 等）を破棄してから fast-forward する。実装は `apps/dokodemo-claude-api/src/services/self-repo.ts`
+   - ホーム画面の「更新あり」表示は新リリースの有無を示すインジケーターのみ（実行はしない）
 
 ## ビルドチェックフロー
 
@@ -158,7 +174,7 @@ npx nx type-check dokodemo-claude-api
 
 1. **型チェック**: `npm run type-check`
 2. **リントチェック**: `npm run lint`
-3. **総合チェック**: `npm run check-all`（一括実行）
+3. **総合チェック**: `npm run check-all`（一括実行。lint + stylelint（SCSS のトークン準拠検査） + type-check）
 
 ### Claude Code 使用時の推奨フロー
 

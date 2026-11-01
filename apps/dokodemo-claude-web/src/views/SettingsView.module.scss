@@ -1,278 +1,37 @@
-.root {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background-color: $dark-bg-primary;
-  color: $dark-text-primary;
-}
-
-// --- ヘッダー（1行固定） ---
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-bottom: 1px solid $dark-border;
-  background-color: $dark-bg-secondary;
-  flex-shrink: 0;
-}
-
-.backIcon {
-  width: 1.125rem;
-  height: 1.125rem;
-  color: $gray-400;
-}
-
-.headerTitle {
-  font-size: $font-size-sm;
-  font-weight: 600;
-  color: $dark-text-primary;
-}
-
-// --- 本文（スクロールコンテナ） ---
-
-.body {
-  flex: 1;
-  overflow-y: auto;
-  @include scrollbar-thin;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 11.5rem minmax(0, 1fr);
-  gap: 2.5rem;
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 1.5rem 1.5rem 5rem;
-
-  @include lg-down {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-    padding: 0 1rem 4rem;
-  }
-}
-
-// --- カテゴリナビ ---
-
-.nav {
-  position: sticky;
-  top: 1.5rem;
-  align-self: start;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-
-  @include lg-down {
-    // モバイルはヘッダー直下に横並びで固定
-    top: 0;
-    z-index: 10;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 0.25rem;
-    margin: 0 -1rem;
-    padding: 0.5rem 1rem;
-    background-color: $dark-bg-primary;
-    border-bottom: 1px solid $dark-border;
-    @include scrollbar-none;
-  }
-}
-
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.625rem;
-  border-radius: $radius;
-  font-size: $font-size-sm;
-  color: $gray-400;
-  text-align: left;
-  white-space: nowrap;
-  transition:
-    background-color $transition-fast $transition-easing,
-    color $transition-fast $transition-easing;
-
-  &:hover {
-    color: $gray-300;
-    background-color: $dark-bg-hover;
-  }
-
-  @include lg-down {
-    padding: 0.25rem 0.625rem;
-    font-size: $font-size-xs;
-    background-color: $dark-bg-tertiary;
-    border: 1px solid $dark-border-light;
-    border-radius: $radius-full;
-  }
-}
-
-.navItemActive {
-  color: $dark-text-primary;
-  background-color: $dark-bg-tertiary;
-
-  @include lg-down {
-    border-color: $gray-500;
-  }
-}
-
-.navIcon {
-  width: 0.875rem;
-  height: 0.875rem;
-  flex-shrink: 0;
-}
-
-// --- セクション ---
-
-.section {
-  scroll-margin-top: 1rem;
-
-  & + & {
-    margin-top: 2.5rem;
-  }
-
-  @include lg-down {
-    scroll-margin-top: 3.25rem;
-
-    &:first-of-type {
-      margin-top: 1.25rem;
-    }
-
-    & + & {
-      margin-top: 2rem;
-    }
-  }
-}
-
-.sectionTitle {
-  font-size: $font-size-xs;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: $gray-500;
-  margin-bottom: 0.625rem;
-  padding-left: 0.125rem;
-}
-
-.card {
-  background-color: $dark-bg-secondary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius-lg;
-  padding: 0 1rem;
-}
-
-// --- 設定行 ---
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.875rem 0;
-
-  @include sm-down {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.625rem;
-  }
-}
-
-// コントロールを下に積む縦型の行（ラジオグループ等）
-.rowStack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.875rem 0;
-}
-
-.row + .row,
-.row + .rowStack,
-.rowStack + .row,
-.rowStack + .rowStack {
-  border-top: 1px solid $dark-border;
-}
-
-.rowInfo {
-  min-width: 0;
-}
-
-.rowLabel {
-  font-size: $font-size-sm;
-  font-weight: 500;
-  color: $gray-300;
-}
-
-.rowDesc {
-  margin-top: 0.25rem;
-  font-size: $font-size-xs;
-  color: $gray-500;
-  line-height: 1.6;
-}
-
-.rowControl {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
-
-  @include sm-down {
-    justify-content: flex-end;
-  }
-}
-
-// --- グループ見出し（連携セクション内の小見出し） ---
-
-.groupHeader {
-  padding: 0.875rem 0 0.25rem;
-
-  .row + &,
-  .rowStack + & {
-    border-top: 1px solid $dark-border;
-    margin-top: 0.125rem;
-  }
-}
-
-.groupTitle {
-  font-size: $font-size-sm;
-  font-weight: 600;
-  color: $gray-300;
-}
-
-.groupDesc {
-  margin-top: 0.25rem;
-  font-size: $font-size-xs;
-  color: $gray-500;
-  line-height: 1.6;
-}
+// アプリ設定画面の固有スタイル。
+// ヘッダー・ナビ・カード・設定行などの枠組みは settings-layout.module.scss を共有する。
 
 // --- セグメント（フォントサイズ） ---
 
 .segmented {
   display: flex;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
-  border-radius: $radius;
-  padding: 0.125rem;
-  gap: 0.125rem;
+  border-radius: $radius-lg;
+  padding: $space-3xs;
+  gap: $space-3xs;
 }
 
 .segmentedButton {
   display: flex;
   align-items: baseline;
-  gap: 0.375rem;
-  padding: 0.3125rem 0.75rem;
-  border-radius: $radius-sm;
+  gap: $space-xs;
+  padding: $space-2xs $space-md;
+  border-radius: $radius;
   font-size: $font-size-xs;
-  color: $gray-400;
+  color: $dark-text-secondary;
   transition:
     background-color $transition-fast $transition-easing,
     color $transition-fast $transition-easing;
 
-  &:hover {
-    color: $gray-300;
+  // トラック自体が tertiary の面なので、hover はその一段上の面で示す
+  &:hover:not(.segmentedButtonActive) {
+    background-color: $dark-bg-hover;
+    color: $dark-text-primary;
   }
 }
 
 .segmentedButtonActive {
-  background-color: $dark-bg-hover;
+  background-color: $dark-bg-active;
   color: $dark-text-primary;
   box-shadow: $shadow-sm;
 }
@@ -288,20 +47,17 @@
 .radioGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: $space-2xs;
 }
 
 .radioItem {
   display: flex;
   align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.5rem 0.625rem;
-  border: 1px solid transparent;
+  gap: $space-sm;
+  padding: $space-sm $space-sm;
   border-radius: $radius;
   text-align: left;
-  transition:
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
+  transition: background-color $transition-fast $transition-easing;
 
   &:hover {
     background-color: $dark-bg-hover;
@@ -309,14 +65,13 @@
 }
 
 .radioItemSelected {
-  background-color: $dark-bg-tertiary;
-  border-color: $dark-border-light;
+  background-color: $dark-bg-active;
 }
 
 .radioMark {
   width: 0.875rem;
   height: 0.875rem;
-  margin-top: 0.125rem;
+  margin-top: $space-3xs;
   border-radius: $radius-full;
   border: 1px solid $gray-500;
   flex-shrink: 0;
@@ -331,7 +86,7 @@
 .radioText {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: $space-3xs;
   min-width: 0;
 }
 
@@ -349,7 +104,7 @@
   color: $gray-500;
 }
 
-// --- トグルスイッチ ---
+// --- トグルスイッチ（操作 UI のためステータス緑ではなくモノトーン）---
 
 .switch {
   position: relative;
@@ -359,7 +114,6 @@
   height: 1.25rem;
   border-radius: $radius-full;
   background-color: $dark-bg-tertiary;
-  border: 1px solid $dark-border-light;
   flex-shrink: 0;
   transition: background-color $transition-fast $transition-easing;
 
@@ -370,8 +124,7 @@
 }
 
 .switchOn {
-  background-color: $accent-green;
-  border-color: $accent-green;
+  background-color: $accent;
 }
 
 .switchKnob {
@@ -385,56 +138,16 @@
 
   .switchOn & {
     transform: translateX(1.125rem);
+    background-color: $accent-fg;
   }
 }
 
-// --- ステータス表示 ---
-
-.statusActive,
-.statusInactive,
-.statusDenied {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: $font-size-xs;
-  white-space: nowrap;
-}
-
-.statusActive {
-  color: #4ade80;
-}
-
-.statusInactive {
-  color: $gray-400;
-}
-
-.statusDenied {
-  color: #f87171;
-}
-
-.statusDot {
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: $radius-full;
-  flex-shrink: 0;
-}
-
-.statusDotGreen {
-  background-color: #4ade80;
-}
-
-.statusDotRed {
-  background-color: #f87171;
-}
-
-.statusDotGray {
-  background-color: $gray-500;
-}
+// --- 通知セクション ---
 
 .deniedWarning {
-  margin-top: 0.375rem;
+  margin-top: $space-xs;
   font-size: $font-size-xs;
-  color: #f87171;
+  color: $color-error;
 }
 
 .notSupportedText {
@@ -442,68 +155,29 @@
   color: $gray-500;
 }
 
-// --- メッセージ ---
+// --- 更新セクション（ブランチ切り替え） ---
 
-.messageSuccess {
-  margin-top: 0.375rem;
-  font-size: $font-size-xs;
-  color: #4ade80;
+.branchRow {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  @include sm-down {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-.messageError {
-  margin-top: 0.375rem;
-  font-size: $font-size-xs;
-  color: #f87171;
-}
-
-// --- ボタン ---
-
-.buttonPrimary,
-.buttonSecondary,
-.buttonDanger {
-  padding: 0.25rem 0.75rem;
+.branchSelect {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-sm;
   border-radius: $radius;
+  background-color: $dark-bg-input;
+  color: $dark-text-primary;
   font-size: $font-size-xs;
-  font-weight: 500;
-  white-space: nowrap;
-  transition:
-    background-color $transition-fast $transition-easing,
-    border-color $transition-fast $transition-easing;
 
   &:disabled {
-    background-color: $dark-bg-tertiary;
-    border-color: transparent;
     color: $gray-500;
-    cursor: not-allowed;
-  }
-}
-
-.buttonPrimary {
-  background-color: $accent-blue;
-  color: white;
-
-  &:not(:disabled):hover {
-    background-color: $accent-blue-hover;
-  }
-}
-
-.buttonSecondary {
-  background-color: $dark-bg-tertiary;
-  color: $gray-300;
-  border: 1px solid $dark-border-light;
-
-  &:not(:disabled):hover {
-    border-color: $dark-border-focus;
-    background-color: $dark-bg-hover;
-  }
-}
-
-.buttonDanger {
-  background-color: $dark-bg-tertiary;
-  color: #f87171;
-  border: 1px solid #991b1b;
-
-  &:not(:disabled):hover {
-    background-color: rgba(127, 29, 29, 0.3);
   }
 }

@@ -227,6 +227,14 @@ export async function deleteWorktreeAction(
   // 削除したワークツリーのメモも掃除する
   await processManager.worktreeMemoManager.remove(worktreePath);
 
+  // このワークツリーをブラウザで開いているクライアントを親リポへ戻すための通知
+  io.emit('worktree-deleted', {
+    ...result,
+    wtid,
+    worktreePath,
+    parentRepoPath,
+  });
+
   invalidatePrCache(parentRepoPath);
   await emitIdMappingUpdated(io, deps.getRepositories());
   const worktrees = (await getWorktrees(parentRepoPath)).filter(
@@ -296,6 +304,7 @@ export interface BroadcastPromptInput {
   includeMain?: boolean;
   sendClearBefore?: boolean;
   isAutoCommit?: boolean;
+  isAutoCommitPush?: boolean;
   model?: string;
 }
 
@@ -304,7 +313,7 @@ export async function broadcastPrompt(
   deps: ActionDeps
 ): Promise<object> {
   const { processManager } = deps;
-  const { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, model } =
+  const { rid, provider, prompt, targets, includeMain, sendClearBefore, isAutoCommit, isAutoCommitPush, model } =
     input;
   if (!rid || !provider || !prompt) {
     throw new ActionError(400, 'rid, provider, prompt は必須です');
@@ -346,6 +355,7 @@ export async function broadcastPrompt(
         prompt,
         sendClearBefore,
         isAutoCommit,
+        isAutoCommitPush,
         effectiveModel
       );
       results.push({

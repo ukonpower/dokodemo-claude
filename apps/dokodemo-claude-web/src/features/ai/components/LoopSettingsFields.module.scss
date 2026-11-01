@@ -1,0 +1,260 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+// 主要フィールドをまとめるラッパー（既定は .root と同じ縦積み）
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2xs;
+}
+
+.fieldLabel {
+  font-size: $font-size-xs;
+  color: $dark-text-secondary;
+}
+
+// ラベル左・入力右の 1 行レイアウト（ステッパー・スリムなセレクト用）
+.rowField {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  min-height: 32px;
+
+  .fieldLabel {
+    flex-shrink: 0;
+  }
+}
+
+.fieldCaption {
+  font-size: $font-size-2xs;
+  color: $dark-text-muted;
+}
+
+// 数値ステッパー
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: $space-3xs;
+  border-radius: $radius;
+  background-color: $dark-bg-input;
+  overflow: hidden;
+}
+
+.stepperButton {
+  @include flex-center;
+  flex-shrink: 0;
+  width: 34px;
+  min-height: 30px;
+  border: none;
+  background: transparent;
+  color: $dark-text-primary;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    color: $dark-text-muted;
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.stepperValue {
+  @include flex-center;
+  gap: $space-2xs;
+  min-width: 0;
+}
+
+.stepperInput {
+  width: 2.4rem;
+  padding: $space-2xs 0;
+  font-size: $font-size-sm;
+  text-align: center;
+  color: $dark-text-primary;
+  background: transparent;
+  border: none;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.stepperSuffix {
+  font-size: $font-size-xs;
+  color: $dark-text-muted;
+  white-space: nowrap;
+  padding-right: $space-xs;
+}
+
+// 定期プランニングの有効/無効トグル行
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.toggleTrack {
+  position: relative;
+  width: 1.5rem;
+  height: 0.875rem;
+  border-radius: $radius-full;
+  flex-shrink: 0;
+  transition: background-color $transition-normal $transition-easing;
+
+  &.on {
+    background-color: $accent;
+  }
+
+  &.off {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 0.125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: $radius-full;
+  background-color: white;
+  transition: all $transition-normal $transition-easing;
+
+  &.on {
+    left: 0.75rem;
+    background-color: $accent-fg;
+  }
+
+  &.off {
+    left: 0.125rem;
+  }
+}
+
+// 定期プランニング有効時の子設定（左インデントでネストを表現）
+.subGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  margin-left: $space-2xs;
+  padding-left: $space-md;
+
+  .fieldLabel {
+    color: $dark-text-muted;
+  }
+}
+
+// rowField 内で使う幅控えめのセレクト
+.selectSlim {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  max-width: 240px;
+}
+
+// セレクト共通（作業モデル・継続の判断・プランニングモデル）
+.selectInput {
+  width: 100%;
+  min-height: 32px;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-sm;
+  color: $dark-text-primary;
+  background-color: $dark-bg-input;
+  border: none;
+  border-radius: $radius;
+
+  &:focus {
+    outline: 1px solid $focus-ring-input;
+    outline-offset: -1px;
+  }
+}
+
+// PC で横幅が取れる場所（送信バー直下のアコーディオン）向けの 2 カラム配置。
+// .fieldGroup / .subGroup と併用し、display を grid に上書きする
+// （フィールドごとに高さが違うため上揃え）
+.twoColumnOnPc {
+  @include lg-up {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    column-gap: $space-lg;
+    row-gap: $space-sm;
+  }
+}
+
+// PC 2 カラム時のみ .rowField 相当の 1 行レイアウトにする
+// （縦積みのままだと隣のセルと入力の上端が揃わないため）
+.rowFieldOnPc {
+  @include lg-up {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+    min-height: 32px;
+
+    .fieldLabel {
+      flex-shrink: 0;
+    }
+
+    .selectInput {
+      width: auto;
+      flex: 1;
+      min-width: 0;
+      max-width: 240px;
+    }
+  }
+}
+
+// 2 カラム時に 1 行を占有するフィールド（テキストエリア）
+// 縦積み（flex）時は grid-column が無視されるため 1 カラムには影響しない
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+// AI 判断の判定基準テキストエリア
+.criteriaTextarea {
+  width: 100%;
+  padding: $space-xs $space-sm;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+  color: $dark-text-primary;
+  background-color: $dark-bg-input;
+  border: none;
+  border-radius: $radius;
+  resize: vertical;
+
+  &::placeholder {
+    color: $dark-text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &:focus {
+    outline: 1px solid $focus-ring-input;
+    outline-offset: -1px;
+  }
+}

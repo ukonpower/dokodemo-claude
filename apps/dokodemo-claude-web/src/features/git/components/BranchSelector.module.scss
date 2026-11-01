@@ -1,0 +1,673 @@
+@use "sass:color";
+
+// ブランチ操作の群（ブランチ選択・ahead/behind・再取得）。ブランチバーの区画として面を持ち、
+// 中のボタンは平常時は面なし・hover で面を出す。ボタンの高さはブランチバー（ProjectView）の
+// --branch-bar-item-height に揃える
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3xs;
+  padding: $space-3xs;
+  background-color: $dark-bg-raised;
+  border-radius: $radius-lg;
+}
+
+.triggerButton {
+  display: inline-flex;
+  align-items: center;
+  height: var(--branch-bar-item-height);
+  // 左だけ群の padding（$space-3xs）分を詰め、ブランチアイコンの左端を CLI パネルの文字の左端（$space-sm）に揃える
+  padding: 0 $space-sm 0 $space-xs;
+  font-size: $font-size-xs;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: $font-weight-medium;
+  color: $dark-text-secondary;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-tertiary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.branchIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: $space-2xs;
+  color: $gray-500;
+}
+
+.branchName {
+  @include truncate;
+  max-width: 6rem;
+}
+
+.chevron {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-left: $space-2xs;
+  color: $gray-500;
+  transition: transform $transition-fast $transition-easing;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+// VSCode 風の ahead/behind インジケーター
+.syncIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-3xs;
+  height: var(--branch-bar-item-height);
+  padding: 0 $space-xs;
+  min-width: 3rem;
+  justify-content: center;
+  font-size: $font-size-xs;
+  font-family: $font-mono;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $dark-text-secondary;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-tertiary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncIndicatorClean {
+  color: $gray-500;
+}
+
+// ロード中に矢印インジケーター分の幅を確保するプレースホルダー
+.syncIndicatorPlaceholder {
+  display: inline-block;
+  min-width: 3rem;
+}
+
+.syncIcon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+// ahead/behind を fetch 付きで再取得するリフレッシュボタン
+.syncRefreshButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem; // 1 行時の部品の高さ（24px）と同じ幅。要約ありで縦に伸びても幅は変えない
+  height: var(--branch-bar-item-height);
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $dark-text-secondary;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing, background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $dark-text-primary;
+    background-color: $dark-bg-tertiary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.syncIconSpinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.syncPopover {
+  position: fixed;
+  min-width: 11rem;
+  box-sizing: border-box;
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  overflow: hidden;
+  padding: $space-2xs;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+}
+
+.syncPopoverButton {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  padding: $space-xs $space-sm;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  color: $gray-200;
+  text-align: left;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover:not(:disabled) {
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.dropdown {
+  position: fixed;
+  width: 16rem;
+  max-width: calc(100vw - 1rem);
+  box-sizing: border-box;
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  overflow: hidden;
+}
+
+.dropdownList {
+  padding: $space-2xs 0;
+  max-height: 24rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dropdownToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $space-2xs;
+  padding: $space-xs $space-sm;
+}
+
+.toolbarButton {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-2xs;
+  padding: $space-2xs $space-sm;
+  font-size: $font-size-xs;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  color: $gray-300;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $gray-100;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.toolbarIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-2xs;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  color: $gray-300;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+  margin-left: auto;
+
+  &:hover {
+    color: $gray-100;
+    background-color: $dark-bg-hover;
+  }
+}
+
+.toolbarIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.emptyMessage {
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  color: $gray-400;
+}
+
+.groupLabel {
+  padding: $space-sm $space-lg;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.groupLabelBorder {
+  padding: $space-sm $space-lg;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: $space-2xs;
+  padding-top: $space-sm;
+}
+
+.branchItem {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.branchItemCurrent {
+  color: $gray-100;
+  background-color: $dark-bg-active;
+}
+
+.branchItemDefault {
+  color: $gray-200;
+}
+
+.branchButton {
+  flex: 1 1 0%;
+  min-width: 0;
+  text-align: left;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.branchButtonName {
+  @include truncate;
+}
+
+.checkIcon {
+  width: 1rem;
+  height: 1rem;
+  margin-left: $space-sm;
+  flex-shrink: 0;
+}
+
+.deleteButton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-500;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  &:hover {
+    color: $color-error;
+    background-color: $color-error-bg;
+  }
+}
+
+.deleteIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.remoteBranchButton {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  padding: $space-sm $space-lg;
+  font-size: $font-size-sm;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-300;
+  display: flex;
+  align-items: center;
+  transition: background-color $transition-fast $transition-easing;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+  }
+}
+
+.remoteIcon {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: $space-sm;
+  color: $gray-500;
+}
+
+.remoteName {
+  @include truncate;
+}
+
+// Delete confirm modal
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(black, 0.5);
+  @include flex-center;
+  // ブランチ一覧の dropdown（z-index: 9999）より手前に重ねて表示する
+  z-index: 10002;
+}
+
+.modalContent {
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  padding: $space-xl;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: $space-lg;
+}
+
+.modalIconCircle {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-full;
+  @include flex-center;
+  margin-right: $space-md;
+}
+
+.modalIconCircleRed {
+  background-color: rgba($red-900, 0.5);
+}
+
+.modalIconCircleBlue {
+  background-color: rgba($blue-900, 0.5);
+}
+
+.modalIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.modalIconRed {
+  color: $color-error;
+}
+
+.modalIconBlue {
+  color: $color-info;
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  line-height: 1.75rem;
+  font-weight: $font-weight-semibold;
+  color: white;
+}
+
+.modalText {
+  color: $gray-300;
+  margin-bottom: $space-lg;
+}
+
+.monoRed {
+  font-family: $font-mono;
+  color: $color-error;
+}
+
+.warningBox {
+  background-color: $color-warning-bg;
+  border-radius: $radius-lg;
+  padding: $space-md;
+  margin-bottom: $space-lg;
+}
+
+.warningTitle {
+  font-size: $font-size-sm;
+  color: $color-warning;
+  font-weight: $font-weight-semibold;
+}
+
+.warningList {
+  font-size: $font-size-sm;
+  color: rgba($color-warning, 0.8);
+  margin-top: $space-2xs;
+
+  & > * + * {
+    margin-top: $space-2xs;
+  }
+}
+
+// Pull 進行状況 / 結果ポップオーバー（dropdown と統一感のあるフラットなトーン）
+.pullPopup {
+  position: fixed;
+  z-index: 10000;
+  width: 20rem;
+  max-width: calc(100vw - 1rem);
+  background-color: $dark-bg-float;
+  border-radius: $radius-2xl;
+  box-shadow: $shadow-float;
+  overflow: hidden;
+  color: $gray-200;
+  animation: pull-popup-in $transition-fast $transition-easing both;
+}
+
+@keyframes pull-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pullPopupHeader {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm;
+  background-color: rgba($gray-900, 0.35);
+}
+
+.pullPopupStatusDot {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: $radius-full;
+  background-color: $gray-500;
+
+  .pullPopupRunning & {
+    background-color: $color-info;
+    box-shadow: 0 0 0 3px rgba($color-info, 0.15);
+    animation: pull-popup-pulse 1.4s ease-in-out infinite;
+  }
+
+  .pullPopupSuccess & {
+    background-color: $color-success;
+    box-shadow: 0 0 0 3px rgba($color-success, 0.15);
+  }
+
+  .pullPopupError & {
+    background-color: $color-error;
+    box-shadow: 0 0 0 3px rgba($color-error, 0.15);
+  }
+}
+
+@keyframes pull-popup-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pullPopupTitle {
+  flex: 1;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $gray-100;
+  letter-spacing: 0.01em;
+  @include truncate;
+}
+
+.pullPopupBranch {
+  font-weight: $font-weight-medium;
+  color: $gray-400;
+  margin-left: $space-2xs;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+}
+
+.pullPopupClose {
+  flex-shrink: 0;
+  background-color: $dark-bg-tertiary;
+  border: none;
+  cursor: pointer;
+  padding: $space-3xs;
+  color: $dark-text-secondary;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius;
+  transition: color $transition-fast $transition-easing,
+    background-color $transition-fast $transition-easing;
+
+  & > svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  &:hover:not(:disabled) {
+    color: $dark-text-primary;
+    background-color: $dark-bg-hover;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.pullPopupBody {
+  padding: $space-sm;
+}
+
+.pullPopupMessage {
+  font-size: $font-size-xs;
+  color: $gray-400;
+  margin-bottom: $space-xs;
+
+  .pullPopupError & {
+    color: color.adjust($color-error, $lightness: 15%);
+  }
+
+  .pullPopupSuccess & {
+    color: color.adjust($color-success, $lightness: 10%);
+  }
+}
+
+.pullPopupLog {
+  margin: 0;
+  padding: $space-xs $space-sm;
+  background-color: $dark-bg-primary;
+  border-radius: $radius-lg;
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  color: $gray-300;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 9rem;
+  min-height: 2.25rem;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: $dark-border-light;
+    border-radius: $radius-full;
+  }
+}
+
+.pullPopupLogPlaceholder {
+  color: $gray-500;
+  font-style: italic;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  margin-bottom: $space-lg;
+  cursor: pointer;
+}
+
+.checkboxLabelGroup {
+  display: flex;
+  align-items: center;
+  margin-bottom: $space-lg;
+  cursor: pointer;
+
+  &:hover .checkboxText {
+    color: $gray-200;
+  }
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkboxText {
+  margin-left: $space-sm;
+  font-size: $font-size-sm;
+  color: $gray-300;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+
+  & > * + * {
+    margin-left: $space-md;
+  }
+}

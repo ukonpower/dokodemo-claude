@@ -750,6 +750,7 @@ export class ProcessManager extends EventEmitter {
     prompt: string,
     sendClearBefore?: boolean,
     isAutoCommit?: boolean,
+    isAutoCommitPush?: boolean,
     model?: string,
     isCodexReview?: boolean,
     loop?: {
@@ -764,7 +765,7 @@ export class ProcessManager extends EventEmitter {
       repositoryPath,
       provider,
       prompt,
-      { sendClearBefore, isAutoCommit, model, isCodexReview, loop }
+      { sendClearBefore, isAutoCommit, isAutoCommitPush, model, isCodexReview, loop }
     );
     if (!result.ok) {
       throw new Error(result.error.message);
@@ -893,6 +894,7 @@ export class ProcessManager extends EventEmitter {
     prompt?: string,
     sendClearBefore?: boolean,
     isAutoCommit?: boolean,
+    isAutoCommitPush?: boolean,
     model?: string,
     isCodexReview?: boolean,
     loop?:
@@ -909,7 +911,15 @@ export class ProcessManager extends EventEmitter {
       repositoryPath,
       provider,
       itemId,
-      { prompt, sendClearBefore, isAutoCommit, model, isCodexReview, loop }
+      {
+        prompt,
+        sendClearBefore,
+        isAutoCommit,
+        isAutoCommitPush,
+        model,
+        isCodexReview,
+        loop,
+      }
     );
     return result.ok && result.value;
   }

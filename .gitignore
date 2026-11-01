@@ -88,6 +88,9 @@ jspm_packages/
 # Storybook build outputs
 .out
 .storybook-out
+storybook-static/
+*/storybook-static/
+**/storybook-static/
 
 # Temporary folders
 tmp/
@@ -166,6 +169,10 @@ data/
 
 # Runtime files (dokodemo-claude specific)
 apps/dokodemo-claude-api/uploads/
+uploads/
+# ランタイム生成 JSON（本来は processes/ 配下だが cwd 次第で流出することがあるので保険）
+repo-last-access.json
+apps/dokodemo-claude-api/repo-last-access.json
 
 # Nx
 .nx/

@@ -14,7 +14,25 @@ export class WorktreeMemoManager {
   // key: worktreePath (絶対パス), value: メモ本文
   private memos = new Map<string, string>();
 
+  // メモ変更の通知先（要約サービスがメモに追従するために使用。削除は空文字で通知）
+  private onChange: ((worktreePath: string, memo: string) => void) | null =
+    null;
+
   constructor(private readonly persistenceService: PersistenceService) {}
+
+  /**
+   * メモ変更の通知先を登録する。
+   */
+  setOnChange(callback: (worktreePath: string, memo: string) => void): void {
+    this.onChange = callback;
+  }
+
+  /**
+   * 全メモを返す（要約サービスの突き合わせ用）。
+   */
+  entries(): ReadonlyMap<string, string> {
+    return this.memos;
+  }
 
   async initialize(): Promise<void> {
     const result =
@@ -60,6 +78,7 @@ export class WorktreeMemoManager {
     if (!persistResult.ok) {
       return Err(persistResult.error);
     }
+    this.onChange?.(worktreePath, trimmed);
     return Ok(trimmed);
   }
 
@@ -69,6 +88,7 @@ export class WorktreeMemoManager {
   async remove(worktreePath: string): Promise<void> {
     if (this.memos.delete(worktreePath)) {
       await this.persist();
+      this.onChange?.(worktreePath, '');
     }
   }
 

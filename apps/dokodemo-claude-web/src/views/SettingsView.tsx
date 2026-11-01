@@ -1,22 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Monitor, Sparkles, Bell, Link2 } from 'lucide-react';
-import type { Socket } from 'socket.io-client';
-import type {
-  AiProvider,
-  ServerToClientEvents,
-  ClientToServerEvents,
-} from '../types';
-import type { AppSettings, FontSizePreset, PermissionMode } from '../utils/app-settings';
-import { useWebPush } from '../hooks/useWebPush';
-import s from './SettingsView.module.scss';
+import { X, Monitor, Sparkles, Bell, Link2, RefreshCw } from 'lucide-react';
+import Button from '@/shared/components/Button';
+import IconButton from '@/shared/components/IconButton';
+import type { AiProvider } from '@/types';
+import type { FontSizePreset, PermissionMode } from '@/app/utils/app-settings';
+import { useWebPush } from '@/app/hooks/useWebPush';
+import { useSocketContext } from '@/app/providers/SocketProvider';
+import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
+import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
+import { useNavigationContext } from '@/app/providers/NavigationProvider';
+import { useSectionScrollSpy } from '@/shared/hooks/useSectionScrollSpy';
+import s from './settings-layout.module.scss';
+import v from './SettingsView.module.scss';
 
-type SectionId = 'appearance' | 'ai' | 'notification' | 'integration';
+type SectionId =
+  | 'appearance'
+  | 'ai'
+  | 'notification'
+  | 'integration'
+  | 'update';
 
 const SECTIONS: { id: SectionId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'appearance', label: '表示', icon: Monitor },
   { id: 'ai', label: 'AIセッション', icon: Sparkles },
   { id: 'notification', label: '通知', icon: Bell },
   { id: 'integration', label: '連携', icon: Link2 },
+  { id: 'update', label: '更新', icon: RefreshCw },
 ];
 
 const FONT_SIZE_OPTIONS: { preset: FontSizePreset; label: string; previewPx: number }[] = [
@@ -48,21 +57,24 @@ interface PluginState {
   message: { type: 'success' | 'error'; text: string } | null;
 }
 
-interface SettingsViewProps {
-  socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
-  settings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
-  currentRepo: string;
-  onBack: () => void;
-}
+export function SettingsView() {
+  const { socket } = useSocketContext();
+  const {
+    appSettings: settings,
+    handleSettingsChange: onSettingsChange,
+  } = useAppSettingsContext();
+  const { repository } = useRepositoryContext();
+  const {
+    currentRepo,
+    pullSelf,
+    selfUpdateAvailable,
+    selfBranches,
+    selfCurrentBranch,
+    selfBranchesLoading,
+    fetchSelfBranches,
+  } = repository;
+  const { closeSettings: onBack } = useNavigationContext();
 
-export function SettingsView({
-  socket,
-  settings,
-  onSettingsChange,
-  currentRepo,
-  onBack,
-}: SettingsViewProps) {
   const webPush = useWebPush(socket, true, currentRepo);
 
   const [claudeHooks, setClaudeHooks] = useState<HooksProviderState>({
@@ -77,9 +89,23 @@ export function SettingsView({
   // AIタブの指示内容要約の on/off（null = 未取得）
   const [summaryEnabled, setSummaryEnabled] = useState<boolean | null>(null);
 
+  // 更新セクションで選択中の切り替え先（空 = 現在ブランチ）
+  const [selectedBranch, setSelectedBranch] = useState('');
+  // 実際の切り替え先。未選択なら現在ブランチ扱い
+  const targetBranch = selectedBranch || selfCurrentBranch;
+  const currentBranchInfo = selfBranches.find(b => b.isCurrent);
+
+  // 更新先ブランチ一覧は設定画面を開いた時点で取得しておく
+  useEffect(() => {
+    fetchSelfBranches();
+  }, [fetchSelfBranches]);
+
   // カテゴリナビのスクロールスパイ
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [activeSection, setActiveSection] = useState<SectionId>('appearance');
+  const { activeSection, scrollToSection } = useSectionScrollSpy<SectionId>(
+    bodyRef,
+    'settings-'
+  );
 
   useEffect(() => {
     if (!socket) return;
@@ -178,44 +204,6 @@ export function SettingsView({
     };
   }, [socket]);
 
-  // スクロール位置から現在のカテゴリを判定してナビをハイライト
-  useEffect(() => {
-    const body = bodyRef.current;
-    if (!body) return;
-
-    const handleScroll = () => {
-      const sections = Array.from(
-        body.querySelectorAll<HTMLElement>('[data-section-id]')
-      );
-      const line = body.getBoundingClientRect().top + 120;
-      let current: string | undefined = sections[0]?.dataset.sectionId;
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top <= line) {
-          current = section.dataset.sectionId;
-        }
-      }
-      // 最終セクションが短いと判定線に届かないため、最下部到達時は最終セクションを優先
-      if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4) {
-        current = sections[sections.length - 1]?.dataset.sectionId ?? current;
-      }
-      if (current) setActiveSection(current as SectionId);
-    };
-
-    body.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => body.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToSection = (id: SectionId) => {
-    const prefersReducedMotion = window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches;
-    document.getElementById(`settings-${id}`)?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
-
   const handleToggleHooks = (provider: AiProvider) => {
     if (!socket) return;
     const state = provider === 'claude' ? claudeHooks : codexHooks;
@@ -273,13 +261,14 @@ export function SettingsView({
       </div>
       <div className={s.rowControl}>
         {renderStatus(state.configured, '設定済み', '未設定')}
-        <button
+        <Button
+          variant={state.configured ? 'danger' : 'primary'}
+          size="sm"
           onClick={() => handleToggleHooks(provider)}
           disabled={state.loading}
-          className={state.configured ? s.buttonDanger : s.buttonPrimary}
         >
           {state.loading ? '処理中...' : state.configured ? '削除' : '追加'}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -288,10 +277,10 @@ export function SettingsView({
     <div className={s.root}>
       {/* ヘッダー */}
       <header className={s.header}>
-        <button onClick={onBack} className="btn-icon" title="戻る" aria-label="戻る">
-          <ArrowLeft className={s.backIcon} />
-        </button>
         <h1 className={s.headerTitle}>設定</h1>
+        <IconButton label="閉じる" onClick={onBack} className={s.headerClose}>
+          <X />
+        </IconButton>
       </header>
 
       <div className={s.body} ref={bodyRef}>
@@ -310,8 +299,8 @@ export function SettingsView({
             ))}
           </nav>
 
-          {/* 設定コンテンツ */}
-          <div className={s.content}>
+          {/* 設定コンテンツ（グリッドの2列目。スタイルは layout 側で決まる） */}
+          <div>
             {/* 表示 */}
             <section
               id="settings-appearance"
@@ -328,7 +317,7 @@ export function SettingsView({
                     </p>
                   </div>
                   <div className={s.rowControl}>
-                    <div className={s.segmented} role="group" aria-label="フォントサイズ">
+                    <div className={v.segmented} role="group" aria-label="フォントサイズ">
                       {FONT_SIZE_OPTIONS.map(({ preset, label, previewPx }) => (
                         <button
                           key={preset}
@@ -336,14 +325,14 @@ export function SettingsView({
                             onSettingsChange({ ...settings, fontSizePreset: preset })
                           }
                           aria-pressed={settings.fontSizePreset === preset}
-                          className={`${s.segmentedButton} ${
+                          className={`${v.segmentedButton} ${
                             settings.fontSizePreset === preset
-                              ? s.segmentedButtonActive
+                              ? v.segmentedButtonActive
                               : ''
                           }`}
                         >
                           <span
-                            className={s.fontPreview}
+                            className={v.fontPreview}
                             style={{ fontSize: `${previewPx}px` }}
                             aria-hidden="true"
                           >
@@ -369,7 +358,7 @@ export function SettingsView({
                       Claude CLI セッション起動時の権限確認の扱い。変更は次回セッション作成時に反映されます
                     </p>
                   </div>
-                  <div className={s.radioGroup} role="radiogroup" aria-label="パーミッションモード">
+                  <div className={v.radioGroup} role="radiogroup" aria-label="パーミッションモード">
                     {PERMISSION_OPTIONS.map(({ value, label, description }) => {
                       const selected = (settings.permissionMode ?? '') === value;
                       return (
@@ -384,12 +373,12 @@ export function SettingsView({
                                 value === '' ? undefined : value,
                             })
                           }
-                          className={`${s.radioItem} ${selected ? s.radioItemSelected : ''}`}
+                          className={`${v.radioItem} ${selected ? v.radioItemSelected : ''}`}
                         >
-                          <span className={s.radioMark} aria-hidden="true" />
-                          <span className={s.radioText}>
-                            <span className={s.radioLabel}>{label}</span>
-                            <span className={s.radioDesc}>{description}</span>
+                          <span className={v.radioMark} aria-hidden="true" />
+                          <span className={v.radioText}>
+                            <span className={v.radioLabel}>{label}</span>
+                            <span className={v.radioDesc}>{description}</span>
                           </span>
                         </button>
                       );
@@ -399,21 +388,21 @@ export function SettingsView({
 
                 <div className={s.row}>
                   <div className={s.rowInfo}>
-                    <span className={s.rowLabel}>AIタブの指示内容要約</span>
+                    <span className={s.rowLabel}>タブの要約表示</span>
                     <p className={s.rowDesc}>
-                      AIに送った指示から「そのセッションが何に取り組んでいるか」を生成してタブに表示します（haiku を使用）
+                      AIタブは送った指示から、ワークツリータブはメモから要約を生成してタブに表示します（haiku を使用）
                     </p>
                   </div>
                   <div className={s.rowControl}>
                     <button
                       role="switch"
                       aria-checked={summaryEnabled === true}
-                      aria-label="AIタブの指示内容要約"
+                      aria-label="タブの要約表示"
                       onClick={handleToggleSummary}
                       disabled={summaryEnabled === null}
-                      className={`${s.switch} ${summaryEnabled ? s.switchOn : ''}`}
+                      className={`${v.switch} ${summaryEnabled ? v.switchOn : ''}`}
                     >
-                      <span className={s.switchKnob} />
+                      <span className={v.switchKnob} />
                     </button>
                   </div>
                 </div>
@@ -435,7 +424,7 @@ export function SettingsView({
                       処理完了時や質問待ち状態になったときにブラウザ通知を送信します
                     </p>
                     {webPush.permissionState === 'denied' && (
-                      <p className={s.deniedWarning}>
+                      <p className={v.deniedWarning}>
                         通知がブロックされています。ブラウザの設定から通知を許可してください
                       </p>
                     )}
@@ -453,7 +442,7 @@ export function SettingsView({
                   </div>
                   <div className={s.rowControl}>
                     {!webPush.isSupported ? (
-                      <span className={s.notSupportedText}>
+                      <span className={v.notSupportedText}>
                         このブラウザは非対応です
                       </span>
                     ) : (
@@ -469,32 +458,35 @@ export function SettingsView({
                             )
                             : renderStatus(false, '', '無効')}
                         {!webPush.isSubscribed ? (
-                          <button
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={webPush.subscribe}
                             disabled={
                               webPush.loading ||
                               webPush.permissionState === 'denied'
                             }
-                            className={s.buttonPrimary}
                           >
                             {webPush.loading ? '処理中...' : '有効にする'}
-                          </button>
+                          </Button>
                         ) : (
                           <>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={webPush.testNotification}
                               disabled={webPush.testLoading}
-                              className={s.buttonSecondary}
                             >
                               {webPush.testLoading ? '送信中...' : 'テスト送信'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={webPush.unsubscribe}
                               disabled={webPush.loading}
-                              className={s.buttonDanger}
                             >
                               {webPush.loading ? '処理中...' : '無効にする'}
-                            </button>
+                            </Button>
                           </>
                         )}
                       </>
@@ -544,17 +536,93 @@ export function SettingsView({
                   </div>
                   <div className={s.rowControl}>
                     {renderStatus(pluginState.installed, 'インストール済', '未インストール')}
-                    <button
+                    <Button
+                      variant={pluginState.installed ? 'danger' : 'primary'}
+                      size="sm"
                       onClick={handleTogglePlugin}
                       disabled={pluginState.loading}
-                      className={pluginState.installed ? s.buttonDanger : s.buttonPrimary}
                     >
                       {pluginState.loading
                         ? '処理中...'
                         : pluginState.installed
                           ? 'アンインストール'
                           : 'インストール'}
-                    </button>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 更新 */}
+            <section
+              id="settings-update"
+              data-section-id="update"
+              className={s.section}
+            >
+              <h2 className={s.sectionTitle}>更新</h2>
+              <div className={s.card}>
+                <div className={s.row}>
+                  <div className={s.rowInfo}>
+                    <span className={s.rowLabel}>dokodemo-claude 本体</span>
+                    <p className={s.rowDesc}>
+                      現在のブランチ（
+                      {selfCurrentBranch || '取得中...'}）の最新を取り込みます
+                    </p>
+                  </div>
+                  <div className={s.rowControl}>
+                    {renderStatus(
+                      selfUpdateAvailable,
+                      currentBranchInfo && currentBranchInfo.behind > 0
+                        ? `更新あり (+${currentBranchInfo.behind})`
+                        : '更新あり',
+                      '最新'
+                    )}
+                    <Button variant="primary" size="sm" onClick={() => pullSelf()}>
+                      更新
+                    </Button>
+                  </div>
+                </div>
+
+                <div className={s.rowStack}>
+                  <div className={s.rowInfo}>
+                    <span className={s.rowLabel}>更新先ブランチの切り替え</span>
+                    <p className={s.rowDesc}>
+                      main と main へ未マージの release/*（＋現在のブランチ）に切り替えられます。
+                      切り替え時は追跡ファイルのローカル変更が破棄されます
+                    </p>
+                  </div>
+                  <div className={v.branchRow}>
+                    <select
+                      className={v.branchSelect}
+                      value={targetBranch}
+                      onChange={e => setSelectedBranch(e.target.value)}
+                      disabled={selfBranches.length === 0}
+                      aria-label="更新先ブランチ"
+                    >
+                      {selfBranches.length === 0 ? (
+                        <option value="">
+                          {selfBranchesLoading
+                            ? '読み込み中...'
+                            : 'ブランチを取得できませんでした'}
+                        </option>
+                      ) : (
+                        selfBranches.map(branch => (
+                          <option key={branch.name} value={branch.name}>
+                            {branch.name}
+                            {branch.behind > 0 ? ` (+${branch.behind})` : ''}
+                            {branch.isCurrent ? '（現在）' : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => pullSelf(targetBranch)}
+                      disabled={!targetBranch || targetBranch === selfCurrentBranch}
+                    >
+                      切り替えて更新
+                    </Button>
                   </div>
                 </div>
               </div>
