@@ -66,6 +66,25 @@ interface TextDraft {
   x: number;
   y: number;
   value: string;
+  /** 既存の文字を書き直しているときの元の文字。新規入力なら null */
+  source: TextItem | null;
+}
+
+/** 文字ツールで指を置いた位置。離すまでにどれだけ動いたかでタップ（入力）かドラッグ（移動）かを決める */
+interface PendingTap {
+  clientX: number;
+  clientY: number;
+  /** 指を置いた位置にあった文字。null なら空き領域 */
+  hitText: TextItem | null;
+}
+
+/** ドラッグで移動中の文字 */
+interface TextDrag {
+  source: TextItem;
+  /** 移動を始める前の描き込み一覧。確定時は履歴に積み、取り消し時はここへ戻す */
+  base: DrawItem[];
+  /** ドラッグ開始位置（キャンバス座標） */
+  start: Point;
 }
 
 type Tool = 'pen' | 'text';
@@ -182,6 +201,53 @@ function measureTextWidth(lines: string[], fontSize: number): number {
   return maxWidth;
 }
 
+/** 文字ブロックの寸法（キャンバス px） */
+function textBlockSize(item: TextItem): { width: number; height: number } {
+  const lines = item.text.split('\n');
+  return {
+    width: measureTextWidth(lines, item.fontSize),
+    height: item.fontSize * TEXT_LINE_HEIGHT * lines.length,
+  };
+}
+
+/** point の位置にある文字のうち最前面のものを返す。padding だけ当たり判定を広げる（指で掴みやすくするため） */
+function findTextAt(
+  items: DrawItem[],
+  point: Point,
+  padding: number
+): TextItem | null {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.kind !== 'text') continue;
+    const size = textBlockSize(item);
+    const insideX =
+      point.x >= item.x - padding && point.x <= item.x + size.width + padding;
+    const insideY =
+      point.y >= item.y - padding && point.y <= item.y + size.height + padding;
+    if (insideX && insideY) {
+      return item;
+    }
+  }
+  return null;
+}
+
+/** target を replacement に差し替えた新しい配列を返す。replacement が null なら取り除く */
+function replaceItem(
+  items: DrawItem[],
+  target: DrawItem,
+  replacement: DrawItem | null
+): DrawItem[] {
+  const next: DrawItem[] = [];
+  for (const item of items) {
+    if (item !== target) {
+      next.push(item);
+    } else if (replacement) {
+      next.push(replacement);
+    }
+  }
+  return next;
+}
+
 /** 文字をキャンバスに描く。行ごとに行ボックスの中央へ置き、textarea の行配置と揃える */
 function drawText(ctx: CanvasRenderingContext2D, item: TextItem) {
   const lineHeight = item.fontSize * TEXT_LINE_HEIGHT;
@@ -254,7 +320,7 @@ function strokePath(ctx: CanvasRenderingContext2D, stroke: Stroke) {
 /**
  * 全画面のお絵かきオーバーレイ。
  * 1本指（マウスドラッグ）で描画、2本指でピンチズーム＋パン、ホイールでズーム。
- * 文字ツール中はタップした位置に文字を入力できる。
+ * 文字ツール中は空き領域のタップで文字を入力、既存の文字はタップで書き直し・ドラッグで移動できる。
  */
 const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   isOpen,
@@ -270,14 +336,20 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const textInputRef = useRef<HTMLTextAreaElement>(null);
 
   const bgImageRef = useRef<HTMLImageElement | null>(null);
+  // 現在の描き込み一覧。履歴に保存した配列を後から書き換えないよう、変更時は常に新しい配列に差し替える
+  // （例外は描画中ストロークの points だけで、これは確定前なので履歴には入っていない）
   const itemsRef = useRef<DrawItem[]>([]);
-  // undo で取り除いた描き込み。新しい描き込みを確定したら破棄する
-  const redoItemsRef = useRef<DrawItem[]>([]);
+  // 履歴は操作ごとの描き込み一覧のスナップショットで持つ。
+  // 追加だけでなく文字の移動・書き直し・削除も同じ「1 手」として戻せるようにするため
+  const undoStackRef = useRef<DrawItem[][]>([]);
+  // undo で戻した状態。新しい操作を確定したら破棄する
+  const redoStackRef = useRef<DrawItem[][]>([]);
   const currentStrokeRef = useRef<Stroke | null>(null);
-  // 文字ツールでタップ判定中の指の位置（画面座標）。動きすぎたら null に戻してタップ扱いしない
-  const pendingTapRef = useRef<{ clientX: number; clientY: number } | null>(
-    null
-  );
+  // 描画中ストロークを追加する前の一覧。ストローク確定時に履歴へ積み、ピンチで取り消すときはここへ戻す
+  const strokeBaseRef = useRef<DrawItem[] | null>(null);
+  // 文字ツールでタップ判定中の指。動きすぎたら null に戻し、文字の上ならドラッグ移動に切り替える
+  const pendingTapRef = useRef<PendingTap | null>(null);
+  const textDragRef = useRef<TextDrag | null>(null);
   // 入力中の文字。確定処理は blur・Enter・キャンバスのタップ等から重ねて呼ばれうるため、
   // 二重確定しないよう state とは別に同期的に読み書きできる ref を正とする
   const textDraftRef = useRef<TextDraft | null>(null);
@@ -302,7 +374,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [tool, setTool] = useState<Tool>('pen');
   const [textDraft, setTextDraftState] = useState<TextDraft | null>(null);
   const [itemCount, setItemCount] = useState(0);
-  // redoItemsRef は ref で再描画されないため、redo ボタンの disabled 判定用に件数を別に持つ
+  // 履歴は ref で再描画されないため、undo/redo ボタンの disabled 判定用に件数を別に持つ
+  const [undoCount, setUndoCount] = useState(0);
   const [redoCount, setRedoCount] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -347,7 +420,13 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    // 書き直し中の文字は textarea 側に出しているため、二重に見えないようキャンバスには描かない
+    let editingSource: TextItem | null = null;
+    if (textDraftRef.current) {
+      editingSource = textDraftRef.current.source;
+    }
     for (const item of itemsRef.current) {
+      if (item === editingSource) continue;
       if (item.kind === 'stroke') {
         strokePath(ctx, item);
       } else {
@@ -361,37 +440,75 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setTextDraftState(draft);
   }, []);
 
-  /** 新しい描き込みを履歴に積む。これ以降 undo 前の続きには戻れなくなる */
-  const pushItem = useCallback((item: DrawItem) => {
-    itemsRef.current.push(item);
-    redoItemsRef.current = [];
+  const syncHistoryCounts = useCallback(() => {
     setItemCount(itemsRef.current.length);
-    setRedoCount(0);
+    setUndoCount(undoStackRef.current.length);
+    setRedoCount(redoStackRef.current.length);
   }, []);
 
   /**
-   * 入力中の文字を確定してキャンバスに描く。空なら何も積まずに入力を閉じる。
+   * 現在の一覧を 1 手として確定し、変更前の一覧 prev を undo 履歴に積む。
+   * これ以降 undo 前の続きには戻れなくなる
+   */
+  const recordHistory = useCallback(
+    (prev: DrawItem[]) => {
+      undoStackRef.current.push(prev);
+      redoStackRef.current = [];
+      syncHistoryCounts();
+    },
+    [syncHistoryCounts]
+  );
+
+  /**
+   * 入力中の文字を確定してキャンバスに描く。
+   * 新規入力が空なら何も積まずに閉じ、書き直しで空にしたらその文字を消す。
    * 書き出し（完了）直前にも呼ぶため、描画は同期的に済ませる
    */
   const commitText = useCallback(() => {
     const draft = textDraftRef.current;
     if (!draft) return;
+    // 先に閉じておくと、redrawAll が書き直し中の元の文字を隠さずに描く
     setTextDraft(null);
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const base = itemsRef.current;
+    const source = draft.source;
     // 末尾の改行だけが残ると見えない行で文字ブロックが下に伸びるため落とす
     const text = draft.value.replace(/\s+$/, '');
-    if (text.trim() === '') return;
-    pushItem({
+
+    if (text.trim() === '') {
+      if (source) {
+        itemsRef.current = replaceItem(base, source, null);
+        recordHistory(base);
+      }
+      redrawAll();
+      return;
+    }
+
+    const item: TextItem = {
       kind: 'text',
       color: penColor,
       fontSize: textSizeFor(canvas, penSize),
       x: draft.x,
       y: draft.y,
       text,
-    });
+    };
+    if (source) {
+      const unchanged =
+        source.text === item.text &&
+        source.color === item.color &&
+        source.fontSize === item.fontSize;
+      // 開いて閉じただけの書き直しで undo の 1 手を消費しないようにする
+      if (!unchanged) {
+        itemsRef.current = replaceItem(base, source, item);
+        recordHistory(base);
+      }
+    } else {
+      itemsRef.current = [...base, item];
+      recordHistory(base);
+    }
     redrawAll();
-  }, [penColor, penSize, pushItem, redrawAll, setTextDraft]);
+  }, [penColor, penSize, recordHistory, redrawAll, setTextDraft]);
 
   // キャンバス初期化（背景画像の読み込み / 白紙の生成）
   useEffect(() => {
@@ -402,15 +519,17 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
     let cancelled = false;
     itemsRef.current = [];
-    redoItemsRef.current = [];
+    undoStackRef.current = [];
+    redoStackRef.current = [];
     currentStrokeRef.current = null;
+    strokeBaseRef.current = null;
     pendingTapRef.current = null;
+    textDragRef.current = null;
     pointersRef.current.clear();
     pinchRef.current = null;
     multiTouchRef.current = false;
     setTextDraft(null);
-    setItemCount(0);
-    setRedoCount(0);
+    syncHistoryCounts();
 
     const init = (width: number, height: number) => {
       canvas.width = width;
@@ -453,7 +572,14 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       bgImageRef.current = null;
       setIsReady(false);
     };
-  }, [isOpen, backgroundImageUrl, redrawAll, fitView, setTextDraft]);
+  }, [
+    isOpen,
+    backgroundImageUrl,
+    redrawAll,
+    fitView,
+    setTextDraft,
+    syncHistoryCounts,
+  ]);
 
   // 開いた時点で背面の入力欄にフォーカスが残っていると、Cmd+Z がそちらの undo に
   // 吸われてキャンバスに効かない（見えない入力欄が書き換わる）ため、フォーカスを外す
@@ -589,12 +715,88 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       // iOS はユーザー操作の処理中に同期で focus() しないとソフトキーボードを出さないため、
       // textarea を即時にマウントしてからこのハンドラ内でフォーカスする
       flushSync(() => {
-        setTextDraft({ x: point.x, y: point.y - lineHeight / 2, value: '' });
+        setTextDraft({
+          x: point.x,
+          y: point.y - lineHeight / 2,
+          value: '',
+          source: null,
+        });
       });
       textInputRef.current?.focus();
     },
     [penSize, toCanvasPoint, setTextDraft]
   );
+
+  /**
+   * 既存の文字を書き直す入力を開く。
+   * ツールバーの色・大きさをその文字に合わせ、入力中にツールバーで変えた色・大きさがそのまま反映されるようにする
+   */
+  const openTextEdit = useCallback(
+    (item: TextItem) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      let matchedSize: PenSize | null = null;
+      for (const size of PEN_SIZES) {
+        if (textSizeFor(canvas, size) === item.fontSize) {
+          matchedSize = size;
+        }
+      }
+      // openTextInput と同じく iOS のキーボード表示のため同期でマウントしてフォーカスする
+      flushSync(() => {
+        setPenColor(item.color);
+        if (matchedSize) {
+          setPenSize(matchedSize);
+        }
+        setTextDraft({ x: item.x, y: item.y, value: item.text, source: item });
+      });
+      // 元の文字をキャンバスから隠す（setTextDraft で textDraftRef は更新済み）
+      redrawAll();
+      const input = textInputRef.current;
+      if (input) {
+        input.focus();
+        input.setSelectionRange(item.text.length, item.text.length);
+      }
+    },
+    [redrawAll, setTextDraft]
+  );
+
+  /** ドラッグ中の文字を、開始位置からの移動量だけずらして描き直す */
+  const moveDraggedText = useCallback(
+    (clientX: number, clientY: number) => {
+      const drag = textDragRef.current;
+      if (!drag) return;
+      const point = toCanvasPoint(clientX, clientY);
+      const moved: TextItem = {
+        ...drag.source,
+        x: drag.source.x + point.x - drag.start.x,
+        y: drag.source.y + point.y - drag.start.y,
+      };
+      itemsRef.current = replaceItem(drag.base, drag.source, moved);
+      redrawAll();
+    },
+    [toCanvasPoint, redrawAll]
+  );
+
+  /** 確定前の操作（描画中ストローク・文字のドラッグ）を取り消して、始める前の状態に戻す */
+  const cancelInProgress = useCallback(() => {
+    pendingTapRef.current = null;
+    let reverted = false;
+    if (currentStrokeRef.current && strokeBaseRef.current) {
+      itemsRef.current = strokeBaseRef.current;
+      currentStrokeRef.current = null;
+      strokeBaseRef.current = null;
+      reverted = true;
+    }
+    const drag = textDragRef.current;
+    if (drag) {
+      itemsRef.current = drag.base;
+      textDragRef.current = null;
+      reverted = true;
+    }
+    if (reverted) {
+      redrawAll();
+    }
+  }, [redrawAll]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -618,25 +820,25 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       });
 
       if (pointersRef.current.size === 2) {
-        // 2本目の指: 描きかけのストロークを取り消してピンチ操作へ移行
+        // 2本目の指: 描きかけのストロークや文字の移動を取り消してピンチ操作へ移行
         multiTouchRef.current = true;
-        pendingTapRef.current = null;
-        if (currentStrokeRef.current) {
-          itemsRef.current.pop();
-          currentStrokeRef.current = null;
-          redrawAll();
-        }
+        cancelInProgress();
         beginPinch();
         return;
       }
 
       if (pointersRef.current.size === 1 && !multiTouchRef.current) {
+        const point = toCanvasPoint(e.clientX, e.clientY);
         if (tool === 'text') {
-          // 2 本指のピンチと区別するため、文字入力は指が離れた時点で開く
-          pendingTapRef.current = { clientX: e.clientX, clientY: e.clientY };
+          // 2 本指のピンチと区別するため、入力・書き直しは指が離れた時点で、移動は動き出した時点で始める
+          const padding = TAP_MOVE_TOLERANCE / viewRef.current.scale;
+          pendingTapRef.current = {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            hitText: findTextAt(itemsRef.current, point, padding),
+          };
           return;
         }
-        const point = toCanvasPoint(e.clientX, e.clientY);
         const stroke: Stroke = {
           kind: 'stroke',
           color: penColor,
@@ -644,7 +846,8 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           points: [point],
         };
         currentStrokeRef.current = stroke;
-        itemsRef.current.push(stroke);
+        strokeBaseRef.current = itemsRef.current;
+        itemsRef.current = [...itemsRef.current, stroke];
         strokePath(canvasRef.current!.getContext('2d')!, stroke);
       }
     },
@@ -654,14 +857,32 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       penColor,
       penSize,
       toCanvasPoint,
-      redrawAll,
       beginPinch,
       commitText,
+      cancelInProgress,
     ]
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      // マウスで文字の上に乗ったら、掴んで動かせることをカーソルで示す
+      if (
+        e.pointerType === 'mouse' &&
+        pointersRef.current.size === 0 &&
+        tool === 'text' &&
+        !textDraftRef.current
+      ) {
+        const container = containerRef.current;
+        if (container) {
+          const point = toCanvasPoint(e.clientX, e.clientY);
+          const hit = findTextAt(itemsRef.current, point, 0);
+          container.style.cursor = '';
+          if (hit) {
+            container.style.cursor = 'move';
+          }
+        }
+      }
+
       if (!pointersRef.current.has(e.pointerId)) return;
       e.preventDefault();
 
@@ -689,11 +910,25 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         return;
       }
 
+      if (textDragRef.current) {
+        moveDraggedText(e.clientX, e.clientY);
+        return;
+      }
+
       const tap = pendingTapRef.current;
       if (tap) {
         const moved = Math.hypot(e.clientX - tap.clientX, e.clientY - tap.clientY);
         if (moved > TAP_MOVE_TOLERANCE) {
           pendingTapRef.current = null;
+          if (tap.hitText) {
+            // 指を置いた位置を基準にずらすため、許容範囲内で動いた分も含めて移動させる
+            textDragRef.current = {
+              source: tap.hitText,
+              base: itemsRef.current,
+              start: toCanvasPoint(tap.clientX, tap.clientY),
+            };
+            moveDraggedText(e.clientX, e.clientY);
+          }
         }
         return;
       }
@@ -707,7 +942,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         drawLatestSegment(stroke);
       }
     },
-    [toCanvasPoint, drawLatestSegment, applyView]
+    [tool, toCanvasPoint, drawLatestSegment, applyView, moveDraggedText]
   );
 
   const handlePointerUp = useCallback(
@@ -720,10 +955,20 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       }
       if (pointersRef.current.size === 0) {
         multiTouchRef.current = false;
+        const drag = textDragRef.current;
+        if (drag) {
+          textDragRef.current = null;
+          recordHistory(drag.base);
+          return;
+        }
         const tap = pendingTapRef.current;
         if (tap) {
           pendingTapRef.current = null;
-          openTextInput(tap.clientX, tap.clientY);
+          if (tap.hitText) {
+            openTextEdit(tap.hitText);
+          } else {
+            openTextInput(tap.clientX, tap.clientY);
+          }
           return;
         }
         const stroke = currentStrokeRef.current;
@@ -745,52 +990,60 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             ctx.stroke();
           }
           currentStrokeRef.current = null;
-          // 描画中のストロークは pointerdown 時点で履歴に入れているため、ここでは redo の破棄と件数更新だけ行う
-          redoItemsRef.current = [];
-          setItemCount(itemsRef.current.length);
-          setRedoCount(0);
+          const base = strokeBaseRef.current;
+          strokeBaseRef.current = null;
+          if (base) {
+            recordHistory(base);
+          }
         }
       }
     },
-    [openTextInput]
+    [openTextInput, openTextEdit, recordHistory]
   );
 
-  // OS 側の割り込み等で指が取り消されたときは、タップとして文字入力を開かない
+  // OS 側の割り込み等で指が取り消されたときは、タップとして文字入力を開かず、文字の移動も元に戻す
   const handlePointerCancel = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       pendingTapRef.current = null;
+      if (textDragRef.current) {
+        cancelInProgress();
+      }
       handlePointerUp(e);
     },
-    [handlePointerUp]
+    [handlePointerUp, cancelInProgress]
   );
 
   const handleUndo = useCallback(() => {
-    // 描画中に undo すると描きかけのストロークと履歴が食い違うため受け付けない
-    if (currentStrokeRef.current) return;
+    // 操作中に undo すると確定前の状態と履歴が食い違うため受け付けない
+    if (currentStrokeRef.current || textDragRef.current) return;
     // スマホではツールバーを押しても textarea が blur しないことがあるため、入力中の文字を先に確定して履歴に載せる
     commitText();
-    const item = itemsRef.current.pop();
-    if (!item) return;
-    redoItemsRef.current.push(item);
-    setItemCount(itemsRef.current.length);
-    setRedoCount(redoItemsRef.current.length);
+    const prev = undoStackRef.current.pop();
+    if (!prev) return;
+    redoStackRef.current.push(itemsRef.current);
+    itemsRef.current = prev;
+    syncHistoryCounts();
     redrawAll();
-  }, [commitText, redrawAll]);
+  }, [commitText, redrawAll, syncHistoryCounts]);
 
   const handleRedo = useCallback(() => {
-    if (currentStrokeRef.current) return;
+    if (currentStrokeRef.current || textDragRef.current) return;
     if (textDraftRef.current) return;
-    const item = redoItemsRef.current.pop();
-    if (!item) return;
-    itemsRef.current.push(item);
-    setItemCount(itemsRef.current.length);
-    setRedoCount(redoItemsRef.current.length);
+    const next = redoStackRef.current.pop();
+    if (!next) return;
+    undoStackRef.current.push(itemsRef.current);
+    itemsRef.current = next;
+    syncHistoryCounts();
     redrawAll();
-  }, [redrawAll]);
+  }, [redrawAll, syncHistoryCounts]);
 
   const selectTool = useCallback(
     (next: Tool) => {
       commitText();
+      // 文字ツール中にマウスホバーで付けた移動カーソルを残さない
+      if (containerRef.current) {
+        containerRef.current.style.cursor = '';
+      }
       setTool(next);
     },
     [commitText]
@@ -865,14 +1118,13 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const handleClear = useCallback(() => {
     commitText();
-    if (itemsRef.current.length === 0) return;
+    const base = itemsRef.current;
+    if (base.length === 0) return;
     if (!window.confirm('すべての描き込みを消しますか？')) return;
     itemsRef.current = [];
-    redoItemsRef.current = [];
-    setItemCount(0);
-    setRedoCount(0);
+    recordHistory(base);
     redrawAll();
-  }, [commitText, redrawAll]);
+  }, [commitText, recordHistory, redrawAll]);
 
   const handleComplete = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1006,8 +1258,10 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         {showNotice && <p className={s.notice}>{notice}</p>}
       </div>
 
-      {/* ツールバー */}
-      <div className={s.toolBar}>
+      {/* ツールバー。
+          mousedown の既定動作（フォーカス移動）を止め、文字の入力中に色・大きさを押しても入力欄が blur で確定されないようにする。
+          そうしないと PC では入力中の文字に色・大きさの変更が反映されない */}
+      <div className={s.toolBar} onMouseDown={(e) => e.preventDefault()}>
         <div className={s.toolGroup}>
           <button
             onClick={() => selectTool('pen')}
@@ -1074,7 +1328,7 @@ const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <div className={s.toolGroup}>
           <button
             onClick={handleUndo}
-            disabled={itemCount === 0 && !hasDraftText}
+            disabled={undoCount === 0 && !hasDraftText}
             className={s.toolButton}
             aria-label="元に戻す"
             title="元に戻す (⌘Z / Ctrl+Z)"
