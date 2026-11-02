@@ -74,12 +74,18 @@
 .canvasArea {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  // hidden ではなく clip にしてスクロールコンテナにしない。
+  // 文字入力欄へ focus() したとき、ブラウザがこの領域をスクロールして表示位置と描画座標がずれるのを防ぐ
+  overflow: clip;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   cursor: crosshair;
+}
+
+.canvasAreaText {
+  cursor: text;
 }
 
 .canvasWrapper {
@@ -93,6 +99,28 @@
   display: block;
   box-shadow: 0 0 0 1px rgba(white, 0.14);
   pointer-events: none;
+}
+
+// 入力中の文字。位置・サイズ・色・書体はキャンバス座標で inline style 指定する（DrawingCanvas.tsx）。
+// 枠線は em 指定にして、ズーム率によらず文字に対して同じ太さに見せる
+.textInput {
+  position: absolute;
+  // index.scss がモバイルで入力欄を 16px !important に固定している（iOS のフォーカス時ズーム防止）。
+  // ここではキャンバスの文字サイズに合わせる必要があるため同じく !important で上書きする（下限 16px は TS 側で保証）
+  font-size: var(--text-input-font-size) !important;
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: 0.05em dashed rgba(white, 0.7);
+  outline-offset: 0.1em;
+  background-color: rgba($dark-bg-primary, 0.15);
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+  // 親の .canvasArea は描画用に選択・長押しメニューを止めているが、iOS ではそれを継ぐと入力欄が編集できなくなる
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 
 // === ツールバー ===
@@ -190,6 +218,25 @@
 .penSizeDotThick {
   width: 14px;
   height: 14px;
+}
+
+// 文字ツール中に大きさボタンへ出す「A」。ドットと同じく 3 段の大小が見分けられる寸法にしている
+.textSizeGlyph {
+  display: block;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+}
+
+.textSizeGlyphThin {
+  font-size: $font-size-xs;
+}
+
+.textSizeGlyphMedium {
+  font-size: $font-size-base;
+}
+
+.textSizeGlyphThick {
+  font-size: $font-size-xl;
 }
 
 // 白紙キャンバス上の案内文。描画の邪魔をしないよう操作は素通しにする
