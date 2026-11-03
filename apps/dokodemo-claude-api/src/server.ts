@@ -636,6 +636,14 @@ async function handleAiHookEvent(
         });
     }
 
+    // ターン中に Artifact を publish していれば一覧が変わっているので、表示中のクライアントに再取得させる
+    if (event === 'Stop') {
+      const rid = repositoryIdManager.tryGetId(repositoryPath);
+      if (rid) {
+        io.emit('artifacts-updated', { rid });
+      }
+    }
+
     // Stop イベントは「プライマリのインスタンス」のみキューを進める
     if (event === 'Stop' && instance?.isPrimary) {
       await processManager.triggerQueueFromHook(repositoryPath, instance.provider);

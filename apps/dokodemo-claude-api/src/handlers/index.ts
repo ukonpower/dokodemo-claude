@@ -15,6 +15,7 @@ import { registerPromptQueueHandlers } from './prompt-queue-handlers.js';
 import { registerMiscHandlers } from './misc-handlers.js';
 import { registerFileHandlers } from './file-upload-handlers.js';
 import { registerDiffHandlers } from './diff-handlers.js';
+import { registerArtifactHandlers } from './artifact-handlers.js';
 import { registerGitActionHandlers } from './git-action-handlers.js';
 import { registerHooksHandlers } from './hooks-handlers.js';
 import { registerPluginHandlers } from './plugin-handlers.js';
@@ -92,6 +93,7 @@ export function registerAllHandlers(
   registerMiscHandlers(ctx, projectRoot);
   registerFileHandlers(ctx);
   registerDiffHandlers(ctx);
+  registerArtifactHandlers(ctx);
   registerGitActionHandlers(ctx);
   registerHooksHandlers(ctx);
   registerPluginHandlers(ctx, projectRoot);
