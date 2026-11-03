@@ -1,20 +1,21 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Send, Inbox, GitBranch, FileText, ExternalLink } from 'lucide-react';
+import { Send, Inbox, AppWindow, FileText, ExternalLink } from 'lucide-react';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { repositoryIdMap } from '@/shared/utils/repository-id-map';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
-import { useFileManagerContext } from '@/features/files/providers/FilesProvider';
-import { useGitDiffContext } from '@/features/git/providers/GitProvider';
-import { openDiffFileTab } from '@/app/utils/open-views';
+import {
+  useFileManagerContext,
+  useArtifactsContext,
+} from '@/features/files/providers/FilesProvider';
 import s from './SidePanel.module.scss';
 import FileManager from './FileManager';
-import DiffSummary from '@/features/git/components/DiffSummary';
 import MarkdownPanel from './MarkdownPanel';
+import ArtifactPanel from './ArtifactPanel';
 import SectionFullscreen from '@/shared/components/SectionFullscreen';
 import MarkdownFullscreen from './MarkdownFullscreen';
 
 
-type SectionId = 'preview' | 'files' | 'md' | 'git';
+type SectionId = 'preview' | 'files' | 'md' | 'artifact';
 
 const TAB_KEY_PREFIX = 'dokodemo-sidepanel-tab';
 
@@ -26,7 +27,7 @@ const ICON_SIZE = 14;
 // lg 以上（右列配置）ではセクション縦積み表示、lg 未満ではタブ切替表示
 const LG_MEDIA_QUERY = '(min-width: 860px)';
 
-const SECTION_IDS: SectionId[] = ['preview', 'files', 'md', 'git'];
+const SECTION_IDS: SectionId[] = ['preview', 'files', 'md', 'artifact'];
 
 interface SidePanelProps {
   /** 画像に赤入れする（Lightbox 経由。未指定なら非表示） */
@@ -68,15 +69,8 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
     deleteFile: onDeleteFile,
   } = useFileManagerContext();
 
-  // Git差分関連
-  const {
-    diffSummary,
-    diffSummaryLoading,
-    diffSummaryError,
-    refreshDiffSummary: onRefreshDiffSummary,
-  } = useGitDiffContext();
-  // 統合コード/git ブラウザを変更モードで別タブに開き、該当ファイルの差分を右ペインに表示
-  const onDiffFileClick = openDiffFileTab;
+  // claude.ai Artifact 一覧
+  const { artifacts } = useArtifactsContext();
 
   const userFiles = useMemo(
     () =>
@@ -160,18 +154,7 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
       onAnnotate={props.onAnnotateImage}
     />
   );
-  const diffBody = (
-    <div className={s.gitSection}>
-      <DiffSummary
-        rid={rid}
-        summary={diffSummary}
-        isLoading={diffSummaryLoading}
-        error={diffSummaryError}
-        onRefresh={onRefreshDiffSummary}
-        onFileClick={onDiffFileClick}
-      />
-    </div>
-  );
+  const artifactBody = <ArtifactPanel artifacts={artifacts} />;
 
   const sections: SectionDef[] = [
     {
@@ -208,12 +191,12 @@ const SidePanel: React.FC<SidePanelProps> = (props) => {
       ),
     },
     {
-      id: 'git',
-      label: 'diff',
-      icon: <GitBranch size={ICON_SIZE} />,
-      count: diffSummary ? diffSummary.files.length : 0,
-      body: diffBody,
-      fullscreenBody: diffBody,
+      id: 'artifact',
+      label: 'Artifact',
+      icon: <AppWindow size={ICON_SIZE} />,
+      count: artifacts.length,
+      body: artifactBody,
+      fullscreenBody: artifactBody,
     },
   ];
 

@@ -1,0 +1,54 @@
+// 空表示は送信・受信・MD と同じ位置に出すため、他パネルと同じ内側余白に置く
+.empty {
+  padding: $space-sm;
+}
+
+// 行の見た目は MD パネルの一覧（MarkdownPanel.module.scss）と揃える
+.list {
+  height: 100%;
+  overflow-y: auto;
+  padding: $space-2xs;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3xs;
+  @include scrollbar-thin;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+  width: 100%;
+  color: $gray-300;
+  font-size: $font-size-xs;
+  font-family: $font-sans;
+  text-decoration: none;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  min-width: 0;
+
+  &:hover {
+    background-color: $dark-bg-hover;
+    color: $gray-100;
+  }
+}
+
+.listIcon {
+  flex-shrink: 0;
+  color: $gray-300;
+}
+
+.listLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listTime {
+  flex-shrink: 0;
+  color: $gray-500;
+  font-size: $font-size-2xs;
+  white-space: nowrap;
+}

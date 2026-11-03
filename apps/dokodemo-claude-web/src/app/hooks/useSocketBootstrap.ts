@@ -177,6 +177,7 @@ export function useSocketBootstrap(options: UseSocketBootstrapOptions): void {
         socket.emit('list-branches', { rid: data.rid });
         socket.emit('get-npm-scripts', { rid: data.rid });
         socket.emit('get-files', { rid: data.rid });
+        socket.emit('get-artifacts', { rid: data.rid });
         socket.emit('get-git-diff-summary', { rid: data.rid });
         socket.emit('get-repos-process-status');
         socket.emit('get-remote-url', { rid: data.rid });
