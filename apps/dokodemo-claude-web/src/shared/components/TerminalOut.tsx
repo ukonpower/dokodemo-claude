@@ -25,6 +25,24 @@ const URL_TAIL_CHAR = /[A-Za-z0-9/?#&%=._~+\-:@]$/;
 const URL_HEAD_CHAR = /^[A-Za-z0-9/?#&%=._~+\-:@]/;
 
 /**
+ * ターミナル出力中の OSC 8 リンクを新規タブで開く
+ */
+function openTerminalLink(uri: string): void {
+  // OSC 8 の URI は任意のプログラム出力が埋め込めるため、確認無しで開くなら
+  // javascript: / file: 等を弾いて http(s) のみに限定する
+  let protocol: string;
+  try {
+    protocol = new URL(uri).protocol;
+  } catch {
+    return;
+  }
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    return;
+  }
+  window.open(uri, '_blank', 'noopener,noreferrer');
+}
+
+/**
  * TerminalOutコンポーネントのProps
  */
 interface TerminalOutProps {
@@ -271,6 +289,12 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       // 横スクロール対応の設定
       cols: 600, // 適度な列数を設定
       allowProposedApi: true, // 横スクロール機能に必要
+      // OSC 8 ハイパーリンクを確認ダイアログ無しで新規タブに開く（xterm 既定ハンドラは毎回 confirm を出す）
+      linkHandler: {
+        activate: (_event, uri) => {
+          openTerminalLink(uri);
+        },
+      },
     });
 
     // FitAddonを読み込み
