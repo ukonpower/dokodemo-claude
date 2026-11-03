@@ -33,8 +33,25 @@ export async function listArtifacts(cwd: string): Promise<ArtifactInfo[]> {
     }
   }
 
-  const result = Array.from(byUrl.values());
-  result.sort((a, b) => b.updatedAt - a.updatedAt);
+  const sorted = Array.from(byUrl.values());
+  sorted.sort((a, b) => b.updatedAt - a.updatedAt);
+  return dedupeByTitle(sorted);
+}
+
+/**
+ * 同じタイトルの Artifact は最新の 1 件だけ残す（新しい順に並んだ配列を受け取る）。
+ * 別セッションで同じ内容を作り直すと URL が変わり、url 単位では同じものが並んでしまうため。
+ */
+function dedupeByTitle(sortedNewestFirst: ArtifactInfo[]): ArtifactInfo[] {
+  const seenTitles = new Set<string>();
+  const result: ArtifactInfo[] = [];
+  for (const artifact of sortedNewestFirst) {
+    if (seenTitles.has(artifact.title)) {
+      continue;
+    }
+    seenTitles.add(artifact.title);
+    result.push(artifact);
+  }
   return result;
 }
 
