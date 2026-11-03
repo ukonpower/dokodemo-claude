@@ -10,14 +10,14 @@
  *   （ツール未使用の要約系はプロジェクト cwd を必要としないため可能）
  * - どの用途でも実行完了後に session_id 由来の jsonl を unlink する
  *
- * jsonl のパスは `cwd.replace(/[/.]/g, '-')` で決まる
- * （ai-session-manager と同じ規則）。
+ * jsonl のパスは getClaudeProjectDir（utils/claude-projects）の規則で決まる。
  */
 
 import { mkdirSync } from 'fs';
 import { unlink } from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import { getClaudeProjectDir } from './claude-projects.js';
 
 const SUMMARY_SCRATCH_DIR = path.join(
   os.homedir(),
@@ -39,10 +39,6 @@ export function getSummaryScratchCwd(): string {
   return SUMMARY_SCRATCH_DIR;
 }
 
-function encodeProjectDir(cwd: string): string {
-  return cwd.replace(/[/.]/g, '-');
-}
-
 /**
  * Agent SDK 実行後に、spawn された CLI が書いたトランスクリプト jsonl を消す。
  * 失敗しても本体機能には影響させない（fire-and-forget 想定）。
@@ -53,10 +49,7 @@ export async function deleteAgentSdkTranscript(
 ): Promise<void> {
   if (!sessionId) return;
   const jsonlPath = path.join(
-    os.homedir(),
-    '.claude',
-    'projects',
-    encodeProjectDir(cwd),
+    getClaudeProjectDir(cwd),
     `${sessionId}.jsonl`
   );
   try {

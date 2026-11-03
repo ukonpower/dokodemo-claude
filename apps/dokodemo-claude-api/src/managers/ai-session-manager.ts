@@ -24,6 +24,7 @@ import {
   PermissionMode,
 } from '../types/index.js';
 import { RingBuffer } from '../utils/ring-buffer.js';
+import { getClaudeProjectDir } from '../utils/claude-projects.js';
 import {
   cleanChildEnv,
   getDokodemoApiBaseUrl,
@@ -180,16 +181,10 @@ export class AISessionManager extends EventEmitter {
    * ファイルは作られない。
    */
   private hasClaudeTranscript(cwd: string, sessionId: string): boolean {
-    // Claude Code の projects ディレクトリ名は cwd の `/` と `.` を `-` に
-    // 置換した文字列。`/` だけ置換すると worktree の `.dokodemo-worktrees`
-    // など `.` を含むパスで jsonl 存在検知が外れ、再起動時に mode='new' で
-    // 同じ --session-id を渡してしまい "Session ID ... is already in use" になる。
-    const encoded = cwd.replace(/[/.]/g, '-');
+    // 存在検知が外れると再起動時に mode='new' で同じ --session-id を渡してしまい
+    // "Session ID ... is already in use" になるため、Claude Code と同じ規則でパスを引く。
     const jsonlPath = path.join(
-      os.homedir(),
-      '.claude',
-      'projects',
-      encoded,
+      getClaudeProjectDir(cwd),
       `${sessionId}.jsonl`
     );
     try {
