@@ -17,6 +17,7 @@ import type {
   SelfBranch,
 } from './repo';
 import type { GitBranch, GitDiffSummary, GitDiffDetail } from './git';
+import type { ArtifactInfo } from './artifact';
 import type {
   GitWorktree,
   WorktreeCreateRequest,
@@ -479,6 +480,14 @@ export interface ServerToClientEvents {
     freedBytes: number;
   }) => void;
 
+  // Artifact 一覧関連イベント
+  'artifacts-list': (data: { rid: string; artifacts: ArtifactInfo[] }) => void;
+  /**
+   * rid の Artifact 一覧が変わった可能性の通知（Stop hook 受信時に全クライアントへ配信）。
+   * 一覧の走査は表示中のクライアントだけが行えばよいので、中身は送らず再取得を促す。
+   */
+  'artifacts-updated': (data: { rid: string }) => void;
+
   // Git差分関連イベント
   'git-diff-summary': (data: { rid: string; summary: GitDiffSummary }) => void;
   'git-diff-detail': (data: {
@@ -887,6 +896,9 @@ export interface ClientToServerEvents {
     rid: string;
     source: FileSource | 'all';
   }) => void;
+
+  // Artifact 一覧関連イベント
+  'get-artifacts': (data: { rid: string }) => void;
 
   // Git差分関連イベント
   'get-git-diff-summary': (data: { rid: string }) => void;
