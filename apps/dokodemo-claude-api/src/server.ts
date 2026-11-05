@@ -54,6 +54,12 @@ import { ActionError } from './services/mcp-actions.js';
 import { getMcpPort } from './utils/clean-env.js';
 import { stripAnsi } from './utils/strip-ansi.js';
 import {
+  buildHookNotification,
+  extractTurnFromTranscript,
+  isHookNotificationEvent,
+  type TranscriptTurn,
+} from './utils/hook-notification.js';
+import {
   repositoryIdManager,
   initRepositoryIdManager,
 } from './services/repository-id-manager.js';
@@ -347,88 +353,6 @@ app.get('/api/repository-id', (req, res) => {
 });
 
 /**
- * transcriptファイル（JSONL形式）から会話サマリーを抽出する
- * @param transcriptPath transcriptファイルのパス
- * @returns lastUserCommand: 最後のユーザー指示, lastOutput: 最後のClaude出力
- */
-async function extractSummaryFromTranscript(transcriptPath: string): Promise<{
-  lastUserCommand: string | undefined;
-  lastOutput: string | undefined;
-}> {
-  let content: string;
-  try {
-    content = await fs.readFile(transcriptPath, 'utf-8');
-  } catch (error) {
-    // フック発火時点で transcript 書き込みがまだ完了していないケースがあるため、短い待機後に一度だけリトライ
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      try {
-        content = await fs.readFile(transcriptPath, 'utf-8');
-      } catch (retryError) {
-        if ((retryError as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.error('transcriptファイルの読み込みに失敗:', retryError);
-        }
-        return { lastUserCommand: undefined, lastOutput: undefined };
-      }
-    } else {
-      console.error('transcriptファイルの読み込みに失敗:', error);
-      return { lastUserCommand: undefined, lastOutput: undefined };
-    }
-  }
-
-  const lines = content.trim().split('\n');
-
-  let lastUserCommand: string | undefined;
-  let lastOutput: string | undefined;
-
-  // 各行をパースして、userとassistantのテキストメッセージを収集
-  for (const line of lines) {
-    if (!line.trim()) continue;
-
-    try {
-      const entry = JSON.parse(line);
-
-      // userタイプのメッセージからテキストを抽出
-      if (entry.type === 'user' && entry.message?.content) {
-        const textContent = entry.message.content
-          .filter(
-            (c: { type: string; text?: string }) =>
-              c.type === 'text' && c.text
-          )
-          .map((c: { type: string; text: string }) => c.text)
-          .join('\n');
-        if (textContent) {
-          lastUserCommand = textContent;
-        }
-      }
-
-      // assistantタイプのメッセージからテキストを抽出
-      if (entry.type === 'assistant' && entry.message?.content) {
-        const textContent = entry.message.content
-          .filter(
-            (c: { type: string; text?: string }) =>
-              c.type === 'text' && c.text
-          )
-          .map((c: { type: string; text: string }) => c.text)
-          .join('\n');
-        if (textContent) {
-          lastOutput = textContent;
-        }
-      }
-    } catch {
-      // 無効なJSON行はスキップ
-      continue;
-    }
-  }
-
-  if (lastOutput && lastOutput.length > 500) {
-    lastOutput = lastOutput.slice(0, 500) + '...';
-  }
-
-  return { lastUserCommand, lastOutput };
-}
-
-/**
  * AI出力履歴からセッションのやりとりを抽出する
  * @param history AI出力履歴
  * @returns lastUserCommand: 最後のユーザー指示, lastOutput: 最後のClaude出力
@@ -506,23 +430,24 @@ const hookStats = {
   lastProcessed: null as Date | null,
 };
 
-// Web Push 通知対象イベントの絵文字定義。
-// ここに載っていないイベントは通知しない（UserPromptSubmit など内部ステータス遷移専用のイベントが
-// 誤って通知されるのを防ぐためのホワイトリスト）。
-const NOTIFICATION_EVENT_EMOJIS: Record<string, string> = {
-  Stop: '✅',
-  AskUserQuestion: '❓',
-  PlanApprovalWaiting: '📋',
-  PermissionRequest: '🔐',
-};
-
 // AI Hook共通処理関数
 async function handleAiHookEvent(
   hookProvider: AiProvider,
-  body: { event?: string; metadata?: Record<string, unknown>; transcript_path?: string; cwd?: string; session_id?: string; prompt?: string }
+  body: {
+    event?: string;
+    metadata?: Record<string, unknown>;
+    transcript_path?: string;
+    cwd?: string;
+    session_id?: string;
+    prompt?: string;
+    // PreToolUse の対象ツール入力（AskUserQuestion の質問文など）
+    tool_input?: unknown;
+    // Notification hook の文言（例: "Claude needs your permission to use Bash"）
+    message?: unknown;
+  }
 ): Promise<void> {
   try {
-    const { event, metadata, transcript_path, cwd, session_id, prompt } = body;
+    const { event, metadata, transcript_path, cwd, session_id, prompt, tool_input, message } = body;
 
     if (!event || typeof event !== 'string') return;
 
@@ -587,49 +512,52 @@ async function handleAiHookEvent(
       });
     }
 
-    const repositoryName = path.basename(repositoryPath);
-    const instanceLabel = instance?.displayName
-      ? ` - ${instance.displayName}`
-      : '';
-
-    let lastUserCommand: string | undefined;
-    let lastOutput: string | undefined;
-
-    if (transcript_path) {
-      const summary = await extractSummaryFromTranscript(transcript_path);
-      lastUserCommand = summary.lastUserCommand;
-      lastOutput = summary.lastOutput;
-    } else if (instance) {
-      const outputHistory = processManager.aiSessionManager.getOutputHistory(instance.instanceId);
-      const summary = extractConversationSummary(outputHistory);
-      lastUserCommand = summary.lastUserCommand;
-      lastOutput = summary.lastOutput;
-    }
-
-    // Web Push通知を送信（ホワイトリストに載っているイベントのみ）
+    // Web Push通知を送信（UserPromptSubmit など内部ステータス遷移専用のイベントは通知しない）
     const wpService = getWebPushService();
-    const shouldNotify = event in NOTIFICATION_EVENT_EMOJIS;
-    if (wpService && shouldNotify) {
-      const emoji = NOTIFICATION_EVENT_EMOJIS[event];
-      const title = repositoryName
-        ? `${emoji} [${repositoryName}${instanceLabel}]`
-        : emoji;
+    if (wpService && isHookNotificationEvent(event)) {
+      let repositoryLabel = path.basename(repositoryPath);
+      if (instance?.displayName) {
+        repositoryLabel += ` - ${instance.displayName}`;
+      }
 
-      const bodyParts: string[] = [];
-      if (lastUserCommand) bodyParts.push(`🔧 ${lastUserCommand.slice(0, 150)}`);
-      if (lastOutput) bodyParts.push(`💬 ${lastOutput.slice(0, 150)}`);
-      const notificationBody = bodyParts.join('\n\n');
+      let turn: TranscriptTurn = {};
+      if (transcript_path) {
+        turn = await extractTurnFromTranscript(transcript_path);
+      } else if (instance) {
+        const outputHistory = processManager.aiSessionManager.getOutputHistory(instance.instanceId);
+        const summary = extractConversationSummary(outputHistory);
+        turn = {
+          lastUserPrompt: summary.lastUserCommand,
+          lastAssistantText: summary.lastOutput,
+        };
+      }
 
-      const notificationUrl = repositoryPath
-        ? `/?repo=${encodeURIComponent(repositoryPath)}`
-        : '/';
+      let activitySummary: string | undefined;
+      if (instance) {
+        activitySummary = aiActivitySummaryService.getSummary(instance.instanceId);
+      }
+
+      let hookMessage: string | undefined;
+      if (typeof message === 'string') {
+        hookMessage = message;
+      }
+
+      const notification = buildHookNotification({
+        event,
+        repositoryPath,
+        repositoryLabel,
+        activitySummary,
+        turn,
+        hookToolInput: tool_input,
+        hookMessage,
+      });
 
       wpService
         .sendNotification({
-          title,
-          body: notificationBody,
-          url: notificationUrl,
-          eventType: event as 'Stop' | 'AskUserQuestion' | 'PlanApprovalWaiting' | 'PermissionRequest',
+          title: notification.title,
+          body: notification.body,
+          url: `/?repo=${encodeURIComponent(repositoryPath)}`,
+          eventType: event,
         })
         .catch((err) => {
           console.error('Web Push通知の送信に失敗:', err);
@@ -1219,7 +1147,7 @@ processManager.on('prompt-loop-ended', (data) => {
     const body = (data.reason || 'ループが終了しました').slice(0, 150);
     wpService
       .sendNotification({
-        title: `🔁 [${repoName}] ループ終了`,
+        title: `🔁 ループ終了｜${repoName}`,
         body,
         url,
         eventType: 'LoopEnded',
@@ -1237,7 +1165,7 @@ processManager.on('loop-approval-required', (data) => {
   const url = `/?repo=${encodeURIComponent(data.repositoryPath)}`;
   wpService
     .sendNotification({
-      title: `🔁 [${repoName}] ループ確認待ち`,
+      title: `🔁 ループ確認待ち｜${repoName}`,
       body: `${data.iteration}周完了。継続しますか？`,
       url,
       eventType: 'LoopApproval',
