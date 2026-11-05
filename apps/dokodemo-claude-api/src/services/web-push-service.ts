@@ -129,6 +129,13 @@ export class WebPushService {
   }
 
   /**
+   * 通知の届け先があるか（本文の生成コストを届かない通知に使わないために確認する）
+   */
+  hasSubscriptions(): boolean {
+    return this.subscriptions.length > 0;
+  }
+
+  /**
    * 全subscriptionに通知を送信
    */
   async sendNotification(payload: WebPushPayload): Promise<void> {
