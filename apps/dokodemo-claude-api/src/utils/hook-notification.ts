@@ -1,9 +1,10 @@
 /**
  * AI の hook イベントから Web Push 通知の文面（タイトル・本文）を組み立てる
  *
- * 通知はロック画面などで数行しか見えないため、Markdown 記法や Claude Code が
- * transcript に差し込む内部向けの記録（スキル本文の展開・割り込み記録等）を除き、
- * 「何が起きたか / 何を求められているか」が本文の先頭に来るように整える。
+ * iPhone のバナーは「タイトル 1 行＋本文 1〜2 行」しか見えないため、
+ * タイトルはリポジトリ名だけ、本文は「何に取り組んでいるか」の一言だけにする。
+ * 質問・許可待ちのときだけは、何を求められているかを本文にする。
+ * イベント種別の絵文字やラベルは付けない（短さを優先するというユーザーの判断）。
  */
 
 import { promises as fs } from 'fs';
@@ -22,14 +23,12 @@ interface ToolUseInfo {
 
 /** transcript から読み取った直近ターンの情報 */
 export interface TranscriptTurn {
-  lastUserPrompt?: string;
   lastAssistantText?: string;
   lastToolUse?: ToolUseInfo;
 }
 
 export interface HookNotificationInput {
   event: HookNotificationEvent;
-  repositoryPath: string;
   // タイトルに出すリポジトリ名（タブ名を含む）
   repositoryLabel: string;
   // ai-activity-summary-service が生成した「何に取り組んでいるか」の一言
@@ -54,20 +53,18 @@ interface TranscriptEntry {
   message?: { content?: string | ContentBlock[] };
 }
 
-const EVENT_LABELS: Record<HookNotificationEvent, string> = {
-  Stop: '✅ 完了',
-  AskUserQuestion: '❓ 質問',
-  PlanApprovalWaiting: '📋 計画の承認待ち',
-  PermissionRequest: '🔐 許可待ち',
-};
+const NOTIFICATION_EVENTS: HookNotificationEvent[] = [
+  'Stop',
+  'AskUserQuestion',
+  'PlanApprovalWaiting',
+  'PermissionRequest',
+];
 
-// 本文の主行（結果・質問・許可対象）の最大文字数。iOS のロック画面で 3〜4 行に収まる目安
-const MAIN_TEXT_MAX = 120;
-// 本文の補足行（元の指示）の最大文字数
-const PROMPT_TEXT_MAX = 60;
+// 本文の最大文字数。iPhone のバナーで本文 1 行が全角 20 字ほど（実機スクショで確認）なので 2 行分
+const BODY_MAX = 40;
 
 // ユーザー発言として記録されるが、人が打った指示ではないもの。
-// スラッシュコマンド（<command-name>）は別途コマンド名に整形するのでここには含めない
+// スラッシュコマンド（<command-name>）は人の指示なのでここには含めない
 const INTERNAL_PROMPT_PREFIXES = [
   '[Request interrupted',
   '<local-command-',
@@ -83,10 +80,10 @@ const INTERNAL_PROMPT_PREFIXES = [
 export function isHookNotificationEvent(
   event: string
 ): event is HookNotificationEvent {
-  return event in EVENT_LABELS;
+  return (NOTIFICATION_EVENTS as string[]).includes(event);
 }
 
-/** transcript（JSONL）を読み、直近ターンの指示・応答・ツール呼び出しを取り出す */
+/** transcript（JSONL）を読み、直近ターンの応答・ツール呼び出しを取り出す */
 export async function extractTurnFromTranscript(
   transcriptPath: string
 ): Promise<TranscriptTurn> {
@@ -109,9 +106,7 @@ export async function extractTurnFromTranscript(
 
     const blocks = entry.message?.content;
     if (entry.type === 'user') {
-      const prompt = extractUserPrompt(blocks);
-      if (prompt) {
-        turn.lastUserPrompt = prompt;
+      if (isUserPrompt(blocks)) {
         // 新しい指示より前の応答を、今回の結果として表示しないようにする
         turn.lastAssistantText = undefined;
         turn.lastToolUse = undefined;
@@ -131,36 +126,36 @@ export async function extractTurnFromTranscript(
   return turn;
 }
 
-/** イベント種別ごとに通知のタイトルと本文を組み立てる */
+/** 通知のタイトル（リポジトリ名）と本文（一言）を組み立てる */
 export function buildHookNotification(input: HookNotificationInput): {
   title: string;
   body: string;
 } {
-  let title = `${EVENT_LABELS[input.event]}｜${input.repositoryLabel}`;
-  if (input.activitySummary) {
-    title += ` · ${input.activitySummary}`;
-  }
-
-  let mainText: string | undefined;
+  let body: string | undefined;
   if (input.event === 'AskUserQuestion') {
-    mainText = describeQuestion(input);
+    body = describeQuestion(input);
   } else if (input.event === 'PermissionRequest') {
-    mainText = describePermission(input);
-  }
-  // 質問・許可対象が取れなかった場合も、直前の発言を出して状況が分かるようにする
-  if (!mainText && input.turn.lastAssistantText) {
-    mainText = `💬 ${toPlainText(input.turn.lastAssistantText, MAIN_TEXT_MAX)}`;
+    body = describePermission(input);
   }
 
-  const lines: string[] = [];
-  if (mainText) {
-    lines.push(mainText);
+  if (!body && input.activitySummary) {
+    body = input.activitySummary;
   }
-  if (input.turn.lastUserPrompt) {
-    lines.push(`🔧 ${toPlainText(input.turn.lastUserPrompt, PROMPT_TEXT_MAX)}`);
+  // 要約はセッション最初の指示から数秒後に生成されるため、まだ無いときは応答の 1 文目で代える
+  if (!body && input.turn.lastAssistantText) {
+    body = firstSentence(toPlainText(input.turn.lastAssistantText, BODY_MAX));
   }
 
-  return { title, body: lines.join('\n') };
+  return { title: input.repositoryLabel, body: body ?? '' };
+}
+
+/** 最初の「。」までを返す（無ければそのまま） */
+function firstSentence(text: string): string {
+  const end = text.indexOf('。');
+  if (end === -1) {
+    return text;
+  }
+  return text.slice(0, end + 1);
 }
 
 /**
@@ -244,34 +239,21 @@ async function readTranscript(transcriptPath: string): Promise<string | null> {
   }
 }
 
-/** user エントリから、人が打った指示だけを取り出す（ツール結果・内部記録は undefined） */
-function extractUserPrompt(
-  content: string | ContentBlock[] | undefined
-): string | undefined {
+/** user エントリが人の打った指示かどうか（ツール結果・内部記録は false） */
+function isUserPrompt(content: string | ContentBlock[] | undefined): boolean {
   if (Array.isArray(content)) {
     for (const block of content) {
-      if (block.type === 'tool_result') return undefined;
+      if (block.type === 'tool_result') return false;
     }
   }
 
   const text = joinTextBlocks(content);
-  if (!text) return undefined;
-
-  // スラッシュコマンドは展開後の本文ではなく「/コマンド名 引数」として見せる
-  const commandName = text.match(/<command-name>([^<]*)<\/command-name>/);
-  if (commandName) {
-    const commandArgs = text.match(/<command-args>([^<]*)<\/command-args>/);
-    let command = commandName[1].trim();
-    if (commandArgs && commandArgs[1].trim()) {
-      command += ` ${commandArgs[1].trim()}`;
-    }
-    return command;
-  }
+  if (!text) return false;
 
   for (const prefix of INTERNAL_PROMPT_PREFIXES) {
-    if (text.startsWith(prefix)) return undefined;
+    if (text.startsWith(prefix)) return false;
   }
-  return text;
+  return true;
 }
 
 /** transcript の message.content（文字列 or ブロック配列）からテキストだけを連結する */
@@ -321,7 +303,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
-/** AskUserQuestion の質問文と選択肢を「質問\n選択肢: A / B」の形にする */
+/** AskUserQuestion の 1 問目の質問文を返す（選択肢は長くなるので出さない） */
 function describeQuestion(input: HookNotificationInput): string | undefined {
   let toolInput = asRecord(input.hookToolInput);
   if (!Array.isArray(toolInput.questions)) {
@@ -335,26 +317,7 @@ function describeQuestion(input: HookNotificationInput): string | undefined {
 
   const first = asRecord(questions[0]);
   if (typeof first.question !== 'string') return undefined;
-
-  // イベント種別の絵文字はタイトルに付くので、本文には付けない
-  let questionLine = toPlainText(first.question, MAIN_TEXT_MAX);
-  if (questions.length > 1) {
-    questionLine += `（ほか${questions.length - 1}問）`;
-  }
-
-  const labels: string[] = [];
-  if (Array.isArray(first.options)) {
-    for (const option of first.options) {
-      const label = asRecord(option).label;
-      if (typeof label === 'string') {
-        labels.push(label);
-      }
-    }
-  }
-  if (labels.length === 0) {
-    return questionLine;
-  }
-  return `${questionLine}\n選択肢: ${labels.join(' / ')}`;
+  return toPlainText(first.question, BODY_MAX);
 }
 
 /** 許可を求められているツールと対象（コマンド・ファイル等）を 1 行で表す */
@@ -366,11 +329,11 @@ function describePermission(input: HookNotificationInput): string | undefined {
   }
 
   const toolName = formatToolName(toolUse.name);
-  const target = describeToolTarget(toolUse.input, input.repositoryPath);
+  const target = describeToolTarget(toolUse.input);
   if (!target) {
     return toolName;
   }
-  return `${toolName}: ${toPlainText(target, MAIN_TEXT_MAX)}`;
+  return toPlainText(`${toolName}: ${target}`, BODY_MAX);
 }
 
 /** MCP ツール名（mcp__server__tool）は末尾のツール名だけにする */
@@ -395,16 +358,15 @@ const TOOL_TARGET_KEYS = [
 ];
 
 function describeToolTarget(
-  toolInput: Record<string, unknown>,
-  repositoryPath: string
+  toolInput: Record<string, unknown>
 ): string | undefined {
   for (const key of TOOL_TARGET_KEYS) {
     const value = toolInput[key];
     if (typeof value !== 'string' || !value.trim()) continue;
 
-    // ファイルパスはリポジトリ内なら相対にして短くする
-    if (path.isAbsolute(value) && value.startsWith(repositoryPath + path.sep)) {
-      return path.relative(repositoryPath, value);
+    // パスは 40 字で切ると肝心のファイル名が落ちるので、ファイル名だけにする
+    if (path.isAbsolute(value)) {
+      return path.basename(value);
     }
     return value;
   }
