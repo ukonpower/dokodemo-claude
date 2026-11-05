@@ -68,8 +68,9 @@ class AiHooksService {
   } {
     const hookUrl = this.getHookUrl(provider);
     const createHookCommand = (event: string): string => {
-      // prompt は UserPromptSubmit のみ stdin に載る（他イベントは null になるだけ）
-      return `jq -nc --arg event "${event}" --arg cwd "$PWD" 'first(inputs) | {event: $event, transcript_path: .transcript_path, session_id: .session_id, cwd: $cwd, prompt: .prompt}' | curl -k --connect-timeout 1 --max-time 3 -X POST ${hookUrl} -H 'Content-Type: application/json' -d @- || true`;
+      // prompt は UserPromptSubmit、tool_input は PreToolUse、message は Notification のみ stdin に載る
+      // （他イベントでは null になるだけ）。tool_input / message は Web Push 通知の本文に使う
+      return `jq -nc --arg event "${event}" --arg cwd "$PWD" 'first(inputs) | {event: $event, transcript_path: .transcript_path, session_id: .session_id, cwd: $cwd, prompt: .prompt, tool_input: .tool_input, message: .message}' | curl -k --connect-timeout 1 --max-time 3 -X POST ${hookUrl} -H 'Content-Type: application/json' -d @- || true`;
     };
 
     return {
