@@ -526,10 +526,7 @@ async function handleAiHookEvent(
       } else if (instance) {
         const outputHistory = processManager.aiSessionManager.getOutputHistory(instance.instanceId);
         const summary = extractConversationSummary(outputHistory);
-        turn = {
-          lastUserPrompt: summary.lastUserCommand,
-          lastAssistantText: summary.lastOutput,
-        };
+        turn = { lastAssistantText: summary.lastOutput };
       }
 
       let activitySummary: string | undefined;
@@ -544,7 +541,6 @@ async function handleAiHookEvent(
 
       const notification = buildHookNotification({
         event,
-        repositoryPath,
         repositoryLabel,
         activitySummary,
         turn,
@@ -1144,10 +1140,10 @@ processManager.on('prompt-loop-ended', (data) => {
   if (wpService) {
     const repoName = data.repositoryPath.split('/').filter(Boolean).pop() || '';
     const url = `/?repo=${encodeURIComponent(data.repositoryPath)}`;
-    const body = (data.reason || 'ループが終了しました').slice(0, 150);
+    const body = `ループ終了: ${data.reason || '完了'}`.slice(0, 40);
     wpService
       .sendNotification({
-        title: `🔁 ループ終了｜${repoName}`,
+        title: repoName,
         body,
         url,
         eventType: 'LoopEnded',
@@ -1165,8 +1161,8 @@ processManager.on('loop-approval-required', (data) => {
   const url = `/?repo=${encodeURIComponent(data.repositoryPath)}`;
   wpService
     .sendNotification({
-      title: `🔁 ループ確認待ち｜${repoName}`,
-      body: `${data.iteration}周完了。継続しますか？`,
+      title: repoName,
+      body: `ループ${data.iteration}周完了。継続しますか？`,
       url,
       eventType: 'LoopApproval',
     })
