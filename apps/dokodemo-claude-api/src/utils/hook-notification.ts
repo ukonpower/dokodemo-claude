@@ -2,8 +2,10 @@
  * AI の hook イベントから Web Push 通知の文面（タイトル・本文）を組み立てる
  *
  * iPhone のバナーは「タイトル 1 行＋本文 1〜2 行」しか見えないため、
- * タイトルはリポジトリ名だけ、本文は「何に取り組んでいるか」の一言だけにする。
- * 質問・許可待ちのときだけは、何を求められているかを本文にする。
+ * タイトルはリポジトリ名だけ、本文は読み手が知りたいことの 1 文だけにする。
+ * 質問・許可待ちは何を求められているかを即時に本文にする。Stop の本文は
+ * stop-notification-service が文脈から生成して差し替え、ここで作る本文は
+ * 生成しないとき・失敗したときの代替になる。
  * イベント種別の絵文字やラベルは付けない（短さを優先するというユーザーの判断）。
  */
 
@@ -23,6 +25,7 @@ interface ToolUseInfo {
 
 /** transcript から読み取った直近ターンの情報 */
 export interface TranscriptTurn {
+  lastUserPrompt?: string;
   lastAssistantText?: string;
   lastToolUse?: ToolUseInfo;
 }
@@ -107,6 +110,7 @@ export async function extractTurnFromTranscript(
     const blocks = entry.message?.content;
     if (entry.type === 'user') {
       if (isUserPrompt(blocks)) {
+        turn.lastUserPrompt = joinTextBlocks(blocks);
         // 新しい指示より前の応答を、今回の結果として表示しないようにする
         turn.lastAssistantText = undefined;
         turn.lastToolUse = undefined;
@@ -126,7 +130,7 @@ export async function extractTurnFromTranscript(
   return turn;
 }
 
-/** 通知のタイトル（リポジトリ名）と本文（一言）を組み立てる */
+/** 通知のタイトル（リポジトリ名）と本文を組み立てる */
 export function buildHookNotification(input: HookNotificationInput): {
   title: string;
   body: string;
@@ -138,12 +142,12 @@ export function buildHookNotification(input: HookNotificationInput): {
     body = describePermission(input);
   }
 
-  if (!body && input.activitySummary) {
-    body = input.activitySummary;
-  }
-  // 要約はセッション最初の指示から数秒後に生成されるため、まだ無いときは応答の 1 文目で代える
+  // 取り組みの要約は作業名だけで結果が分からないため、応答の 1 文目を優先する
   if (!body && input.turn.lastAssistantText) {
     body = firstSentence(toPlainText(input.turn.lastAssistantText, BODY_MAX));
+  }
+  if (!body && input.activitySummary) {
+    body = input.activitySummary;
   }
 
   return { title: input.repositoryLabel, body: body ?? '' };

@@ -57,8 +57,10 @@ import {
   buildHookNotification,
   extractTurnFromTranscript,
   isHookNotificationEvent,
+  type HookNotificationEvent,
   type TranscriptTurn,
 } from './utils/hook-notification.js';
+import { generateStopNotificationBody } from './services/stop-notification-service.js';
 import {
   repositoryIdManager,
   initRepositoryIdManager,
@@ -78,6 +80,7 @@ import {
 import {
   initWebPushService,
   getWebPushService,
+  type WebPushService,
 } from './services/web-push-service.js';
 import {
   initSelfUpdateChecker,
@@ -430,6 +433,37 @@ const hookStats = {
   lastProcessed: null as Date | null,
 };
 
+/** hook の通知を送る。Stop は本文を文脈から生成し、できなければ渡された本文で送る */
+async function sendHookNotification(params: {
+  wpService: WebPushService;
+  event: HookNotificationEvent;
+  title: string;
+  body: string;
+  url: string;
+  activitySummary?: string;
+  turn: TranscriptTurn;
+}): Promise<void> {
+  const { wpService, event, title, url, activitySummary, turn } = params;
+
+  // 質問・許可待ちはユーザーを待たせているので、生成を挟まず即時に届ける
+  let body = params.body;
+  const assistantText = turn.lastAssistantText;
+  const canGenerate =
+    aiActivitySummaryService.isEnabled() && wpService.hasSubscriptions();
+  if (event === 'Stop' && assistantText && canGenerate) {
+    const generated = await generateStopNotificationBody({
+      activitySummary,
+      userPrompt: turn.lastUserPrompt,
+      assistantText,
+    });
+    if (generated) {
+      body = generated;
+    }
+  }
+
+  await wpService.sendNotification({ title, body, url, eventType: event });
+}
+
 // AI Hook共通処理関数
 async function handleAiHookEvent(
   hookProvider: AiProvider,
@@ -548,16 +582,18 @@ async function handleAiHookEvent(
         hookMessage,
       });
 
-      wpService
-        .sendNotification({
-          title: notification.title,
-          body: notification.body,
-          url: `/?repo=${encodeURIComponent(repositoryPath)}`,
-          eventType: event,
-        })
-        .catch((err) => {
-          console.error('Web Push通知の送信に失敗:', err);
-        });
+      // 本文の生成に数秒かかるので await しない（Stop 後のキュー進行を待たせない）
+      sendHookNotification({
+        wpService,
+        event,
+        title: notification.title,
+        body: notification.body,
+        url: `/?repo=${encodeURIComponent(repositoryPath)}`,
+        activitySummary,
+        turn,
+      }).catch((err) => {
+        console.error('Web Push通知の送信に失敗:', err);
+      });
     }
 
     // ターン中に Artifact を publish していれば一覧が変わっているので、表示中のクライアントに再取得させる
