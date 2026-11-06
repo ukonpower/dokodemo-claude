@@ -464,6 +464,9 @@ async function sendHookNotification(params: {
   await wpService.sendNotification({ title, body, url, eventType: event });
 }
 
+// 人の入力待ちになる hook イベント
+const AI_WAITING_EVENTS = ['AskUserQuestion', 'PlanApprovalWaiting', 'PermissionRequest'];
+
 // AI Hook共通処理関数
 async function handleAiHookEvent(
   hookProvider: AiProvider,
@@ -527,6 +530,13 @@ async function handleAiHookEvent(
         instance.instanceId,
         event === 'Stop' ? 'completed' : 'running'
       );
+      // 質問・権限確認・プラン承認は人の入力待ち。新しいプロンプトが来たら解く
+      if (AI_WAITING_EVENTS.includes(event)) {
+        processManager.setAiWaiting(instance.instanceId, true);
+      }
+      if (event === 'UserPromptSubmit') {
+        processManager.setAiWaiting(instance.instanceId, false);
+      }
     }
 
     // 直接入力を含む全プロンプトをタブ表示用の指示内容要約へ渡す。
@@ -873,7 +883,7 @@ function handleActionError(res: express.Response, error: unknown): void {
 // ワークツリー一覧を取得（:rid は親 or worktree。getMainRepoPath で親へ正規化）
 app.get('/api/worktrees/:rid', async (req, res) => {
   try {
-    res.json(await mcpActions.listWorktrees(req.params.rid));
+    res.json(await mcpActions.listWorktrees(req.params.rid, actionDeps));
   } catch (error) {
     handleActionError(res, error);
   }

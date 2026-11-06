@@ -1,7 +1,8 @@
 // AI プロバイダーの型定義
 export type AiProvider = 'claude' | 'codex';
 export type AiExecutionStatus = 'idle' | 'running' | 'completed';
-export type RepoDisplayAiStatus = 'ready' | 'running' | 'done';
+// waiting は AskUserQuestion・権限確認・プラン承認などで人の入力を待っている状態
+export type RepoDisplayAiStatus = 'ready' | 'running' | 'waiting' | 'done';
 
 // コマンドタイプの型定義
 export type CommandType = 'prompt' | 'clear' | 'commit' | 'raw';

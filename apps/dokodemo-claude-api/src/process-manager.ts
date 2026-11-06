@@ -65,6 +65,8 @@ export class ProcessManager extends EventEmitter {
 
   // 実行状態: instanceId キー
   private aiExecutionStates: Map<string, AiExecutionState> = new Map();
+  // 入力待ち（AskUserQuestion・権限確認）のインスタンス: instanceId
+  private aiWaitingInstances: Set<string> = new Set();
   private selectedProviders: Map<string, PersistedSelectedProvider> = new Map();
   private processesDir: string;
   private selectedProvidersFile = 'repo-provider-preferences.json';
@@ -319,6 +321,11 @@ export class ProcessManager extends EventEmitter {
   }
 
   setAiExecutionStatus(instanceId: string, status: AiExecutionStatus): void {
+    // 実行が終われば入力待ちも解ける
+    if (status !== 'running') {
+      this.setAiWaiting(instanceId, false);
+    }
+
     const current = this.aiExecutionStates.get(instanceId)?.status ?? 'idle';
     if (current === status) return;
 
@@ -335,6 +342,46 @@ export class ProcessManager extends EventEmitter {
       repositoryPath: instance?.repositoryPath,
       provider: instance?.provider,
     });
+  }
+
+  isAiWaiting(instanceId: string): boolean {
+    return this.aiWaitingInstances.has(instanceId);
+  }
+
+  /**
+   * 入力待ちの印を付け外しする（待ちになる hook で付け、入力・終了で外す）
+   * 変わったときは実行状態の変化として通知し、表示用の状態を配り直させる
+   */
+  setAiWaiting(instanceId: string, waiting: boolean): void {
+    if (this.aiWaitingInstances.has(instanceId) === waiting) return;
+
+    if (waiting) {
+      this.aiWaitingInstances.add(instanceId);
+    } else {
+      this.aiWaitingInstances.delete(instanceId);
+    }
+
+    const instance = this.aiSessionManager.getInstance(instanceId);
+    this.emit('ai-execution-status-changed', {
+      instanceId,
+      status: this.getAiExecutionStatus(instanceId),
+      repositoryPath: instance?.repositoryPath,
+      provider: instance?.provider,
+    });
+  }
+
+  /**
+   * リポジトリ（ワークツリー）の表示用の AI 状態（プライマリインスタンス基準）
+   */
+  getDisplayAiStatus(repositoryPath: string): RepoDisplayAiStatus {
+    const primary = this.aiSessionManager.getPrimaryInstance(repositoryPath);
+    if (!primary) return 'ready';
+    if (this.isAiWaiting(primary.instanceId)) return 'waiting';
+
+    const status = this.getAiExecutionStatus(primary.instanceId);
+    if (status === 'running') return 'running';
+    if (status === 'completed') return 'done';
+    return 'ready';
   }
 
   /**
@@ -537,14 +584,18 @@ export class ProcessManager extends EventEmitter {
   }
 
   async closeInstance(instanceId: string): Promise<boolean> {
+    this.setAiWaiting(instanceId, false);
     return await this.aiSessionManager.closeInstance(instanceId);
   }
 
   sendToInstance(instanceId: string, input: string): boolean {
+    // 人が入力したら入力待ちは解けたとみなす
+    this.setAiWaiting(instanceId, false);
     return this.aiSessionManager.sendInput(instanceId, input);
   }
 
   sendSignalToInstance(instanceId: string, signal: string): boolean {
+    this.setAiWaiting(instanceId, false);
     return this.aiSessionManager.sendSignal(instanceId, signal);
   }
 
@@ -648,12 +699,7 @@ export class ProcessManager extends EventEmitter {
       promptQueuePending += queue.filter((i) => i.status === 'pending').length;
     }
 
-    let displayAiStatus: RepoDisplayAiStatus = 'ready';
-    if (primaryStatus === 'running') {
-      displayAiStatus = 'running';
-    } else if (primaryStatus === 'completed') {
-      displayAiStatus = 'done';
-    }
+    const displayAiStatus = this.getDisplayAiStatus(repositoryPath);
 
     const displayProvider = primaryProvider ?? selectedProvider;
 

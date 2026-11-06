@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Check, Loader } from 'lucide-react';
+import { Check, Hand, Loader } from 'lucide-react';
 import type { AiProvider, RepoDisplayAiStatus } from '@/types';
 import { getProviderShortName } from '@/features/ai/utils/ai-provider-info';
 import s from './ProjectAiStatusBadge.module.scss';
@@ -13,6 +13,7 @@ interface ProjectAiStatusBadgeProps {
 const STATUS_LABELS: Record<RepoDisplayAiStatus, string> = {
   ready: '待機中',
   running: '実行中',
+  waiting: '入力待ち',
   done: '完了',
 };
 
@@ -31,18 +32,26 @@ export default function ProjectAiStatusBadge({
 
   if (displayAiStatus === 'ready') return <></>;
 
+  // 状態ごとの色とアイコン（入力待ちは人の操作が要るので警告色）
+  let stateClass = s.done;
+  let icon = <Check size={12} aria-hidden />;
+  if (displayAiStatus === 'running') {
+    stateClass = s.running;
+    icon = <Loader size={12} className={s.spinIcon} aria-hidden />;
+  }
+  if (displayAiStatus === 'waiting') {
+    stateClass = s.waiting;
+    icon = <Hand size={12} aria-hidden />;
+  }
+
   return (
     <span
       title={title}
       role="img"
       aria-label={title}
-      className={`${s.badge} ${displayAiStatus === 'running' ? s.running : s.done}`}
+      className={`${s.badge} ${stateClass}`}
     >
-      {displayAiStatus === 'running' ? (
-        <Loader size={12} className={s.spinIcon} aria-hidden />
-      ) : (
-        <Check size={12} aria-hidden />
-      )}
+      {icon}
     </span>
   );
 }
