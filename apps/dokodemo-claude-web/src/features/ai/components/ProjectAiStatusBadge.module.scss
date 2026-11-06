@@ -33,3 +33,9 @@
   background-color: $color-success-bg;
   color: $color-success;
 }
+
+// 入力待ち（質問・権限確認・プラン承認）は人の操作が要るので警告色
+.waiting {
+  background-color: $color-warning-bg;
+  color: $color-warning;
+}
