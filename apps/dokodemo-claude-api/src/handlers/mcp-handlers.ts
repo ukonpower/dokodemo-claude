@@ -44,6 +44,7 @@ const TOOL_DEFS = [
     name: 'worktree_list',
     description:
       '親リポジトリ配下の main と全ワークツリーを一覧する。各要素は rid/wtid と isMain を持つ。' +
+      'displayAiStatus（ready / running / waiting（人の入力待ち） / done）と activitySummary（指示内容の要約）も持つ。' +
       'targets 指定やループ処理に使う wtid はこの結果から取得する。',
     inputSchema: {
       type: 'object',
@@ -356,7 +357,7 @@ async function dispatch(
     case 'repository_id':
       return actions.getRepositoryId(str(args.path));
     case 'worktree_list':
-      return actions.listWorktrees(str(args.rid));
+      return actions.listWorktrees(str(args.rid), deps);
     case 'worktree_create':
       return actions.createWorktreeAction(
         str(args.rid),

@@ -14,6 +14,7 @@ import type {
   WorktreeSyncEntry,
 } from '../types/index.js';
 import { repositoryIdManager } from './repository-id-manager.js';
+import { aiActivitySummaryService } from './ai-activity-summary-service.js';
 import {
   getMainRepoPath,
   getWorktrees,
@@ -98,7 +99,15 @@ export function getRepositoryId(path: string): { path: string; rid: string } {
 // worktree
 // ---------------------------------------------------------------------------
 
-export async function listWorktrees(rid: string): Promise<object> {
+/**
+ * ワークツリー一覧。各ワークツリーの表示用の AI 状態（displayAiStatus）と、
+ * プライマリインスタンスの指示内容の要約（activitySummary）を添える
+ */
+export async function listWorktrees(
+  rid: string,
+  deps: ActionDeps
+): Promise<object> {
+  const { processManager } = deps;
   const resolved = repositoryIdManager.getPath(rid);
   if (!resolved) throw new ActionError(404, 'リポジトリが見つかりません');
   const parentRepoPath = getMainRepoPath(resolved);
@@ -107,12 +116,22 @@ export async function listWorktrees(rid: string): Promise<object> {
     success: true,
     parentRepoPath,
     prid: repositoryIdManager.tryGetId(parentRepoPath),
-    worktrees: worktrees.map((w) => ({
-      path: w.path,
-      branch: w.branch,
-      isMain: w.isMain,
-      rid: repositoryIdManager.tryGetId(w.path),
-    })),
+    worktrees: worktrees.map((w) => {
+      const primary = processManager.aiSessionManager.getPrimaryInstance(w.path);
+      let activitySummary = '';
+      if (primary) {
+        activitySummary =
+          aiActivitySummaryService.getSummary(primary.instanceId) ?? '';
+      }
+      return {
+        path: w.path,
+        branch: w.branch,
+        isMain: w.isMain,
+        rid: repositoryIdManager.tryGetId(w.path),
+        displayAiStatus: processManager.getDisplayAiStatus(w.path),
+        activitySummary,
+      };
+    }),
   };
 }
 
