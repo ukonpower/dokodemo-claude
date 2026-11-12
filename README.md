@@ -86,6 +86,7 @@ AI セッションの完了や権限要求などをプッシュ通知します�
 | `DC_HTTPS_ROOT_CA_PATH` | — | ルート CA（任意。`/api/cert` で配信） |
 | `DC_REPOSITORIES_DIR` | `repositories` | リポジトリ保存先（相対: backend ディレクトリ基準） |
 | `DC_VAPID_CONTACT` | — | Web Push 用連絡先メール（Safari 対応時に設定） |
+| `DC_CENTRAL_URL` | — | central の server の URL（例: `http://127.0.0.1:4501`）。設定すると AI のターン終了を central へ知らせる |
 
 ## 注意事項
 

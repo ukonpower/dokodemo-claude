@@ -61,6 +61,7 @@ import {
   type TranscriptTurn,
 } from './utils/hook-notification.js';
 import { generateStopNotificationBody } from './services/stop-notification-service.js';
+import { sendCentralWorkSignal } from './services/central-signal-service.js';
 import {
   repositoryIdManager,
   initRepositoryIdManager,
@@ -612,6 +613,15 @@ async function handleAiHookEvent(
       if (rid) {
         io.emit('artifacts-updated', { rid });
       }
+    }
+
+    // ターンが終わったことを central へ知らせる（await しない。central が遅くてもキューの進行を待たせない）
+    if (event === 'Stop') {
+      let transcriptPath: string | null = null;
+      if (typeof transcript_path === 'string' && transcript_path !== '') {
+        transcriptPath = transcript_path;
+      }
+      void sendCentralWorkSignal({ cwd: repositoryPath, transcriptPath });
     }
 
     // Stop イベントは「プライマリのインスタンス」のみキューを進める
