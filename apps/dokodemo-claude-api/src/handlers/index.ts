@@ -22,6 +22,7 @@ import { registerPluginHandlers } from './plugin-handlers.js';
 import { registerFileViewerHandlers } from './file-viewer-handlers.js';
 import { registerWebPushHandlers } from './web-push-handlers.js';
 import { registerCustomAiButtonHandlers } from './custom-ai-button-handlers.js';
+import { registerHookWebhookHandlers } from './hook-webhook-handlers.js';
 import { registerWorktreeSyncHandlers } from './worktree-sync-handlers.js';
 import { emitIdMappingTo } from './id-mapping-helpers.js';
 
@@ -100,6 +101,7 @@ export function registerAllHandlers(
   registerFileViewerHandlers(ctx);
   registerWebPushHandlers(ctx);
   registerCustomAiButtonHandlers(ctx);
+  registerHookWebhookHandlers(ctx);
   registerWorktreeSyncHandlers(ctx);
 
   // 切断時のクリーンアップ

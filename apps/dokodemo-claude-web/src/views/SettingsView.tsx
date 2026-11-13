@@ -10,6 +10,7 @@ import { useAppSettingsContext } from '@/app/providers/AppSettingsProvider';
 import { useRepositoryContext } from '@/features/repo/providers/RepositoryProvider';
 import { useNavigationContext } from '@/app/providers/NavigationProvider';
 import { useSectionScrollSpy } from '@/shared/hooks/useSectionScrollSpy';
+import { HookWebhookSettings } from '@/views/HookWebhookSettings';
 import s from './settings-layout.module.scss';
 import v from './SettingsView.module.scss';
 
@@ -550,6 +551,8 @@ export function SettingsView() {
                     </Button>
                   </div>
                 </div>
+
+                <HookWebhookSettings />
               </div>
             </section>
 

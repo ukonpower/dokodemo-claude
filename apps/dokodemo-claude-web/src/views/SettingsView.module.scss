@@ -181,3 +181,37 @@
     color: $gray-500;
   }
 }
+
+// --- 連携セクション（Webhook） ---
+
+.webhookUrl {
+  font-family: $font-mono;
+  font-size: $font-size-xs;
+  color: $gray-300;
+  word-break: break-all;
+}
+
+.webhookForm {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+
+  @include sm-down {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.webhookInput {
+  flex: 1;
+  min-width: 0;
+  padding: $space-2xs $space-sm;
+  border-radius: $radius;
+  background-color: $dark-bg-input;
+  color: $dark-text-primary;
+  font-size: $font-size-xs;
+
+  &::placeholder {
+    color: $gray-500;
+  }
+}

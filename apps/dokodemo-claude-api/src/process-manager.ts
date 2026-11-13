@@ -22,6 +22,7 @@ import {
   ProcessRegistry,
   ProcessMonitor,
   CustomAiButtonManager,
+  HookWebhookManager,
   WorktreeSyncManager,
   WorktreeSortOrderManager,
   WorktreeMemoManager,
@@ -53,6 +54,7 @@ export class ProcessManager extends EventEmitter {
   public readonly terminalManager: TerminalManager;
   public readonly promptQueueManager: PromptQueueManager;
   public readonly customAiButtonManager: CustomAiButtonManager;
+  public readonly hookWebhookManager: HookWebhookManager;
   public readonly worktreeSyncManager: WorktreeSyncManager;
   public readonly worktreeSortOrderManager: WorktreeSortOrderManager;
   public readonly worktreeMemoManager: WorktreeMemoManager;
@@ -147,6 +149,8 @@ export class ProcessManager extends EventEmitter {
     this.customAiButtonManager = new CustomAiButtonManager(
       this.persistenceService
     );
+
+    this.hookWebhookManager = new HookWebhookManager(this.persistenceService);
 
     // WorktreeSyncManager: 親リポジトリごとに worktree 作成時の同期設定を保持
     this.worktreeSyncManager = new WorktreeSyncManager(this.persistenceService);
@@ -406,6 +410,7 @@ export class ProcessManager extends EventEmitter {
     await this.shortcutManager.initialize();
     await this.promptQueueManager.initialize();
     await this.customAiButtonManager.initialize();
+    await this.hookWebhookManager.initialize();
     await this.worktreeSyncManager.initialize();
     await this.worktreeSortOrderManager.initialize();
     await this.worktreeMemoManager.initialize();
