@@ -7,7 +7,11 @@ import type {
   CustomAiButton,
   CustomAiButtonScope,
 } from './ai';
-import type { PermissionMode, PushSubscriptionJSON } from './settings';
+import type {
+  HookWebhook,
+  PermissionMode,
+  PushSubscriptionJSON,
+} from './settings';
 import type {
   IdMappingData,
   GitRepository,
@@ -84,6 +88,14 @@ export interface ServerToClientEvents {
   }) => void;
   // AI タブの指示内容要約の設定（現在値の通知）
   'ai-summary-settings': (data: { enabled: boolean }) => void;
+  // Webhook 関連イベント
+  'hook-webhooks-list': (data: { webhooks: HookWebhook[] }) => void;
+  'hook-webhook-saved': (data: { success: boolean; message: string }) => void;
+  'hook-webhook-tested': (data: {
+    id: string;
+    success: boolean;
+    message: string;
+  }) => void;
   'repo-cloned': (data: {
     success: boolean;
     message: string;
@@ -923,6 +935,12 @@ export interface ClientToServerEvents {
   // AI タブの指示内容要約の設定
   'get-ai-summary-settings': () => void;
   'set-ai-summary-settings': (data: { enabled: boolean }) => void;
+
+  // Webhook（AI の hook イベントを外へ知らせる送り先）関連イベント
+  'list-hook-webhooks': () => void;
+  'add-hook-webhook': (data: { url: string }) => void;
+  'delete-hook-webhook': (data: { id: string }) => void;
+  'test-hook-webhook': (data: { id: string }) => void;
 
   // Claude Code プラグイン関連イベント
   'check-plugin-status': () => void;

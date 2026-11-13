@@ -614,6 +614,19 @@ async function handleAiHookEvent(
       }
     }
 
+    // 登録された Webhook へイベントを知らせる（await しない。送り先が遅くてもキューの進行を待たせない）
+    let webhookTranscriptPath: string | null = null;
+    if (typeof transcript_path === 'string' && transcript_path !== '') {
+      webhookTranscriptPath = transcript_path;
+    }
+    void processManager.hookWebhookManager.sendToAll({
+      event,
+      provider: hookProvider,
+      repositoryPath,
+      transcriptPath: webhookTranscriptPath,
+      timestamp: Date.now(),
+    });
+
     // Stop イベントは「プライマリのインスタンス」のみキューを進める
     if (event === 'Stop' && instance?.isPrimary) {
       await processManager.triggerQueueFromHook(repositoryPath, instance.provider);

@@ -66,6 +66,24 @@ HTTPS が不要なら `DC_USE_HTTPS=false` で HTTP 起動できます。
 | エンドポイント | `POST /hook/claude-event`（Codex は `/hook/codex-event`） |
 | イベント | `Stop`, `UserPromptSubmit`, `PermissionRequest` |
 
+## Webhook
+
+AI の hook イベントを、登録した URL へ `POST` で知らせます。外のツールを dokodemo-claude の作業の進みに合わせて動かしたいときに使います。**設定画面の「連携 > Webhook」で URL を追加・削除・テスト送信できます**（Hook 連携の登録が必要）。
+
+本文（JSON）:
+
+| 項目 | 内容 |
+|------|------|
+| `event` | `Stop` / `UserPromptSubmit` / `AskUserQuestion` / `PlanApprovalWaiting` / `PermissionRequest`（テスト送信は `Test`） |
+| `provider` | `claude` / `codex` |
+| `repositoryPath` | イベントが起きたリポジトリ（本体かワークツリー）の絶対パス |
+| `transcriptPath` | 会話ログ（jsonl）の絶対パス。無ければ `null` |
+| `timestamp` | 送った時刻（ミリ秒） |
+
+- 送り先の応答は 3 秒で打ち切り、失敗しても再送しません
+- 送り先が `localhost` / `127.0.0.1` のときだけ、TLS 証明書の検証を省きます（自己署名証明書のサーバー向け）
+- 送り先は `processes/hook-webhooks.json` に保存されます
+
 ## Web Push 通知
 
 AI セッションの完了や権限要求などをプッシュ通知します。設定モーダルから購読・テスト送信できます。
