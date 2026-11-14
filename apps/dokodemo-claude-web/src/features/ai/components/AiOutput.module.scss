@@ -15,6 +15,10 @@
 
 .terminalArea {
   flex: 1 1 0%;
+  // flex 子の既定（min-height: auto）だと、中の xterm の現在の高さ（行数 × 行高）が
+  // この要素の下限になる。表示エリアが縮んでもここが縮まず、xterm が古い高さのまま
+  // はみ出して下が見切れるため 0 にして、常に親から配られた高さに従わせる
+  min-height: 0;
   background-color: $dark-bg-primary;
   position: relative;
 }

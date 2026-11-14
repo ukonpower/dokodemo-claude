@@ -139,13 +139,6 @@ const TerminalComponent: React.FC<TerminalProps> = ({
       if (initialSize && onResize) {
         onResize(terminal.id, initialSize.cols, initialSize.rows);
       }
-
-      // ターミナルのリサイズイベントをリッスン
-      if (onResize) {
-        terminalInstance.onResize(({ cols, rows }) => {
-          onResize(terminal.id, cols, rows);
-        });
-      }
     },
     [terminal.id, onResize]
   );
