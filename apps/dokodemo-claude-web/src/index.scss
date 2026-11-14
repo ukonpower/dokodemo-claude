@@ -19,6 +19,41 @@ body {
   line-height: 1.5;
 }
 
+// --- iOS / iPadOS 26 の PWA で画面上端がぼける対策 ---
+// iPadOS 26 以降のホーム画面アプリは、ステータスバー直下の約 40pt に OS が
+// ぼかし（スクロールエッジ効果）を常時重ねる。無効化する CSS / meta は無いが、
+// WebKit は「上端中央の 4px 下にある position: fixed 要素（幅がビューポートの
+// 90% 以上・高さ 10px 超）」を見つけると、ぼかしの代わりにその背景色で
+// ステータスバーを塗る（WebKit の LocalFrameView::fixedContainerEdges）。
+// その判定に拾わせるためだけの帯で、高さ 12px は「10px 超」を満たす最小限の値。
+// 初回フレームに帯が無いとぼかしが残ることがあるため、React の外（index.html）に置く。
+.ios-status-bar-band {
+  display: none;
+}
+
+@media (display-mode: standalone) {
+  // -webkit-touch-callout は iOS / iPadOS の WebKit だけが対応する（他環境へ影響させない）
+  @supports (-webkit-touch-callout: none) {
+    .ios-status-bar-band {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 12px;
+      // index.html の theme-color と同じ色
+      background-color: $dark-bg-primary;
+      // WebKit は色をスタイルから読むだけなので、文字の無い要素を text で
+      // 切り抜いて何も描かせない（ヘッダーの見た目を変えない）
+      -webkit-background-clip: text;
+      background-clip: text;
+      // 判定点をダイアログやメニューに覆われないよう、取りうる最大値にする
+      z-index: 2147483647;
+      pointer-events: none;
+    }
+  }
+}
+
 button {
   background: none;
   border: none;
