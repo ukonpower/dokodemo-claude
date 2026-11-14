@@ -137,6 +137,7 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   const linkProviderDisposable = useRef<IDisposable | null>(null);
   const resizeObserver = useRef<ResizeObserver | null>(null);
   const onKeyInputRef = useRef<typeof onKeyInput>(onKeyInput);
+  const onResizeRef = useRef<typeof onResize>(onResize);
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const lastTouchY = useRef<number>(0);
   const isTwoFingerScroll = useRef<boolean>(false);
@@ -153,6 +154,12 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
   useEffect(() => {
     onKeyInputRef.current = onKeyInput;
   }, [onKeyInput]);
+
+  // onResize も同様に最新値を ref で保持する。ResizeObserver などマウント時に一度だけ
+  // 登録する経路から、初回レンダー時点の古いコールバックを呼ばないようにするため
+  useEffect(() => {
+    onResizeRef.current = onResize;
+  }, [onResize]);
 
   // ファイルドラッグ&ドロップを capture フェーズで横取りする。
   // xterm.js の helper textarea がドロップを受け取って onData として
@@ -215,24 +222,16 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     }
 
     try {
-      const beforeCols = terminal.current.cols;
-      const beforeRows = terminal.current.rows;
+      // サイズが変わった場合の onResize 通知は、初期化時に登録した terminal.onResize が行う
       fitAddon.current.fit();
-      const afterCols = terminal.current.cols;
-      const afterRows = terminal.current.rows;
       if (terminal.current.rows > 0) {
         terminal.current.refresh(0, terminal.current.rows - 1);
-      }
-
-      // サイズが変更された場合、onResizeコールバックを呼び出す
-      if (onResize && (beforeCols !== afterCols || beforeRows !== afterRows)) {
-        onResize(afterCols, afterRows);
       }
     } catch (error) {
       // fit()中にdimensionsが未定義の場合などのエラーをキャッチ
       console.warn('Failed to fit terminal:', error);
     }
-  }, [onResize]);
+  }, []);
 
   // ターミナルを初期化
   useEffect(() => {
@@ -584,6 +583,13 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
       }
     });
 
+    // 行数・列数が変わったら、どの経路の fit でも必ず親（PTY のリサイズ送信）へ知らせる。
+    // 親コンポーネントが fitAddon.fit() を直接呼ぶ経路もあるため、fitTerminal の中ではなく
+    // xterm 自身のリサイズイベントで拾う
+    terminal.current.onResize(({ cols, rows }) => {
+      onResizeRef.current?.(cols, rows);
+    });
+
     // サイズを自動調整
     setTimeout(() => {
       fitTerminal();
@@ -603,6 +609,15 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
         fitTerminal();
       });
       resizeObserver.current.observe(terminalRef.current);
+      // 表示エリア（コンテナ）だけでなく xterm の描画領域も監視する。
+      // xterm はリサイズ直後・ブラウザのズーム変更時などにセル寸法を測り直すため、
+      // Web フォントの読み込み完了をまたぐと「行数は古いセル高で決めたのに、描画は新しい
+      // セル高」になり、コンテナの大きさが変わらないまま描画領域だけがはみ出す。
+      // 描画領域の実寸が変わった時点で fit し直せば、行数は必ず現在のセル高で決まる。
+      // （行数・列数が変わらない fit は何もしないので、監視と fit が循環することはない）
+      if (screenElement) {
+        resizeObserver.current.observe(screenElement);
+      }
     }
 
     // フォーカス時にリサイズイベントを送信
@@ -650,13 +665,11 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     terminal.current.options.fontSize = fontSize;
 
     // レイアウトを再調整
-    setTimeout(() => {
-      fitAddon.current?.fit();
-      if (terminal.current && terminal.current.rows > 0) {
-        terminal.current.refresh(0, terminal.current.rows - 1);
-      }
+    const timeoutId = setTimeout(() => {
+      fitTerminal();
     }, 0);
-  }, [fontSize]);
+    return () => clearTimeout(timeoutId);
+  }, [fontSize, fitTerminal]);
 
   // isActive が true になったときに xterm を再初期化
   useEffect(() => {
@@ -668,18 +681,11 @@ const TerminalOut: React.FC<TerminalOutProps> = ({
     ) {
       // 少し遅延させて DOM が完全に表示されてからリサイズ
       const timeoutId = setTimeout(() => {
-        try {
-          fitAddon.current?.fit();
-          if (terminal.current && terminal.current.rows > 0) {
-            terminal.current.refresh(0, terminal.current.rows - 1);
-          }
-        } catch {
-          // fit() が失敗した場合は無視
-        }
+        fitTerminal();
       }, 50);
       return () => clearTimeout(timeoutId);
     }
-  }, [isActive]);
+  }, [isActive, fitTerminal]);
 
   // バッファからテキストを取得（isWrapped を考慮して論理行を連結）
   const getVisibleText = useCallback(() => {
